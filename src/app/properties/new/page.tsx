@@ -41,14 +41,24 @@ export default function NewPropertyPage() {
   });
 
   // Dwelling form state
-  const [dwellings, setDwellings] = useState([
+  type DwellingForm = {
+    dwellingName: string;
+    dwellingType: "house" | "villa" | "apartment" | "unit";
+    bedrooms: number;
+    bathrooms: number;
+    sdaDesignCategory: "improved_liveability" | "fully_accessible" | "robust" | "high_physical_support";
+    sdaBuildingType: "new_build" | "existing";
+    maxParticipants: number;
+  };
+  
+  const [dwellings, setDwellings] = useState<DwellingForm[]>([
     {
       dwellingName: "Main House",
-      dwellingType: "house" as const,
+      dwellingType: "house",
       bedrooms: 3,
       bathrooms: 2,
-      sdaDesignCategory: "high_physical_support" as const,
-      sdaBuildingType: "new_build" as const,
+      sdaDesignCategory: "high_physical_support",
+      sdaBuildingType: "new_build",
       maxParticipants: 3,
     },
   ]);

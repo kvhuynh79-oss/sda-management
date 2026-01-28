@@ -18,6 +18,11 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const properties = useQuery(api.properties.getAll);
+  const alertStats = useQuery(api.alerts.getStats);
+  const scheduleStats = useQuery(api.preventativeSchedule.getStats);
+  const upcomingSchedules = useQuery(api.preventativeSchedule.getUpcoming, { limit: 5 });
+  const overdueSchedules = useQuery(api.preventativeSchedule.getOverdue);
+  const activeAlerts = useQuery(api.alerts.getActive);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -64,6 +69,24 @@ export default function DashboardPage() {
                 </Link>
                 <Link href="/participants" className="text-gray-400 hover:text-white transition-colors">
                   Participants
+                </Link>
+                <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
+                  Payments
+                </Link>
+                <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
+                  Maintenance
+                </Link>
+                <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
+                  Documents
+                </Link>
+                <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
+                  Alerts
+                </Link>
+                <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
+                  Schedule
+                </Link>
+                <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
+                  Settings
                 </Link>
               </nav>
             </div>
@@ -115,12 +138,46 @@ export default function DashboardPage() {
               color="yellow"
             />
           </Link>
-          <DashboardCard
-            title="Alerts"
-            value="0"
-            subtitle="Require attention"
-            color="red"
-          />
+          <Link href="/alerts">
+            <DashboardCard
+              title="Alerts"
+              value={(alertStats?.active || 0).toString()}
+              subtitle={`${alertStats?.critical || 0} critical`}
+              color="red"
+            />
+          </Link>
+        </div>
+
+        {/* Preventative Maintenance Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Link href="/preventative-schedule?status=overdue">
+            <DashboardCard
+              title="Overdue Maintenance"
+              value={(scheduleStats?.overdue || 0).toString()}
+              subtitle="Requires immediate attention"
+              color="red"
+            />
+          </Link>
+          <Link href="/preventative-schedule?status=due_soon">
+            <DashboardCard
+              title="Due Within 7 Days"
+              value={(upcomingSchedules?.filter(s => s.daysUntilDue >= 0 && s.daysUntilDue <= 7).length || 0).toString()}
+              subtitle="Upcoming scheduled tasks"
+              color="yellow"
+            />
+          </Link>
+          <Link href="/preventative-schedule">
+            <DashboardCard
+              title="Due Within 30 Days"
+              value={(scheduleStats?.dueWithin30Days || 0).toString()}
+              subtitle={`Est. $${
+                upcomingSchedules
+                  ?.filter(s => s.daysUntilDue >= 0 && s.daysUntilDue <= 30)
+                  .reduce((sum, s) => sum + (s.estimatedCost || 0), 0) || 0
+              }`}
+              color="blue"
+            />
+          </Link>
         </div>
 
         {/* Quick Actions */}
@@ -139,8 +196,66 @@ export default function DashboardPage() {
             <Link href="/payments/new">
               <QuickActionButton label="Record Payment" />
             </Link>
+            <Link href="/documents/new">
+              <QuickActionButton label="Upload Document" />
+            </Link>
+            <Link href="/preventative-schedule/new">
+              <QuickActionButton label="Schedule Maintenance" />
+            </Link>
           </div>
         </div>
+
+        {/* Upcoming Preventative Maintenance */}
+        {upcomingSchedules && upcomingSchedules.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">Upcoming Preventative Maintenance</h3>
+              <Link href="/preventative-schedule" className="text-blue-400 hover:text-blue-300 text-sm">
+                View all →
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {upcomingSchedules.map((schedule) => {
+                const isOverdue = schedule.daysUntilDue < 0;
+                const isDueSoon = schedule.daysUntilDue >= 0 && schedule.daysUntilDue <= 7;
+                const statusColor = isOverdue
+                  ? "bg-red-600"
+                  : isDueSoon
+                  ? "bg-yellow-600"
+                  : "bg-green-600";
+                const statusText = isOverdue
+                  ? `OVERDUE (${Math.abs(schedule.daysUntilDue)} days)`
+                  : `Due in ${schedule.daysUntilDue} days`;
+
+                return (
+                  <Link key={schedule._id} href="/preventative-schedule">
+                    <div className="flex justify-between items-center p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-white font-medium">{schedule.taskName}</p>
+                          <span className={`px-2 py-1 text-white text-xs rounded-full ${statusColor}`}>
+                            {statusText}
+                          </span>
+                        </div>
+                        <p className="text-gray-400 text-sm">
+                          {schedule.dwelling
+                            ? `${schedule.dwelling.dwellingName} at ${schedule.property?.addressLine1}`
+                            : schedule.property?.addressLine1}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white">{schedule.nextDueDate}</p>
+                        {schedule.estimatedCost && (
+                          <p className="text-gray-400 text-sm">${schedule.estimatedCost}</p>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Recent Properties */}
         {properties && properties.length > 0 && (
@@ -178,10 +293,42 @@ export default function DashboardPage() {
 
         {/* Alerts Section */}
         <div className="bg-gray-800 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Recent Alerts</h3>
-          <div className="text-gray-400 text-center py-8">
-            No alerts at this time
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-white">Recent Alerts</h3>
+            <Link href="/alerts" className="text-blue-400 hover:text-blue-300 text-sm">
+              View all →
+            </Link>
           </div>
+          {activeAlerts && activeAlerts.length > 0 ? (
+            <div className="space-y-3">
+              {activeAlerts.slice(0, 5).map((alert) => {
+                const severityColors: Record<string, string> = {
+                  critical: "bg-red-600",
+                  warning: "bg-yellow-600",
+                  info: "bg-blue-600",
+                };
+                return (
+                  <Link key={alert._id} href="/alerts">
+                    <div className="p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className={`px-2 py-1 text-white text-xs rounded-full ${
+                            severityColors[alert.severity]
+                          }`}
+                        >
+                          {alert.severity.toUpperCase()}
+                        </span>
+                        <span className="text-white font-medium">{alert.title}</span>
+                      </div>
+                      <p className="text-gray-400 text-sm">{alert.message}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-gray-400 text-center py-8">No alerts at this time</div>
+          )}
         </div>
       </main>
     </div>

@@ -8,12 +8,21 @@
  * @module
  */
 
+import type * as alerts from "../alerts.js";
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
+import type * as documents from "../documents.js";
 import type * as dwellings from "../dwellings.js";
+import type * as maintenanceRequests from "../maintenanceRequests.js";
+import type * as notifications from "../notifications.js";
 import type * as owners from "../owners.js";
 import type * as participantPlans from "../participantPlans.js";
 import type * as participants from "../participants.js";
+import type * as payments from "../payments.js";
+import type * as preventativeSchedule from "../preventativeSchedule.js";
+import type * as preventativeScheduleTemplates from "../preventativeScheduleTemplates.js";
 import type * as properties from "../properties.js";
+import type * as reports from "../reports.js";
 
 import type {
   ApiFromModules,
@@ -22,12 +31,21 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  alerts: typeof alerts;
   auth: typeof auth;
+  crons: typeof crons;
+  documents: typeof documents;
   dwellings: typeof dwellings;
+  maintenanceRequests: typeof maintenanceRequests;
+  notifications: typeof notifications;
   owners: typeof owners;
   participantPlans: typeof participantPlans;
   participants: typeof participants;
+  payments: typeof payments;
+  preventativeSchedule: typeof preventativeSchedule;
+  preventativeScheduleTemplates: typeof preventativeScheduleTemplates;
   properties: typeof properties;
+  reports: typeof reports;
 }>;
 
 /**

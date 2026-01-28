@@ -206,3 +206,19 @@ export const resetPassword = mutation({
     return { success: true };
   },
 });
+
+// Update user email (for testing)
+export const updateUserEmail = mutation({
+  args: {
+    userId: v.id("users"),
+    newEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      email: args.newEmail.toLowerCase(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});

@@ -17,6 +17,17 @@ export default defineSchema({
     phone: v.optional(v.string()),
     isActive: v.boolean(),
     lastLogin: v.optional(v.number()),
+    notificationPreferences: v.optional(
+      v.object({
+        emailEnabled: v.boolean(),
+        smsEnabled: v.boolean(),
+        criticalAlerts: v.boolean(),
+        warningAlerts: v.boolean(),
+        infoAlerts: v.boolean(),
+        dailyDigest: v.boolean(),
+        weeklyDigest: v.boolean(),
+      })
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -333,7 +344,8 @@ export default defineSchema({
       v.literal("payment_missing"),
       v.literal("maintenance_due"),
       v.literal("document_expiry"),
-      v.literal("vacancy")
+      v.literal("vacancy"),
+      v.literal("preventative_schedule_due")
     ),
     severity: v.union(
       v.literal("critical"),
@@ -346,6 +358,7 @@ export default defineSchema({
     linkedPropertyId: v.optional(v.id("properties")),
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedMaintenanceId: v.optional(v.id("maintenanceRequests")),
+    linkedPreventativeScheduleId: v.optional(v.id("preventativeSchedule")),
     triggerDate: v.string(),
     dueDate: v.optional(v.string()),
     status: v.union(

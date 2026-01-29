@@ -28,7 +28,7 @@ export const createUser = mutation({
     }
 
     // Simple hash for demo - in production use proper bcrypt on server
-    const passwordHash = btoa(args.password + "_sda_salt_2025");
+    const passwordHash = Buffer.from(args.password + "_sda_salt_2025").toString('base64');
 
     const now = Date.now();
     const userId = await ctx.db.insert("users", {
@@ -68,7 +68,7 @@ export const login = mutation({
     }
 
     // Verify password
-    const passwordHash = btoa(args.password + "_sda_salt_2025");
+    const passwordHash = Buffer.from(args.password + "_sda_salt_2025").toString('base64');
     if (user.passwordHash !== passwordHash) {
       throw new Error("Invalid email or password");
     }
@@ -174,13 +174,13 @@ export const changePassword = mutation({
     }
 
     // Verify current password
-    const currentHash = btoa(args.currentPassword + "_sda_salt_2025");
+    const currentHash = Buffer.from(args.currentPassword + "_sda_salt_2025").toString('base64');
     if (user.passwordHash !== currentHash) {
       throw new Error("Current password is incorrect");
     }
 
     // Update password
-    const newHash = btoa(args.newPassword + "_sda_salt_2025");
+    const newHash = Buffer.from(args.newPassword + "_sda_salt_2025").toString('base64');
     await ctx.db.patch(args.userId, {
       passwordHash: newHash,
       updatedAt: Date.now(),
@@ -197,7 +197,7 @@ export const resetPassword = mutation({
     newPassword: v.string(),
   },
   handler: async (ctx, args) => {
-    const newHash = btoa(args.newPassword + "_sda_salt_2025");
+    const newHash = Buffer.from(args.newPassword + "_sda_salt_2025").toString('base64');
     await ctx.db.patch(args.userId, {
       passwordHash: newHash,
       updatedAt: Date.now(),

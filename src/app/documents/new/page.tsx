@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -14,6 +14,7 @@ export default function NewDocumentPage() {
   const [error, setError] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const participants = useQuery(api.participants.getAll);
   const properties = useQuery(api.properties.getAll);
@@ -66,13 +67,19 @@ export default function NewDocumentPage() {
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragActive(true);
+    dragCounterRef.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragActive(true);
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragActive(false);
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragActive(false);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -83,6 +90,7 @@ export default function NewDocumentPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    dragCounterRef.current = 0;
     setIsDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -99,6 +107,7 @@ export default function NewDocumentPage() {
 
       if (allowedTypes.includes(file.type)) {
         setSelectedFile(file);
+        setError('');
       } else {
         setError('Invalid file type. Please upload PDF, DOC, DOCX, XLS, XLSX, PNG, or JPG files.');
       }
@@ -243,7 +252,7 @@ export default function NewDocumentPage() {
                     ? 'border-blue-500 bg-blue-500/10'
                     : 'border-gray-600 bg-gray-700 hover:bg-gray-650'
                 }`}>
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <div className={`flex flex-col items-center justify-center pt-5 pb-6 ${isDragActive ? 'pointer-events-none' : ''}`}>
                     {selectedFile ? (
                       <>
                         <p className="text-sm text-white font-medium">{selectedFile.name}</p>

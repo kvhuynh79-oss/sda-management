@@ -381,7 +381,7 @@ export default function NDISExportPage() {
                 </div>
                 {participant.hasPlan ? (
                   <span className="text-green-400 text-sm">
-                    ${participant.monthlyAmount.toFixed(2)}/month
+                    ${(participant.monthlyAmount || 0).toFixed(2)}/month
                     {participant.claimDay && <span className="text-gray-400 ml-1">(day {participant.claimDay})</span>}
                   </span>
                 ) : (

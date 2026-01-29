@@ -136,31 +136,15 @@ export default function PropertyDetailPage() {
               <div className="space-y-3">
                 <DetailRow label="Owner" value={getOwnerName()} />
                 <DetailRow label="Ownership Type" value={property.ownershipType.replace("_", " ")} />
-                {property.ownershipType === "investor" && (
-                  <DetailRow
-                    label="Revenue Share"
-                    value={`${property.revenueSharePercent || 0}%`}
-                  />
-                )}
+                <DetailRow
+                  label="Management Fee %"
+                  value={`${property.managementFeePercent || 0}%`}
+                />
                 {property.owner && property.owner.email && (
                   <DetailRow label="Email" value={property.owner.email} />
                 )}
                 {property.owner && property.owner.phone && (
                   <DetailRow label="Phone" value={property.owner.phone} />
-                )}
-              </div>
-            </div>
-
-            {/* SDA Registration */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">SDA Registration</h2>
-              <div className="space-y-3">
-                <DetailRow
-                  label="Registration Number"
-                  value={property.sdaRegistrationNumber || "Not registered"}
-                />
-                {property.sdaRegistrationDate && (
-                  <DetailRow label="Registration Date" value={property.sdaRegistrationDate} />
                 )}
               </div>
             </div>
@@ -343,7 +327,7 @@ function DwellingCard({ dwelling }: { dwelling: any }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <div>
           <p className="text-gray-500 text-xs">Bedrooms</p>
           <p className="text-white text-sm">{dwelling.bedrooms}</p>
@@ -355,6 +339,10 @@ function DwellingCard({ dwelling }: { dwelling: any }) {
         <div>
           <p className="text-gray-500 text-xs">Building Type</p>
           <p className="text-white text-sm capitalize">{dwelling.sdaBuildingType.replace("_", " ")}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 text-xs">Registration Date</p>
+          <p className="text-white text-sm">{dwelling.registrationDate || "Not registered"}</p>
         </div>
       </div>
 

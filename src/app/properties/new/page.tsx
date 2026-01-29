@@ -38,7 +38,6 @@ export default function NewPropertyPage() {
     postcode: "",
     revenueSharePercent: "",
     managementFeePercent: "",
-    sdaRegistrationNumber: "",
     notes: "",
   });
 
@@ -50,9 +49,10 @@ export default function NewPropertyPage() {
     bathrooms: number;
     sdaDesignCategory: "improved_liveability" | "fully_accessible" | "robust" | "high_physical_support";
     sdaBuildingType: "new_build" | "existing";
+    registrationDate: string;
     maxParticipants: number;
   };
-  
+
   const [dwellings, setDwellings] = useState<DwellingForm[]>([
     {
       dwellingName: "Main House",
@@ -61,6 +61,7 @@ export default function NewPropertyPage() {
       bathrooms: 2,
       sdaDesignCategory: "high_physical_support",
       sdaBuildingType: "new_build",
+      registrationDate: "",
       maxParticipants: 3,
     },
   ]);
@@ -118,7 +119,6 @@ export default function NewPropertyPage() {
         managementFeePercent: propertyData.managementFeePercent
           ? parseFloat(propertyData.managementFeePercent)
           : undefined,
-        sdaRegistrationNumber: propertyData.sdaRegistrationNumber || undefined,
         notes: propertyData.notes || undefined,
       });
 
@@ -148,6 +148,7 @@ export default function NewPropertyPage() {
         bathrooms: 1,
         sdaDesignCategory: "high_physical_support",
         sdaBuildingType: "new_build",
+        registrationDate: "",
         maxParticipants: 1,
       },
     ]);
@@ -509,33 +510,20 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, onBack, onNext
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Management Fee %
-            </label>
-            <input
-              type="number"
-              value={propertyData.managementFeePercent}
-              onChange={(e) => setPropertyData({ ...propertyData, managementFeePercent: e.target.value })}
-              placeholder="e.g., 30"
-              min="0"
-              max="100"
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
-            />
-            <p className="text-gray-500 text-xs mt-1">% kept as management fee for owner distributions</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              SDA Registration Number (optional)
-            </label>
-            <input
-              type="text"
-              value={propertyData.sdaRegistrationNumber}
-              onChange={(e) => setPropertyData({ ...propertyData, sdaRegistrationNumber: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Management Fee %
+          </label>
+          <input
+            type="number"
+            value={propertyData.managementFeePercent}
+            onChange={(e) => setPropertyData({ ...propertyData, managementFeePercent: e.target.value })}
+            placeholder="e.g., 30"
+            min="0"
+            max="100"
+            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+          />
+          <p className="text-gray-500 text-xs mt-1">% kept as management fee for owner distributions</p>
         </div>
 
         <div>
@@ -661,6 +649,15 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
                   <option value="new_build">New Build</option>
                   <option value="existing">Existing</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Registration Date</label>
+                <input
+                  type="date"
+                  value={dwelling.registrationDate}
+                  onChange={(e) => updateDwelling(index, "registrationDate", e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                />
               </div>
             </div>
           </div>

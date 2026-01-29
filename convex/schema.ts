@@ -108,6 +108,7 @@ export default defineSchema({
       v.literal("high_physical_support")
     ),
     sdaBuildingType: v.union(v.literal("new_build"), v.literal("existing")),
+    registrationDate: v.optional(v.string()), // Date when dwelling was registered for SDA
     maxParticipants: v.number(),
     currentOccupancy: v.number(),
     occupancyStatus: v.union(

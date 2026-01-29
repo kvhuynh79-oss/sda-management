@@ -187,7 +187,7 @@ export default defineSchema({
     planManagerEmail: v.optional(v.string()),
     planManagerPhone: v.optional(v.string()),
     annualSdaBudget: v.number(),
-    monthlySdaAmount: v.number(),
+    monthlySdaAmount: v.optional(v.number()),
     claimDay: v.optional(v.number()), // Day of month when claims are due (1-31)
     managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     dailySdaRate: v.optional(v.number()), // Deprecated - use monthlySdaAmount

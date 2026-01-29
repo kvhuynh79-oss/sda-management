@@ -6,7 +6,9 @@
       "Bash(npm run dev:*)",
       "Bash(vercel --version:*)",
       "Bash(vercel link:*)",
-      "Bash(npx vercel:*)"
+      "Bash(npx vercel:*)",
+      "Bash(curl:*)",
+      "Bash(CONVEX_DEPLOYMENT=prod:accomplished-hornet-117 npx convex run:*)"
     ]
   }
 }

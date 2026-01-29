@@ -411,6 +411,11 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
                 <p className="text-gray-500 text-xs">RRC</p>
                 <p className="text-white text-sm">
                   {formatCurrency(plan.reasonableRentContribution)}
+                  {plan.rentContributionFrequency && (
+                    <span className="text-gray-400 text-xs ml-1">
+                      / {plan.rentContributionFrequency}
+                    </span>
+                  )}
                 </p>
               </div>
             )}

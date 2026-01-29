@@ -187,6 +187,13 @@ export default defineSchema({
     annualSdaBudget: v.number(),
     dailySdaRate: v.number(),
     reasonableRentContribution: v.optional(v.number()),
+    rentContributionFrequency: v.optional(
+      v.union(
+        v.literal("weekly"),
+        v.literal("fortnightly"),
+        v.literal("monthly")
+      )
+    ),
     notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

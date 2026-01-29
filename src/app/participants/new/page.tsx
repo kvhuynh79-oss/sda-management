@@ -49,6 +49,7 @@ export default function NewParticipantPage() {
     annualSdaBudget: "",
     dailySdaRate: "",
     reasonableRentContribution: "",
+    rentContributionFrequency: "fortnightly" as const,
     notes: "",
   });
 
@@ -112,8 +113,11 @@ export default function NewParticipantPage() {
         planManagerPhone: planData.planManagerPhone || undefined,
         annualSdaBudget: parseFloat(planData.annualSdaBudget) || 0,
         dailySdaRate: parseFloat(planData.dailySdaRate) || 0,
-        reasonableRentContribution: planData.reasonableRentContribution 
-          ? parseFloat(planData.reasonableRentContribution) 
+        reasonableRentContribution: planData.reasonableRentContribution
+          ? parseFloat(planData.reasonableRentContribution)
+          : undefined,
+        rentContributionFrequency: planData.reasonableRentContribution
+          ? planData.rentContributionFrequency
           : undefined,
         notes: planData.notes || undefined,
       });
@@ -593,7 +597,7 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
 
         <div className="border-t border-gray-700 pt-4 mt-4">
           <h4 className="text-lg font-medium text-white mb-4">SDA Funding</h4>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Daily SDA Rate ($) *</label>
               <input
@@ -617,6 +621,8 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Rent Contribution ($)</label>
               <input
@@ -627,6 +633,18 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 step="0.01"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Contribution Frequency</label>
+              <select
+                value={data.rentContributionFrequency}
+                onChange={(e) => setData({ ...data, rentContributionFrequency: e.target.value })}
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              >
+                <option value="weekly">Weekly</option>
+                <option value="fortnightly">Fortnightly</option>
+                <option value="monthly">Monthly</option>
+              </select>
             </div>
           </div>
         </div>

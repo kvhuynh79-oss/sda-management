@@ -26,6 +26,9 @@ export const create = mutation({
     annualSdaBudget: v.number(),
     dailySdaRate: v.number(),
     reasonableRentContribution: v.optional(v.number()),
+    rentContributionFrequency: v.optional(
+      v.union(v.literal("weekly"), v.literal("fortnightly"), v.literal("monthly"))
+    ),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -109,6 +112,9 @@ export const update = mutation({
     annualSdaBudget: v.optional(v.number()),
     dailySdaRate: v.optional(v.number()),
     reasonableRentContribution: v.optional(v.number()),
+    rentContributionFrequency: v.optional(
+      v.union(v.literal("weekly"), v.literal("fortnightly"), v.literal("monthly"))
+    ),
     planStatus: v.optional(v.union(
       v.literal("current"),
       v.literal("expired"),

@@ -24,9 +24,6 @@ export default function NDISExportPage() {
     abn: "",
     defaultGstCode: "P2",
     defaultSupportItemNumber: "",
-    contactEmail: "",
-    contactPhone: "",
-    address: "",
   });
 
   const providerSettings = useQuery(api.ndisClaimExport.getProviderSettings);
@@ -72,9 +69,6 @@ export default function NDISExportPage() {
         abn: providerSettings.abn || "",
         defaultGstCode: providerSettings.defaultGstCode || "P2",
         defaultSupportItemNumber: providerSettings.defaultSupportItemNumber || "",
-        contactEmail: providerSettings.contactEmail || "",
-        contactPhone: providerSettings.contactPhone || "",
-        address: providerSettings.address || "",
       });
     }
   }, [providerSettings]);
@@ -297,32 +291,6 @@ export default function NDISExportPage() {
                     <option value="P2">P2 - GST Free</option>
                     <option value="P1">P1 - GST Applicable</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Contact Email
-                  </label>
-                  <input
-                    type="email"
-                    value={settingsForm.contactEmail}
-                    onChange={(e) =>
-                      setSettingsForm({ ...settingsForm, contactEmail: e.target.value })
-                    }
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Contact Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={settingsForm.contactPhone}
-                    onChange={(e) =>
-                      setSettingsForm({ ...settingsForm, contactPhone: e.target.value })
-                    }
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
                 </div>
               </div>
               <div className="flex gap-4 mt-6">

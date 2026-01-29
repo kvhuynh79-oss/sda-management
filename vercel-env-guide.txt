@@ -1,0 +1,20 @@
+VERCEL ENVIRONMENT VARIABLES TO ADD
+===================================
+
+Go to: Settings → Environment Variables
+
+Add these 4 variables (each for Production environment):
+
+1. NEXT_PUBLIC_CONVEX_URL
+   Value: https://accomplished-hornet-117.convex.cloud
+
+2. CONVEX_DEPLOYMENT
+   Value: prod:accomplished-hornet-117
+
+3. RESEND_API_KEY
+   Value: re_F1jxzhJz_F8i2oxPBTUWJhwK8eZQiNXCR
+
+4. RESEND_FROM_EMAIL
+   Value: onboarding@resend.dev
+
+After adding all 4, click "Redeploy" on the latest deployment.

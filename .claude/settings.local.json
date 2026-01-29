@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(npx convex env set:*)"
+      "Bash(npx convex env set:*)",
+      "Bash(npm run dev:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel link:*)",
+      "Bash(npx vercel:*)"
     ]
   }
 }

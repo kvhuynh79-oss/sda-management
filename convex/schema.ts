@@ -187,6 +187,7 @@ export default defineSchema({
     annualSdaBudget: v.number(),
     monthlySdaAmount: v.number(),
     claimDay: v.optional(v.number()), // Day of month when claims are due (1-31)
+    managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     dailySdaRate: v.optional(v.number()), // Deprecated - use monthlySdaAmount
     supportItemNumber: v.optional(v.string()),
     reasonableRentContribution: v.optional(v.number()),

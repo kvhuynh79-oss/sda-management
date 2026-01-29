@@ -65,6 +65,12 @@ export default function PaymentsPage() {
               NDIS Export
             </Link>
             <Link
+              href="/payments/distributions"
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              Owner Distributions
+            </Link>
+            <Link
               href="/payments/new"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
             >

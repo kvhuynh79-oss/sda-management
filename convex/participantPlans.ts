@@ -26,6 +26,7 @@ export const create = mutation({
     annualSdaBudget: v.number(),
     monthlySdaAmount: v.number(),
     claimDay: v.optional(v.number()), // Day of month when claims are due (1-31)
+    managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     dailySdaRate: v.optional(v.number()), // Deprecated
     reasonableRentContribution: v.optional(v.number()),
     rentContributionFrequency: v.optional(
@@ -114,6 +115,7 @@ export const update = mutation({
     annualSdaBudget: v.optional(v.number()),
     monthlySdaAmount: v.optional(v.number()),
     claimDay: v.optional(v.number()),
+    managementFeePercent: v.optional(v.number()),
     dailySdaRate: v.optional(v.number()),
     reasonableRentContribution: v.optional(v.number()),
     rentContributionFrequency: v.optional(

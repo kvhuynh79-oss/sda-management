@@ -9,7 +9,10 @@
       "Bash(npx vercel:*)",
       "Bash(curl:*)",
       "Bash(CONVEX_DEPLOYMENT=prod:accomplished-hornet-117 npx convex run:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(dir:*)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(gh api:*)"
     ]
   }
 }

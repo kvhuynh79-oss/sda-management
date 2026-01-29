@@ -87,7 +87,8 @@ export const calculateDistributions = query({
       }
 
       const totalIncome = monthlySda + monthlyRrc;
-      const managementFeePercent = plan.managementFeePercent ?? 0;
+      // Get management fee from property (same for all participants at this property)
+      const managementFeePercent = property.managementFeePercent ?? 0;
       const managementFee = totalIncome * (managementFeePercent / 100);
       const ownerPayment = totalIncome - managementFee;
 

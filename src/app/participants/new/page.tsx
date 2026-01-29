@@ -50,7 +50,6 @@ export default function NewParticipantPage() {
     annualSdaBudget: "",
     monthlySdaAmount: "",
     claimDay: "",
-    managementFeePercent: "",
     reasonableRentContribution: "",
     rentContributionFrequency: "fortnightly" as const,
     notes: "",
@@ -117,7 +116,6 @@ export default function NewParticipantPage() {
         annualSdaBudget: parseFloat(planData.annualSdaBudget) || 0,
         monthlySdaAmount: parseFloat(planData.monthlySdaAmount) || 0,
         claimDay: planData.claimDay ? parseInt(planData.claimDay) : undefined,
-        managementFeePercent: planData.managementFeePercent ? parseFloat(planData.managementFeePercent) : undefined,
         reasonableRentContribution: planData.reasonableRentContribution
           ? parseFloat(planData.reasonableRentContribution)
           : undefined,
@@ -664,19 +662,6 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 <option value="fortnightly">Fortnightly</option>
                 <option value="monthly">Monthly</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Management Fee %</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={data.managementFeePercent}
-                onChange={(e) => setData({ ...data, managementFeePercent: e.target.value })}
-                placeholder="e.g., 30"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">% kept as management fee (0-100)</p>
             </div>
           </div>
         </div>

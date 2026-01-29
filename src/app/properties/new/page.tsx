@@ -37,6 +37,7 @@ export default function NewPropertyPage() {
     state: "NSW" as typeof STATES[number],
     postcode: "",
     revenueSharePercent: "",
+    managementFeePercent: "",
     sdaRegistrationNumber: "",
     notes: "",
   });
@@ -111,8 +112,11 @@ export default function NewPropertyPage() {
         postcode: propertyData.postcode,
         ownerId: ownerId as any,
         ownershipType: ownerType === "self" ? "self_owned" : "investor",
-        revenueSharePercent: propertyData.revenueSharePercent 
-          ? parseFloat(propertyData.revenueSharePercent) 
+        revenueSharePercent: propertyData.revenueSharePercent
+          ? parseFloat(propertyData.revenueSharePercent)
+          : undefined,
+        managementFeePercent: propertyData.managementFeePercent
+          ? parseFloat(propertyData.managementFeePercent)
           : undefined,
         sdaRegistrationNumber: propertyData.sdaRegistrationNumber || undefined,
         notes: propertyData.notes || undefined,
@@ -505,16 +509,33 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, onBack, onNext
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            SDA Registration Number (optional)
-          </label>
-          <input
-            type="text"
-            value={propertyData.sdaRegistrationNumber}
-            onChange={(e) => setPropertyData({ ...propertyData, sdaRegistrationNumber: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Management Fee %
+            </label>
+            <input
+              type="number"
+              value={propertyData.managementFeePercent}
+              onChange={(e) => setPropertyData({ ...propertyData, managementFeePercent: e.target.value })}
+              placeholder="e.g., 30"
+              min="0"
+              max="100"
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            />
+            <p className="text-gray-500 text-xs mt-1">% kept as management fee for owner distributions</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              SDA Registration Number (optional)
+            </label>
+            <input
+              type="text"
+              value={propertyData.sdaRegistrationNumber}
+              onChange={(e) => setPropertyData({ ...propertyData, sdaRegistrationNumber: e.target.value })}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
         </div>
 
         <div>

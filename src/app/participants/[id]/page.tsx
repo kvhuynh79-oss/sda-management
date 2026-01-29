@@ -110,9 +110,12 @@ export default function ParticipantDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+              <Link
+                href={`/participants/${participantId}/edit`}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
                 Edit Participant
-              </button>
+              </Link>
               {participant.status === "active" && (
                 <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                   Move Out

@@ -78,6 +78,7 @@ export default defineSchema({
     ownerId: v.id("owners"),
     ownershipType: v.union(v.literal("investor"), v.literal("self_owned")),
     revenueSharePercent: v.optional(v.number()),
+    managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     sdaRegistrationNumber: v.optional(v.string()),
     sdaRegistrationDate: v.optional(v.string()),
     notes: v.optional(v.string()),

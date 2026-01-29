@@ -688,6 +688,24 @@ function Header() {
               <Link href="/participants" className="text-white font-medium">
                 Participants
               </Link>
+              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
+                Payments
+              </Link>
+              <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
+                Maintenance
+              </Link>
+              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
+                Documents
+              </Link>
+              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
+                Alerts
+              </Link>
+              <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
+                Schedule
+              </Link>
+              <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
+                Settings
+              </Link>
             </nav>
           </div>
         </div>

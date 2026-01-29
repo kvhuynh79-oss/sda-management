@@ -320,6 +320,7 @@ export default defineSchema({
       v.literal("lease"),
       v.literal("insurance"),
       v.literal("compliance"),
+      v.literal("centrepay_consent"),
       v.literal("report"),
       v.literal("other")
     ),

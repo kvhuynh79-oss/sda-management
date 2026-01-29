@@ -19,6 +19,7 @@ export const create = mutation({
       v.literal("lease"),
       v.literal("insurance"),
       v.literal("compliance"),
+      v.literal("centrepay_consent"),
       v.literal("report"),
       v.literal("other")
     ),
@@ -176,6 +177,7 @@ export const getByType = query({
       v.literal("lease"),
       v.literal("insurance"),
       v.literal("compliance"),
+      v.literal("centrepay_consent"),
       v.literal("report"),
       v.literal("other")
     ),

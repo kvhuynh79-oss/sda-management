@@ -14,6 +14,7 @@ export default function ParticipantDetailPage() {
 
   const participantId = params.id as Id<"participants">;
   const participant = useQuery(api.participants.getById, { participantId });
+  const documents = useQuery(api.documents.getByParticipant, { participantId });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -256,6 +257,38 @@ export default function ParticipantDetailPage() {
               </div>
             )}
 
+            {/* Documents */}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-white">Documents</h2>
+                <Link
+                  href={`/documents/new?participantId=${participantId}`}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                >
+                  + Upload Document
+                </Link>
+              </div>
+              {documents && documents.length > 0 ? (
+                <div className="space-y-3">
+                  {documents.slice(0, 5).map((doc) => (
+                    <DocumentCard key={doc._id} document={doc} />
+                  ))}
+                  {documents.length > 5 && (
+                    <Link
+                      href={`/documents?participantId=${participantId}`}
+                      className="block text-center text-blue-400 hover:text-blue-300 text-sm pt-2"
+                    >
+                      View all {documents.length} documents →
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  No documents uploaded yet
+                </div>
+              )}
+            </div>
+
             {/* Payment History */}
             <div className="bg-gray-800 rounded-lg p-6">
               <div className="flex justify-between items-center mb-4">
@@ -284,6 +317,48 @@ export default function ParticipantDetailPage() {
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function DocumentCard({ document }: { document: any }) {
+  const formatDocType = (type: string) => {
+    return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString("en-AU", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <div className="bg-gray-700 rounded-lg p-4">
+      <div className="flex justify-between items-start">
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-medium truncate">{document.fileName}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs px-2 py-0.5 bg-gray-600 text-gray-300 rounded">
+              {formatDocType(document.documentType)}
+            </span>
+            <span className="text-gray-400 text-sm">
+              {formatDate(document.createdAt)}
+            </span>
+          </div>
+        </div>
+        {document.downloadUrl && (
+          <a
+            href={document.downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2 px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded transition-colors"
+          >
+            View
+          </a>
+        )}
+      </div>
     </div>
   );
 }
@@ -323,6 +398,24 @@ function Header() {
               </Link>
               <Link href="/participants" className="text-white font-medium">
                 Participants
+              </Link>
+              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
+                Payments
+              </Link>
+              <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
+                Maintenance
+              </Link>
+              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
+                Documents
+              </Link>
+              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
+                Alerts
+              </Link>
+              <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
+                Schedule
+              </Link>
+              <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
+                Settings
               </Link>
             </nav>
           </div>

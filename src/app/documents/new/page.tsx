@@ -30,6 +30,7 @@ export default function NewDocumentPage() {
       | "lease"
       | "insurance"
       | "compliance"
+      | "centrepay_consent"
       | "report"
       | "other",
     documentCategory: "participant" as "participant" | "property" | "dwelling" | "owner",
@@ -330,6 +331,7 @@ export default function NewDocumentPage() {
                   <option value="lease">Lease Agreement</option>
                   <option value="insurance">Insurance</option>
                   <option value="compliance">Compliance Certificate</option>
+                  <option value="centrepay_consent">Centrepay Consent Form</option>
                   <option value="report">Report</option>
                   <option value="other">Other</option>
                 </select>

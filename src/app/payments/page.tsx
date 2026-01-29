@@ -57,12 +57,20 @@ export default function PaymentsPage() {
             <h2 className="text-2xl font-bold text-white">Payment History</h2>
             <p className="text-gray-400 mt-1">Track and manage SDA payments</p>
           </div>
-          <Link
-            href="/payments/new"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            + Record Payment
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/payments/ndis-export"
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+            >
+              NDIS Export
+            </Link>
+            <Link
+              href="/payments/new"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              + Record Payment
+            </Link>
+          </div>
         </div>
 
         {/* Summary Cards */}

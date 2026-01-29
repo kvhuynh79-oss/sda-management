@@ -186,6 +186,7 @@ export default defineSchema({
     planManagerPhone: v.optional(v.string()),
     annualSdaBudget: v.number(),
     dailySdaRate: v.number(),
+    supportItemNumber: v.optional(v.string()),
     reasonableRentContribution: v.optional(v.number()),
     rentContributionFrequency: v.optional(
       v.union(
@@ -343,6 +344,20 @@ export default defineSchema({
     .index("by_participant", ["linkedParticipantId"])
     .index("by_property", ["linkedPropertyId"])
     .index("by_documentType", ["documentType"]),
+
+  // Provider Settings table - NDIS provider configuration
+  providerSettings: defineTable({
+    providerName: v.string(),
+    ndisRegistrationNumber: v.string(),
+    abn: v.string(),
+    defaultGstCode: v.string(),
+    defaultSupportItemNumber: v.string(),
+    contactEmail: v.optional(v.string()),
+    contactPhone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
 
   // Alerts table - system-generated alerts
   alerts: defineTable({

@@ -10,6 +10,18 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
 
+type DwellingForm = {
+  _id: Id<"dwellings">;
+  dwellingName: string;
+  dwellingType: "house" | "villa" | "apartment" | "unit";
+  bedrooms: number;
+  bathrooms: number;
+  sdaDesignCategory: "improved_liveability" | "fully_accessible" | "robust" | "high_physical_support";
+  sdaBuildingType: "new_build" | "existing";
+  registrationDate: string;
+  maxParticipants: number;
+};
+
 export default function EditPropertyPage() {
   const router = useRouter();
   const params = useParams();
@@ -21,6 +33,7 @@ export default function EditPropertyPage() {
 
   const property = useQuery(api.properties.getById, { propertyId });
   const updateProperty = useMutation(api.properties.update);
+  const updateDwelling = useMutation(api.dwellings.update);
 
   const [formData, setFormData] = useState({
     propertyName: "",
@@ -32,6 +45,8 @@ export default function EditPropertyPage() {
     managementFeePercent: "",
     notes: "",
   });
+
+  const [dwellings, setDwellings] = useState<DwellingForm[]>([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -55,8 +70,31 @@ export default function EditPropertyPage() {
         managementFeePercent: property.managementFeePercent?.toString() || "",
         notes: property.notes || "",
       });
+
+      // Load dwellings
+      if (property.dwellings) {
+        setDwellings(
+          property.dwellings.map((d: any) => ({
+            _id: d._id,
+            dwellingName: d.dwellingName || "",
+            dwellingType: d.dwellingType || "house",
+            bedrooms: d.bedrooms || 1,
+            bathrooms: d.bathrooms || 1,
+            sdaDesignCategory: d.sdaDesignCategory || "high_physical_support",
+            sdaBuildingType: d.sdaBuildingType || "new_build",
+            registrationDate: d.registrationDate || "",
+            maxParticipants: d.maxParticipants || 1,
+          }))
+        );
+      }
     }
   }, [property]);
+
+  const updateDwellingField = (index: number, field: keyof DwellingForm, value: any) => {
+    const updated = [...dwellings];
+    updated[index] = { ...updated[index], [field]: value };
+    setDwellings(updated);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +102,7 @@ export default function EditPropertyPage() {
     setError("");
 
     try {
+      // Update property
       await updateProperty({
         propertyId,
         propertyName: formData.propertyName || undefined,
@@ -78,12 +117,31 @@ export default function EditPropertyPage() {
         notes: formData.notes || undefined,
       });
 
+      // Update dwellings
+      for (const dwelling of dwellings) {
+        await updateDwelling({
+          dwellingId: dwelling._id,
+          dwellingName: dwelling.dwellingName,
+          dwellingType: dwelling.dwellingType,
+          bedrooms: dwelling.bedrooms,
+          bathrooms: dwelling.bathrooms,
+          sdaDesignCategory: dwelling.sdaDesignCategory,
+          sdaBuildingType: dwelling.sdaBuildingType,
+          registrationDate: dwelling.registrationDate || undefined,
+          maxParticipants: dwelling.maxParticipants,
+        });
+      }
+
       router.push(`/properties/${propertyId}`);
     } catch (err: any) {
       setError(err.message || "Failed to update property");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const formatCategory = (category: string) => {
+    return category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   if (!user || !property) {
@@ -94,7 +152,7 @@ export default function EditPropertyPage() {
     <div className="min-h-screen bg-gray-900">
       <Header />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Link
             href={`/properties/${propertyId}`}
@@ -209,6 +267,116 @@ export default function EditPropertyPage() {
                 % kept as management fee for owner distributions (0-100)
               </p>
             </div>
+          </div>
+
+          {/* Dwellings */}
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Dwellings</h2>
+            {dwellings.length === 0 ? (
+              <p className="text-gray-400">No dwellings found for this property.</p>
+            ) : (
+              <div className="space-y-6">
+                {dwellings.map((dwelling, index) => (
+                  <div key={dwelling._id} className="bg-gray-700 rounded-lg p-4">
+                    <h3 className="text-white font-medium mb-4">{dwelling.dwellingName}</h3>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">Dwelling Name</label>
+                        <input
+                          type="text"
+                          value={dwelling.dwellingName}
+                          onChange={(e) => updateDwellingField(index, "dwellingName", e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">Dwelling Type</label>
+                        <select
+                          value={dwelling.dwellingType}
+                          onChange={(e) => updateDwellingField(index, "dwellingType", e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        >
+                          <option value="house">House</option>
+                          <option value="villa">Villa</option>
+                          <option value="apartment">Apartment</option>
+                          <option value="unit">Unit</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-4 mb-4">
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">Bedrooms</label>
+                        <input
+                          type="number"
+                          value={dwelling.bedrooms}
+                          onChange={(e) => updateDwellingField(index, "bedrooms", parseInt(e.target.value) || 1)}
+                          min="1"
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">Bathrooms</label>
+                        <input
+                          type="number"
+                          value={dwelling.bathrooms}
+                          onChange={(e) => updateDwellingField(index, "bathrooms", parseInt(e.target.value) || 1)}
+                          min="1"
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">Max Participants</label>
+                        <input
+                          type="number"
+                          value={dwelling.maxParticipants}
+                          onChange={(e) => updateDwellingField(index, "maxParticipants", parseInt(e.target.value) || 1)}
+                          min="1"
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">Registration Date</label>
+                        <input
+                          type="date"
+                          value={dwelling.registrationDate}
+                          onChange={(e) => updateDwellingField(index, "registrationDate", e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">SDA Design Category</label>
+                        <select
+                          value={dwelling.sdaDesignCategory}
+                          onChange={(e) => updateDwellingField(index, "sdaDesignCategory", e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        >
+                          <option value="improved_liveability">Improved Liveability</option>
+                          <option value="fully_accessible">Fully Accessible</option>
+                          <option value="robust">Robust</option>
+                          <option value="high_physical_support">High Physical Support</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm mb-1">SDA Building Type</label>
+                        <select
+                          value={dwelling.sdaBuildingType}
+                          onChange={(e) => updateDwellingField(index, "sdaBuildingType", e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                        >
+                          <option value="new_build">New Build</option>
+                          <option value="existing">Existing</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Notes */}

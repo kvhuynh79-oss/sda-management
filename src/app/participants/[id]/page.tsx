@@ -465,6 +465,16 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
     }).format(amount);
   };
 
+  const getOrdinalSuffix = (day: number) => {
+    if (day >= 11 && day <= 13) return "th";
+    switch (day % 10) {
+      case 1: return "st";
+      case 2: return "nd";
+      case 3: return "rd";
+      default: return "th";
+    }
+  };
+
   const formatCategory = (category: string) => {
     return category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
@@ -497,15 +507,21 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
 
       {!compact && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-gray-700">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700">
             <div>
-              <p className="text-gray-500 text-xs">Daily Rate</p>
-              <p className="text-white text-sm">{formatCurrency(plan.dailySdaRate)}</p>
+              <p className="text-gray-500 text-xs">Monthly Amount</p>
+              <p className="text-white text-sm">{formatCurrency(plan.monthlySdaAmount || 0)}</p>
             </div>
             <div>
               <p className="text-gray-500 text-xs">Annual Budget</p>
               <p className="text-white text-sm">{formatCurrency(plan.annualSdaBudget)}</p>
             </div>
+            {plan.claimDay && (
+              <div>
+                <p className="text-gray-500 text-xs">Claim Day</p>
+                <p className="text-white text-sm">{plan.claimDay}{getOrdinalSuffix(plan.claimDay)} of month</p>
+              </div>
+            )}
             {plan.reasonableRentContribution && (
               <div>
                 <p className="text-gray-500 text-xs">RRC</p>

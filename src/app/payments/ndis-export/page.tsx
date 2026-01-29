@@ -381,7 +381,8 @@ export default function NDISExportPage() {
                 </div>
                 {participant.hasPlan ? (
                   <span className="text-green-400 text-sm">
-                    ${participant.dailyRate.toFixed(2)}/day
+                    ${participant.monthlyAmount.toFixed(2)}/month
+                    {participant.claimDay && <span className="text-gray-400 ml-1">(day {participant.claimDay})</span>}
                   </span>
                 ) : (
                   <span className="text-red-400 text-sm">No active plan</span>
@@ -404,9 +405,7 @@ export default function NDISExportPage() {
                     <th className="py-2 px-3 text-gray-400 text-sm">Participant</th>
                     <th className="py-2 px-3 text-gray-400 text-sm">NDIS Number</th>
                     <th className="py-2 px-3 text-gray-400 text-sm">Period</th>
-                    <th className="py-2 px-3 text-gray-400 text-sm">Days</th>
-                    <th className="py-2 px-3 text-gray-400 text-sm">Daily Rate</th>
-                    <th className="py-2 px-3 text-gray-400 text-sm">Total</th>
+                    <th className="py-2 px-3 text-gray-400 text-sm">Monthly Amount</th>
                     <th className="py-2 px-3 text-gray-400 text-sm">Claim Ref</th>
                   </tr>
                 </thead>
@@ -417,10 +416,6 @@ export default function NDISExportPage() {
                       <td className="py-2 px-3 text-gray-300">{claim.NDISNumber as string}</td>
                       <td className="py-2 px-3 text-gray-300 text-sm">
                         {claim.SupportsDeliveredFrom as string} to {claim.SupportsDeliveredTo as string}
-                      </td>
-                      <td className="py-2 px-3 text-gray-300">{claim._days as number}</td>
-                      <td className="py-2 px-3 text-gray-300">
-                        ${(claim._dailyRate as number).toFixed(2)}
                       </td>
                       <td className="py-2 px-3 text-green-400 font-medium">
                         ${claim.UnitPrice as string}
@@ -433,7 +428,7 @@ export default function NDISExportPage() {
                 </tbody>
                 <tfoot>
                   <tr className="bg-gray-700/50">
-                    <td colSpan={5} className="py-3 px-3 text-white font-semibold">
+                    <td colSpan={3} className="py-3 px-3 text-white font-semibold">
                       Total
                     </td>
                     <td className="py-3 px-3 text-green-400 font-bold">

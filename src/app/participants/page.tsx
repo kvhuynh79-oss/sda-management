@@ -255,9 +255,9 @@ function ParticipantCard({ participant }: { participant: any }) {
               </p>
             </div>
             <div>
-              <p className="text-gray-500 text-sm">Daily Rate</p>
+              <p className="text-gray-500 text-sm">Monthly Amount</p>
               <p className="text-white text-sm">
-                ${participant.currentPlan.dailySdaRate.toFixed(2)}
+                ${(participant.currentPlan.monthlySdaAmount || 0).toFixed(2)}
               </p>
             </div>
             <div>

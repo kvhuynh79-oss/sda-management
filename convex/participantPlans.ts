@@ -24,7 +24,9 @@ export const create = mutation({
     planManagerEmail: v.optional(v.string()),
     planManagerPhone: v.optional(v.string()),
     annualSdaBudget: v.number(),
-    dailySdaRate: v.number(),
+    monthlySdaAmount: v.number(),
+    claimDay: v.optional(v.number()), // Day of month when claims are due (1-31)
+    dailySdaRate: v.optional(v.number()), // Deprecated
     reasonableRentContribution: v.optional(v.number()),
     rentContributionFrequency: v.optional(
       v.union(v.literal("weekly"), v.literal("fortnightly"), v.literal("monthly"))
@@ -110,6 +112,8 @@ export const update = mutation({
     planManagerEmail: v.optional(v.string()),
     planManagerPhone: v.optional(v.string()),
     annualSdaBudget: v.optional(v.number()),
+    monthlySdaAmount: v.optional(v.number()),
+    claimDay: v.optional(v.number()),
     dailySdaRate: v.optional(v.number()),
     reasonableRentContribution: v.optional(v.number()),
     rentContributionFrequency: v.optional(

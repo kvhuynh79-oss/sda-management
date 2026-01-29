@@ -85,13 +85,8 @@ export const generateClaimData = query({
 
       if (!plan) continue;
 
-      // Calculate the number of days in the period
-      const startDate = new Date(args.periodStart);
-      const endDate = new Date(args.periodEnd);
-      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-      // Calculate unit price (daily rate * number of days)
-      const unitPrice = plan.dailySdaRate * daysDiff;
+      // Use the monthly SDA amount directly (not calculated from daily rate)
+      const unitPrice = plan.monthlySdaAmount || (plan.dailySdaRate ? plan.dailySdaRate * 30 : 0);
 
       // Generate claim reference (format: MMYYYY + counter, e.g., 012026001)
       const monthYear = args.periodStart.substring(5, 7) + args.periodStart.substring(0, 4);
@@ -117,8 +112,9 @@ export const generateClaimData = query({
         "ABN of Support Provider": providerSettings.abn,
         // Additional metadata for display (not in CSV)
         _participantName: `${participant.firstName} ${participant.lastName}`,
-        _dailyRate: plan.dailySdaRate,
-        _days: daysDiff,
+        _monthlyAmount: plan.monthlySdaAmount || 0,
+        _annualBudget: plan.annualSdaBudget,
+        _claimDay: plan.claimDay || null,
       });
     }
 
@@ -147,8 +143,11 @@ export const getActiveParticipantsForClaim = query({
         return {
           ...p,
           hasPlan: !!plan,
-          dailyRate: plan?.dailySdaRate || 0,
+          monthlyAmount: plan?.monthlySdaAmount || 0,
+          annualBudget: plan?.annualSdaBudget || 0,
+          claimDay: plan?.claimDay || null,
           supportItemNumber: plan?.supportItemNumber || null,
+          planStartDate: plan?.planStartDate || null,
         };
       })
     );

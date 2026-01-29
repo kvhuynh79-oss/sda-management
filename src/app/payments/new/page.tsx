@@ -51,39 +51,26 @@ export default function NewPaymentPage() {
       if (participant?.currentPlan) {
         const currentPlan = participant.currentPlan;
         setFormData((prev) => {
-          // Auto-fill expected amount from daily rate
-          if (prev.paymentPeriodStart && prev.paymentPeriodEnd) {
-            const days = calculateDays(prev.paymentPeriodStart, prev.paymentPeriodEnd);
-            const expected = days * currentPlan.dailySdaRate;
-            return { ...prev, planId: currentPlan._id, expectedAmount: expected.toFixed(2) };
-          }
-          return { ...prev, planId: currentPlan._id };
+          // Auto-fill expected amount from monthly amount
+          const expected = currentPlan.monthlySdaAmount || 0;
+          return { ...prev, planId: currentPlan._id, expectedAmount: expected.toFixed(2) };
         });
       }
     }
   }, [formData.participantId, participants]);
 
   useEffect(() => {
-    // Auto-calculate expected amount when period changes
+    // Auto-set expected amount from monthly amount when period is set
     if (
       selectedParticipant?.currentPlan &&
       formData.paymentPeriodStart &&
       formData.paymentPeriodEnd
     ) {
       const currentPlan = selectedParticipant.currentPlan;
-      const days = calculateDays(formData.paymentPeriodStart, formData.paymentPeriodEnd);
-      const expected = days * currentPlan.dailySdaRate;
+      const expected = currentPlan.monthlySdaAmount || 0;
       setFormData((prev) => ({ ...prev, expectedAmount: expected.toFixed(2) }));
     }
   }, [formData.paymentPeriodStart, formData.paymentPeriodEnd, selectedParticipant]);
-
-  const calculateDays = (startDate: string, endDate: string): number => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays + 1; // Include both start and end date
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,9 +187,9 @@ export default function NewPaymentPage() {
                 <p className="text-sm text-gray-300 mb-2">Current Plan Details</p>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-400">Daily Rate:</span>
+                    <span className="text-gray-400">Monthly Amount:</span>
                     <span className="text-white ml-2">
-                      ${selectedParticipant.currentPlan.dailySdaRate.toFixed(2)}
+                      ${(selectedParticipant.currentPlan.monthlySdaAmount || 0).toFixed(2)}
                     </span>
                   </div>
                   <div>
@@ -261,14 +248,6 @@ export default function NewPaymentPage() {
                 />
               </div>
             </div>
-
-            {/* Days calculation */}
-            {formData.paymentPeriodStart && formData.paymentPeriodEnd && (
-              <div className="text-sm text-gray-400">
-                Payment period: {calculateDays(formData.paymentPeriodStart, formData.paymentPeriodEnd)}{" "}
-                days
-              </div>
-            )}
 
             {/* Amounts */}
             <div className="grid grid-cols-2 gap-4">

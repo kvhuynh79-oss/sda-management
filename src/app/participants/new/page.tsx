@@ -48,7 +48,8 @@ export default function NewParticipantPage() {
     planManagerEmail: "",
     planManagerPhone: "",
     annualSdaBudget: "",
-    dailySdaRate: "",
+    monthlySdaAmount: "",
+    claimDay: "",
     reasonableRentContribution: "",
     rentContributionFrequency: "fortnightly" as const,
     notes: "",
@@ -113,7 +114,8 @@ export default function NewParticipantPage() {
         planManagerEmail: planData.planManagerEmail || undefined,
         planManagerPhone: planData.planManagerPhone || undefined,
         annualSdaBudget: parseFloat(planData.annualSdaBudget) || 0,
-        dailySdaRate: parseFloat(planData.dailySdaRate) || 0,
+        monthlySdaAmount: parseFloat(planData.monthlySdaAmount) || 0,
+        claimDay: planData.claimDay ? parseInt(planData.claimDay) : undefined,
         reasonableRentContribution: planData.reasonableRentContribution
           ? parseFloat(planData.reasonableRentContribution)
           : undefined,
@@ -598,18 +600,19 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
 
         <div className="border-t border-gray-700 pt-4 mt-4">
           <h4 className="text-lg font-medium text-white mb-4">SDA Funding</h4>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Daily SDA Rate ($) *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Monthly SDA Amount ($) *</label>
               <input
                 type="number"
-                value={data.dailySdaRate}
-                onChange={(e) => setData({ ...data, dailySdaRate: e.target.value })}
-                placeholder="e.g., 150.00"
+                value={data.monthlySdaAmount}
+                onChange={(e) => setData({ ...data, monthlySdaAmount: e.target.value })}
+                placeholder="e.g., 3758.42"
                 step="0.01"
                 required
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
+              <p className="text-xs text-gray-500 mt-1">From NDIS plan funding schedule</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Annual Budget ($) *</label>
@@ -617,10 +620,23 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 type="number"
                 value={data.annualSdaBudget}
                 onChange={(e) => setData({ ...data, annualSdaBudget: e.target.value })}
-                placeholder="e.g., 54750"
+                placeholder="e.g., 45101"
                 required
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Claim Day of Month</label>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={data.claimDay}
+                onChange={(e) => setData({ ...data, claimDay: e.target.value })}
+                placeholder="e.g., 19"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">Day when claims are due (1-31)</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -660,7 +676,7 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
         </button>
         <button
           onClick={onSubmit}
-          disabled={isLoading || !data.planEndDate || !data.dailySdaRate || !data.annualSdaBudget}
+          disabled={isLoading || !data.planEndDate || !data.monthlySdaAmount || !data.annualSdaBudget}
           className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
         >
           {isLoading ? "Creating..." : "Create Participant"}

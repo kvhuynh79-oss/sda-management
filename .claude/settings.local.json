@@ -13,6 +13,9 @@
       "Bash(dir:*)",
       "Bash(if exist .next rmdir /s /q .next)",
       "Bash(gh api:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Projects\\sda-management\\src\\app\\properties\\[id]"
     ]
   }
 }

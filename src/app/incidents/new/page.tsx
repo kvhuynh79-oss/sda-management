@@ -1,0 +1,670 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import Link from "next/link";
+import Image from "next/image";
+import { Id } from "../../../../convex/_generated/dataModel";
+
+type PhotoUpload = {
+  file: File;
+  preview: string;
+  description: string;
+};
+
+export default function NewIncidentPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [photos, setPhotos] = useState<PhotoUpload[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const properties = useQuery(api.properties.getAll);
+  const dwellings = useQuery(
+    api.dwellings.getByProperty,
+    selectedPropertyId ? { propertyId: selectedPropertyId as Id<"properties"> } : "skip"
+  );
+  const participants = useQuery(api.participants.getAll);
+
+  const createIncident = useMutation(api.incidents.create);
+  const addPhoto = useMutation(api.incidents.addPhoto);
+  const generateUploadUrl = useMutation(api.maintenancePhotos.generateUploadUrl);
+
+  const [formData, setFormData] = useState({
+    propertyId: "",
+    dwellingId: "",
+    participantId: "",
+    incidentType: "other" as
+      | "injury"
+      | "near_miss"
+      | "property_damage"
+      | "behavioral"
+      | "medication"
+      | "abuse_neglect"
+      | "complaint"
+      | "other",
+    severity: "minor" as "minor" | "moderate" | "major" | "critical",
+    title: "",
+    description: "",
+    incidentDate: new Date().toISOString().split("T")[0],
+    incidentTime: "",
+    location: "",
+    witnessNames: "",
+    immediateActionTaken: "",
+    followUpRequired: false,
+    followUpNotes: "",
+    reportedToNdis: false,
+    ndisReportDate: "",
+  });
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (!storedUser) {
+      router.push("/login");
+      return;
+    }
+    setUser(JSON.parse(storedUser));
+  }, [router]);
+
+  // Filter participants by selected property
+  const filteredParticipants = participants?.filter((p) => {
+    if (!selectedPropertyId || !dwellings) return false;
+    return dwellings.some((d) => d._id === p.dwellingId);
+  });
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newPhotos: PhotoUpload[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("image/")) {
+        newPhotos.push({
+          file,
+          preview: URL.createObjectURL(file),
+          description: "",
+        });
+      }
+    }
+    setPhotos([...photos, ...newPhotos]);
+  };
+
+  const removePhoto = (index: number) => {
+    const newPhotos = [...photos];
+    URL.revokeObjectURL(newPhotos[index].preview);
+    newPhotos.splice(index, 1);
+    setPhotos(newPhotos);
+  };
+
+  const updatePhotoDescription = (index: number, description: string) => {
+    const newPhotos = [...photos];
+    newPhotos[index].description = description;
+    setPhotos(newPhotos);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!user) {
+      setError("User not authenticated");
+      return;
+    }
+
+    if (!formData.propertyId) {
+      setError("Please select a property");
+      return;
+    }
+
+    if (!formData.title || !formData.description) {
+      setError("Please enter a title and description");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create the incident
+      const incidentId = await createIncident({
+        propertyId: formData.propertyId as Id<"properties">,
+        dwellingId: formData.dwellingId ? (formData.dwellingId as Id<"dwellings">) : undefined,
+        participantId: formData.participantId
+          ? (formData.participantId as Id<"participants">)
+          : undefined,
+        incidentType: formData.incidentType,
+        severity: formData.severity,
+        title: formData.title,
+        description: formData.description,
+        incidentDate: formData.incidentDate,
+        incidentTime: formData.incidentTime || undefined,
+        location: formData.location || undefined,
+        witnessNames: formData.witnessNames || undefined,
+        immediateActionTaken: formData.immediateActionTaken || undefined,
+        followUpRequired: formData.followUpRequired,
+        followUpNotes: formData.followUpNotes || undefined,
+        reportedToNdis: formData.reportedToNdis,
+        ndisReportDate: formData.ndisReportDate || undefined,
+        reportedBy: user.id as Id<"users">,
+      });
+
+      // Upload photos
+      for (const photo of photos) {
+        const uploadUrl = await generateUploadUrl();
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": photo.file.type },
+          body: photo.file,
+        });
+        const { storageId } = await response.json();
+
+        await addPhoto({
+          incidentId: incidentId as Id<"incidents">,
+          storageId,
+          fileName: photo.file.name,
+          fileSize: photo.file.size,
+          fileType: photo.file.type,
+          description: photo.description || undefined,
+          uploadedBy: user.id as Id<"users">,
+        });
+      }
+
+      router.push("/incidents");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create incident report");
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!user) {
+    return <LoadingScreen />;
+  }
+
+  const getSeverityColor = (severity: string) => {
+    const colors: Record<string, string> = {
+      critical: "border-red-600 bg-red-600/10",
+      major: "border-orange-600 bg-orange-600/10",
+      moderate: "border-yellow-600 bg-yellow-600/10",
+      minor: "border-gray-600 bg-gray-600/10",
+    };
+    return colors[severity] || colors.minor;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900">
+      <Header />
+
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Breadcrumb */}
+        <nav className="mb-6">
+          <ol className="flex items-center gap-2 text-sm">
+            <li>
+              <Link href="/dashboard" className="text-gray-400 hover:text-white">
+                Dashboard
+              </Link>
+            </li>
+            <li className="text-gray-600">/</li>
+            <li>
+              <Link href="/incidents" className="text-gray-400 hover:text-white">
+                Incidents
+              </Link>
+            </li>
+            <li className="text-gray-600">/</li>
+            <li className="text-white">New Report</li>
+          </ol>
+        </nav>
+
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h1 className="text-2xl font-bold text-white mb-6">Report Incident</h1>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg text-red-200">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Property & Dwelling */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Property *</label>
+                <select
+                  required
+                  value={formData.propertyId}
+                  onChange={(e) => {
+                    setSelectedPropertyId(e.target.value);
+                    setFormData({
+                      ...formData,
+                      propertyId: e.target.value,
+                      dwellingId: "",
+                      participantId: "",
+                    });
+                  }}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="">Select a property</option>
+                  {properties?.map((property) => (
+                    <option key={property._id} value={property._id}>
+                      {property.propertyName || property.addressLine1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Dwelling</label>
+                <select
+                  value={formData.dwellingId}
+                  onChange={(e) => setFormData({ ...formData, dwellingId: e.target.value })}
+                  disabled={!formData.propertyId}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                >
+                  <option value="">All dwellings / Not specific</option>
+                  {dwellings?.map((dwelling) => (
+                    <option key={dwelling._id} value={dwelling._id}>
+                      {dwelling.dwellingName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Participant (optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Related Participant (optional)
+              </label>
+              <select
+                value={formData.participantId}
+                onChange={(e) => setFormData({ ...formData, participantId: e.target.value })}
+                disabled={!formData.propertyId}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+              >
+                <option value="">Not participant-specific</option>
+                {filteredParticipants?.map((participant) => (
+                  <option key={participant._id} value={participant._id}>
+                    {participant.firstName} {participant.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Incident Type & Severity */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Incident Type *
+                </label>
+                <select
+                  required
+                  value={formData.incidentType}
+                  onChange={(e) => setFormData({ ...formData, incidentType: e.target.value as any })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="injury">Injury</option>
+                  <option value="near_miss">Near Miss</option>
+                  <option value="property_damage">Property Damage</option>
+                  <option value="behavioral">Behavioral</option>
+                  <option value="medication">Medication Related</option>
+                  <option value="abuse_neglect">Abuse/Neglect Concern</option>
+                  <option value="complaint">Complaint</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">Severity *</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["minor", "moderate", "major", "critical"] as const).map((severity) => (
+                    <label
+                      key={severity}
+                      className={`cursor-pointer border-2 rounded-lg p-2 text-center transition-all text-sm ${
+                        formData.severity === severity
+                          ? getSeverityColor(severity)
+                          : "border-gray-700 bg-gray-700/30"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="severity"
+                        value={severity}
+                        checked={formData.severity === severity}
+                        onChange={(e) =>
+                          setFormData({ ...formData, severity: e.target.value as any })
+                        }
+                        className="sr-only"
+                      />
+                      <span className="text-white capitalize">{severity}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Brief summary of the incident"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Description *</label>
+              <textarea
+                required
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={4}
+                placeholder="Detailed description of what happened..."
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
+
+            {/* Date, Time, Location */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Incident Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.incidentDate}
+                  onChange={(e) => setFormData({ ...formData, incidentDate: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Incident Time
+                </label>
+                <input
+                  type="time"
+                  value={formData.incidentTime}
+                  onChange={(e) => setFormData({ ...formData, incidentTime: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="e.g., Kitchen, Bathroom"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+            </div>
+
+            {/* Witnesses & Immediate Action */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Witness Names
+                </label>
+                <input
+                  type="text"
+                  value={formData.witnessNames}
+                  onChange={(e) => setFormData({ ...formData, witnessNames: e.target.value })}
+                  placeholder="Names of witnesses (if any)"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Immediate Action Taken
+                </label>
+                <input
+                  type="text"
+                  value={formData.immediateActionTaken}
+                  onChange={(e) =>
+                    setFormData({ ...formData, immediateActionTaken: e.target.value })
+                  }
+                  placeholder="What was done immediately?"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+            </div>
+
+            {/* Follow-up & NDIS Reporting */}
+            <div className="border-t border-gray-700 pt-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Follow-up & Reporting</h3>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.followUpRequired}
+                      onChange={(e) =>
+                        setFormData({ ...formData, followUpRequired: e.target.checked })
+                      }
+                      className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                    />
+                    <span className="text-gray-300">Follow-up required</span>
+                  </label>
+                </div>
+
+                {formData.followUpRequired && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Follow-up Notes
+                    </label>
+                    <textarea
+                      value={formData.followUpNotes}
+                      onChange={(e) => setFormData({ ...formData, followUpNotes: e.target.value })}
+                      rows={2}
+                      placeholder="What follow-up actions are needed?"
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.reportedToNdis}
+                      onChange={(e) =>
+                        setFormData({ ...formData, reportedToNdis: e.target.checked })
+                      }
+                      className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                    />
+                    <span className="text-gray-300">Reported to NDIS</span>
+                  </label>
+                </div>
+
+                {formData.reportedToNdis && (
+                  <div className="w-1/3">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      NDIS Report Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.ndisReportDate}
+                      onChange={(e) => setFormData({ ...formData, ndisReportDate: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Photo Upload */}
+            <div className="border-t border-gray-700 pt-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Photos</h3>
+
+              <div className="space-y-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  + Add Photos
+                </button>
+
+                {photos.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {photos.map((photo, index) => (
+                      <div key={index} className="bg-gray-700 rounded-lg p-2">
+                        <div className="relative aspect-video mb-2">
+                          <img
+                            src={photo.preview}
+                            alt={`Photo ${index + 1}`}
+                            className="w-full h-full object-cover rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(index)}
+                            className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Description..."
+                          value={photo.description}
+                          onChange={(e) => updatePhotoDescription(index, e.target.value)}
+                          className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Submit */}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+              >
+                {isSubmitting ? "Submitting Report..." : "Submit Incident Report"}
+              </button>
+              <Link
+                href="/incidents"
+                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+              >
+                Cancel
+              </Link>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function Header() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ firstName: string; lastName: string; role: string } | null>(
+    null
+  );
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("sda_user");
+    router.push("/login");
+  };
+
+  return (
+    <header className="bg-gray-800 border-b border-gray-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center gap-8">
+            <Link href="/dashboard">
+              <Image
+                src="/Logo.jpg"
+                alt="Better Living Solutions"
+                width={140}
+                height={40}
+                className="rounded"
+              />
+            </Link>
+            <nav className="flex gap-4">
+              <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/properties" className="text-gray-400 hover:text-white transition-colors">
+                Properties
+              </Link>
+              <Link
+                href="/participants"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                Participants
+              </Link>
+              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
+                Payments
+              </Link>
+              <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
+                Maintenance
+              </Link>
+              <Link href="/incidents" className="text-white font-medium">
+                Incidents
+              </Link>
+              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
+                Documents
+              </Link>
+              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
+                Alerts
+              </Link>
+            </nav>
+          </div>
+          {user && (
+            <div className="flex items-center gap-4">
+              <span className="text-gray-300">
+                {user.firstName} {user.lastName}
+              </span>
+              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
+                {user.role.replace("_", " ")}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="text-white">Loading...</div>
+    </div>
+  );
+}

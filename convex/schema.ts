@@ -279,6 +279,25 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_priority", ["priority"]),
 
+  // Maintenance Photos table - photos attached to maintenance requests
+  maintenancePhotos: defineTable({
+    maintenanceRequestId: v.id("maintenanceRequests"),
+    storageId: v.string(), // Convex storage ID
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(),
+    description: v.optional(v.string()), // Photo description/caption
+    photoType: v.union(
+      v.literal("before"), // Before work
+      v.literal("during"), // During work
+      v.literal("after"), // After completion
+      v.literal("issue") // Showing the issue
+    ),
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_maintenance_request", ["maintenanceRequestId"]),
+
   // Preventative Maintenance Schedule table
   preventativeSchedule: defineTable({
     propertyId: v.id("properties"),
@@ -404,4 +423,67 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_alertType", ["alertType"])
     .index("by_severity", ["severity"]),
+
+  // Incidents table - incident reports for properties/participants
+  incidents: defineTable({
+    propertyId: v.id("properties"),
+    dwellingId: v.optional(v.id("dwellings")),
+    participantId: v.optional(v.id("participants")), // Optional - if incident involves specific participant
+    incidentType: v.union(
+      v.literal("injury"),
+      v.literal("near_miss"),
+      v.literal("property_damage"),
+      v.literal("behavioral"),
+      v.literal("medication"),
+      v.literal("abuse_neglect"),
+      v.literal("complaint"),
+      v.literal("other")
+    ),
+    severity: v.union(
+      v.literal("minor"),
+      v.literal("moderate"),
+      v.literal("major"),
+      v.literal("critical")
+    ),
+    title: v.string(),
+    description: v.string(),
+    incidentDate: v.string(),
+    incidentTime: v.optional(v.string()),
+    location: v.optional(v.string()), // Where in the property
+    witnessNames: v.optional(v.string()),
+    immediateActionTaken: v.optional(v.string()),
+    followUpRequired: v.boolean(),
+    followUpNotes: v.optional(v.string()),
+    reportedToNdis: v.optional(v.boolean()),
+    ndisReportDate: v.optional(v.string()),
+    status: v.union(
+      v.literal("reported"),
+      v.literal("under_investigation"),
+      v.literal("resolved"),
+      v.literal("closed")
+    ),
+    reportedBy: v.id("users"),
+    resolvedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+    resolutionNotes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_participant", ["participantId"])
+    .index("by_status", ["status"])
+    .index("by_severity", ["severity"]),
+
+  // Incident Photos table
+  incidentPhotos: defineTable({
+    incidentId: v.id("incidents"),
+    storageId: v.string(),
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(),
+    description: v.optional(v.string()),
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_incident", ["incidentId"]),
 });

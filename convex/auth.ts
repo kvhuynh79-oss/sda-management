@@ -1,6 +1,19 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Simple hash function for password (demo purposes - use proper hashing in production)
+function hashPassword(password: string): string {
+  // Use a simple but Convex-compatible hash
+  let hash = 0;
+  const str = password + "_sda_salt_2025";
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString(36) + str.length.toString(36);
+}
+
 // Create a new user (for initial setup or admin creating users)
 export const createUser = mutation({
   args: {
@@ -28,7 +41,7 @@ export const createUser = mutation({
     }
 
     // Simple hash for demo - in production use proper bcrypt on server
-    const passwordHash = Buffer.from(args.password + "_sda_salt_2025").toString('base64');
+    const passwordHash = hashPassword(args.password);
 
     const now = Date.now();
     const userId = await ctx.db.insert("users", {
@@ -68,7 +81,7 @@ export const login = mutation({
     }
 
     // Verify password
-    const passwordHash = Buffer.from(args.password + "_sda_salt_2025").toString('base64');
+    const passwordHash = hashPassword(args.password);
     if (user.passwordHash !== passwordHash) {
       throw new Error("Invalid email or password");
     }
@@ -174,13 +187,13 @@ export const changePassword = mutation({
     }
 
     // Verify current password
-    const currentHash = Buffer.from(args.currentPassword + "_sda_salt_2025").toString('base64');
+    const currentHash = hashPassword(args.currentPassword);
     if (user.passwordHash !== currentHash) {
       throw new Error("Current password is incorrect");
     }
 
     // Update password
-    const newHash = Buffer.from(args.newPassword + "_sda_salt_2025").toString('base64');
+    const newHash = hashPassword(args.newPassword);
     await ctx.db.patch(args.userId, {
       passwordHash: newHash,
       updatedAt: Date.now(),
@@ -197,7 +210,7 @@ export const resetPassword = mutation({
     newPassword: v.string(),
   },
   handler: async (ctx, args) => {
-    const newHash = Buffer.from(args.newPassword + "_sda_salt_2025").toString('base64');
+    const newHash = hashPassword(args.newPassword);
     await ctx.db.patch(args.userId, {
       passwordHash: newHash,
       updatedAt: Date.now(),

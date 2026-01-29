@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
 
@@ -670,8 +671,14 @@ function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="text-xl font-bold text-white">
-              SDA Management
+            <Link href="/dashboard">
+              <Image
+                src="/Logo.jpg"
+                alt="Better Living Solutions"
+                width={140}
+                height={40}
+                className="rounded"
+              />
             </Link>
             <nav className="flex gap-4">
               <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
@@ -679,6 +686,27 @@ function Header() {
               </Link>
               <Link href="/properties" className="text-white font-medium">
                 Properties
+              </Link>
+              <Link href="/participants" className="text-gray-400 hover:text-white transition-colors">
+                Participants
+              </Link>
+              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
+                Payments
+              </Link>
+              <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
+                Maintenance
+              </Link>
+              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
+                Documents
+              </Link>
+              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
+                Alerts
+              </Link>
+              <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
+                Schedule
+              </Link>
+              <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
+                Settings
               </Link>
             </nav>
           </div>

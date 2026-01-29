@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function NewParticipantPage() {
   const router = useRouter();
@@ -675,8 +676,14 @@ function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="text-xl font-bold text-white">
-              SDA Management
+            <Link href="/dashboard">
+              <Image
+                src="/Logo.jpg"
+                alt="Better Living Solutions"
+                width={140}
+                height={40}
+                className="rounded"
+              />
             </Link>
             <nav className="flex gap-4">
               <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">

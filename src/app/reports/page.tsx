@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -51,7 +52,7 @@ export default function ReportsPage() {
     }
 
     // Build CSV content
-    let csvContent = "SDA Management - Reports Export\n\n";
+    let csvContent = "Better Living Solutions - Reports Export\n\n";
 
     // Compliance Report Section
     csvContent += "COMPLIANCE REPORT\n";
@@ -109,7 +110,7 @@ export default function ReportsPage() {
 
     // Title
     doc.setFontSize(20);
-    doc.text("SDA Management - Reports", 14, 20);
+    doc.text("Better Living Solutions - Reports", 14, 20);
     doc.setFontSize(12);
     doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 28);
     doc.setFontSize(10);
@@ -456,8 +457,14 @@ function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="text-xl font-bold text-white">
-              SDA Management
+            <Link href="/dashboard">
+              <Image
+                src="/Logo.jpg"
+                alt="Better Living Solutions"
+                width={140}
+                height={40}
+                className="rounded"
+              />
             </Link>
             <nav className="flex gap-4">
               <Link
@@ -503,13 +510,16 @@ function Header() {
                 Alerts
               </Link>
               <Link
-                href="/preventative-schedule"
+                href="/schedule"
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 Schedule
               </Link>
-              <Link href="/reports" className="text-white font-medium">
-                Reports
+              <Link
+                href="/settings"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                Settings
               </Link>
             </nav>
           </div>

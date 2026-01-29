@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -39,9 +40,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            SDA Management
-          </h1>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/Logo.jpg"
+              alt="Better Living Solutions"
+              width={280}
+              height={80}
+              className="rounded"
+              priority
+            />
+          </div>
           <p className="text-gray-400">
             Specialist Disability Accommodation Portal
           </p>

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SDA Management",
+  title: "Better Living Solutions",
   description: "Specialist Disability Accommodation Property Management System",
 };
 

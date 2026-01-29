@@ -14,6 +14,7 @@ import type * as crons from "../crons.js";
 import type * as documents from "../documents.js";
 import type * as dwellings from "../dwellings.js";
 import type * as maintenanceRequests from "../maintenanceRequests.js";
+import type * as ndisClaimExport from "../ndisClaimExport.js";
 import type * as notifications from "../notifications.js";
 import type * as owners from "../owners.js";
 import type * as participantPlans from "../participantPlans.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   dwellings: typeof dwellings;
   maintenanceRequests: typeof maintenanceRequests;
+  ndisClaimExport: typeof ndisClaimExport;
   notifications: typeof notifications;
   owners: typeof owners;
   participantPlans: typeof participantPlans;

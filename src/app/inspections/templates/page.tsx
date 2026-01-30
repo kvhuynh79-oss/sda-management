@@ -28,12 +28,27 @@ export default function InspectionTemplatesPage() {
 
   const handleSeedTemplate = async () => {
     if (!user) return;
+
+    // Check if BLS template already exists
+    const existingBLS = templates?.find(t => t.name === "BLS Property Inspection");
+    if (existingBLS) {
+      alert("BLS Template already exists!");
+      return;
+    }
+
     try {
       await seedBLSTemplate({ createdBy: user._id as Id<"users"> });
       alert("BLS Template created successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error seeding template:", error);
-      alert("Error creating template. It may already exist.");
+      const errorMessage = error?.message || "Unknown error";
+      if (errorMessage.includes("already exists")) {
+        alert("BLS Template already exists! Refresh the page to see it.");
+      } else if (errorMessage.includes("Invalid ID")) {
+        alert("Error: Your user session may be invalid. Please log out and log back in.");
+      } else {
+        alert(`Error creating template: ${errorMessage}`);
+      }
     }
   };
 

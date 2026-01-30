@@ -646,7 +646,7 @@ export const seedBLSTemplate = mutation({
       .first();
 
     if (existing) {
-      return existing._id;
+      throw new Error("BLS Template already exists");
     }
 
     const now = Date.now();

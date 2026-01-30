@@ -112,6 +112,7 @@ export default defineSchema({
     ),
     sdaBuildingType: v.union(v.literal("new_build"), v.literal("existing")),
     registrationDate: v.optional(v.string()), // Date when dwelling was registered for SDA
+    sdaRegisteredAmount: v.optional(v.number()), // Annual SDA funding amount (e.g., $79,620)
     maxParticipants: v.number(),
     currentOccupancy: v.number(),
     occupancyStatus: v.union(

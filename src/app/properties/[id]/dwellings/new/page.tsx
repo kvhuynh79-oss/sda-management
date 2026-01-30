@@ -32,6 +32,7 @@ export default function NewDwellingPage() {
       | "high_physical_support",
     sdaBuildingType: "new_build" as "new_build" | "existing",
     registrationDate: "",
+    sdaRegisteredAmount: "",
     maxParticipants: 2,
     weeklyRentAmount: "",
     notes: "",
@@ -67,6 +68,9 @@ export default function NewDwellingPage() {
         sdaDesignCategory: formData.sdaDesignCategory,
         sdaBuildingType: formData.sdaBuildingType,
         registrationDate: formData.registrationDate || undefined,
+        sdaRegisteredAmount: formData.sdaRegisteredAmount
+          ? parseFloat(formData.sdaRegisteredAmount)
+          : undefined,
         maxParticipants: formData.maxParticipants,
         weeklyRentAmount: formData.weeklyRentAmount
           ? parseFloat(formData.weeklyRentAmount)
@@ -302,6 +306,23 @@ export default function NewDwellingPage() {
                     setFormData({ ...formData, registrationDate: e.target.value })
                   }
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  SDA Registered Amount (Annual)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.sdaRegisteredAmount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sdaRegisteredAmount: e.target.value })
+                  }
+                  placeholder="e.g., 79620"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 

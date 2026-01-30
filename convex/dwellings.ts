@@ -22,6 +22,7 @@ export const create = mutation({
     ),
     sdaBuildingType: v.union(v.literal("new_build"), v.literal("existing")),
     registrationDate: v.optional(v.string()), // Date when dwelling was registered for SDA
+    sdaRegisteredAmount: v.optional(v.number()), // Annual SDA funding amount
     maxParticipants: v.number(),
     weeklyRentAmount: v.optional(v.number()),
     notes: v.optional(v.string()),
@@ -113,6 +114,7 @@ export const update = mutation({
     )),
     sdaBuildingType: v.optional(v.union(v.literal("new_build"), v.literal("existing"))),
     registrationDate: v.optional(v.string()),
+    sdaRegisteredAmount: v.optional(v.number()), // Annual SDA funding amount
     maxParticipants: v.optional(v.number()),
     weeklyRentAmount: v.optional(v.number()),
     notes: v.optional(v.string()),

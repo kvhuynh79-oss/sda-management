@@ -277,7 +277,7 @@ function DwellingCard({ dwelling }: { dwelling: any }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
         <div>
           <p className="text-gray-500 text-xs">Bedrooms</p>
           <p className="text-white text-sm">{dwelling.bedrooms}</p>
@@ -293,6 +293,14 @@ function DwellingCard({ dwelling }: { dwelling: any }) {
         <div>
           <p className="text-gray-500 text-xs">Registration Date</p>
           <p className="text-white text-sm">{dwelling.registrationDate || "Not registered"}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 text-xs">SDA Amount (Annual)</p>
+          <p className="text-white text-sm font-medium">
+            {dwelling.sdaRegisteredAmount
+              ? `$${dwelling.sdaRegisteredAmount.toLocaleString()}`
+              : "Not set"}
+          </p>
         </div>
       </div>
 

@@ -13,7 +13,7 @@ export const generateUploadUrl = mutation({
 export const addPhoto = mutation({
   args: {
     maintenanceRequestId: v.id("maintenanceRequests"),
-    storageId: v.string(),
+    storageId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),

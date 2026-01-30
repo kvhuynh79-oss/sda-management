@@ -187,18 +187,24 @@ export default function PropertyDetailPage() {
             <div className="bg-gray-800 rounded-lg p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-white">Dwellings</h2>
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                <Link
+                  href={`/properties/${propertyId}/dwellings/new`}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
                   + Add Dwelling
-                </button>
+                </Link>
               </div>
 
               {dwellings.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-500 text-5xl mb-4">🏘️</div>
                   <p className="text-gray-400 mb-4">No dwellings added yet</p>
-                  <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                  <Link
+                    href={`/properties/${propertyId}/dwellings/new`}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
                     + Add First Dwelling
-                  </button>
+                  </Link>
                 </div>
               ) : (
                 <div className="space-y-4">

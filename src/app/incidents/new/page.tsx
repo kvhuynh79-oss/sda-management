@@ -68,7 +68,20 @@ export default function NewIncidentPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed.id || parsed._id;
+
+    // If user ID is missing, clear session and redirect to login
+    if (!userId) {
+      localStorage.removeItem("sda_user");
+      router.push("/login");
+      return;
+    }
+
+    setUser({
+      id: userId,
+      role: parsed.role,
+    });
   }, [router]);
 
   // Filter participants by selected property
@@ -169,7 +182,7 @@ export default function NewIncidentPage() {
 
         await addPhoto({
           incidentId: incidentId as Id<"incidents">,
-          storageId,
+          storageId: storageId as Id<"_storage">,
           fileName: item.file.name,
           fileSize: item.file.size,
           fileType: item.file.type,

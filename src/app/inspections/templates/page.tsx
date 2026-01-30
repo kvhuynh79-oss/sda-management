@@ -10,7 +10,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function InspectionTemplatesPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ _id: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
 
   const templates = useQuery(api.inspections.getTemplates, { includeInactive: true });
@@ -23,7 +23,20 @@ export default function InspectionTemplatesPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed.id || parsed._id;
+
+    // If user ID is missing, clear session and redirect to login
+    if (!userId) {
+      localStorage.removeItem("sda_user");
+      router.push("/login");
+      return;
+    }
+
+    setUser({
+      id: userId,
+      role: parsed.role,
+    });
   }, [router]);
 
   const handleSeedTemplate = async () => {
@@ -36,8 +49,14 @@ export default function InspectionTemplatesPage() {
       return;
     }
 
+    // Validate user ID exists
+    if (!user.id) {
+      alert("Error: User ID not found. Please log out and log back in.");
+      return;
+    }
+
     try {
-      await seedBLSTemplate({ createdBy: user._id as Id<"users"> });
+      await seedBLSTemplate({ createdBy: user.id as Id<"users"> });
       alert("BLS Template created successfully!");
     } catch (error: any) {
       console.error("Error seeding template:", error);

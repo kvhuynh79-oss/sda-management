@@ -46,7 +46,7 @@ export default function LoginPage() {
               alt="Better Living Solutions"
               width={280}
               height={80}
-              className="rounded"
+              className="rounded object-contain"
               priority
             />
           </div>

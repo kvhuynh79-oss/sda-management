@@ -57,7 +57,20 @@ export default function NewDocumentPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed.id || parsed._id;
+
+    // If user ID is missing, clear session and redirect to login
+    if (!userId) {
+      localStorage.removeItem("sda_user");
+      router.push("/login");
+      return;
+    }
+
+    setUser({
+      id: userId,
+      role: parsed.role,
+    });
   }, [router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,7 +185,7 @@ export default function NewDocumentPage() {
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
         fileType: selectedFile.type,
-        storageId,
+        storageId: storageId as Id<"_storage">,
         documentType: formData.documentType,
         documentCategory: formData.documentCategory,
         linkedParticipantId: formData.linkedParticipantId

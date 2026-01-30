@@ -10,7 +10,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NewInspectionPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ _id: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; role: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -42,11 +42,25 @@ export default function NewInspectionPage() {
       return;
     }
     const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
+    const userId = parsedUser.id || parsedUser._id;
+
+    // If user ID is missing, clear session and redirect to login
+    if (!userId) {
+      localStorage.removeItem("sda_user");
+      router.push("/login");
+      return;
+    }
+
+    setUser({
+      id: userId,
+      firstName: parsedUser.firstName,
+      lastName: parsedUser.lastName,
+      role: parsedUser.role,
+    });
     // Default inspector to current user
     setFormData((prev) => ({
       ...prev,
-      inspectorId: parsedUser._id,
+      inspectorId: userId,
       preparedBy: `${parsedUser.firstName} ${parsedUser.lastName}`,
     }));
   }, [router]);
@@ -70,7 +84,7 @@ export default function NewInspectionPage() {
         scheduledDate: formData.scheduledDate,
         location: formData.location || undefined,
         preparedBy: formData.preparedBy || undefined,
-        createdBy: user._id as Id<"users">,
+        createdBy: user.id as Id<"users">,
       });
       router.push(`/inspections/${inspectionId}`);
     } catch (error) {

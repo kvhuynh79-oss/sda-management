@@ -12,7 +12,7 @@ export const create = mutation({
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
-    storageId: v.string(),
+    storageId: v.id("_storage"),
     documentType: v.union(
       v.literal("ndis_plan"),
       v.literal("service_agreement"),

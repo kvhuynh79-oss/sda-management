@@ -597,7 +597,7 @@ export const saveInspectionPhoto = mutation({
   args: {
     inspectionId: v.id("inspections"),
     inspectionItemId: v.id("inspectionItems"),
-    storageId: v.string(),
+    storageId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),

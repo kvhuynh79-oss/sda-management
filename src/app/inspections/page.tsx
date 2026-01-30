@@ -10,7 +10,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 
 export default function InspectionsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ _id: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const inspections = useQuery(api.inspections.getInspections, {});
@@ -23,13 +23,26 @@ export default function InspectionsPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed.id || parsed._id;
+
+    // If user ID is missing, clear session and redirect to login
+    if (!userId) {
+      localStorage.removeItem("sda_user");
+      router.push("/login");
+      return;
+    }
+
+    setUser({
+      id: userId,
+      role: parsed.role,
+    });
   }, [router]);
 
   const handleSeedTemplate = async () => {
-    if (!user) return;
+    if (!user || !user.id) return;
     try {
-      await seedBLSTemplate({ createdBy: user._id as Id<"users"> });
+      await seedBLSTemplate({ createdBy: user.id as Id<"users"> });
       alert("BLS Template created successfully!");
     } catch (error) {
       console.error("Error seeding template:", error);

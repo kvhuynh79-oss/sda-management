@@ -291,7 +291,7 @@ export default defineSchema({
   // Maintenance Photos table - photos attached to maintenance requests
   maintenancePhotos: defineTable({
     maintenanceRequestId: v.id("maintenanceRequests"),
-    storageId: v.string(), // Convex storage ID
+    storageId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
@@ -374,7 +374,7 @@ export default defineSchema({
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
-    storageId: v.string(),
+    storageId: v.id("_storage"),
     documentType: v.union(
       v.literal("ndis_plan"),
       v.literal("service_agreement"),
@@ -513,7 +513,7 @@ export default defineSchema({
   // Incident Photos table
   incidentPhotos: defineTable({
     incidentId: v.id("incidents"),
-    storageId: v.string(),
+    storageId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
@@ -601,7 +601,7 @@ export default defineSchema({
   inspectionPhotos: defineTable({
     inspectionId: v.id("inspections"),
     inspectionItemId: v.id("inspectionItems"),
-    storageId: v.string(), // Convex storage ID
+    storageId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),

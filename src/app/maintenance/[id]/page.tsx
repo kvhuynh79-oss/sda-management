@@ -95,7 +95,20 @@ export default function MaintenanceRequestDetailPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed.id || parsed._id;
+
+    // If user ID is missing, clear session and redirect to login
+    if (!userId) {
+      localStorage.removeItem("sda_user");
+      router.push("/login");
+      return;
+    }
+
+    setUser({
+      id: userId,
+      role: parsed.role,
+    });
   }, [router]);
 
   useEffect(() => {
@@ -212,7 +225,7 @@ export default function MaintenanceRequestDetailPage() {
 
             await addPhoto({
               maintenanceRequestId: requestId,
-              storageId,
+              storageId: storageId as Id<"_storage">,
               fileName: media.file.name,
               fileSize: media.file.size,
               fileType: media.file.type,

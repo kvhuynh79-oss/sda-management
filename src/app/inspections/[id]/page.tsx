@@ -31,7 +31,7 @@ interface InspectionItem {
 export default function InspectionDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const [user, setUser] = useState<{ _id: string; firstName: string; lastName: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; firstName: string; lastName: string } | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [additionalComments, setAdditionalComments] = useState("");
@@ -57,7 +57,21 @@ export default function InspectionDetailPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed.id || parsed._id;
+
+    // If user ID is missing, clear session and redirect to login
+    if (!userId) {
+      localStorage.removeItem("sda_user");
+      router.push("/login");
+      return;
+    }
+
+    setUser({
+      id: userId,
+      firstName: parsed.firstName,
+      lastName: parsed.lastName,
+    });
   }, [router]);
 
   // Group items by category
@@ -89,7 +103,7 @@ export default function InspectionDetailPage() {
       itemId,
       status,
       remarks: itemRemarks[itemId] || undefined,
-      updatedBy: user._id as Id<"users">,
+      updatedBy: user.id as Id<"users">,
     });
   };
 
@@ -102,7 +116,7 @@ export default function InspectionDetailPage() {
       itemId,
       status: item.status,
       remarks,
-      updatedBy: user._id as Id<"users">,
+      updatedBy: user.id as Id<"users">,
     });
     setEditingItem(null);
   };
@@ -137,11 +151,11 @@ export default function InspectionDetailPage() {
       await savePhoto({
         inspectionId,
         inspectionItemId: itemId as Id<"inspectionItems">,
-        storageId,
+        storageId: storageId as Id<"_storage">,
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
-        uploadedBy: user._id as Id<"users">,
+        uploadedBy: user.id as Id<"users">,
       });
     } catch (error) {
       console.error("Error uploading photo:", error);

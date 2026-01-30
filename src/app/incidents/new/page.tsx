@@ -8,10 +8,11 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
 
-type PhotoUpload = {
+type MediaUpload = {
   file: File;
   preview: string;
   description: string;
+  isVideo: boolean;
 };
 
 export default function NewIncidentPage() {
@@ -20,7 +21,7 @@ export default function NewIncidentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
-  const [photos, setPhotos] = useState<PhotoUpload[]>([]);
+  const [media, setMedia] = useState<MediaUpload[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const properties = useQuery(api.properties.getAll);
@@ -76,35 +77,39 @@ export default function NewIncidentPage() {
     return dwellings.some((d) => d._id === p.dwellingId);
   });
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    const newPhotos: PhotoUpload[] = [];
+    const newMedia: MediaUpload[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type.startsWith("image/")) {
-        newPhotos.push({
+      const isVideo = file.type.startsWith("video/");
+      const isImage = file.type.startsWith("image/");
+
+      if (isImage || isVideo) {
+        newMedia.push({
           file,
           preview: URL.createObjectURL(file),
           description: "",
+          isVideo,
         });
       }
     }
-    setPhotos([...photos, ...newPhotos]);
+    setMedia([...media, ...newMedia]);
   };
 
-  const removePhoto = (index: number) => {
-    const newPhotos = [...photos];
-    URL.revokeObjectURL(newPhotos[index].preview);
-    newPhotos.splice(index, 1);
-    setPhotos(newPhotos);
+  const removeMedia = (index: number) => {
+    const newMedia = [...media];
+    URL.revokeObjectURL(newMedia[index].preview);
+    newMedia.splice(index, 1);
+    setMedia(newMedia);
   };
 
-  const updatePhotoDescription = (index: number, description: string) => {
-    const newPhotos = [...photos];
-    newPhotos[index].description = description;
-    setPhotos(newPhotos);
+  const updateMediaDescription = (index: number, description: string) => {
+    const newMedia = [...media];
+    newMedia[index].description = description;
+    setMedia(newMedia);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,23 +157,23 @@ export default function NewIncidentPage() {
         reportedBy: user.id as Id<"users">,
       });
 
-      // Upload photos
-      for (const photo of photos) {
+      // Upload media (photos/videos)
+      for (const item of media) {
         const uploadUrl = await generateUploadUrl();
         const response = await fetch(uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": photo.file.type },
-          body: photo.file,
+          headers: { "Content-Type": item.file.type },
+          body: item.file,
         });
         const { storageId } = await response.json();
 
         await addPhoto({
           incidentId: incidentId as Id<"incidents">,
           storageId,
-          fileName: photo.file.name,
-          fileSize: photo.file.size,
-          fileType: photo.file.type,
-          description: photo.description || undefined,
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          fileType: item.file.type,
+          description: item.description || undefined,
           uploadedBy: user.id as Id<"users">,
         });
       }
@@ -406,34 +411,34 @@ export default function NewIncidentPage() {
               </div>
             </div>
 
-            {/* Witnesses & Immediate Action */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Witness Names
-                </label>
-                <input
-                  type="text"
-                  value={formData.witnessNames}
-                  onChange={(e) => setFormData({ ...formData, witnessNames: e.target.value })}
-                  placeholder="Names of witnesses (if any)"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Immediate Action Taken
-                </label>
-                <input
-                  type="text"
-                  value={formData.immediateActionTaken}
-                  onChange={(e) =>
-                    setFormData({ ...formData, immediateActionTaken: e.target.value })
-                  }
-                  placeholder="What was done immediately?"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                />
-              </div>
+            {/* Witnesses */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Witness Names
+              </label>
+              <input
+                type="text"
+                value={formData.witnessNames}
+                onChange={(e) => setFormData({ ...formData, witnessNames: e.target.value })}
+                placeholder="Names of witnesses (if any)"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
+
+            {/* Immediate Action Taken */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Immediate Action Taken
+              </label>
+              <textarea
+                value={formData.immediateActionTaken}
+                onChange={(e) =>
+                  setFormData({ ...formData, immediateActionTaken: e.target.value })
+                }
+                rows={4}
+                placeholder="Describe what was done immediately after the incident..."
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
             </div>
 
             {/* Follow-up & NDIS Reporting */}
@@ -500,17 +505,17 @@ export default function NewIncidentPage() {
               </div>
             </div>
 
-            {/* Photo Upload */}
+            {/* Photo/Video Upload */}
             <div className="border-t border-gray-700 pt-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Photos</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Photos & Videos</h3>
 
               <div className="space-y-4">
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   multiple
-                  onChange={handlePhotoSelect}
+                  onChange={handleMediaSelect}
                   className="hidden"
                 />
 
@@ -519,22 +524,30 @@ export default function NewIncidentPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                 >
-                  + Add Photos
+                  + Add Photos/Videos
                 </button>
 
-                {photos.length > 0 && (
+                {media.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {photos.map((photo, index) => (
+                    {media.map((item, index) => (
                       <div key={index} className="bg-gray-700 rounded-lg p-2">
                         <div className="relative aspect-video mb-2">
-                          <img
-                            src={photo.preview}
-                            alt={`Photo ${index + 1}`}
-                            className="w-full h-full object-cover rounded"
-                          />
+                          {item.isVideo ? (
+                            <video
+                              src={item.preview}
+                              controls
+                              className="w-full h-full object-cover rounded"
+                            />
+                          ) : (
+                            <img
+                              src={item.preview}
+                              alt={`Media ${index + 1}`}
+                              className="w-full h-full object-cover rounded"
+                            />
+                          )}
                           <button
                             type="button"
-                            onClick={() => removePhoto(index)}
+                            onClick={() => removeMedia(index)}
                             className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs"
                           >
                             ✕
@@ -543,10 +556,13 @@ export default function NewIncidentPage() {
                         <input
                           type="text"
                           placeholder="Description..."
-                          value={photo.description}
-                          onChange={(e) => updatePhotoDescription(index, e.target.value)}
+                          value={item.description}
+                          onChange={(e) => updateMediaDescription(index, e.target.value)}
                           className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
                         />
+                        <p className="text-gray-400 text-xs mt-1">
+                          {item.isVideo ? "Video" : "Photo"}
+                        </p>
                       </div>
                     ))}
                   </div>

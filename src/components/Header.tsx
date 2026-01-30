@@ -65,8 +65,8 @@ export default function Header({ currentPage }: HeaderProps) {
               src="/Logo.jpg"
               alt="Better Living Solutions"
               width={120}
-              height={34}
-              className="rounded lg:w-[140px] lg:h-[40px]"
+              height={48}
+              className="rounded object-contain h-10 lg:h-12 w-auto"
               priority
             />
           </Link>

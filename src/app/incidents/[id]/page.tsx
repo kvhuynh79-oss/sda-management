@@ -58,27 +58,20 @@ export default function IncidentDetailPage() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
-    console.log("[DEBUG] Raw localStorage sda_user:", storedUser);
-
     if (!storedUser) {
       router.push("/login");
       return;
     }
     const parsed = JSON.parse(storedUser);
-    console.log("[DEBUG] Parsed user object:", parsed);
-
     const userId = parsed.id || parsed._id;
-    console.log("[DEBUG] Extracted userId:", userId);
 
     // If user ID is missing, clear session and redirect to login
     if (!userId) {
-      console.log("[DEBUG] No userId found, redirecting to login");
       localStorage.removeItem("sda_user");
       router.push("/login");
       return;
     }
 
-    console.log("[DEBUG] Setting user state with id:", userId);
     setUser({
       id: userId,
       role: parsed.role,
@@ -165,12 +158,7 @@ export default function IncidentDetailPage() {
     setIsSaving(true);
     setError("");
 
-    console.log("[DEBUG] handleSave called");
-    console.log("[DEBUG] currentUserId:", currentUserId);
-    console.log("[DEBUG] pendingMedia count:", pendingMedia.length);
-
     try {
-      console.log("[DEBUG] Updating incident...");
       await updateIncident({
         incidentId,
         status: formData.status,
@@ -187,29 +175,21 @@ export default function IncidentDetailPage() {
         reportedToNdis: formData.reportedToNdis,
         ndisReportDate: formData.ndisReportDate || undefined,
       });
-      console.log("[DEBUG] Incident updated successfully");
 
       // Upload pending media
       if (pendingMedia.length > 0) {
-        console.log("[DEBUG] Starting media uploads with userId:", currentUserId);
         setUploadingMedia(true);
         const uploadErrors: string[] = [];
         let successCount = 0;
 
         for (const media of pendingMedia) {
           try {
-            console.log("[DEBUG] Getting upload URL for:", media.file.name);
             const uploadUrl = await generateUploadUrl();
-            console.log("[DEBUG] Upload URL received:", uploadUrl);
-
-            console.log("[DEBUG] Uploading file to storage...");
             const response = await fetch(uploadUrl, {
               method: "POST",
               headers: { "Content-Type": media.file.type },
               body: media.file,
             });
-
-            console.log("[DEBUG] Upload response status:", response.status, response.statusText);
 
             if (!response.ok) {
               uploadErrors.push(`Failed to upload ${media.file.name}: ${response.statusText}`);
@@ -217,7 +197,6 @@ export default function IncidentDetailPage() {
             }
 
             const result = await response.json();
-            console.log("[DEBUG] Upload result:", result);
             const storageId = result.storageId;
 
             if (!storageId) {
@@ -225,7 +204,6 @@ export default function IncidentDetailPage() {
               continue;
             }
 
-            console.log("[DEBUG] Adding photo to database with storageId:", storageId, "and uploadedBy:", currentUserId);
             await addPhoto({
               incidentId,
               storageId: storageId as Id<"_storage">,
@@ -235,15 +213,12 @@ export default function IncidentDetailPage() {
               description: media.description || undefined,
               uploadedBy: currentUserId as Id<"users">,
             });
-            console.log("[DEBUG] Photo added successfully!");
             successCount++;
           } catch (mediaErr) {
-            console.error("[DEBUG] Failed to upload media:", mediaErr);
             uploadErrors.push(`Error uploading ${media.file.name}: ${mediaErr instanceof Error ? mediaErr.message : "Unknown error"}`);
           }
         }
 
-        console.log("[DEBUG] Upload complete. Success:", successCount, "Errors:", uploadErrors.length);
         setPendingMedia([]);
         setUploadingMedia(false);
 
@@ -254,7 +229,6 @@ export default function IncidentDetailPage() {
 
       setIsEditing(false);
     } catch (err) {
-      console.error("[DEBUG] Save error:", err);
       setError(err instanceof Error ? err.message : "Failed to save changes");
     } finally {
       setIsSaving(false);

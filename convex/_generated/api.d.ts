@@ -16,6 +16,7 @@ import type * as dwellings from "../dwellings.js";
 import type * as incidents from "../incidents.js";
 import type * as inspections from "../inspections.js";
 import type * as maintenancePhotos from "../maintenancePhotos.js";
+import type * as maintenanceQuotes from "../maintenanceQuotes.js";
 import type * as maintenanceRequests from "../maintenanceRequests.js";
 import type * as ndisClaimExport from "../ndisClaimExport.js";
 import type * as notifications from "../notifications.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   incidents: typeof incidents;
   inspections: typeof inspections;
   maintenancePhotos: typeof maintenancePhotos;
+  maintenanceQuotes: typeof maintenanceQuotes;
   maintenanceRequests: typeof maintenanceRequests;
   ndisClaimExport: typeof ndisClaimExport;
   notifications: typeof notifications;

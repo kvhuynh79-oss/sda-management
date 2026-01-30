@@ -261,9 +261,12 @@ export default defineSchema({
     reportedDate: v.string(),
     status: v.union(
       v.literal("reported"),
-      v.literal("scheduled"),
-      v.literal("in_progress"),
-      v.literal("completed"),
+      v.literal("awaiting_quotes"), // Quotes being collected
+      v.literal("quoted"), // Quotes received, awaiting approval
+      v.literal("approved"), // Quote approved, awaiting scheduling
+      v.literal("scheduled"), // Work scheduled with contractor
+      v.literal("in_progress"), // Contractor working on it
+      v.literal("completed"), // Work finished
       v.literal("cancelled")
     ),
     scheduledDate: v.optional(v.string()),
@@ -273,6 +276,9 @@ export default defineSchema({
     quotedAmount: v.optional(v.number()),
     actualCost: v.optional(v.number()),
     invoiceNumber: v.optional(v.string()),
+    completionNotes: v.optional(v.string()), // How completion was confirmed
+    warrantyPeriodMonths: v.optional(v.number()), // Warranty period in months
+    warrantyExpiryDate: v.optional(v.string()), // Auto-calculated warranty end date
     notes: v.optional(v.string()),
     createdBy: v.id("users"),
     createdAt: v.number(),
@@ -300,6 +306,33 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_maintenance_request", ["maintenanceRequestId"]),
+
+  // Maintenance Quotes table - track multiple quotes per request
+  maintenanceQuotes: defineTable({
+    maintenanceRequestId: v.id("maintenanceRequests"),
+    contractorName: v.string(),
+    contractorContact: v.optional(v.string()),
+    contractorEmail: v.optional(v.string()),
+    quoteAmount: v.number(),
+    quoteDate: v.string(),
+    validUntil: v.optional(v.string()), // Quote expiry date
+    estimatedDays: v.optional(v.number()), // Estimated days to complete
+    warrantyMonths: v.optional(v.number()), // Warranty offered
+    description: v.optional(v.string()), // Quote details/scope
+    status: v.union(
+      v.literal("pending"), // Quote received, awaiting decision
+      v.literal("accepted"), // Quote accepted, contractor awarded
+      v.literal("rejected"), // Quote rejected
+      v.literal("expired") // Quote expired
+    ),
+    acceptedDate: v.optional(v.string()),
+    rejectionReason: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_maintenance_request", ["maintenanceRequestId"])
+    .index("by_status", ["status"]),
 
   // Preventative Maintenance Schedule table
   preventativeSchedule: defineTable({

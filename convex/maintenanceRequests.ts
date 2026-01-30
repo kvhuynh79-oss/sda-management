@@ -154,6 +154,9 @@ export const update = mutation({
     status: v.optional(
       v.union(
         v.literal("reported"),
+        v.literal("awaiting_quotes"),
+        v.literal("quoted"),
+        v.literal("approved"),
         v.literal("scheduled"),
         v.literal("in_progress"),
         v.literal("completed"),
@@ -177,6 +180,8 @@ export const update = mutation({
     quotedAmount: v.optional(v.number()),
     actualCost: v.optional(v.number()),
     invoiceNumber: v.optional(v.string()),
+    completionNotes: v.optional(v.string()),
+    warrantyPeriodMonths: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -194,7 +199,52 @@ export const update = mutation({
       filteredUpdates.completedDate = new Date().toISOString().split("T")[0];
     }
 
+    // Calculate warranty expiry date if completing with warranty period
+    if (updates.status === "completed" && updates.warrantyPeriodMonths) {
+      const completedDate = updates.completedDate || new Date().toISOString().split("T")[0];
+      const expiryDate = new Date(completedDate);
+      expiryDate.setMonth(expiryDate.getMonth() + updates.warrantyPeriodMonths);
+      filteredUpdates.warrantyExpiryDate = expiryDate.toISOString().split("T")[0];
+    }
+
     await ctx.db.patch(requestId, filteredUpdates);
+    return { success: true };
+  },
+});
+
+// Complete a maintenance request with confirmation details
+export const completeRequest = mutation({
+  args: {
+    requestId: v.id("maintenanceRequests"),
+    completedDate: v.string(),
+    actualCost: v.optional(v.number()),
+    invoiceNumber: v.optional(v.string()),
+    completionNotes: v.string(), // How it was confirmed (email/phone/photo)
+    warrantyPeriodMonths: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const request = await ctx.db.get(args.requestId);
+    if (!request) throw new Error("Request not found");
+
+    // Calculate warranty expiry if warranty period provided
+    let warrantyExpiryDate: string | undefined;
+    if (args.warrantyPeriodMonths) {
+      const expiryDate = new Date(args.completedDate);
+      expiryDate.setMonth(expiryDate.getMonth() + args.warrantyPeriodMonths);
+      warrantyExpiryDate = expiryDate.toISOString().split("T")[0];
+    }
+
+    await ctx.db.patch(args.requestId, {
+      status: "completed",
+      completedDate: args.completedDate,
+      actualCost: args.actualCost,
+      invoiceNumber: args.invoiceNumber,
+      completionNotes: args.completionNotes,
+      warrantyPeriodMonths: args.warrantyPeriodMonths,
+      warrantyExpiryDate,
+      updatedAt: Date.now(),
+    });
+
     return { success: true };
   },
 });
@@ -213,6 +263,9 @@ export const getByStatus = query({
   args: {
     status: v.union(
       v.literal("reported"),
+      v.literal("awaiting_quotes"),
+      v.literal("quoted"),
+      v.literal("approved"),
       v.literal("scheduled"),
       v.literal("in_progress"),
       v.literal("completed"),
@@ -283,10 +336,9 @@ export const getUrgent = query({
       .query("maintenanceRequests")
       .withIndex("by_priority", (q) => q.eq("priority", "urgent"))
       .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "reported"),
-          q.eq(q.field("status"), "scheduled"),
-          q.eq(q.field("status"), "in_progress")
+        q.and(
+          q.neq(q.field("status"), "completed"),
+          q.neq(q.field("status"), "cancelled")
         )
       )
       .collect();

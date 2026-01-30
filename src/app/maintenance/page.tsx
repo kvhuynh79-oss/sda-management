@@ -110,6 +110,9 @@ export default function MaintenancePage() {
                 <option value="all">All Statuses</option>
                 <option value="open">Open</option>
                 <option value="reported">Reported</option>
+                <option value="awaiting_quotes">Awaiting Quotes</option>
+                <option value="quoted">Quoted</option>
+                <option value="approved">Approved</option>
                 <option value="scheduled">Scheduled</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
@@ -218,9 +221,12 @@ function RequestCard({ request }: { request: any }) {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      reported: "bg-blue-600",
+      reported: "bg-red-600",
+      awaiting_quotes: "bg-orange-600",
+      quoted: "bg-yellow-600",
+      approved: "bg-blue-600",
       scheduled: "bg-purple-600",
-      in_progress: "bg-yellow-600",
+      in_progress: "bg-cyan-600",
       completed: "bg-green-600",
       cancelled: "bg-gray-600",
     };

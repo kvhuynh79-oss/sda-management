@@ -15,6 +15,8 @@ interface PendingPhoto {
   photoType: "before" | "during" | "after" | "issue";
 }
 
+type MaintenanceStatus = "reported" | "awaiting_quotes" | "quoted" | "approved" | "scheduled" | "in_progress" | "completed" | "cancelled";
+
 export default function MaintenanceRequestDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -24,22 +26,33 @@ export default function MaintenanceRequestDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showAddQuote, setShowAddQuote] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   const request = useQuery(api.maintenanceRequests.getById, { requestId });
   const photos = useQuery(api.maintenancePhotos.getByMaintenanceRequest, {
     maintenanceRequestId: requestId,
   });
+  const quotes = useQuery(api.maintenanceQuotes.getByMaintenanceRequest, {
+    maintenanceRequestId: requestId,
+  });
+
   const updateRequest = useMutation(api.maintenanceRequests.update);
+  const completeRequest = useMutation(api.maintenanceRequests.completeRequest);
   const generateUploadUrl = useMutation(api.maintenancePhotos.generateUploadUrl);
   const addPhoto = useMutation(api.maintenancePhotos.addPhoto);
   const deletePhoto = useMutation(api.maintenancePhotos.deletePhoto);
+  const addQuote = useMutation(api.maintenanceQuotes.addQuote);
+  const acceptQuote = useMutation(api.maintenanceQuotes.acceptQuote);
+  const rejectQuote = useMutation(api.maintenanceQuotes.rejectQuote);
+  const deleteQuote = useMutation(api.maintenanceQuotes.deleteQuote);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   const [formData, setFormData] = useState({
-    status: "reported" as "reported" | "scheduled" | "in_progress" | "completed" | "cancelled",
+    status: "reported" as MaintenanceStatus,
     priority: "medium" as "urgent" | "high" | "medium" | "low",
     title: "",
     description: "",
@@ -50,7 +63,29 @@ export default function MaintenanceRequestDetailPage() {
     quotedAmount: "",
     actualCost: "",
     invoiceNumber: "",
+    completionNotes: "",
+    warrantyPeriodMonths: "",
     notes: "",
+  });
+
+  const [newQuote, setNewQuote] = useState({
+    contractorName: "",
+    contractorContact: "",
+    contractorEmail: "",
+    quoteAmount: "",
+    quoteDate: new Date().toISOString().split("T")[0],
+    validUntil: "",
+    estimatedDays: "",
+    warrantyMonths: "",
+    description: "",
+  });
+
+  const [completeData, setCompleteData] = useState({
+    completedDate: new Date().toISOString().split("T")[0],
+    actualCost: "",
+    invoiceNumber: "",
+    completionNotes: "",
+    warrantyPeriodMonths: "12",
   });
 
   useEffect(() => {
@@ -65,7 +100,7 @@ export default function MaintenanceRequestDetailPage() {
   useEffect(() => {
     if (request) {
       setFormData({
-        status: request.status,
+        status: request.status as MaintenanceStatus,
         priority: request.priority,
         title: request.title,
         description: request.description,
@@ -76,6 +111,8 @@ export default function MaintenanceRequestDetailPage() {
         quotedAmount: request.quotedAmount?.toString() || "",
         actualCost: request.actualCost?.toString() || "",
         invoiceNumber: request.invoiceNumber || "",
+        completionNotes: (request as any).completionNotes || "",
+        warrantyPeriodMonths: (request as any).warrantyPeriodMonths?.toString() || "",
         notes: request.notes || "",
       });
     }
@@ -150,6 +187,8 @@ export default function MaintenanceRequestDetailPage() {
         quotedAmount: formData.quotedAmount ? parseFloat(formData.quotedAmount) : undefined,
         actualCost: formData.actualCost ? parseFloat(formData.actualCost) : undefined,
         invoiceNumber: formData.invoiceNumber || undefined,
+        completionNotes: formData.completionNotes || undefined,
+        warrantyPeriodMonths: formData.warrantyPeriodMonths ? parseInt(formData.warrantyPeriodMonths) : undefined,
         notes: formData.notes || undefined,
       });
 
@@ -192,6 +231,79 @@ export default function MaintenanceRequestDetailPage() {
     }
   };
 
+  const handleAddQuote = async () => {
+    if (!user || !newQuote.contractorName || !newQuote.quoteAmount) return;
+
+    try {
+      await addQuote({
+        maintenanceRequestId: requestId,
+        contractorName: newQuote.contractorName,
+        contractorContact: newQuote.contractorContact || undefined,
+        contractorEmail: newQuote.contractorEmail || undefined,
+        quoteAmount: parseFloat(newQuote.quoteAmount),
+        quoteDate: newQuote.quoteDate,
+        validUntil: newQuote.validUntil || undefined,
+        estimatedDays: newQuote.estimatedDays ? parseInt(newQuote.estimatedDays) : undefined,
+        warrantyMonths: newQuote.warrantyMonths ? parseInt(newQuote.warrantyMonths) : undefined,
+        description: newQuote.description || undefined,
+        createdBy: user.id as Id<"users">,
+      });
+      setShowAddQuote(false);
+      setNewQuote({
+        contractorName: "",
+        contractorContact: "",
+        contractorEmail: "",
+        quoteAmount: "",
+        quoteDate: new Date().toISOString().split("T")[0],
+        validUntil: "",
+        estimatedDays: "",
+        warrantyMonths: "",
+        description: "",
+      });
+    } catch (err) {
+      setError("Failed to add quote");
+    }
+  };
+
+  const handleAcceptQuote = async (quoteId: Id<"maintenanceQuotes">) => {
+    if (!confirm("Accept this quote and award the work to this contractor?")) return;
+    try {
+      await acceptQuote({ quoteId });
+    } catch (err) {
+      setError("Failed to accept quote");
+    }
+  };
+
+  const handleRejectQuote = async (quoteId: Id<"maintenanceQuotes">) => {
+    const reason = prompt("Reason for rejection (optional):");
+    try {
+      await rejectQuote({ quoteId, rejectionReason: reason || undefined });
+    } catch (err) {
+      setError("Failed to reject quote");
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!completeData.completionNotes) {
+      setError("Please enter how the completion was confirmed");
+      return;
+    }
+
+    try {
+      await completeRequest({
+        requestId,
+        completedDate: completeData.completedDate,
+        actualCost: completeData.actualCost ? parseFloat(completeData.actualCost) : undefined,
+        invoiceNumber: completeData.invoiceNumber || undefined,
+        completionNotes: completeData.completionNotes,
+        warrantyPeriodMonths: completeData.warrantyPeriodMonths ? parseInt(completeData.warrantyPeriodMonths) : undefined,
+      });
+      setShowCompleteModal(false);
+    } catch (err) {
+      setError("Failed to complete request");
+    }
+  };
+
   if (!user) {
     return <LoadingScreen />;
   }
@@ -219,12 +331,29 @@ export default function MaintenanceRequestDetailPage() {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       reported: "bg-red-600",
-      scheduled: "bg-blue-600",
-      in_progress: "bg-yellow-600",
+      awaiting_quotes: "bg-orange-600",
+      quoted: "bg-yellow-600",
+      approved: "bg-blue-600",
+      scheduled: "bg-purple-600",
+      in_progress: "bg-cyan-600",
       completed: "bg-green-600",
       cancelled: "bg-gray-600",
     };
     return colors[status] || "bg-gray-600";
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      reported: "Reported",
+      awaiting_quotes: "Awaiting Quotes",
+      quoted: "Quoted",
+      approved: "Approved",
+      scheduled: "Scheduled",
+      in_progress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+    };
+    return labels[status] || status;
   };
 
   const getPriorityColor = (priority: string) => {
@@ -236,6 +365,9 @@ export default function MaintenanceRequestDetailPage() {
     };
     return colors[priority] || "bg-gray-600";
   };
+
+  const canComplete = request.status !== "completed" && request.status !== "cancelled";
+  const acceptedQuote = quotes?.find((q) => q.status === "accepted");
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -276,7 +408,7 @@ export default function MaintenanceRequestDetailPage() {
                   {request.priority.toUpperCase()}
                 </span>
                 <span className={`px-2 py-1 rounded text-xs text-white ${getStatusColor(request.status)}`}>
-                  {request.status.replace("_", " ").toUpperCase()}
+                  {getStatusLabel(request.status)}
                 </span>
                 <span className="text-gray-400 text-sm">{request.category}</span>
               </div>
@@ -292,6 +424,14 @@ export default function MaintenanceRequestDetailPage() {
               )}
             </div>
             <div className="flex gap-2">
+              {canComplete && !isEditing && (
+                <button
+                  onClick={() => setShowCompleteModal(true)}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                >
+                  Mark Complete
+                </button>
+              )}
               {isEditing ? (
                 <>
                   <button
@@ -303,7 +443,7 @@ export default function MaintenanceRequestDetailPage() {
                   <button
                     onClick={handleSave}
                     disabled={isSaving || uploadingPhotos}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                   >
                     {isSaving ? (uploadingPhotos ? "Uploading..." : "Saving...") : "Save Changes"}
                   </button>
@@ -337,10 +477,13 @@ export default function MaintenanceRequestDetailPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as MaintenanceStatus })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 >
                   <option value="reported">Reported</option>
+                  <option value="awaiting_quotes">Awaiting Quotes</option>
+                  <option value="quoted">Quoted</option>
+                  <option value="approved">Approved</option>
                   <option value="scheduled">Scheduled</option>
                   <option value="in_progress">In Progress</option>
                   <option value="completed">Completed</option>
@@ -403,20 +546,99 @@ export default function MaintenanceRequestDetailPage() {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Completed Date</p>
-              {isEditing ? (
-                <input
-                  type="date"
-                  value={formData.completedDate}
-                  onChange={(e) => setFormData({ ...formData, completedDate: e.target.value })}
-                  className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                />
-              ) : (
-                <p className="text-white">{request.completedDate || "-"}</p>
-              )}
+              <p className="text-white">{request.completedDate || "-"}</p>
             </div>
           </div>
 
-          {/* Contractor Details */}
+          {/* Quotes Section */}
+          <div className="border-t border-gray-700 pt-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">Contractor Quotes</h3>
+              {request.status !== "completed" && request.status !== "cancelled" && (
+                <button
+                  onClick={() => setShowAddQuote(true)}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                >
+                  + Add Quote
+                </button>
+              )}
+            </div>
+
+            {quotes && quotes.length > 0 ? (
+              <div className="space-y-3">
+                {quotes.map((quote) => (
+                  <div
+                    key={quote._id}
+                    className={`p-4 rounded-lg border ${
+                      quote.status === "accepted"
+                        ? "bg-green-900/20 border-green-600"
+                        : quote.status === "rejected"
+                        ? "bg-red-900/20 border-red-600"
+                        : "bg-gray-700/50 border-gray-600"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-white font-medium">{quote.contractorName}</p>
+                        <p className="text-gray-400 text-sm">
+                          {quote.contractorContact} {quote.contractorEmail && `| ${quote.contractorEmail}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-white">${quote.quoteAmount.toFixed(2)}</p>
+                        <p className="text-gray-400 text-xs">
+                          Quoted: {quote.quoteDate}
+                          {quote.validUntil && ` | Valid until: ${quote.validUntil}`}
+                        </p>
+                      </div>
+                    </div>
+                    {quote.description && (
+                      <p className="text-gray-300 text-sm mt-2">{quote.description}</p>
+                    )}
+                    <div className="flex items-center gap-4 mt-3 text-sm">
+                      {quote.estimatedDays && (
+                        <span className="text-gray-400">Est. {quote.estimatedDays} days</span>
+                      )}
+                      {quote.warrantyMonths && (
+                        <span className="text-gray-400">{quote.warrantyMonths} month warranty</span>
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs ${
+                          quote.status === "accepted"
+                            ? "bg-green-600 text-white"
+                            : quote.status === "rejected"
+                            ? "bg-red-600 text-white"
+                            : "bg-yellow-600 text-white"
+                        }`}
+                      >
+                        {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
+                      </span>
+                    </div>
+                    {quote.status === "pending" && request.status !== "completed" && (
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => handleAcceptQuote(quote._id)}
+                          className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+                        >
+                          Accept Quote
+                        </button>
+                        <button
+                          onClick={() => handleRejectQuote(quote._id)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">No quotes received yet</p>
+            )}
+          </div>
+
+          {/* Contractor Details (from accepted quote or manual entry) */}
           <div className="border-t border-gray-700 pt-6 mb-6">
             <h3 className="text-lg font-semibold text-white mb-4">Contractor Information</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -500,6 +722,29 @@ export default function MaintenanceRequestDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Warranty (if completed) */}
+          {request.status === "completed" && (
+            <div className="border-t border-gray-700 pt-6 mb-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Warranty Information</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-gray-400 text-sm">Warranty Period</p>
+                  <p className="text-white">
+                    {(request as any).warrantyPeriodMonths ? `${(request as any).warrantyPeriodMonths} months` : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Warranty Expires</p>
+                  <p className="text-white">{(request as any).warrantyExpiryDate || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Completion Confirmed By</p>
+                  <p className="text-white">{(request as any).completionNotes || "-"}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="border-t border-gray-700 pt-6 mb-6">
@@ -624,6 +869,203 @@ export default function MaintenanceRequestDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Add Quote Modal */}
+        {showAddQuote && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-xl font-bold text-white mb-4">Add Contractor Quote</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Contractor Name *</label>
+                  <input
+                    type="text"
+                    value={newQuote.contractorName}
+                    onChange={(e) => setNewQuote({ ...newQuote, contractorName: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Contact Phone</label>
+                    <input
+                      type="text"
+                      value={newQuote.contractorContact}
+                      onChange={(e) => setNewQuote({ ...newQuote, contractorContact: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={newQuote.contractorEmail}
+                      onChange={(e) => setNewQuote({ ...newQuote, contractorEmail: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Quote Amount ($) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newQuote.quoteAmount}
+                      onChange={(e) => setNewQuote({ ...newQuote, quoteAmount: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Quote Date</label>
+                    <input
+                      type="date"
+                      value={newQuote.quoteDate}
+                      onChange={(e) => setNewQuote({ ...newQuote, quoteDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Valid Until</label>
+                    <input
+                      type="date"
+                      value={newQuote.validUntil}
+                      onChange={(e) => setNewQuote({ ...newQuote, validUntil: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Est. Days to Complete</label>
+                    <input
+                      type="number"
+                      value={newQuote.estimatedDays}
+                      onChange={(e) => setNewQuote({ ...newQuote, estimatedDays: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Warranty (months)</label>
+                  <input
+                    type="number"
+                    value={newQuote.warrantyMonths}
+                    onChange={(e) => setNewQuote({ ...newQuote, warrantyMonths: e.target.value })}
+                    placeholder="e.g., 12"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Description/Scope</label>
+                  <textarea
+                    value={newQuote.description}
+                    onChange={(e) => setNewQuote({ ...newQuote, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowAddQuote(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddQuote}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  Add Quote
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Complete Modal */}
+        {showCompleteModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-lg w-full">
+              <h2 className="text-xl font-bold text-white mb-4">Mark as Completed</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Completion Date *</label>
+                  <input
+                    type="date"
+                    value={completeData.completedDate}
+                    onChange={(e) => setCompleteData({ ...completeData, completedDate: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">How was completion confirmed? *</label>
+                  <select
+                    value={completeData.completionNotes}
+                    onChange={(e) => setCompleteData({ ...completeData, completionNotes: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  >
+                    <option value="">Select confirmation method</option>
+                    <option value="Phone call from contractor">Phone call from contractor</option>
+                    <option value="Email confirmation from contractor">Email confirmation from contractor</option>
+                    <option value="Photo evidence received">Photo evidence received</option>
+                    <option value="On-site inspection verified">On-site inspection verified</option>
+                    <option value="Tenant/SIL confirmed completion">Tenant/SIL confirmed completion</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Actual Cost ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={completeData.actualCost}
+                      onChange={(e) => setCompleteData({ ...completeData, actualCost: e.target.value })}
+                      placeholder={request.quotedAmount?.toString() || ""}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-1">Invoice Number</label>
+                    <input
+                      type="text"
+                      value={completeData.invoiceNumber}
+                      onChange={(e) => setCompleteData({ ...completeData, invoiceNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Warranty Period (months)</label>
+                  <input
+                    type="number"
+                    value={completeData.warrantyPeriodMonths}
+                    onChange={(e) => setCompleteData({ ...completeData, warrantyPeriodMonths: e.target.value })}
+                    placeholder="12"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">For warranty tracking purposes</p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowCompleteModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleComplete}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                >
+                  Mark Complete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

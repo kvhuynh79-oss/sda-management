@@ -242,7 +242,15 @@ export const resolve = mutation({
   },
 });
 
-// Add photo to incident
+// Generate upload URL for incident media
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Add photo/video to incident
 export const addPhoto = mutation({
   args: {
     incidentId: v.id("incidents"),

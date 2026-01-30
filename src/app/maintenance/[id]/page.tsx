@@ -8,11 +8,12 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
 
-interface PendingPhoto {
+interface PendingMedia {
   file: File;
   preview: string;
   description: string;
   photoType: "before" | "during" | "after" | "issue";
+  isVideo: boolean;
 }
 
 type MaintenanceStatus = "reported" | "awaiting_quotes" | "quoted" | "approved" | "scheduled" | "in_progress" | "completed" | "cancelled";
@@ -48,8 +49,8 @@ export default function MaintenanceRequestDetailPage() {
   const deleteQuote = useMutation(api.maintenanceQuotes.deleteQuote);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
-  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   const [formData, setFormData] = useState({
     status: "reported" as MaintenanceStatus,
@@ -118,53 +119,57 @@ export default function MaintenanceRequestDetailPage() {
     }
   }, [request]);
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    const newPhotos: PendingPhoto[] = [];
+    const newMedia: PendingMedia[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type.startsWith("image/")) {
-        newPhotos.push({
+      const isVideo = file.type.startsWith("video/");
+      const isImage = file.type.startsWith("image/");
+
+      if (isImage || isVideo) {
+        newMedia.push({
           file,
           preview: URL.createObjectURL(file),
           description: "",
           photoType: "issue",
+          isVideo,
         });
       }
     }
-    setPendingPhotos([...pendingPhotos, ...newPhotos]);
+    setPendingMedia([...pendingMedia, ...newMedia]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  const removePendingPhoto = (index: number) => {
-    const newPhotos = [...pendingPhotos];
-    URL.revokeObjectURL(newPhotos[index].preview);
-    newPhotos.splice(index, 1);
-    setPendingPhotos(newPhotos);
+  const removePendingMedia = (index: number) => {
+    const newMedia = [...pendingMedia];
+    URL.revokeObjectURL(newMedia[index].preview);
+    newMedia.splice(index, 1);
+    setPendingMedia(newMedia);
   };
 
-  const updatePendingPhotoDescription = (index: number, description: string) => {
-    const newPhotos = [...pendingPhotos];
-    newPhotos[index].description = description;
-    setPendingPhotos(newPhotos);
+  const updatePendingMediaDescription = (index: number, description: string) => {
+    const newMedia = [...pendingMedia];
+    newMedia[index].description = description;
+    setPendingMedia(newMedia);
   };
 
-  const updatePendingPhotoType = (index: number, photoType: PendingPhoto["photoType"]) => {
-    const newPhotos = [...pendingPhotos];
-    newPhotos[index].photoType = photoType;
-    setPendingPhotos(newPhotos);
+  const updatePendingMediaType = (index: number, photoType: PendingMedia["photoType"]) => {
+    const newMedia = [...pendingMedia];
+    newMedia[index].photoType = photoType;
+    setPendingMedia(newMedia);
   };
 
-  const handleDeleteExistingPhoto = async (photoId: Id<"maintenancePhotos">) => {
-    if (!confirm("Are you sure you want to delete this photo?")) return;
+  const handleDeleteExistingMedia = async (photoId: Id<"maintenancePhotos">) => {
+    if (!confirm("Are you sure you want to delete this media?")) return;
     try {
       await deletePhoto({ photoId });
     } catch (err) {
-      setError("Failed to delete photo");
+      setError("Failed to delete media");
     }
   };
 
@@ -192,35 +197,35 @@ export default function MaintenanceRequestDetailPage() {
         notes: formData.notes || undefined,
       });
 
-      // Upload pending photos
-      if (pendingPhotos.length > 0) {
-        setUploadingPhotos(true);
-        for (const photo of pendingPhotos) {
+      // Upload pending media (photos/videos)
+      if (pendingMedia.length > 0) {
+        setUploadingMedia(true);
+        for (const media of pendingMedia) {
           try {
             const uploadUrl = await generateUploadUrl();
             const response = await fetch(uploadUrl, {
               method: "POST",
-              headers: { "Content-Type": photo.file.type },
-              body: photo.file,
+              headers: { "Content-Type": media.file.type },
+              body: media.file,
             });
             const { storageId } = await response.json();
 
             await addPhoto({
               maintenanceRequestId: requestId,
               storageId,
-              fileName: photo.file.name,
-              fileSize: photo.file.size,
-              fileType: photo.file.type,
-              description: photo.description || undefined,
-              photoType: photo.photoType,
+              fileName: media.file.name,
+              fileSize: media.file.size,
+              fileType: media.file.type,
+              description: media.description || undefined,
+              photoType: media.photoType,
               uploadedBy: user.id as Id<"users">,
             });
-          } catch (photoErr) {
-            console.error("Failed to upload photo:", photoErr);
+          } catch (mediaErr) {
+            console.error("Failed to upload media:", mediaErr);
           }
         }
-        setPendingPhotos([]);
-        setUploadingPhotos(false);
+        setPendingMedia([]);
+        setUploadingMedia(false);
       }
 
       setIsEditing(false);
@@ -442,10 +447,10 @@ export default function MaintenanceRequestDetailPage() {
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={isSaving || uploadingPhotos}
+                    disabled={isSaving || uploadingMedia}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                   >
-                    {isSaving ? (uploadingPhotos ? "Uploading..." : "Saving...") : "Save Changes"}
+                    {isSaving ? (uploadingMedia ? "Uploading..." : "Saving...") : "Save Changes"}
                   </button>
                 </>
               ) : (
@@ -761,51 +766,59 @@ export default function MaintenanceRequestDetailPage() {
             )}
           </div>
 
-          {/* Photos */}
+          {/* Photos & Videos */}
           <div className="border-t border-gray-700 pt-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Photos</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Photos & Videos</h3>
 
-            {/* Existing Photos */}
+            {/* Existing Media */}
             {photos && photos.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                {photos.map((photo) => (
-                  <div key={photo._id} className="bg-gray-700 rounded-lg p-3">
+                {photos.map((media) => (
+                  <div key={media._id} className="bg-gray-700 rounded-lg p-3">
                     <div className="relative aspect-video mb-2">
-                      {photo.url && (
-                        <img
-                          src={photo.url}
-                          alt={photo.description || photo.fileName}
-                          className="w-full h-full object-cover rounded cursor-pointer"
-                          onClick={() => window.open(photo.url!, "_blank")}
-                        />
+                      {media.url && (
+                        media.fileType?.startsWith("video/") ? (
+                          <video
+                            src={media.url}
+                            controls
+                            className="w-full h-full object-cover rounded"
+                          />
+                        ) : (
+                          <img
+                            src={media.url}
+                            alt={media.description || media.fileName}
+                            className="w-full h-full object-cover rounded cursor-pointer"
+                            onClick={() => window.open(media.url!, "_blank")}
+                          />
+                        )
                       )}
                       {isEditing && (
                         <button
                           type="button"
-                          onClick={() => handleDeleteExistingPhoto(photo._id)}
+                          onClick={() => handleDeleteExistingMedia(media._id)}
                           className="absolute top-1 right-1 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-sm"
                         >
                           X
                         </button>
                       )}
                     </div>
-                    <p className="text-white text-sm">{photo.photoType.replace("_", " ")}</p>
-                    {photo.description && (
-                      <p className="text-gray-400 text-xs">{photo.description}</p>
+                    <p className="text-white text-sm">{media.photoType.replace("_", " ")}</p>
+                    {media.description && (
+                      <p className="text-gray-400 text-xs">{media.description}</p>
                     )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Add Photos (Edit Mode) */}
+            {/* Add Media (Edit Mode) */}
             {isEditing && (
               <>
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={handlePhotoSelect}
-                  accept="image/*"
+                  onChange={handleMediaSelect}
+                  accept="image/*,video/*"
                   multiple
                   className="hidden"
                 />
@@ -815,48 +828,58 @@ export default function MaintenanceRequestDetailPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors mb-4"
                 >
-                  + Add Photos
+                  + Add Photos/Videos
                 </button>
 
-                {/* Pending Photos */}
-                {pendingPhotos.length > 0 && (
+                {/* Pending Media */}
+                {pendingMedia.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                    {pendingPhotos.map((photo, index) => (
+                    {pendingMedia.map((media, index) => (
                       <div key={index} className="bg-gray-700 rounded-lg p-3 border-2 border-dashed border-blue-500">
                         <div className="relative aspect-video mb-2">
-                          <img
-                            src={photo.preview}
-                            alt={`New photo ${index + 1}`}
-                            className="w-full h-full object-cover rounded"
-                          />
+                          {media.isVideo ? (
+                            <video
+                              src={media.preview}
+                              controls
+                              className="w-full h-full object-cover rounded"
+                            />
+                          ) : (
+                            <img
+                              src={media.preview}
+                              alt={`New media ${index + 1}`}
+                              className="w-full h-full object-cover rounded"
+                            />
+                          )}
                           <button
                             type="button"
-                            onClick={() => removePendingPhoto(index)}
+                            onClick={() => removePendingMedia(index)}
                             className="absolute top-1 right-1 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-sm"
                           >
                             X
                           </button>
                         </div>
                         <select
-                          value={photo.photoType}
+                          value={media.photoType}
                           onChange={(e) =>
-                            updatePendingPhotoType(index, e.target.value as PendingPhoto["photoType"])
+                            updatePendingMediaType(index, e.target.value as PendingMedia["photoType"])
                           }
                           className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm mb-2"
                         >
-                          <option value="issue">Issue Photo</option>
+                          <option value="issue">Issue</option>
                           <option value="before">Before Work</option>
                           <option value="during">During Work</option>
                           <option value="after">After Work</option>
                         </select>
                         <input
                           type="text"
-                          value={photo.description}
-                          onChange={(e) => updatePendingPhotoDescription(index, e.target.value)}
+                          value={media.description}
+                          onChange={(e) => updatePendingMediaDescription(index, e.target.value)}
                           placeholder="Description (optional)"
                           className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
                         />
-                        <p className="text-blue-400 text-xs mt-1">New - will be uploaded on save</p>
+                        <p className="text-blue-400 text-xs mt-1">
+                          {media.isVideo ? "Video" : "Photo"} - will be uploaded on save
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -865,7 +888,7 @@ export default function MaintenanceRequestDetailPage() {
             )}
 
             {!isEditing && (!photos || photos.length === 0) && (
-              <p className="text-gray-400">No photos uploaded</p>
+              <p className="text-gray-400">No photos or videos uploaded</p>
             )}
           </div>
         </div>

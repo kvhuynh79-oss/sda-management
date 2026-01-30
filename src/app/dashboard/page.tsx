@@ -58,50 +58,20 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-8">
-              <Link href="/dashboard">
-                <Image
-                  src="/Logo.jpg"
-                  alt="Better Living Solutions"
-                  width={140}
-                  height={40}
-                  className="rounded"
-                  priority
-                />
-              </Link>
-              <nav className="flex gap-4">
-                <Link href="/dashboard" className="text-white font-medium">
-                  Dashboard
-                </Link>
-                <Link href="/properties" className="text-gray-400 hover:text-white transition-colors">
-                  Properties
-                </Link>
-                <Link href="/participants" className="text-gray-400 hover:text-white transition-colors">
-                  Participants
-                </Link>
-                <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
-                  Payments
-                </Link>
-                <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
-                  Maintenance
-                </Link>
-                <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
-                  Documents
-                </Link>
-                <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
-                  Alerts
-                </Link>
-                <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
-                  Schedule
-                </Link>
-                <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
-                  Settings
-                </Link>
-              </nav>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-300">
+          {/* Top row - Logo and User info */}
+          <div className="flex justify-between items-center h-14 lg:h-16">
+            <Link href="/dashboard" className="flex-shrink-0">
+              <Image
+                src="/Logo.jpg"
+                alt="Better Living Solutions"
+                width={120}
+                height={34}
+                className="rounded lg:w-[140px] lg:h-[40px]"
+                priority
+              />
+            </Link>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="hidden sm:inline text-gray-300 text-sm">
                 {user.firstName} {user.lastName}
               </span>
               <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
@@ -109,12 +79,45 @@ export default function DashboardPage() {
               </span>
               <button
                 onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 Logout
               </button>
             </div>
           </div>
+          {/* Navigation - scrollable on mobile */}
+          <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+            <Link href="/dashboard" className="text-white font-medium whitespace-nowrap text-sm">
+              Dashboard
+            </Link>
+            <Link href="/properties" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Properties
+            </Link>
+            <Link href="/participants" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Participants
+            </Link>
+            <Link href="/payments" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Payments
+            </Link>
+            <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Maintenance
+            </Link>
+            <Link href="/incidents" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Incidents
+            </Link>
+            <Link href="/documents" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Documents
+            </Link>
+            <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Alerts
+            </Link>
+            <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Schedule
+            </Link>
+            <Link href="/settings" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
+              Settings
+            </Link>
+          </nav>
         </div>
       </header>
 

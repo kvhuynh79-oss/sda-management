@@ -18,6 +18,9 @@ export const create = mutation({
     address: v.optional(v.string()),
     state: v.optional(v.string()),
     abn: v.optional(v.string()),
+    bankBsb: v.optional(v.string()),
+    bankAccountNumber: v.optional(v.string()),
+    bankAccountName: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -70,6 +73,9 @@ export const update = mutation({
     address: v.optional(v.string()),
     state: v.optional(v.string()),
     abn: v.optional(v.string()),
+    bankBsb: v.optional(v.string()),
+    bankAccountNumber: v.optional(v.string()),
+    bankAccountName: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

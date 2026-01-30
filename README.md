@@ -293,7 +293,55 @@ TWILIO_PHONE_NUMBER=<your-number>
 
 Proprietary - All rights reserved
 
+## Future Roadmap
+
+### Mobile App (PWA) - Priority: High
+Convert the application to a Progressive Web App for on-site maintenance use:
+- **Features**: Install on home screen, offline support, camera access for photos
+- **Use Case**: Field workers can tick off maintenance tasks and add remarks on-site
+- **Implementation**: Add manifest.json, service worker, optimize for touch interactions
+- **Effort**: 1-2 days
+
+### Property Inspection Checklists - Priority: High
+Digital inspection checklists for routine property checks:
+- **Features**: Pre-defined BLS inspection templates, room-by-room checklists, photo upload for issues, condition/remarks fields
+- **Categories**: Heating/Cooling, Electrical, Plumbing, Windows, Doors, Exterior, Garage, Bedrooms, Bathrooms, Kitchen, Living Areas
+- **Use Case**: Contractors conduct on-site inspections, tick items Pass/Fail, upload photos for issues
+- **Mobile-optimized**: Large touch targets, swipe gestures, camera quick-access
+- **Effort**: 1-2 weeks
+
+### Custom Domain - Priority: Medium
+- Connect `betterlivingsolutions.com.au` to the application
+- Configure SSL certificate
+- Set up email sending from custom domain
+
+### Security Enhancements - Priority: Medium
+- Two-Factor Authentication (2FA) for user accounts
+- Audit logging for sensitive operations
+- Session management improvements
+- Role-based access control enhancements
+- Password policy enforcement
+
+### AI Integration - Priority: Medium
+- **NDIS Plan Auto-Fill**: Upload participant's NDIS plan PDF, AI extracts and auto-populates participant details (name, NDIS number, plan dates, funding amounts)
+- **Smart Document Classification**: Upload documents and AI automatically categorizes, tags, and extracts key data (expiry dates, parties, amounts)
+- **Implementation**: Claude API with vision capabilities
+- **Cost**: ~$0.01-0.05 per document processed
+
+### Additional Future Considerations
+- Capacitor wrapper for App Store/Play Store distribution
+- Push notifications for urgent maintenance alerts
+- Offline-first data sync for remote locations
+- Integration with NDIS portal APIs
+
 ## Version History
+
+### v1.1.0 - Current
+- Owner bank details for payment distributions (BSB, Account Number, Account Name)
+- Maintenance request photo uploads
+- Maintenance request detail/edit page
+- Responsive header across all pages
+- Improved mobile navigation
 
 ### v1.0.0 - Initial Release
 - Property and participant management

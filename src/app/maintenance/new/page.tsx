@@ -1,12 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
-import Image from "next/image";
+import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
+
+interface PendingPhoto {
+  file: File;
+  preview: string;
+  description: string;
+  photoType: "before" | "during" | "after" | "issue";
+}
 
 export default function NewMaintenanceRequestPage() {
   const router = useRouter();
@@ -21,6 +28,12 @@ export default function NewMaintenanceRequestPage() {
     selectedPropertyId ? { propertyId: selectedPropertyId as Id<"properties"> } : "skip"
   );
   const createRequest = useMutation(api.maintenanceRequests.create);
+  const generateUploadUrl = useMutation(api.maintenancePhotos.generateUploadUrl);
+  const addPhoto = useMutation(api.maintenancePhotos.addPhoto);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   const [formData, setFormData] = useState({
     propertyId: "",
@@ -70,6 +83,47 @@ export default function NewMaintenanceRequestPage() {
     }
   }, [dwellings]);
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newPhotos: PendingPhoto[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("image/")) {
+        newPhotos.push({
+          file,
+          preview: URL.createObjectURL(file),
+          description: "",
+          photoType: "issue",
+        });
+      }
+    }
+    setPendingPhotos([...pendingPhotos, ...newPhotos]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    const newPhotos = [...pendingPhotos];
+    URL.revokeObjectURL(newPhotos[index].preview);
+    newPhotos.splice(index, 1);
+    setPendingPhotos(newPhotos);
+  };
+
+  const updatePhotoDescription = (index: number, description: string) => {
+    const newPhotos = [...pendingPhotos];
+    newPhotos[index].description = description;
+    setPendingPhotos(newPhotos);
+  };
+
+  const updatePhotoType = (index: number, photoType: PendingPhoto["photoType"]) => {
+    const newPhotos = [...pendingPhotos];
+    newPhotos[index].photoType = photoType;
+    setPendingPhotos(newPhotos);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -92,7 +146,7 @@ export default function NewMaintenanceRequestPage() {
     setIsSubmitting(true);
 
     try {
-      await createRequest({
+      const requestId = await createRequest({
         dwellingId: formData.dwellingId as Id<"dwellings">,
         requestType: formData.requestType,
         category: formData.category,
@@ -107,6 +161,36 @@ export default function NewMaintenanceRequestPage() {
         notes: formData.notes || undefined,
         createdBy: user.id as Id<"users">,
       });
+
+      // Upload photos if any
+      if (pendingPhotos.length > 0) {
+        setUploadingPhotos(true);
+        for (const photo of pendingPhotos) {
+          try {
+            const uploadUrl = await generateUploadUrl();
+            const response = await fetch(uploadUrl, {
+              method: "POST",
+              headers: { "Content-Type": photo.file.type },
+              body: photo.file,
+            });
+            const { storageId } = await response.json();
+
+            await addPhoto({
+              maintenanceRequestId: requestId,
+              storageId,
+              fileName: photo.file.name,
+              fileSize: photo.file.size,
+              fileType: photo.file.type,
+              description: photo.description || undefined,
+              photoType: photo.photoType,
+              uploadedBy: user.id as Id<"users">,
+            });
+          } catch (photoErr) {
+            console.error("Failed to upload photo:", photoErr);
+          }
+        }
+        setUploadingPhotos(false);
+      }
 
       router.push("/maintenance");
     } catch (err) {
@@ -131,7 +215,7 @@ export default function NewMaintenanceRequestPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Header />
+      <Header currentPage="maintenance" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
@@ -394,14 +478,85 @@ export default function NewMaintenanceRequestPage() {
               />
             </div>
 
+            {/* Photo Upload */}
+            <div className="border-t border-gray-700 pt-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Photos</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Upload photos of the issue or work area (optional)
+              </p>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoSelect}
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors mb-4"
+              >
+                + Add Photos
+              </button>
+
+              {pendingPhotos.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                  {pendingPhotos.map((photo, index) => (
+                    <div key={index} className="bg-gray-700 rounded-lg p-3">
+                      <div className="relative aspect-video mb-2">
+                        <img
+                          src={photo.preview}
+                          alt={`Photo ${index + 1}`}
+                          className="w-full h-full object-cover rounded"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(index)}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-sm"
+                        >
+                          X
+                        </button>
+                      </div>
+                      <select
+                        value={photo.photoType}
+                        onChange={(e) =>
+                          updatePhotoType(index, e.target.value as PendingPhoto["photoType"])
+                        }
+                        className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm mb-2"
+                      >
+                        <option value="issue">Issue Photo</option>
+                        <option value="before">Before Work</option>
+                        <option value="during">During Work</option>
+                        <option value="after">After Work</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={photo.description}
+                        onChange={(e) => updatePhotoDescription(index, e.target.value)}
+                        placeholder="Description (optional)"
+                        className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Submit Buttons */}
             <div className="flex gap-4 pt-4">
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || uploadingPhotos}
                 className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
               >
-                {isSubmitting ? "Creating Request..." : "Create Maintenance Request"}
+                {isSubmitting
+                  ? uploadingPhotos
+                    ? "Uploading Photos..."
+                    : "Creating Request..."
+                  : "Create Maintenance Request"}
               </button>
               <Link
                 href="/maintenance"
@@ -414,90 +569,6 @@ export default function NewMaintenanceRequestPage() {
         </div>
       </main>
     </div>
-  );
-}
-
-function Header() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ firstName: string; lastName: string; role: string } | null>(
-    null
-  );
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("sda_user");
-    router.push("/login");
-  };
-
-  return (
-    <header className="bg-gray-800 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/dashboard">
-              <Image
-                src="/Logo.jpg"
-                alt="Better Living Solutions"
-                width={140}
-                height={40}
-                className="rounded"
-              />
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/properties" className="text-gray-400 hover:text-white transition-colors">
-                Properties
-              </Link>
-              <Link href="/participants" className="text-gray-400 hover:text-white transition-colors">
-                Participants
-              </Link>
-              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
-                Payments
-              </Link>
-              <Link href="/maintenance" className="text-white font-medium">
-                Maintenance
-              </Link>
-              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
-                Documents
-              </Link>
-              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
-                Alerts
-              </Link>
-              <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
-                Schedule
-              </Link>
-              <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
-                Settings
-              </Link>
-            </nav>
-          </div>
-          {user && (
-            <div className="flex items-center gap-4">
-              <span className="text-gray-300">
-                {user.firstName} {user.lastName}
-              </span>
-              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                {user.role.replace("_", " ")}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
   );
 }
 

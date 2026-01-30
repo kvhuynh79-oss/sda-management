@@ -15,7 +15,8 @@
       "Bash(gh api:*)"
     ],
     "additionalDirectories": [
-      "c:\\Projects\\sda-management\\src\\app\\properties\\[id]"
+      "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",
+      "c:\\Projects\\sda-management\\src\\app\\inspections"
     ]
   }
 }

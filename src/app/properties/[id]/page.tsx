@@ -5,7 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function PropertyDetailPage() {
@@ -33,7 +33,7 @@ export default function PropertyDetailPage() {
   if (property === undefined || dwellings === undefined) {
     return (
       <div className="min-h-screen bg-gray-900">
-        <Header />
+        <Header currentPage="properties" />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-gray-400 text-center py-12">Loading property details...</div>
         </main>
@@ -44,7 +44,7 @@ export default function PropertyDetailPage() {
   if (property === null) {
     return (
       <div className="min-h-screen bg-gray-900">
-        <Header />
+        <Header currentPage="properties" />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-red-400 text-center py-12">Property not found</div>
         </main>
@@ -65,7 +65,7 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Header />
+      <Header currentPage="properties" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
@@ -149,7 +149,28 @@ export default function PropertyDetailPage() {
                 {property.owner && property.owner.phone && (
                   <DetailRow label="Phone" value={property.owner.phone} />
                 )}
+                {property.owner && property.owner.abn && (
+                  <DetailRow label="ABN" value={property.owner.abn} />
+                )}
               </div>
+
+              {/* Bank Details */}
+              {property.owner && (property.owner.bankAccountName || property.owner.bankBsb || property.owner.bankAccountNumber) && (
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <h3 className="text-sm font-medium text-gray-400 mb-3">Bank Details</h3>
+                  <div className="space-y-2">
+                    {property.owner.bankAccountName && (
+                      <DetailRow label="Account Name" value={property.owner.bankAccountName} />
+                    )}
+                    {property.owner.bankBsb && (
+                      <DetailRow label="BSB" value={property.owner.bankBsb} />
+                    )}
+                    {property.owner.bankAccountNumber && (
+                      <DetailRow label="Account Number" value={property.owner.bankAccountNumber} />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notes */}
@@ -191,86 +212,6 @@ export default function PropertyDetailPage() {
         </div>
       </main>
     </div>
-  );
-}
-
-function Header() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ firstName: string; lastName: string; role: string } | null>(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("sda_user");
-    router.push("/login");
-  };
-
-  return (
-    <header className="bg-gray-800 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/dashboard">
-              <Image
-                src="/Logo.jpg"
-                alt="Better Living Solutions"
-                width={140}
-                height={40}
-                className="rounded"
-              />
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/properties" className="text-white font-medium">
-                Properties
-              </Link>
-              <Link href="/participants" className="text-gray-400 hover:text-white transition-colors">
-                Participants
-              </Link>
-              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
-                Payments
-              </Link>
-              <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
-                Maintenance
-              </Link>
-              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
-                Documents
-              </Link>
-              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
-                Alerts
-              </Link>
-              <Link href="/schedule" className="text-gray-400 hover:text-white transition-colors">
-                Schedule
-              </Link>
-              <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
-                Settings
-              </Link>
-            </nav>
-          </div>
-          {user && (
-            <div className="flex items-center gap-4">
-              <span className="text-gray-300">{user.firstName} {user.lastName}</span>
-              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                {user.role.replace("_", " ")}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
   );
 }
 

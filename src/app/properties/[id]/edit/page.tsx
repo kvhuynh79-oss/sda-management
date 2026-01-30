@@ -5,7 +5,7 @@ import { api } from "../../../../../convex/_generated/api";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Header from "@/components/Header";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
@@ -34,6 +34,7 @@ export default function EditPropertyPage() {
   const property = useQuery(api.properties.getById, { propertyId });
   const updateProperty = useMutation(api.properties.update);
   const updateDwelling = useMutation(api.dwellings.update);
+  const updateOwner = useMutation(api.owners.update);
 
   const [formData, setFormData] = useState({
     propertyName: "",
@@ -44,6 +45,12 @@ export default function EditPropertyPage() {
     postcode: "",
     managementFeePercent: "",
     notes: "",
+  });
+
+  const [ownerData, setOwnerData] = useState({
+    bankAccountName: "",
+    bankBsb: "",
+    bankAccountNumber: "",
   });
 
   const [dwellings, setDwellings] = useState<DwellingForm[]>([]);
@@ -70,6 +77,15 @@ export default function EditPropertyPage() {
         managementFeePercent: property.managementFeePercent?.toString() || "",
         notes: property.notes || "",
       });
+
+      // Load owner bank details
+      if (property.owner) {
+        setOwnerData({
+          bankAccountName: property.owner.bankAccountName || "",
+          bankBsb: property.owner.bankBsb || "",
+          bankAccountNumber: property.owner.bankAccountNumber || "",
+        });
+      }
 
       // Load dwellings
       if (property.dwellings) {
@@ -117,6 +133,16 @@ export default function EditPropertyPage() {
         notes: formData.notes || undefined,
       });
 
+      // Update owner bank details if owner exists
+      if (property?.owner?._id) {
+        await updateOwner({
+          ownerId: property.owner._id,
+          bankAccountName: ownerData.bankAccountName || undefined,
+          bankBsb: ownerData.bankBsb || undefined,
+          bankAccountNumber: ownerData.bankAccountNumber || undefined,
+        });
+      }
+
       // Update dwellings
       for (const dwelling of dwellings) {
         await updateDwelling({
@@ -150,7 +176,7 @@ export default function EditPropertyPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Header />
+      <Header currentPage="properties" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
@@ -268,6 +294,51 @@ export default function EditPropertyPage() {
               </p>
             </div>
           </div>
+
+          {/* Owner Bank Details */}
+          {property?.owner && property.owner.ownerType !== "self" && (
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Owner Bank Details</h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Bank details for payment distributions to {property.owner.companyName || `${property.owner.firstName} ${property.owner.lastName}`}
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-300 text-sm mb-1">Account Name</label>
+                  <input
+                    type="text"
+                    value={ownerData.bankAccountName}
+                    onChange={(e) => setOwnerData({ ...ownerData, bankAccountName: e.target.value })}
+                    placeholder="e.g., John Smith or ABC Pty Ltd"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-300 text-sm mb-1">BSB</label>
+                    <input
+                      type="text"
+                      value={ownerData.bankBsb}
+                      onChange={(e) => setOwnerData({ ...ownerData, bankBsb: e.target.value })}
+                      placeholder="e.g., 062-000"
+                      maxLength={7}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-sm mb-1">Account Number</label>
+                    <input
+                      type="text"
+                      value={ownerData.bankAccountNumber}
+                      onChange={(e) => setOwnerData({ ...ownerData, bankAccountNumber: e.target.value })}
+                      placeholder="e.g., 12345678"
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Dwellings */}
           <div className="bg-gray-800 rounded-lg p-6">
@@ -409,96 +480,6 @@ export default function EditPropertyPage() {
         </form>
       </main>
     </div>
-  );
-}
-
-function Header() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ firstName: string; lastName: string; role: string } | null>(
-    null
-  );
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("sda_user");
-    router.push("/login");
-  };
-
-  return (
-    <header className="bg-gray-800 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/dashboard">
-              <Image
-                src="/Logo.jpg"
-                alt="Better Living Solutions"
-                width={140}
-                height={40}
-                className="rounded"
-              />
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/properties" className="text-white font-medium">
-                Properties
-              </Link>
-              <Link
-                href="/participants"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Participants
-              </Link>
-              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
-                Payments
-              </Link>
-              <Link
-                href="/maintenance"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Maintenance
-              </Link>
-              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
-                Documents
-              </Link>
-              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
-                Alerts
-              </Link>
-              <Link href="/schedule" className="text-gray-400 hover:text-white transition-colors">
-                Schedule
-              </Link>
-              <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
-                Settings
-              </Link>
-            </nav>
-          </div>
-          {user && (
-            <div className="flex items-center gap-4">
-              <span className="text-gray-300">
-                {user.firstName} {user.lastName}
-              </span>
-              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                {user.role.replace("_", " ")}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
   );
 }
 

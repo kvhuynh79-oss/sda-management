@@ -50,6 +50,9 @@ export default defineSchema({
     address: v.optional(v.string()),
     state: v.optional(v.string()),
     abn: v.optional(v.string()),
+    bankBsb: v.optional(v.string()), // Bank BSB number
+    bankAccountNumber: v.optional(v.string()), // Bank account number
+    bankAccountName: v.optional(v.string()), // Account holder name
     notes: v.optional(v.string()),
     isActive: v.boolean(),
     createdAt: v.number(),
@@ -486,4 +489,93 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_incident", ["incidentId"]),
+
+  // Inspection Templates table - reusable inspection checklists
+  inspectionTemplates: defineTable({
+    name: v.string(), // e.g., "BLS Property Inspection"
+    description: v.optional(v.string()),
+    categories: v.array(
+      v.object({
+        name: v.string(), // e.g., "Heating & Cooling"
+        items: v.array(
+          v.object({
+            name: v.string(), // e.g., "Check to see if AC is working"
+            required: v.boolean(),
+          })
+        ),
+      })
+    ),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_isActive", ["isActive"]),
+
+  // Inspections table - individual inspection records
+  inspections: defineTable({
+    templateId: v.id("inspectionTemplates"),
+    propertyId: v.id("properties"),
+    dwellingId: v.optional(v.id("dwellings")),
+    inspectorId: v.id("users"), // User conducting the inspection
+    scheduledDate: v.string(),
+    completedDate: v.optional(v.string()),
+    status: v.union(
+      v.literal("scheduled"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("cancelled")
+    ),
+    location: v.optional(v.string()), // Additional location details
+    preparedBy: v.optional(v.string()), // Name of person who prepared
+    additionalComments: v.optional(v.string()),
+    totalItems: v.number(),
+    completedItems: v.number(),
+    passedItems: v.number(),
+    failedItems: v.number(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_dwelling", ["dwellingId"])
+    .index("by_inspector", ["inspectorId"])
+    .index("by_status", ["status"])
+    .index("by_scheduledDate", ["scheduledDate"]),
+
+  // Inspection Items table - each checked item in an inspection
+  inspectionItems: defineTable({
+    inspectionId: v.id("inspections"),
+    category: v.string(), // Category name from template
+    itemName: v.string(), // Item name from template
+    itemOrder: v.number(), // Order within category for display
+    status: v.union(
+      v.literal("pending"),
+      v.literal("pass"),
+      v.literal("fail"),
+      v.literal("na") // Not Applicable
+    ),
+    condition: v.optional(v.string()), // Condition/Details notes
+    remarks: v.optional(v.string()), // Additional remarks
+    hasIssue: v.boolean(),
+    updatedBy: v.optional(v.id("users")),
+    updatedAt: v.number(),
+  })
+    .index("by_inspection", ["inspectionId"])
+    .index("by_status", ["status"]),
+
+  // Inspection Photos table - photos for inspection items
+  inspectionPhotos: defineTable({
+    inspectionId: v.id("inspections"),
+    inspectionItemId: v.id("inspectionItems"),
+    storageId: v.string(), // Convex storage ID
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(),
+    description: v.optional(v.string()), // Photo caption/description
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_inspection", ["inspectionId"])
+    .index("by_item", ["inspectionItemId"]),
 });

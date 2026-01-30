@@ -5,7 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Header from "@/components/Header";
 
 export default function MaintenancePage() {
   const router = useRouter();
@@ -60,7 +60,7 @@ export default function MaintenancePage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Header />
+      <Header currentPage="maintenance" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
@@ -181,90 +181,6 @@ export default function MaintenancePage() {
   );
 }
 
-function Header() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ firstName: string; lastName: string; role: string } | null>(
-    null
-  );
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("sda_user");
-    router.push("/login");
-  };
-
-  return (
-    <header className="bg-gray-800 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/dashboard">
-              <Image
-                src="/Logo.jpg"
-                alt="Better Living Solutions"
-                width={140}
-                height={40}
-                className="rounded"
-              />
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/properties" className="text-gray-400 hover:text-white transition-colors">
-                Properties
-              </Link>
-              <Link href="/participants" className="text-gray-400 hover:text-white transition-colors">
-                Participants
-              </Link>
-              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
-                Payments
-              </Link>
-              <Link href="/maintenance" className="text-white font-medium">
-                Maintenance
-              </Link>
-              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
-                Documents
-              </Link>
-              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
-                Alerts
-              </Link>
-              <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
-                Schedule
-              </Link>
-              <Link href="/settings" className="text-gray-400 hover:text-white transition-colors">
-                Settings
-              </Link>
-            </nav>
-          </div>
-          {user && (
-            <div className="flex items-center gap-4">
-              <span className="text-gray-300">
-                {user.firstName} {user.lastName}
-              </span>
-              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                {user.role.replace("_", " ")}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
-
 function StatCard({
   label,
   value,
@@ -320,78 +236,76 @@ function RequestCard({ request }: { request: any }) {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <span className={`px-3 py-1 rounded-full text-xs text-white ${getPriorityColor(request.priority)}`}>
-              {request.priority.toUpperCase()}
-            </span>
-            <span className={`px-3 py-1 rounded-full text-xs text-white ${getStatusColor(request.status)}`}>
-              {formatStatus(request.status)}
-            </span>
-            <span className="text-gray-400 text-sm">{formatCategory(request.category)}</span>
+    <Link href={`/maintenance/${request._id}`} className="block">
+      <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer border border-transparent hover:border-gray-600">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`px-3 py-1 rounded-full text-xs text-white ${getPriorityColor(request.priority)}`}>
+                {request.priority.toUpperCase()}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs text-white ${getStatusColor(request.status)}`}>
+                {formatStatus(request.status)}
+              </span>
+              <span className="text-gray-400 text-sm">{formatCategory(request.category)}</span>
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-1">{request.title}</h3>
+            <p className="text-gray-300 text-sm mb-3">{request.description}</p>
           </div>
-          <h3 className="text-lg font-semibold text-white mb-1">{request.title}</h3>
-          <p className="text-gray-300 text-sm mb-3">{request.description}</p>
+          <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+            Edit
+          </span>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700 text-sm">
-        <div>
-          <p className="text-gray-500 text-xs">Property</p>
-          {request.property ? (
-            <Link
-              href={`/properties/${request.property._id}`}
-              className="text-blue-400 hover:text-blue-300"
-            >
-              {request.property.propertyName || request.property.addressLine1}
-            </Link>
-          ) : (
-            <p className="text-gray-400">Unknown</p>
-          )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700 text-sm">
+          <div>
+            <p className="text-gray-500 text-xs">Property</p>
+            <p className="text-white">
+              {request.property?.propertyName || request.property?.addressLine1 || "Unknown"}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs">Dwelling</p>
+            <p className="text-white">{request.dwelling?.dwellingName || "Unknown"}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs">Reported Date</p>
+            <p className="text-white">{request.reportedDate}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs">
+              {request.requestType === "reactive" ? "Reported By" : "Type"}
+            </p>
+            <p className="text-white capitalize">
+              {request.reportedBy || request.requestType.replace("_", " ")}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-gray-500 text-xs">Dwelling</p>
-          <p className="text-white">{request.dwelling?.dwellingName || "Unknown"}</p>
-        </div>
-        <div>
-          <p className="text-gray-500 text-xs">Reported Date</p>
-          <p className="text-white">{request.reportedDate}</p>
-        </div>
-        <div>
-          <p className="text-gray-500 text-xs">
-            {request.requestType === "reactive" ? "Reported By" : "Type"}
-          </p>
-          <p className="text-white capitalize">
-            {request.reportedBy || request.requestType.replace("_", " ")}
-          </p>
-        </div>
-      </div>
 
-      {(request.contractorName || request.quotedAmount || request.actualCost) && (
-        <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
-          {request.contractorName && (
-            <div>
-              <p className="text-gray-500 text-xs">Contractor</p>
-              <p className="text-white">{request.contractorName}</p>
-            </div>
-          )}
-          {request.quotedAmount && (
-            <div>
-              <p className="text-gray-500 text-xs">Quoted</p>
-              <p className="text-white">${request.quotedAmount.toFixed(2)}</p>
-            </div>
-          )}
-          {request.actualCost && (
-            <div>
-              <p className="text-gray-500 text-xs">Actual Cost</p>
-              <p className="text-white">${request.actualCost.toFixed(2)}</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        {(request.contractorName || request.quotedAmount || request.actualCost) && (
+          <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
+            {request.contractorName && (
+              <div>
+                <p className="text-gray-500 text-xs">Contractor</p>
+                <p className="text-white">{request.contractorName}</p>
+              </div>
+            )}
+            {request.quotedAmount && (
+              <div>
+                <p className="text-gray-500 text-xs">Quoted</p>
+                <p className="text-white">${request.quotedAmount.toFixed(2)}</p>
+              </div>
+            )}
+            {request.actualCost && (
+              <div>
+                <p className="text-gray-500 text-xs">Actual Cost</p>
+                <p className="text-white">${request.actualCost.toFixed(2)}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }
 

@@ -36,7 +36,8 @@ export default function AIAssistantPage() {
     const storedUser = localStorage.getItem("sda_user");
     if (storedUser) {
       const user = JSON.parse(storedUser);
-      setUserId(user._id as Id<"users">);
+      // Login returns "id", not "_id"
+      setUserId((user.id || user._id) as Id<"users">);
     }
   }, []);
 

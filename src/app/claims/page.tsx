@@ -317,7 +317,7 @@ export default function ClaimsPage() {
         <div className="space-y-6">
           {groupedByDay && Object.entries(groupedByDay)
             .sort(([a], [b]) => parseInt(a) - parseInt(b))
-            .map(([day, claims]) => (
+            .map(([day, claims]: [string, ClaimItem[]]) => (
               <div key={day} className="bg-gray-800 rounded-lg overflow-hidden">
                 <div className="bg-gray-700 px-4 py-3 flex justify-between items-center">
                   <h3 className="text-white font-medium">

@@ -37,6 +37,7 @@ export default function ClaimsPage() {
 
   const dashboard = useQuery(api.claims.getDashboard);
   const summary = useQuery(api.claims.getMonthlySummary, { claimPeriod: selectedPeriod });
+  const providerSettings = useQuery(api.ndisClaimExport.getProviderSettings);
   const createClaim = useMutation(api.claims.create);
   const markSubmitted = useMutation(api.claims.markSubmitted);
   const markPaid = useMutation(api.claims.markPaid);
@@ -87,6 +88,87 @@ export default function ClaimsPage() {
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
+  };
+
+  const generateNdisExport = (claim: ClaimItem) => {
+    if (!providerSettings) {
+      alert("Please configure provider settings first (go to Payments > NDIS Export > Provider Settings)");
+      return;
+    }
+
+    // Get the first and last day of the selected period
+    const [year, month] = selectedPeriod.split("-");
+    const periodStart = `${year}-${month}-01`;
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+    const periodEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+
+    // Generate claim reference
+    const claimRef = `SDA-${claim.participant.ndisNumber}-${selectedPeriod}`;
+
+    // CSV headers (exact NDIS format)
+    const headers = [
+      "RegistrationNumber",
+      "NDISNumber",
+      "SupportsDeliveredFrom",
+      "SupportsDeliveredTo",
+      "SupportNumber",
+      "ClaimReference",
+      "Quantity",
+      "Hours",
+      "UnitPrice",
+      "GSTCode",
+      "AuthorisedBy",
+      "ParticipantApproved",
+      "InKindFundingProgram",
+      "ClaimType",
+      "CancellationReason",
+      "ABN of Support Provider",
+    ];
+
+    // Build the row data
+    const row = {
+      RegistrationNumber: providerSettings.ndisRegistrationNumber || "",
+      NDISNumber: claim.participant.ndisNumber || "",
+      SupportsDeliveredFrom: periodStart,
+      SupportsDeliveredTo: periodEnd,
+      SupportNumber: claim.plan.supportItemNumber || providerSettings.defaultSupportItemNumber || "",
+      ClaimReference: claimRef,
+      Quantity: "1",
+      Hours: "",
+      UnitPrice: claim.expectedAmount.toFixed(2),
+      GSTCode: providerSettings.defaultGstCode || "P2",
+      AuthorisedBy: "",
+      ParticipantApproved: "Y",
+      InKindFundingProgram: "",
+      ClaimType: "",
+      CancellationReason: "",
+      "ABN of Support Provider": providerSettings.abn || "",
+    };
+
+    // Build CSV content
+    let csvContent = headers.join(",") + "\n";
+    const rowValues = headers.map((header) => {
+      const value = row[header as keyof typeof row] ?? "";
+      if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    });
+    csvContent += rowValues.join(",") + "\n";
+
+    // Download the file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `NDIS_${claim.participant.lastName}_${claim.participant.firstName}_${selectedPeriod}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleInitializeClaims = async () => {
@@ -407,6 +489,13 @@ export default function ClaimsPage() {
                               )}
                             </div>
                           )}
+                          <button
+                            onClick={() => generateNdisExport(claim)}
+                            className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded"
+                            title="Download NDIS CSV"
+                          >
+                            Export
+                          </button>
                         </div>
                       </div>
                     </div>

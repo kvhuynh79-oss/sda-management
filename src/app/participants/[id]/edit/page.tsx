@@ -20,6 +20,7 @@ export default function EditParticipantPage() {
 
   // Load participant data
   const participant = useQuery(api.participants.getById, { participantId });
+  const allDwellings = useQuery(api.dwellings.getAllWithAddresses);
 
   const updateParticipant = useMutation(api.participants.update);
   const updatePlan = useMutation(api.participantPlans.update);
@@ -34,6 +35,7 @@ export default function EditParticipantPage() {
     emergencyContactName: "",
     emergencyContactPhone: "",
     emergencyContactRelation: "",
+    dwellingId: "" as string,
     silProviderName: "",
     supportCoordinatorName: "",
     supportCoordinatorEmail: "",
@@ -83,6 +85,7 @@ export default function EditParticipantPage() {
         emergencyContactName: participant.emergencyContactName || "",
         emergencyContactPhone: participant.emergencyContactPhone || "",
         emergencyContactRelation: participant.emergencyContactRelation || "",
+        dwellingId: participant.dwellingId || "",
         silProviderName: participant.silProviderName || "",
         supportCoordinatorName: participant.supportCoordinatorName || "",
         supportCoordinatorEmail: participant.supportCoordinatorEmail || "",
@@ -131,6 +134,7 @@ export default function EditParticipantPage() {
         emergencyContactName: participantData.emergencyContactName || undefined,
         emergencyContactPhone: participantData.emergencyContactPhone || undefined,
         emergencyContactRelation: participantData.emergencyContactRelation || undefined,
+        dwellingId: participantData.dwellingId ? participantData.dwellingId as Id<"dwellings"> : undefined,
         silProviderName: participantData.silProviderName || undefined,
         supportCoordinatorName: participantData.supportCoordinatorName || undefined,
         supportCoordinatorEmail: participantData.supportCoordinatorEmail || undefined,
@@ -313,6 +317,32 @@ export default function EditParticipantPage() {
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Residence */}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Residence</h2>
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Dwelling *</label>
+                <select
+                  value={participantData.dwellingId}
+                  onChange={(e) =>
+                    setParticipantData({ ...participantData, dwellingId: e.target.value })
+                  }
+                  required
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="">Select a dwelling...</option>
+                  {allDwellings?.map((dwelling) => (
+                    <option key={dwelling._id} value={dwelling._id}>
+                      {dwelling.fullAddress} - {dwelling.dwellingName}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-gray-500 text-xs mt-1">
+                  Select the dwelling where this participant resides
+                </p>
               </div>
             </div>
 

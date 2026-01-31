@@ -332,6 +332,7 @@ export default defineSchema({
     warrantyExpiryDate: v.optional(v.string()), // Auto-calculated warranty end date
     notes: v.optional(v.string()),
     incidentId: v.optional(v.id("incidents")), // Link to incident if created from one
+    incidentActionId: v.optional(v.id("incidentActions")), // Link to action if created from one
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -339,7 +340,8 @@ export default defineSchema({
     .index("by_dwelling", ["dwellingId"])
     .index("by_status", ["status"])
     .index("by_priority", ["priority"])
-    .index("by_incident", ["incidentId"]),
+    .index("by_incident", ["incidentId"])
+    .index("by_incident_action", ["incidentActionId"]),
 
   // Maintenance Photos table - photos attached to maintenance requests
   maintenancePhotos: defineTable({
@@ -588,6 +590,53 @@ export default defineSchema({
   })
     .index("by_incident", ["incidentId"]),
 
+  // Incident Actions table - proposed solutions/remediation for incidents
+  incidentActions: defineTable({
+    incidentId: v.id("incidents"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    category: v.union(
+      v.literal("plumbing"),
+      v.literal("electrical"),
+      v.literal("appliances"),
+      v.literal("building"),
+      v.literal("grounds"),
+      v.literal("safety"),
+      v.literal("general")
+    ),
+    priority: v.union(
+      v.literal("urgent"),
+      v.literal("high"),
+      v.literal("medium"),
+      v.literal("low")
+    ),
+    status: v.union(
+      v.literal("pending"),     // Ready to assign (contractor or in-house)
+      v.literal("in_progress"), // Work started
+      v.literal("completed"),   // Done
+      v.literal("cancelled")    // Removed/not needed
+    ),
+    assignmentType: v.union(
+      v.literal("contractor"),
+      v.literal("in_house"),
+      v.literal("pending")
+    ),
+    assignedTo: v.optional(v.string()),           // Staff name for in-house
+    inHouseNotes: v.optional(v.string()),
+    estimatedCost: v.optional(v.number()),
+    actualCost: v.optional(v.number()),
+    maintenanceRequestId: v.optional(v.id("maintenanceRequests")),
+    completedDate: v.optional(v.string()),
+    completedBy: v.optional(v.id("users")),
+    completionNotes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_incident", ["incidentId"])
+    .index("by_status", ["status"])
+    .index("by_maintenance_request", ["maintenanceRequestId"]),
+
   // Inspection Templates table - reusable inspection checklists
   inspectionTemplates: defineTable({
     name: v.string(), // e.g., "BLS Property Inspection"
@@ -778,6 +827,79 @@ export default defineSchema({
     .index("by_contractor", ["contractorId"])
     .index("by_token", ["requestToken"])
     .index("by_status", ["status"]),
+
+  // Support Coordinators table - external support coordinators who refer participants
+  supportCoordinators: defineTable({
+    firstName: v.string(),
+    lastName: v.string(),
+    organization: v.optional(v.string()), // Their company/organization
+    email: v.string(),
+    phone: v.optional(v.string()),
+    // Areas they cover - predefined Sydney regions with custom option
+    areas: v.array(v.string()), // e.g., ["Northern Sydney", "Inner West"]
+    // How we know them / relationship notes
+    relationship: v.optional(v.string()),
+    // General notes about working with them
+    notes: v.optional(v.string()),
+    // Quality/responsiveness rating (1-5)
+    rating: v.optional(v.number()),
+    // Tracking
+    lastContactedDate: v.optional(v.string()),
+    totalReferrals: v.optional(v.number()), // Successful placements
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_status", ["status"]),
+
+  // Support Coordinator Participant History - links coordinators to participants they've worked with
+  supportCoordinatorParticipants: defineTable({
+    supportCoordinatorId: v.id("supportCoordinators"),
+    participantId: v.id("participants"),
+    relationshipType: v.union(
+      v.literal("referred"), // They referred this participant to us
+      v.literal("current"), // Currently their coordinator
+      v.literal("past"), // Was their coordinator previously
+      v.literal("inquiry") // Made inquiry about but didn't proceed
+    ),
+    startDate: v.optional(v.string()), // When relationship started
+    endDate: v.optional(v.string()), // When relationship ended (if past)
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_coordinator", ["supportCoordinatorId"])
+    .index("by_participant", ["participantId"]),
+
+  // Vacancy Listings - track where vacancies are advertised
+  vacancyListings: defineTable({
+    dwellingId: v.id("dwellings"),
+    // Platform listings (manual checklist)
+    goNestListed: v.optional(v.boolean()),
+    goNestListedDate: v.optional(v.string()),
+    goNestListingUrl: v.optional(v.string()),
+    housingHubListed: v.optional(v.boolean()),
+    housingHubListedDate: v.optional(v.string()),
+    housingHubListingUrl: v.optional(v.string()),
+    ndisNotified: v.optional(v.boolean()),
+    ndisNotifiedDate: v.optional(v.string()),
+    ndisReferenceNumber: v.optional(v.string()),
+    // Support coordinator notifications
+    coordinatorsNotified: v.optional(v.array(v.id("supportCoordinators"))),
+    lastNotificationDate: v.optional(v.string()),
+    // Status tracking
+    vacancyStatus: v.union(
+      v.literal("open"), // Actively looking
+      v.literal("pending"), // In discussions with potential participant
+      v.literal("filled"), // Vacancy filled
+      v.literal("on_hold") // Temporarily not seeking
+    ),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_dwelling", ["dwellingId"])
+    .index("by_status", ["vacancyStatus"]),
 
   // AI Processing Queue table - for batch document processing
   aiProcessingQueue: defineTable({

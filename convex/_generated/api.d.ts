@@ -21,6 +21,7 @@ import type * as crons from "../crons.js";
 import type * as documents from "../documents.js";
 import type * as dwellings from "../dwellings.js";
 import type * as fixPaulDwelling from "../fixPaulDwelling.js";
+import type * as incidentActions from "../incidentActions.js";
 import type * as incidents from "../incidents.js";
 import type * as inspections from "../inspections.js";
 import type * as maintenancePhotos from "../maintenancePhotos.js";
@@ -47,6 +48,8 @@ import type * as seedJoshRoss from "../seedJoshRoss.js";
 import type * as seedMarcelLaaban from "../seedMarcelLaaban.js";
 import type * as seedPaulMortensen from "../seedPaulMortensen.js";
 import type * as seedPaulMortensenPayments from "../seedPaulMortensenPayments.js";
+import type * as supportCoordinators from "../supportCoordinators.js";
+import type * as vacancyListings from "../vacancyListings.js";
 
 import type {
   ApiFromModules,
@@ -68,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   dwellings: typeof dwellings;
   fixPaulDwelling: typeof fixPaulDwelling;
+  incidentActions: typeof incidentActions;
   incidents: typeof incidents;
   inspections: typeof inspections;
   maintenancePhotos: typeof maintenancePhotos;
@@ -94,6 +98,8 @@ declare const fullApi: ApiFromModules<{
   seedMarcelLaaban: typeof seedMarcelLaaban;
   seedPaulMortensen: typeof seedPaulMortensen;
   seedPaulMortensenPayments: typeof seedPaulMortensenPayments;
+  supportCoordinators: typeof supportCoordinators;
+  vacancyListings: typeof vacancyListings;
 }>;
 
 /**

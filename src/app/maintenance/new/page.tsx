@@ -32,6 +32,7 @@ function NewMaintenanceRequestContent() {
   const createRequest = useMutation(api.maintenanceRequests.create);
   const generateUploadUrl = useMutation(api.maintenancePhotos.generateUploadUrl);
   const addPhoto = useMutation(api.maintenancePhotos.addPhoto);
+  const linkMaintenanceRequest = useMutation(api.incidentActions.linkMaintenanceRequest);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
@@ -98,18 +99,20 @@ function NewMaintenanceRequestContent() {
     }
   }, [dwellings]);
 
-  // Pre-fill from URL params (e.g., when coming from an incident)
+  // Pre-fill from URL params (e.g., when coming from an incident or action)
   useEffect(() => {
     if (prefilledFromIncident) return; // Only prefill once
 
     const incidentId = searchParams.get("incidentId");
+    const incidentActionId = searchParams.get("incidentActionId");
     const propertyId = searchParams.get("propertyId");
     const dwellingId = searchParams.get("dwellingId");
     const title = searchParams.get("title");
     const description = searchParams.get("description");
     const category = searchParams.get("category");
+    const priority = searchParams.get("priority");
 
-    if (incidentId || propertyId || title) {
+    if (incidentId || incidentActionId || propertyId || title) {
       setFormData((prev) => ({
         ...prev,
         propertyId: propertyId || prev.propertyId,
@@ -117,6 +120,7 @@ function NewMaintenanceRequestContent() {
         title: title || prev.title,
         description: description || prev.description,
         category: (category as any) || prev.category,
+        priority: (priority as any) || prev.priority,
       }));
 
       if (propertyId) {
@@ -190,6 +194,8 @@ function NewMaintenanceRequestContent() {
     setIsSubmitting(true);
 
     try {
+      const incidentActionId = searchParams.get("incidentActionId");
+
       const requestId = await createRequest({
         dwellingId: formData.dwellingId as Id<"dwellings">,
         requestType: formData.requestType,
@@ -204,8 +210,21 @@ function NewMaintenanceRequestContent() {
         quotedAmount: formData.quotedAmount ? parseFloat(formData.quotedAmount) : undefined,
         notes: formData.notes || undefined,
         incidentId: searchParams.get("incidentId") ? searchParams.get("incidentId") as Id<"incidents"> : undefined,
+        incidentActionId: incidentActionId ? incidentActionId as Id<"incidentActions"> : undefined,
         createdBy: user.id as Id<"users">,
       });
+
+      // Link the maintenance request to the incident action if applicable
+      if (incidentActionId) {
+        try {
+          await linkMaintenanceRequest({
+            actionId: incidentActionId as Id<"incidentActions">,
+            maintenanceRequestId: requestId,
+          });
+        } catch (linkErr) {
+          console.error("Failed to link action to maintenance request:", linkErr);
+        }
+      }
 
       // Upload photos if any
       if (pendingPhotos.length > 0) {

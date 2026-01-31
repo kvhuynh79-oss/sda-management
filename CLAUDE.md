@@ -24,6 +24,8 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 8. **Documents** - Store documents with expiry tracking
 9. **Alerts** - Automated alerts for expiries, vacancies, maintenance
 10. **Reports** - Compliance, financial, and contractor reports
+11. **Incidents** - Record and track incidents with photos, NDIS reporting
+12. **Incident Actions** - Define remediation actions, assign to contractor (via MR) or in-house
 
 ## Project Structure
 ```
@@ -80,6 +82,7 @@ src/components/
 - `alerts` - System-generated alerts
 - `incidents` - Incident reports
 - `incidentPhotos` - Photos for incidents
+- `incidentActions` - Remediation actions for incidents (contractor or in-house)
 - `inspectionTemplates` - Reusable inspection checklists
 - `inspections` - Individual inspection records
 - `inspectionItems` - Each checked item in inspection
@@ -116,7 +119,7 @@ src/components/
 - All dates stored as ISO strings (YYYY-MM-DD)
 
 ## Next Session Priorities
-1. **Verify "Create Maintenance Request" button** - Check incident detail page after hard refresh (Ctrl+Shift+R) to confirm the purple button appears. Code is deployed in commit 657b9bf.
+1. **Test Incident Actions feature** - New feature deployed (commit de4e744). Test workflow: Add Action -> Contractor/In-House -> Complete
 2. **Bug fixing** - Test all features, fix any issues
 3. **Bulk data entry** - User will upload property/participant data
 4. **Owner reports** - Reference the Folio Summary format for 6-month reports

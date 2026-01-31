@@ -4,17 +4,22 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Header from "@/components/Header";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Id } from "../../../convex/_generated/dataModel";
+
+type ReportTab = "financial" | "compliance" | "operational" | "owner";
 
 export default function ReportsPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ role: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<ReportTab>("financial");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
 
+  // Existing reports
   const complianceReport = useQuery(
     api.reports.getComplianceReport,
     startDate && endDate ? { startDate, endDate } : {}
@@ -25,6 +30,65 @@ export default function ReportsPage() {
   );
   const contractorPerformance = useQuery(api.reports.getContractorPerformance);
 
+  // New reports
+  const ownerStatement = useQuery(
+    api.reports.getOwnerStatement,
+    startDate && endDate
+      ? {
+          startDate,
+          endDate,
+          propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
+        }
+      : "skip"
+  );
+  const paymentSummary = useQuery(
+    api.reports.getPaymentSummary,
+    startDate && endDate
+      ? {
+          startDate,
+          endDate,
+          propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
+        }
+      : "skip"
+  );
+  const outstandingPayments = useQuery(api.reports.getOutstandingPayments, {});
+  const inspectionSummary = useQuery(
+    api.reports.getInspectionSummary,
+    startDate && endDate
+      ? {
+          startDate,
+          endDate,
+          propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
+        }
+      : {}
+  );
+  const documentExpiry = useQuery(api.reports.getDocumentExpiryReport, { daysAhead: 90 });
+  const maintenanceOverview = useQuery(
+    api.reports.getMaintenanceOverview,
+    startDate && endDate
+      ? {
+          startDate,
+          endDate,
+          propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
+        }
+      : {}
+  );
+  const vacancyReport = useQuery(api.reports.getVacancyReport, {});
+  const incidentSummary = useQuery(
+    api.reports.getIncidentSummary,
+    startDate && endDate
+      ? {
+          startDate,
+          endDate,
+          propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
+        }
+      : {}
+  );
+  const participantPlanStatus = useQuery(api.reports.getParticipantPlanStatus, { daysAhead: 90 });
+
+  // Properties for filter
+  const properties = useQuery(api.properties.getAll, {});
+
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
     if (!storedUser) {
@@ -33,7 +97,6 @@ export default function ReportsPage() {
     }
     setUser(JSON.parse(storedUser));
 
-    // Set default date range to current year
     const today = new Date();
     const yearStart = new Date(today.getFullYear(), 0, 1);
     setStartDate(yearStart.toISOString().split("T")[0]);
@@ -44,181 +107,87 @@ export default function ReportsPage() {
     return <LoadingScreen />;
   }
 
-  // CSV Export Function
-  const exportToCSV = () => {
-    if (!complianceReport || !costAnalysis || !contractorPerformance) {
-      alert("Please wait for data to load");
-      return;
-    }
+  const tabs: { id: ReportTab; label: string }[] = [
+    { id: "financial", label: "Financial" },
+    { id: "compliance", label: "Compliance" },
+    { id: "operational", label: "Operational" },
+    { id: "owner", label: "Owner Reports" },
+  ];
 
-    // Build CSV content
-    let csvContent = "Better Living Solutions - Reports Export\n\n";
-
-    // Compliance Report Section
-    csvContent += "COMPLIANCE REPORT\n";
-    csvContent += `Date Range,${startDate} to ${endDate}\n\n`;
-    csvContent += "Metric,Value\n";
-    csvContent += `Total Schedules,${complianceReport.totalSchedules}\n`;
-    csvContent += `Overdue Count,${complianceReport.overdueCount}\n`;
-    csvContent += `Completed in Period,${complianceReport.completedInPeriod}\n`;
-    csvContent += `Compliance Rate,${complianceReport.complianceRate}%\n\n`;
-
-    csvContent += "Category,Total,Overdue\n";
-    Object.entries(complianceReport.byCategory).forEach(([category, data]) => {
-      csvContent += `${category},${data.total},${data.overdue}\n`;
-    });
-
-    // Cost Analysis Section
-    csvContent += "\n\nCOST ANALYSIS\n";
-    csvContent += "Metric,Value\n";
-    csvContent += `Actual Cost (Period),$${costAnalysis.actualCostInPeriod.toLocaleString()}\n`;
-    csvContent += `Projected Cost (30 Days),$${costAnalysis.projectedCost30Days.toLocaleString()}\n`;
-    csvContent += `Projected Annual Cost,$${costAnalysis.projectedAnnualCost.toLocaleString()}\n\n`;
-
-    csvContent += "Category,Estimated Cost\n";
-    Object.entries(costAnalysis.byCategory).forEach(([category, cost]) => {
-      csvContent += `${category},$${(cost as number).toLocaleString()}\n`;
-    });
-
-    // Contractor Performance Section
-    csvContent += "\n\nCONTRACTOR PERFORMANCE\n";
-    csvContent += "Contractor,Completed Tasks,Total Cost,Tasks\n";
-    contractorPerformance.forEach((contractor) => {
-      csvContent += `${contractor.name},${contractor.completed},$${contractor.totalCost.toLocaleString()},"${contractor.tasks.join(", ")}"\n`;
-    });
-
-    // Create and download CSV file
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `sda-reports-${startDate}-to-${endDate}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // PDF Export Function
-  const exportToPDF = () => {
-    if (!complianceReport || !costAnalysis || !contractorPerformance) {
-      alert("Please wait for data to load");
+  // PDF Export for Owner Statement
+  const exportOwnerStatementPDF = () => {
+    if (!ownerStatement || ownerStatement.length === 0) {
+      alert("No owner statement data available");
       return;
     }
 
     const doc = new jsPDF();
+    let yPos = 20;
 
-    // Title
-    doc.setFontSize(20);
-    doc.text("Better Living Solutions - Reports", 14, 20);
-    doc.setFontSize(12);
-    doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 28);
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 34);
+    ownerStatement.forEach((property, idx) => {
+      if (idx > 0) {
+        doc.addPage();
+        yPos = 20;
+      }
 
-    let yPos = 45;
+      doc.setFontSize(18);
+      doc.text("Owner Statement / Folio Summary", 14, yPos);
+      yPos += 10;
 
-    // Compliance Report Section
-    doc.setFontSize(16);
-    doc.text("Compliance Report", 14, yPos);
-    yPos += 8;
+      doc.setFontSize(12);
+      doc.text(`Property: ${property?.propertyName}`, 14, yPos);
+      yPos += 6;
+      doc.text(`Address: ${property?.address}`, 14, yPos);
+      yPos += 6;
+      doc.text(`Period: ${startDate} to ${endDate}`, 14, yPos);
+      yPos += 10;
 
-    // Compliance Summary Table
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Schedules", complianceReport.totalSchedules.toString()],
-        ["Overdue Count", complianceReport.overdueCount.toString()],
-        ["Completed in Period", complianceReport.completedInPeriod.toString()],
-        ["Compliance Rate", `${complianceReport.complianceRate}%`],
-      ],
-      theme: "grid",
+      if (property?.owner) {
+        doc.text(`Owner: ${property.owner.name}`, 14, yPos);
+        yPos += 6;
+        if (property.owner.bankAccountName) {
+          doc.text(`Bank: ${property.owner.bankAccountName}`, 14, yPos);
+          yPos += 6;
+          doc.text(`BSB: ${property.owner.bankBsb} | Account: ${property.owner.bankAccountNumber}`, 14, yPos);
+          yPos += 10;
+        }
+      }
+
+      const tableData: string[][] = [];
+      property?.dwellings.forEach((dwelling) => {
+        dwelling.participants.forEach((p) => {
+          if (p) {
+            tableData.push([
+              dwelling.dwellingName,
+              p.participantName,
+              `$${p.monthlySda.toLocaleString()}`,
+              `$${p.monthlyRrc.toLocaleString()}`,
+              `$${p.totalRevenue.toLocaleString()}`,
+              `${p.managementFeePercent}%`,
+              `$${p.managementFee.toLocaleString()}`,
+              `$${p.netToOwner.toLocaleString()}`,
+            ]);
+          }
+        });
+      });
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Dwelling", "Participant", "SDA", "RRC", "Total", "Fee %", "Fee $", "Net"]],
+        body: tableData,
+        theme: "grid",
+        styles: { fontSize: 8 },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      doc.setFontSize(12);
+      doc.text(`Total Monthly Revenue: $${property?.totalMonthlyRevenue.toLocaleString()}`, 14, yPos);
+      yPos += 6;
+      doc.text(`Total Net to Owner: $${property?.totalMonthlyNetToOwner.toLocaleString()}`, 14, yPos);
     });
 
-    yPos = (doc as any).lastAutoTable.finalY + 10;
-
-    // Compliance by Category Table
-    doc.setFontSize(14);
-    doc.text("Compliance by Category", 14, yPos);
-    yPos += 6;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Category", "Total", "Overdue"]],
-      body: Object.entries(complianceReport.byCategory).map(([category, data]) => [
-        category.charAt(0).toUpperCase() + category.slice(1),
-        data.total.toString(),
-        data.overdue.toString(),
-      ]),
-      theme: "grid",
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    // Cost Analysis Section
-    doc.setFontSize(16);
-    doc.text("Cost Analysis", 14, yPos);
-    yPos += 8;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Actual Cost (Period)", `$${costAnalysis.actualCostInPeriod.toLocaleString()}`],
-        ["Projected Cost (30 Days)", `$${costAnalysis.projectedCost30Days.toLocaleString()}`],
-        ["Projected Annual Cost", `$${costAnalysis.projectedAnnualCost.toLocaleString()}`],
-      ],
-      theme: "grid",
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 10;
-
-    // Cost by Category Table
-    doc.setFontSize(14);
-    doc.text("Cost by Category", 14, yPos);
-    yPos += 6;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Category", "Estimated Cost"]],
-      body: Object.entries(costAnalysis.byCategory).map(([category, cost]) => [
-        category.charAt(0).toUpperCase() + category.slice(1),
-        `$${(cost as number).toLocaleString()}`,
-      ]),
-      theme: "grid",
-    });
-
-    // Add new page for contractor performance if needed
-    if ((doc as any).lastAutoTable.finalY > 250) {
-      doc.addPage();
-      yPos = 20;
-    } else {
-      yPos = (doc as any).lastAutoTable.finalY + 15;
-    }
-
-    // Contractor Performance Section
-    doc.setFontSize(16);
-    doc.text("Contractor Performance", 14, yPos);
-    yPos += 8;
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [["Contractor", "Completed", "Total Cost", "Sample Tasks"]],
-      body: contractorPerformance.map((contractor) => [
-        contractor.name,
-        contractor.completed.toString(),
-        `$${contractor.totalCost.toLocaleString()}`,
-        contractor.tasks.slice(0, 2).join(", ") + (contractor.tasks.length > 2 ? "..." : ""),
-      ]),
-      theme: "grid",
-      columnStyles: {
-        3: { cellWidth: 60 },
-      },
-    });
-
-    // Save the PDF
-    doc.save(`sda-reports-${startDate}-to-${endDate}.pdf`);
+    doc.save(`owner-statement-${startDate}-to-${endDate}.pdf`);
   };
 
   return (
@@ -229,205 +198,558 @@ export default function ReportsPage() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-white">Reports & Analytics</h2>
           <p className="text-gray-400 mt-1">
-            Compliance tracking, cost analysis, and performance metrics
+            Comprehensive reporting for financial, compliance, and operational metrics
           </p>
         </div>
 
-        {/* Date Range Filter */}
+        {/* Filters */}
         <div className="bg-gray-800 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Start Date
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                End Date
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Property</label>
+              <select
+                value={selectedPropertyId}
+                onChange={(e) => setSelectedPropertyId(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Properties</option>
+                {properties?.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.propertyName || p.addressLine1}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Compliance Report */}
-        {complianceReport && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Compliance Report
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <StatCard
-                label="Total Schedules"
-                value={complianceReport.totalSchedules.toString()}
-                color="blue"
-              />
-              <StatCard
-                label="Overdue"
-                value={complianceReport.overdueCount.toString()}
-                color="red"
-              />
-              <StatCard
-                label="Completed (Period)"
-                value={complianceReport.completedInPeriod.toString()}
-                color="green"
-              />
-              <StatCard
-                label="Compliance Rate"
-                value={`${complianceReport.complianceRate}%`}
-                color={
-                  complianceReport.complianceRate >= 90
-                    ? "green"
-                    : complianceReport.complianceRate >= 75
-                    ? "yellow"
-                    : "red"
-                }
-              />
-            </div>
-
-            <h4 className="text-md font-semibold text-white mb-3">
-              Compliance by Category
-            </h4>
-            <div className="space-y-2">
-              {Object.entries(complianceReport.byCategory).map(
-                ([category, data]) => (
-                  <div
-                    key={category}
-                    className="flex justify-between items-center p-3 bg-gray-700 rounded"
-                  >
-                    <span className="text-white capitalize">{category}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-gray-400">
-                        {data.total} total
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded text-sm ${
-                          data.overdue > 0
-                            ? "bg-red-600 text-white"
-                            : "bg-green-600 text-white"
-                        }`}
-                      >
-                        {data.overdue} overdue
-                      </span>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
+        {/* Tabs */}
+        <div className="border-b border-gray-700 mb-6">
+          <div className="flex gap-4 overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                  activeTab === tab.id
+                    ? "text-blue-400 border-b-2 border-blue-400"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* Cost Analysis */}
-        {costAnalysis && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Cost Analysis
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <StatCard
-                label="Actual Cost (Period)"
-                value={`$${costAnalysis.actualCostInPeriod.toLocaleString()}`}
-                subtitle={`${costAnalysis.completedInPeriod} tasks`}
-                color="blue"
-              />
-              <StatCard
-                label="Projected (30 Days)"
-                value={`$${costAnalysis.projectedCost30Days.toLocaleString()}`}
-                subtitle={`${costAnalysis.upcomingIn30Days} tasks`}
-                color="yellow"
-              />
-              <StatCard
-                label="Projected (Annual)"
-                value={`$${costAnalysis.projectedAnnualCost.toLocaleString()}`}
-                subtitle="All active schedules"
-                color="green"
-              />
-            </div>
-
-            <h4 className="text-md font-semibold text-white mb-3">
-              Estimated Cost by Category
-            </h4>
-            <div className="space-y-2">
-              {Object.entries(costAnalysis.byCategory).map(
-                ([category, cost]) => (
-                  <div
-                    key={category}
-                    className="flex justify-between items-center p-3 bg-gray-700 rounded"
-                  >
-                    <span className="text-white capitalize">{category}</span>
-                    <span className="text-green-400 font-semibold">
-                      ${(cost as number).toLocaleString()}
-                    </span>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Contractor Performance */}
-        {contractorPerformance && contractorPerformance.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Contractor Performance
-            </h3>
-            <div className="space-y-3">
-              {contractorPerformance.map((contractor) => (
-                <div
-                  key={contractor.name}
-                  className="p-4 bg-gray-700 rounded-lg"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-medium">
-                      {contractor.name}
-                    </span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-gray-400">
-                        {contractor.completed} completed
-                      </span>
-                      <span className="text-green-400 font-semibold">
-                        ${contractor.totalCost.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    Tasks: {contractor.tasks.join(", ")}
-                  </div>
+        {/* Financial Tab */}
+        {activeTab === "financial" && (
+          <div className="space-y-6">
+            {/* Payment Summary */}
+            <ReportSection title="Payment Summary">
+              {paymentSummary ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <StatCard label="Total Expected" value={`$${paymentSummary.totalExpected.toLocaleString()}`} color="blue" />
+                  <StatCard label="Total Received" value={`$${paymentSummary.totalReceived.toLocaleString()}`} color="green" />
+                  <StatCard label="Variance" value={`$${paymentSummary.totalVariance.toLocaleString()}`} color={paymentSummary.totalVariance >= 0 ? "green" : "red"} />
+                  <StatCard label="Payments" value={paymentSummary.count.toString()} color="blue" />
                 </div>
-              ))}
-            </div>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Outstanding Payments */}
+            <ReportSection title="Outstanding Payments">
+              {outstandingPayments ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <StatCard label="Total Outstanding" value={`$${outstandingPayments.totalOutstanding.toLocaleString()}`} color="red" />
+                    <StatCard label="Outstanding Claims" value={outstandingPayments.count.toString()} color="yellow" />
+                  </div>
+                  {outstandingPayments.claims.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-gray-400 border-b border-gray-700">
+                            <th className="text-left py-2">Participant</th>
+                            <th className="text-left py-2">Property</th>
+                            <th className="text-left py-2">Period</th>
+                            <th className="text-right py-2">Amount</th>
+                            <th className="text-left py-2">Status</th>
+                            <th className="text-right py-2">Days Overdue</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {outstandingPayments.claims.slice(0, 10).map((claim) => (
+                            <tr key={claim?._id} className="border-b border-gray-700/50">
+                              <td className="py-2 text-white">{claim?.participantName}</td>
+                              <td className="py-2 text-gray-400">{claim?.propertyName}</td>
+                              <td className="py-2 text-gray-400">{claim?.claimPeriod}</td>
+                              <td className="py-2 text-right text-white">${claim?.expectedAmount.toLocaleString()}</td>
+                              <td className="py-2">
+                                <span className={`px-2 py-1 rounded text-xs ${
+                                  claim?.status === "pending" ? "bg-yellow-600" :
+                                  claim?.status === "rejected" ? "bg-red-600" : "bg-blue-600"
+                                }`}>
+                                  {claim?.status}
+                                </span>
+                              </td>
+                              <td className="py-2 text-right text-red-400">{claim?.daysOverdue}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Cost Analysis */}
+            {costAnalysis && (
+              <ReportSection title="Cost Analysis">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <StatCard label="Actual Cost (Period)" value={`$${costAnalysis.actualCostInPeriod.toLocaleString()}`} color="blue" />
+                  <StatCard label="Projected (30 Days)" value={`$${costAnalysis.projectedCost30Days.toLocaleString()}`} color="yellow" />
+                  <StatCard label="Projected (Annual)" value={`$${costAnalysis.projectedAnnualCost.toLocaleString()}`} color="green" />
+                </div>
+              </ReportSection>
+            )}
           </div>
         )}
 
-        {/* Export Actions */}
-        <div className="flex gap-4">
-          <button
-            onClick={exportToPDF}
-            disabled={!complianceReport || !costAnalysis || !contractorPerformance}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-          >
-            Export to PDF
-          </button>
-          <button
-            onClick={exportToCSV}
-            disabled={!complianceReport || !costAnalysis || !contractorPerformance}
-            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-          >
-            Export to CSV
-          </button>
-        </div>
+        {/* Compliance Tab */}
+        {activeTab === "compliance" && (
+          <div className="space-y-6">
+            {/* Inspection Summary */}
+            <ReportSection title="Inspection Summary">
+              {inspectionSummary ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <StatCard label="Total Inspections" value={inspectionSummary.summary.total.toString()} color="blue" />
+                    <StatCard label="Completed" value={inspectionSummary.summary.completed.toString()} color="green" />
+                    <StatCard label="Scheduled" value={inspectionSummary.summary.scheduled.toString()} color="yellow" />
+                    <StatCard label="Avg Pass Rate" value={`${inspectionSummary.summary.averagePassRate}%`} color={inspectionSummary.summary.averagePassRate >= 90 ? "green" : "yellow"} />
+                    <StatCard label="Failed Items" value={inspectionSummary.summary.totalFailedItems.toString()} color="red" />
+                  </div>
+                </>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Document Expiry */}
+            <ReportSection title="Document Expiry (Next 90 Days)">
+              {documentExpiry ? (
+                <>
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <StatCard label="Expired" value={documentExpiry.summary.expired.toString()} color="red" />
+                    <StatCard label="Expiring Soon (30d)" value={documentExpiry.summary.expiringSoon.toString()} color="yellow" />
+                    <StatCard label="Expiring Later" value={documentExpiry.summary.expiringLater.toString()} color="green" />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                    <div className="bg-gray-700 p-3 rounded">
+                      <p className="text-gray-400">NDIS Plans</p>
+                      <p className="text-white font-semibold">{documentExpiry.byType.ndis_plan}</p>
+                    </div>
+                    <div className="bg-gray-700 p-3 rounded">
+                      <p className="text-gray-400">Insurance</p>
+                      <p className="text-white font-semibold">{documentExpiry.byType.insurance}</p>
+                    </div>
+                    <div className="bg-gray-700 p-3 rounded">
+                      <p className="text-gray-400">Compliance</p>
+                      <p className="text-white font-semibold">{documentExpiry.byType.compliance}</p>
+                    </div>
+                    <div className="bg-gray-700 p-3 rounded">
+                      <p className="text-gray-400">Leases</p>
+                      <p className="text-white font-semibold">{documentExpiry.byType.lease}</p>
+                    </div>
+                    <div className="bg-gray-700 p-3 rounded">
+                      <p className="text-gray-400">Service Agreements</p>
+                      <p className="text-white font-semibold">{documentExpiry.byType.service_agreement}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Participant Plan Status */}
+            <ReportSection title="NDIS Plan Status">
+              {participantPlanStatus ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <StatCard label="Total Participants" value={participantPlanStatus.summary.total.toString()} color="blue" />
+                    <StatCard label="Expired Plans" value={participantPlanStatus.summary.expired.toString()} color="red" />
+                    <StatCard label="Expiring Soon" value={participantPlanStatus.summary.expiringSoon.toString()} color="yellow" />
+                    <StatCard label="Active Plans" value={participantPlanStatus.summary.active.toString()} color="green" />
+                    <StatCard label="No Plan" value={participantPlanStatus.summary.noPlan.toString()} color="red" />
+                  </div>
+                  {participantPlanStatus.participants.filter((p) => p.planStatus !== "active").length > 0 && (
+                    <div className="overflow-x-auto">
+                      <h4 className="text-white font-medium mb-2">Attention Required</h4>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-gray-400 border-b border-gray-700">
+                            <th className="text-left py-2">Participant</th>
+                            <th className="text-left py-2">Property</th>
+                            <th className="text-left py-2">Plan Ends</th>
+                            <th className="text-left py-2">Status</th>
+                            <th className="text-right py-2">Days</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {participantPlanStatus.participants
+                            .filter((p) => p.planStatus !== "active")
+                            .slice(0, 10)
+                            .map((p) => (
+                              <tr key={p.participantId} className="border-b border-gray-700/50">
+                                <td className="py-2 text-white">{p.participantName}</td>
+                                <td className="py-2 text-gray-400">{p.propertyName}</td>
+                                <td className="py-2 text-gray-400">{p.planEndDate || "No plan"}</td>
+                                <td className="py-2">
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    p.planStatus === "expired" ? "bg-red-600" :
+                                    p.planStatus === "expiring_soon" ? "bg-yellow-600" :
+                                    p.planStatus === "no_plan" ? "bg-red-600" : "bg-green-600"
+                                  }`}>
+                                    {p.planStatus.replace("_", " ")}
+                                  </span>
+                                </td>
+                                <td className="py-2 text-right text-white">{p.daysUntilExpiry}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Preventative Maintenance Compliance */}
+            {complianceReport && (
+              <ReportSection title="Preventative Maintenance Compliance">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <StatCard label="Total Schedules" value={complianceReport.totalSchedules.toString()} color="blue" />
+                  <StatCard label="Overdue" value={complianceReport.overdueCount.toString()} color="red" />
+                  <StatCard label="Completed (Period)" value={complianceReport.completedInPeriod.toString()} color="green" />
+                  <StatCard label="Compliance Rate" value={`${complianceReport.complianceRate}%`} color={complianceReport.complianceRate >= 90 ? "green" : "yellow"} />
+                </div>
+              </ReportSection>
+            )}
+          </div>
+        )}
+
+        {/* Operational Tab */}
+        {activeTab === "operational" && (
+          <div className="space-y-6">
+            {/* Vacancy Report */}
+            <ReportSection title="Vacancy Report">
+              {vacancyReport ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <StatCard label="Total Dwellings" value={vacancyReport.summary.totalDwellings.toString()} color="blue" />
+                    <StatCard label="Fully Occupied" value={vacancyReport.summary.fullyOccupied.toString()} color="green" />
+                    <StatCard label="Vacant Spots" value={vacancyReport.summary.totalVacantSpots.toString()} color="yellow" />
+                    <StatCard label="Occupancy Rate" value={`${vacancyReport.summary.overallOccupancyRate}%`} color={vacancyReport.summary.overallOccupancyRate >= 90 ? "green" : "yellow"} />
+                  </div>
+                  <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                    <p className="text-gray-400 text-sm">Potential Monthly Revenue Loss</p>
+                    <p className="text-2xl font-bold text-red-400">
+                      ${vacancyReport.summary.totalPotentialMonthlyLoss.toLocaleString()}
+                    </p>
+                  </div>
+                  {vacancyReport.vacantDwellings.length > 0 && (
+                    <div className="overflow-x-auto">
+                      <h4 className="text-white font-medium mb-2">Vacant Dwellings</h4>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-gray-400 border-b border-gray-700">
+                            <th className="text-left py-2">Dwelling</th>
+                            <th className="text-left py-2">Property</th>
+                            <th className="text-left py-2">SDA Category</th>
+                            <th className="text-center py-2">Occupancy</th>
+                            <th className="text-right py-2">Vacant Spots</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vacancyReport.vacantDwellings.map((d) => (
+                            <tr key={d.dwellingId} className="border-b border-gray-700/50">
+                              <td className="py-2 text-white">{d.dwellingName}</td>
+                              <td className="py-2 text-gray-400">{d.propertyName}</td>
+                              <td className="py-2 text-gray-400">{d.sdaCategory?.replace("_", " ")}</td>
+                              <td className="py-2 text-center text-white">{d.currentOccupancy}/{d.maxParticipants}</td>
+                              <td className="py-2 text-right text-yellow-400">{d.vacantSpots}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Maintenance Overview */}
+            <ReportSection title="Maintenance Overview">
+              {maintenanceOverview ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <StatCard label="Total Requests" value={maintenanceOverview.summary.total.toString()} color="blue" />
+                    <StatCard label="Open" value={maintenanceOverview.summary.open.toString()} color="yellow" />
+                    <StatCard label="Completed" value={maintenanceOverview.summary.completed.toString()} color="green" />
+                    <StatCard label="Overdue" value={maintenanceOverview.summary.overdue.toString()} color="red" />
+                    <StatCard label="Total Cost" value={`$${maintenanceOverview.summary.totalCost.toLocaleString()}`} color="blue" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                      <h4 className="text-white font-medium mb-3">By Category</h4>
+                      <div className="space-y-2 text-sm">
+                        {Object.entries(maintenanceOverview.byCategory).map(([cat, count]) => (
+                          <div key={cat} className="flex justify-between">
+                            <span className="text-gray-400 capitalize">{cat}</span>
+                            <span className="text-white">{count as number}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                      <h4 className="text-white font-medium mb-3">By Priority</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-red-400">Urgent</span>
+                          <span className="text-white">{maintenanceOverview.byPriority.urgent}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-orange-400">High</span>
+                          <span className="text-white">{maintenanceOverview.byPriority.high}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-yellow-400">Medium</span>
+                          <span className="text-white">{maintenanceOverview.byPriority.medium}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-green-400">Low</span>
+                          <span className="text-white">{maintenanceOverview.byPriority.low}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Incident Summary */}
+            <ReportSection title="Incident Summary">
+              {incidentSummary ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <StatCard label="Total Incidents" value={incidentSummary.summary.total.toString()} color="blue" />
+                    <StatCard label="Open" value={incidentSummary.summary.open.toString()} color="yellow" />
+                    <StatCard label="Resolved" value={incidentSummary.summary.resolved.toString()} color="green" />
+                    <StatCard label="Reported to NDIS" value={incidentSummary.summary.reportedToNdis.toString()} color="blue" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                      <h4 className="text-white font-medium mb-3">By Type</h4>
+                      <div className="space-y-2 text-sm">
+                        {Object.entries(incidentSummary.byType)
+                          .filter(([, count]) => (count as number) > 0)
+                          .map(([type, count]) => (
+                            <div key={type} className="flex justify-between">
+                              <span className="text-gray-400 capitalize">{type.replace("_", " ")}</span>
+                              <span className="text-white">{count as number}</span>
+                            </div>
+                          ))}
+                        {Object.values(incidentSummary.byType).every((c) => c === 0) && (
+                          <p className="text-gray-500">No incidents</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                      <h4 className="text-white font-medium mb-3">By Severity</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-red-400">Critical</span>
+                          <span className="text-white">{incidentSummary.bySeverity.critical}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-orange-400">Major</span>
+                          <span className="text-white">{incidentSummary.bySeverity.major}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-yellow-400">Moderate</span>
+                          <span className="text-white">{incidentSummary.bySeverity.moderate}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-green-400">Minor</span>
+                          <span className="text-white">{incidentSummary.bySeverity.minor}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <LoadingPlaceholder />
+              )}
+            </ReportSection>
+
+            {/* Contractor Performance */}
+            {contractorPerformance && contractorPerformance.length > 0 && (
+              <ReportSection title="Contractor Performance">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-400 border-b border-gray-700">
+                        <th className="text-left py-2">Contractor</th>
+                        <th className="text-center py-2">Completed</th>
+                        <th className="text-right py-2">Total Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contractorPerformance.map((c) => (
+                        <tr key={c.name} className="border-b border-gray-700/50">
+                          <td className="py-2 text-white">{c.name}</td>
+                          <td className="py-2 text-center text-gray-400">{c.completed}</td>
+                          <td className="py-2 text-right text-green-400">${c.totalCost.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </ReportSection>
+            )}
+          </div>
+        )}
+
+        {/* Owner Reports Tab */}
+        {activeTab === "owner" && (
+          <div className="space-y-6">
+            <ReportSection title="Owner Statement / Folio Summary">
+              {ownerStatement && ownerStatement.length > 0 ? (
+                <>
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={exportOwnerStatementPDF}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                    >
+                      Export to PDF
+                    </button>
+                  </div>
+                  {ownerStatement.map((property) => (
+                    <div key={property?.propertyId} className="bg-gray-700 rounded-lg p-4 mb-4">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="text-white font-medium">{property?.propertyName}</h4>
+                          <p className="text-gray-400 text-sm">{property?.address}</p>
+                        </div>
+                        {property?.owner && (
+                          <div className="text-right text-sm">
+                            <p className="text-gray-400">Owner: {property.owner.name}</p>
+                            {property.owner.bankAccountName && (
+                              <p className="text-gray-500">
+                                {property.owner.bankAccountName} | BSB: {property.owner.bankBsb}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-gray-400 border-b border-gray-600">
+                              <th className="text-left py-2">Dwelling</th>
+                              <th className="text-left py-2">Participant</th>
+                              <th className="text-right py-2">SDA</th>
+                              <th className="text-right py-2">RRC</th>
+                              <th className="text-right py-2">Total</th>
+                              <th className="text-right py-2">Fee %</th>
+                              <th className="text-right py-2">Fee</th>
+                              <th className="text-right py-2">Net</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {property?.dwellings.map((dwelling) =>
+                              dwelling.participants.map((p) =>
+                                p ? (
+                                  <tr key={p.participantId} className="border-b border-gray-600/50">
+                                    <td className="py-2 text-white">{dwelling.dwellingName}</td>
+                                    <td className="py-2 text-gray-300">{p.participantName}</td>
+                                    <td className="py-2 text-right text-gray-300">${p.monthlySda.toLocaleString()}</td>
+                                    <td className="py-2 text-right text-gray-300">${p.monthlyRrc.toLocaleString()}</td>
+                                    <td className="py-2 text-right text-white">${p.totalRevenue.toLocaleString()}</td>
+                                    <td className="py-2 text-right text-gray-400">{p.managementFeePercent}%</td>
+                                    <td className="py-2 text-right text-red-400">-${p.managementFee.toLocaleString()}</td>
+                                    <td className="py-2 text-right text-green-400 font-medium">${p.netToOwner.toLocaleString()}</td>
+                                  </tr>
+                                ) : null
+                              )
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="flex justify-end gap-8 mt-4 pt-4 border-t border-gray-600">
+                        <div className="text-right">
+                          <p className="text-gray-400 text-sm">Total Monthly Revenue</p>
+                          <p className="text-white font-semibold">${property?.totalMonthlyRevenue.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-gray-400 text-sm">Net to Owner</p>
+                          <p className="text-green-400 font-bold text-lg">${property?.totalMonthlyNetToOwner.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : ownerStatement === undefined ? (
+                <LoadingPlaceholder />
+              ) : (
+                <p className="text-gray-400">Select a date range to generate owner statements</p>
+              )}
+            </ReportSection>
+          </div>
+        )}
       </main>
+    </div>
+  );
+}
+
+function ReportSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-gray-800 rounded-lg p-6">
+      <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
+      {children}
     </div>
   );
 }
@@ -455,6 +777,18 @@ function StatCard({
       <p className="text-gray-400 text-sm mb-2">{label}</p>
       <p className={`text-2xl font-bold ${colorClasses[color]}`}>{value}</p>
       {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+function LoadingPlaceholder() {
+  return (
+    <div className="animate-pulse">
+      <div className="grid grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-gray-700 rounded-lg p-4 h-20"></div>
+        ))}
+      </div>
     </div>
   );
 }

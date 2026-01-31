@@ -19,6 +19,15 @@ export const create = mutation({
       v.literal("ACT")
     ),
     postcode: v.string(),
+    propertyStatus: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("under_construction"),
+        v.literal("sil_property")
+      )
+    ),
+    expectedCompletionDate: v.optional(v.string()),
+    silProviderName: v.optional(v.string()),
     ownerId: v.id("owners"),
     ownershipType: v.union(v.literal("investor"), v.literal("self_owned")),
     revenueSharePercent: v.optional(v.number()),
@@ -117,6 +126,15 @@ export const update = mutation({
       v.literal("ACT")
     )),
     postcode: v.optional(v.string()),
+    propertyStatus: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("under_construction"),
+        v.literal("sil_property")
+      )
+    ),
+    expectedCompletionDate: v.optional(v.string()),
+    silProviderName: v.optional(v.string()),
     ownerId: v.optional(v.id("owners")),
     ownershipType: v.optional(v.union(v.literal("investor"), v.literal("self_owned"))),
     revenueSharePercent: v.optional(v.number()),

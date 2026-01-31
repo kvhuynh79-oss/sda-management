@@ -1,22 +1,49 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
 
+// Helper component for property status badge
+function PropertyStatusBadge({ status }: { status?: string }) {
+  if (!status || status === "active") {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-600 text-white">
+        Active
+      </span>
+    );
+  }
+  if (status === "under_construction") {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-600 text-white">
+        Under Construction
+      </span>
+    );
+  }
+  if (status === "sil_property") {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-600 text-white">
+        SIL Property
+      </span>
+    );
+  }
+  return null;
+}
+
 export default function PropertyDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
 
   const propertyId = params.id as Id<"properties">;
   const property = useQuery(api.properties.getById, { propertyId });
   const dwellings = useQuery(api.dwellings.getByProperty, { propertyId });
   const documents = useQuery(api.documents.getByProperty, { propertyId });
+  const propertyMedia = useQuery(api.propertyMedia.getByProperty, { propertyId });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -92,9 +119,12 @@ export default function PropertyDetailPage() {
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                {property.propertyName || property.addressLine1}
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-white">
+                  {property.propertyName || property.addressLine1}
+                </h1>
+                <PropertyStatusBadge status={(property as any).propertyStatus} />
+              </div>
               <p className="text-gray-400 text-lg">
                 {property.addressLine1}
                 {property.addressLine2 && `, ${property.addressLine2}`}
@@ -102,6 +132,17 @@ export default function PropertyDetailPage() {
               <p className="text-gray-400">
                 {property.suburb}, {property.state} {property.postcode}
               </p>
+              {/* Show additional status info */}
+              {(property as any).propertyStatus === "under_construction" && (property as any).expectedCompletionDate && (
+                <p className="text-yellow-400 text-sm mt-2">
+                  Expected completion: {(property as any).expectedCompletionDate}
+                </p>
+              )}
+              {(property as any).propertyStatus === "sil_property" && (property as any).silProviderName && (
+                <p className="text-purple-400 text-sm mt-2">
+                  SIL Provider: {(property as any).silProviderName}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Link
@@ -240,6 +281,15 @@ export default function PropertyDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Property Media Gallery */}
+        <div className="mt-6">
+          <MediaGallery
+            propertyId={propertyId}
+            media={propertyMedia || []}
+            userId={user?.id as Id<"users">}
+          />
         </div>
       </main>
     </div>
@@ -419,6 +469,369 @@ function DocumentRow({ document }: { document: any }) {
         >
           View
         </a>
+      )}
+    </div>
+  );
+}
+
+function MediaGallery({
+  propertyId,
+  media,
+  userId,
+}: {
+  propertyId: Id<"properties">;
+  media: any[];
+  userId: Id<"users">;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  const generateUploadUrl = useMutation(api.propertyMedia.generateUploadUrl);
+  const saveMedia = useMutation(api.propertyMedia.saveMedia);
+  const deleteMedia = useMutation(api.propertyMedia.deleteMedia);
+  const setFeatured = useMutation(api.propertyMedia.setFeatured);
+
+  // Shared file upload handler
+  const uploadFiles = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const fileArray = Array.from(files);
+
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      setUploadProgress(`Uploading ${i + 1} of ${fileArray.length}: ${file.name}`);
+
+      try {
+        // Determine media type
+        const isVideo = file.type.startsWith("video/");
+        const isImage = file.type.startsWith("image/");
+
+        if (!isVideo && !isImage) {
+          alert(`Skipping ${file.name}: Only images and videos are supported`);
+          continue;
+        }
+
+        // Get upload URL
+        const uploadUrl = await generateUploadUrl();
+
+        // Upload file
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!result.ok) {
+          throw new Error(`Upload failed for ${file.name}`);
+        }
+
+        const { storageId } = await result.json();
+
+        // Save media record
+        await saveMedia({
+          propertyId,
+          storageId,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          mediaType: isVideo ? "video" : "photo",
+          uploadedBy: userId,
+        });
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        alert(`Failed to upload ${file.name}`);
+      }
+    }
+
+    setIsUploading(false);
+    setUploadProgress(null);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      await uploadFiles(files);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if we're leaving the drop zone entirely
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await uploadFiles(files);
+    }
+  };
+
+  const handleDelete = async (mediaId: string) => {
+    try {
+      await deleteMedia({ mediaId: mediaId as Id<"propertyMedia"> });
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error("Error deleting media:", error);
+      alert("Failed to delete media");
+    }
+  };
+
+  const handleSetFeatured = async (mediaId: string, isFeatured: boolean) => {
+    try {
+      await setFeatured({ mediaId: mediaId as Id<"propertyMedia">, isFeatured });
+    } catch (error) {
+      console.error("Error setting featured:", error);
+      alert("Failed to update featured status");
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const photos = media.filter((m) => m.mediaType === "photo");
+  const videos = media.filter((m) => m.mediaType === "video");
+
+  return (
+    <div
+      ref={dropZoneRef}
+      className={`relative bg-gray-800 rounded-lg p-6 transition-all ${
+        isDragOver ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900" : ""
+      }`}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-lg font-semibold text-white">Property Media</h2>
+          <p className="text-gray-400 text-sm">
+            {photos.length} photo{photos.length !== 1 ? "s" : ""}, {videos.length} video{videos.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*,video/*"
+            multiple
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            {isUploading ? uploadProgress || "Uploading..." : "+ Add Photos/Videos"}
+          </button>
+        </div>
+      </div>
+
+      {/* Drag overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 bg-blue-600/20 rounded-lg flex items-center justify-center z-10 pointer-events-none">
+          <div className="bg-gray-800 px-6 py-4 rounded-lg shadow-lg border-2 border-blue-500">
+            <p className="text-white font-medium">Drop files to upload</p>
+          </div>
+        </div>
+      )}
+
+      {media.length === 0 ? (
+        <div
+          className={`text-center py-12 border-2 border-dashed rounded-lg transition-colors ${
+            isDragOver ? "border-blue-500 bg-blue-600/10" : "border-gray-700"
+          }`}
+        >
+          <div className="text-gray-500 text-5xl mb-4">{isDragOver ? "📥" : "📷"}</div>
+          <p className="text-gray-400 mb-2">
+            {isDragOver ? "Drop files here" : "No photos or videos yet"}
+          </p>
+          <p className="text-gray-500 text-sm mb-4">
+            {isDragOver ? "Release to upload" : "Drag & drop or click to upload images and videos"}
+          </p>
+          {!isDragOver && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Upload Media
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {media.map((item) => (
+            <div
+              key={item._id}
+              className="relative group aspect-square bg-gray-700 rounded-lg overflow-hidden cursor-pointer"
+              onClick={() => setSelectedMedia(item)}
+            >
+              {item.mediaType === "photo" ? (
+                <img
+                  src={item.url}
+                  alt={item.title || item.fileName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                  <video
+                    src={item.url}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 bg-black/50 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Featured badge */}
+              {item.isFeatured && (
+                <div className="absolute top-2 left-2 px-2 py-1 bg-yellow-500 text-black text-xs font-bold rounded">
+                  Featured
+                </div>
+              )}
+
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSetFeatured(item._id, !item.isFeatured);
+                  }}
+                  className={`p-2 rounded-full ${
+                    item.isFeatured ? "bg-yellow-500 text-black" : "bg-gray-700 text-white"
+                  } hover:scale-110 transition-transform`}
+                  title={item.isFeatured ? "Remove featured" : "Set as featured"}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteConfirm(item._id);
+                  }}
+                  className="p-2 bg-red-600 rounded-full text-white hover:scale-110 transition-transform"
+                  title="Delete"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Media viewer modal */}
+      {selectedMedia && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedMedia(null)}
+        >
+          <button
+            onClick={() => setSelectedMedia(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div className="max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+            {selectedMedia.mediaType === "photo" ? (
+              <img
+                src={selectedMedia.url}
+                alt={selectedMedia.title || selectedMedia.fileName}
+                className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : (
+              <video
+                src={selectedMedia.url}
+                controls
+                autoPlay
+                className="w-full h-auto max-h-[80vh] rounded-lg"
+              />
+            )}
+
+            <div className="mt-4 text-center">
+              <p className="text-white font-medium">{selectedMedia.title || selectedMedia.fileName}</p>
+              {selectedMedia.description && (
+                <p className="text-gray-400 text-sm mt-1">{selectedMedia.description}</p>
+              )}
+              <p className="text-gray-500 text-xs mt-2">
+                {formatFileSize(selectedMedia.fileSize)} | {selectedMedia.fileType}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-white mb-2">Delete Media?</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              This action cannot be undone. The media will be permanently deleted.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(showDeleteConfirm)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

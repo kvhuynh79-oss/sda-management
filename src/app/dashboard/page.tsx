@@ -82,19 +82,19 @@ export default function DashboardPage() {
               color="yellow"
             />
           </Link>
-          <Link href="/alerts">
+          <div>
             <DashboardCard
               title="Alerts"
               value={(alertStats?.active || 0).toString()}
               subtitle={`${alertStats?.critical || 0} critical`}
               color="red"
             />
-          </Link>
+          </div>
         </div>
 
         {/* Preventative Maintenance Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Link href="/preventative-schedule?status=overdue">
+          <Link href="/operations?tab=schedule">
             <DashboardCard
               title="Overdue Maintenance"
               value={(scheduleStats?.overdue || 0).toString()}
@@ -102,7 +102,7 @@ export default function DashboardPage() {
               color="red"
             />
           </Link>
-          <Link href="/preventative-schedule?status=due_soon">
+          <Link href="/operations?tab=schedule">
             <DashboardCard
               title="Due Within 7 Days"
               value={(upcomingSchedules?.filter(s => s.daysUntilDue >= 0 && s.daysUntilDue <= 7).length || 0).toString()}
@@ -110,7 +110,7 @@ export default function DashboardPage() {
               color="yellow"
             />
           </Link>
-          <Link href="/preventative-schedule">
+          <Link href="/operations?tab=schedule">
             <DashboardCard
               title="Due Within 30 Days"
               value={(scheduleStats?.dueWithin30Days || 0).toString()}
@@ -137,14 +137,14 @@ export default function DashboardPage() {
             <Link href="/maintenance/new">
               <QuickActionButton label="Log Maintenance" />
             </Link>
-            <Link href="/payments/new">
-              <QuickActionButton label="Record Payment" />
+            <Link href="/financials?tab=claims">
+              <QuickActionButton label="View Claims" />
             </Link>
             <Link href="/documents/new">
               <QuickActionButton label="Upload Document" />
             </Link>
-            <Link href="/preventative-schedule/new">
-              <QuickActionButton label="Schedule Maintenance" />
+            <Link href="/operations?tab=schedule">
+              <QuickActionButton label="View Schedule" />
             </Link>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
           <div className="bg-gray-800 rounded-lg p-6 mb-8">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Upcoming Preventative Maintenance</h3>
-              <Link href="/preventative-schedule" className="text-blue-400 hover:text-blue-300 text-sm">
+              <Link href="/operations?tab=schedule" className="text-blue-400 hover:text-blue-300 text-sm">
                 View all →
               </Link>
             </div>
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                   : `Due in ${schedule.daysUntilDue} days`;
 
                 return (
-                  <Link key={schedule._id} href="/preventative-schedule">
+                  <Link key={schedule._id} href="/operations?tab=schedule">
                     <div className="flex justify-between items-center p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -239,9 +239,6 @@ export default function DashboardPage() {
         <div className="bg-gray-800 rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-white">Recent Alerts</h3>
-            <Link href="/alerts" className="text-blue-400 hover:text-blue-300 text-sm">
-              View all →
-            </Link>
           </div>
           {activeAlerts && activeAlerts.length > 0 ? (
             <div className="space-y-3">
@@ -252,21 +249,19 @@ export default function DashboardPage() {
                   info: "bg-blue-600",
                 };
                 return (
-                  <Link key={alert._id} href="/alerts">
-                    <div className="p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className={`px-2 py-1 text-white text-xs rounded-full ${
-                            severityColors[alert.severity]
-                          }`}
-                        >
-                          {alert.severity.toUpperCase()}
-                        </span>
-                        <span className="text-white font-medium">{alert.title}</span>
-                      </div>
-                      <p className="text-gray-400 text-sm">{alert.message}</p>
+                  <div key={alert._id} className="p-4 bg-gray-700/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`px-2 py-1 text-white text-xs rounded-full ${
+                          severityColors[alert.severity]
+                        }`}
+                      >
+                        {alert.severity.toUpperCase()}
+                      </span>
+                      <span className="text-white font-medium">{alert.title}</span>
                     </div>
-                  </Link>
+                    <p className="text-gray-400 text-sm">{alert.message}</p>
+                  </div>
                 );
               })}
             </div>

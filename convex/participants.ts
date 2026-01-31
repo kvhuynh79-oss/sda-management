@@ -145,6 +145,7 @@ export const getById = query({
 export const update = mutation({
   args: {
     participantId: v.id("participants"),
+    ndisNumber: v.optional(v.string()),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),

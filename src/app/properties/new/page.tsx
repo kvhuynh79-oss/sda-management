@@ -39,6 +39,9 @@ export default function NewPropertyPage() {
     suburb: "",
     state: "NSW" as typeof STATES[number],
     postcode: "",
+    propertyStatus: "active" as "active" | "under_construction" | "sil_property",
+    expectedCompletionDate: "",
+    silProviderName: "",
     revenueSharePercent: "",
     managementFeePercent: "",
     notes: "",
@@ -117,6 +120,9 @@ export default function NewPropertyPage() {
         suburb: propertyData.suburb,
         state: propertyData.state,
         postcode: propertyData.postcode,
+        propertyStatus: propertyData.propertyStatus,
+        expectedCompletionDate: propertyData.expectedCompletionDate || undefined,
+        silProviderName: propertyData.silProviderName || undefined,
         ownerId: ownerId as any,
         ownershipType: ownerType === "self" ? "self_owned" : "investor",
         revenueSharePercent: propertyData.revenueSharePercent
@@ -538,6 +544,47 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, onBack, onNext
             />
           </div>
         </div>
+
+        {/* Property Status */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Property Status</label>
+          <select
+            value={propertyData.propertyStatus}
+            onChange={(e) => setPropertyData({ ...propertyData, propertyStatus: e.target.value as any })}
+            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+          >
+            <option value="active">Active (Operational SDA)</option>
+            <option value="under_construction">Under Construction</option>
+            <option value="sil_property">SIL Property (Managed for Others)</option>
+          </select>
+        </div>
+
+        {/* Conditional fields based on status */}
+        {propertyData.propertyStatus === "under_construction" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Expected Completion Date</label>
+            <input
+              type="date"
+              value={propertyData.expectedCompletionDate}
+              onChange={(e) => setPropertyData({ ...propertyData, expectedCompletionDate: e.target.value })}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+        )}
+
+        {propertyData.propertyStatus === "sil_property" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">SIL Provider Name</label>
+            <input
+              type="text"
+              value={propertyData.silProviderName}
+              onChange={(e) => setPropertyData({ ...propertyData, silProviderName: e.target.value })}
+              placeholder="e.g., Care Provider ABC"
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            />
+            <p className="text-gray-500 text-xs mt-1">The SIL provider you are managing this property for</p>
+          </div>
+        )}
 
         {ownerType !== "self" && (
           <div>

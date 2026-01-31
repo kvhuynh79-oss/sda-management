@@ -75,15 +75,38 @@ function PropertyCard({ property }: { property: any }) {
     return "bg-yellow-600";
   };
 
+  const getStatusBadge = () => {
+    const status = property.propertyStatus;
+    if (!status || status === "active") return null;
+    if (status === "under_construction") {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-600 text-white">
+          Under Construction
+        </span>
+      );
+    }
+    if (status === "sil_property") {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-600 text-white">
+          SIL Property
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <Link href={`/properties/${property._id}`}>
       <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer border border-gray-700 hover:border-gray-600">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-lg font-semibold text-white">
-              {property.propertyName || property.addressLine1}
-            </h3>
-            <p className="text-gray-400 mt-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-lg font-semibold text-white">
+                {property.propertyName || property.addressLine1}
+              </h3>
+              {getStatusBadge()}
+            </div>
+            <p className="text-gray-400">
               {property.addressLine1}
               {property.addressLine2 && `, ${property.addressLine2}`}
             </p>
@@ -98,7 +121,7 @@ function PropertyCard({ property }: { property: any }) {
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-4 gap-4">
+        <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-gray-500 text-sm">Owner</p>
             <p className="text-white">{getOwnerName()}</p>

@@ -334,7 +334,7 @@ export default function NewIncidentPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-3">Severity *</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {(["minor", "moderate", "major", "critical"] as const).map((severity) => (
                     <label
                       key={severity}

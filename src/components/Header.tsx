@@ -10,17 +10,20 @@ interface HeaderProps {
     | "dashboard"
     | "properties"
     | "participants"
+    | "financials"
+    | "operations"
+    | "incidents"
+    | "documents"
+    | "onboarding"
+    | "reports"
+    | "settings"
+    // Legacy - kept for backwards compatibility during transition
     | "payments"
     | "claims"
     | "maintenance"
     | "inspections"
-    | "incidents"
-    | "documents"
     | "alerts"
-    | "schedule"
-    | "onboarding"
-    | "settings"
-    | "reports";
+    | "schedule";
 }
 
 export default function Header({ currentPage }: HeaderProps) {
@@ -47,15 +50,12 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/dashboard", label: "Dashboard", key: "dashboard" },
     { href: "/properties", label: "Properties", key: "properties" },
     { href: "/participants", label: "Participants", key: "participants" },
-    { href: "/payments", label: "Payments", key: "payments" },
-    { href: "/claims", label: "Claims", key: "claims" },
-    { href: "/maintenance", label: "Maintenance", key: "maintenance" },
-    { href: "/inspections", label: "Inspections", key: "inspections" },
+    { href: "/financials", label: "Financials", key: "financials" },
+    { href: "/operations", label: "Operations", key: "operations" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/documents", label: "Documents", key: "documents" },
     { href: "/onboarding", label: "Onboarding", key: "onboarding" },
-    { href: "/alerts", label: "Alerts", key: "alerts" },
-    { href: "/preventative-schedule", label: "Schedule", key: "schedule" },
+    { href: "/reports", label: "Reports", key: "reports" },
     { href: "/settings", label: "Settings", key: "settings" },
   ];
 

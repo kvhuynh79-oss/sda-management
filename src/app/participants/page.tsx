@@ -167,7 +167,7 @@ function ParticipantCard({ participant }: { participant: any }) {
         </div>
 
         {participant.currentPlan && (
-          <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-4 gap-4">
+          <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-gray-500 text-sm">Funding Type</p>
               <p className="text-white text-sm">

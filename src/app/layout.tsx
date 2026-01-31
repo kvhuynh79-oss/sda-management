@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "SDA Management",
-    template: "%s | BLS",
+    default: "Better Living Solutions",
+    template: "%s | Better Living Solutions",
   },
   description: "Specialist Disability Accommodation Property Management System",
   manifest: "/manifest.json",

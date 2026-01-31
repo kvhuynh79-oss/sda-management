@@ -16,6 +16,7 @@ export default function ClaimsPage() {
   });
   const [filterMethod, setFilterMethod] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showMarkSubmittedModal, setShowMarkSubmittedModal] = useState(false);
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<{
@@ -91,11 +92,52 @@ export default function ClaimsPage() {
   };
 
   // Filter and group claims - define types here so they can be used in generateNdisExport
-  const filteredClaims = dashboard?.claims.filter((c: { claimMethod: string; status: string }) => {
+  const filteredClaims = dashboard?.claims.filter((c: { claimMethod: string; status: string; claimDay: number }) => {
     if (filterMethod !== "all" && c.claimMethod !== filterMethod) return false;
     if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    if (selectedDay !== null && c.claimDay !== selectedDay) return false;
     return true;
   });
+
+  // Get claims grouped by day for calendar display (unfiltered by day selection)
+  type CalendarClaim = {
+    name: string;
+    status: "pending" | "submitted" | "paid" | "overdue";
+  };
+  const claimsByDay = dashboard?.claims.reduce<Record<number, CalendarClaim[]>>((acc, claim) => {
+    const day = claim.claimDay;
+    if (!acc[day]) {
+      acc[day] = [];
+    }
+    const status = claim.isOverdue && claim.status === "pending"
+      ? "overdue"
+      : claim.status as "pending" | "submitted" | "paid";
+    acc[day].push({
+      name: `${claim.participant.firstName} ${claim.participant.lastName.charAt(0)}.`,
+      status,
+    });
+    return acc;
+  }, {});
+
+  // Generate calendar days for the selected month
+  const getCalendarDays = () => {
+    const [year, month] = selectedPeriod.split("-").map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday
+
+    const days: (number | null)[] = [];
+    // Add empty cells for days before the first of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    // Add the days of the month
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+    return days;
+  };
 
   type ClaimItem = NonNullable<typeof filteredClaims>[number];
   type ClaimsGrouped = Record<number, ClaimItem[]>;
@@ -119,8 +161,8 @@ export default function ClaimsPage() {
     const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     const periodEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
 
-    // Generate claim reference
-    const claimRef = `SDA-${claim.participant.ndisNumber}-${selectedPeriod}`;
+    // Generate claim reference (short format: MMYYYY-NN)
+    const claimRef = `${month}${year}-01`;
 
     // CSV headers (exact NDIS format)
     const headers = [
@@ -155,7 +197,7 @@ export default function ClaimsPage() {
       UnitPrice: claim.expectedAmount.toFixed(2),
       GSTCode: providerSettings.defaultGstCode || "P2",
       AuthorisedBy: "",
-      ParticipantApproved: "Y",
+      ParticipantApproved: "",
       InKindFundingProgram: "",
       ClaimType: "",
       CancellationReason: "",
@@ -372,6 +414,117 @@ export default function ClaimsPage() {
           </div>
         )}
 
+        {/* Calendar View */}
+        <div className="bg-gray-800 rounded-lg p-4 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-white font-medium">
+              Claims Calendar - {(() => {
+                const [year, month] = selectedPeriod.split("-");
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                return `${monthNames[parseInt(month) - 1]} ${year}`;
+              })()}
+            </h3>
+            {selectedDay !== null && (
+              <button
+                onClick={() => setSelectedDay(null)}
+                className="text-sm text-blue-400 hover:text-blue-300"
+              >
+                Clear filter (Day {selectedDay})
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {/* Day headers */}
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div key={day} className="text-center text-gray-500 text-xs py-2 font-medium">
+                {day}
+              </div>
+            ))}
+            {/* Calendar days */}
+            {getCalendarDays().map((day, index) => {
+              const dayData = day ? claimsByDay?.[day] : null;
+              const isSelected = selectedDay === day;
+              const isToday = day === dashboard?.currentDay;
+
+              return (
+                <div
+                  key={index}
+                  onClick={() => day && dayData && dayData.length > 0 && setSelectedDay(isSelected ? null : day)}
+                  className={`
+                    relative min-h-[70px] p-1 rounded-lg border transition-all
+                    ${!day ? "bg-transparent border-transparent" : ""}
+                    ${day && (!dayData || dayData.length === 0) ? "bg-gray-750 border-gray-700 cursor-default" : ""}
+                    ${day && dayData && dayData.length > 0 ? "bg-gray-700 border-gray-600 cursor-pointer hover:border-gray-500" : ""}
+                    ${isSelected ? "ring-2 ring-blue-500 border-blue-500" : ""}
+                    ${isToday && day ? "ring-2 ring-yellow-500" : ""}
+                  `}
+                >
+                  {day && (
+                    <>
+                      <span className={`text-xs ${isToday ? "text-yellow-400 font-bold" : "text-gray-400"}`}>
+                        {day}
+                      </span>
+                      {dayData && dayData.length > 0 && (
+                        <div className="mt-1 space-y-0.5 overflow-hidden">
+                          {dayData.slice(0, 4).map((claim, idx) => {
+                            const statusColors = {
+                              overdue: "text-red-400",
+                              pending: "text-yellow-400",
+                              submitted: "text-blue-400",
+                              paid: "text-green-400",
+                            };
+                            const dotColors = {
+                              overdue: "bg-red-500",
+                              pending: "bg-yellow-500",
+                              submitted: "bg-blue-500",
+                              paid: "bg-green-500",
+                            };
+                            return (
+                              <div key={idx} className="flex items-center gap-1">
+                                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColors[claim.status]}`}></div>
+                                <span className={`text-[10px] truncate ${statusColors[claim.status]}`}>
+                                  {claim.name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {dayData.length > 4 && (
+                            <span className="text-[9px] text-gray-500">+{dayData.length - 4} more</span>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-400">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-red-500"></div>
+              <span>Overdue</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+              <span>Pending</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <span>Submitted</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <span>Paid</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded border-2 border-yellow-500 bg-transparent"></div>
+              <span>Today</span>
+            </div>
+            <span className="text-gray-500 ml-auto">Click a day to filter claims</span>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="flex gap-4 mb-6">
           <select
@@ -397,6 +550,14 @@ export default function ClaimsPage() {
         </div>
 
         {/* Claims List Grouped by Day */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-white">
+            {selectedDay !== null ? `Claims for Day ${selectedDay}` : "All Claims by Due Date"}
+          </h2>
+          <span className="text-gray-400 text-sm">
+            {filteredClaims?.length || 0} claim(s)
+          </span>
+        </div>
         <div className="space-y-6">
           {groupedByDay && (Object.entries(groupedByDay) as [string, ClaimItem[]][])
             .sort(([a], [b]) => parseInt(a) - parseInt(b))

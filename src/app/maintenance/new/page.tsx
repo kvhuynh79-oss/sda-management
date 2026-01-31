@@ -351,7 +351,7 @@ export default function NewMaintenanceRequestPage() {
             {/* Priority */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">Priority *</label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {(["urgent", "high", "medium", "low"] as const).map((priority) => (
                   <label
                     key={priority}

@@ -78,6 +78,15 @@ export default defineSchema({
       v.literal("ACT")
     ),
     postcode: v.string(),
+    propertyStatus: v.optional(
+      v.union(
+        v.literal("active"), // Property is operational
+        v.literal("under_construction"), // Property being built
+        v.literal("sil_property") // SIL property managed for other providers
+      )
+    ),
+    expectedCompletionDate: v.optional(v.string()), // For under_construction properties
+    silProviderName: v.optional(v.string()), // For SIL properties - the provider we manage for
     ownerId: v.id("owners"),
     ownershipType: v.union(v.literal("investor"), v.literal("self_owned")),
     revenueSharePercent: v.optional(v.number()),
@@ -90,7 +99,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_state", ["state"]),
+    .index("by_state", ["state"])
+    .index("by_propertyStatus", ["propertyStatus"]),
 
   // Dwellings table - individual living units within a property
   dwellings: defineTable({
@@ -659,4 +669,22 @@ export default defineSchema({
   })
     .index("by_inspection", ["inspectionId"])
     .index("by_item", ["inspectionItemId"]),
+
+  // Property Media table - photos and videos for properties
+  propertyMedia: defineTable({
+    propertyId: v.id("properties"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(), // e.g., "image/jpeg", "video/mp4"
+    mediaType: v.union(v.literal("photo"), v.literal("video")),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    isFeatured: v.optional(v.boolean()), // Featured/hero image
+    sortOrder: v.optional(v.number()), // For custom ordering
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_mediaType", ["mediaType"]),
 });

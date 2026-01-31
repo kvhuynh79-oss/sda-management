@@ -10,6 +10,7 @@
 
 import type * as alerts from "../alerts.js";
 import type * as auth from "../auth.js";
+import type * as claims from "../claims.js";
 import type * as crons from "../crons.js";
 import type * as documents from "../documents.js";
 import type * as dwellings from "../dwellings.js";
@@ -28,10 +29,13 @@ import type * as payments from "../payments.js";
 import type * as preventativeSchedule from "../preventativeSchedule.js";
 import type * as preventativeScheduleTemplates from "../preventativeScheduleTemplates.js";
 import type * as properties from "../properties.js";
+import type * as propertyMedia from "../propertyMedia.js";
 import type * as providerSettings from "../providerSettings.js";
 import type * as reports from "../reports.js";
 import type * as seedAnneMarie from "../seedAnneMarie.js";
 import type * as seedDanielChetty from "../seedDanielChetty.js";
+import type * as seedJoshRoss from "../seedJoshRoss.js";
+import type * as seedMarcelLaaban from "../seedMarcelLaaban.js";
 
 import type {
   ApiFromModules,
@@ -42,6 +46,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   alerts: typeof alerts;
   auth: typeof auth;
+  claims: typeof claims;
   crons: typeof crons;
   documents: typeof documents;
   dwellings: typeof dwellings;
@@ -60,10 +65,13 @@ declare const fullApi: ApiFromModules<{
   preventativeSchedule: typeof preventativeSchedule;
   preventativeScheduleTemplates: typeof preventativeScheduleTemplates;
   properties: typeof properties;
+  propertyMedia: typeof propertyMedia;
   providerSettings: typeof providerSettings;
   reports: typeof reports;
   seedAnneMarie: typeof seedAnneMarie;
   seedDanielChetty: typeof seedDanielChetty;
+  seedJoshRoss: typeof seedJoshRoss;
+  seedMarcelLaaban: typeof seedMarcelLaaban;
 }>;
 
 /**

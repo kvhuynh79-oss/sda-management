@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import Link from "next/link";
-import Image from "next/image";
 import { Id } from "../../../convex/_generated/dataModel";
+import Header from "@/components/Header";
+import Link from "next/link";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -113,7 +113,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Header user={user} />
+      <Header currentPage="settings" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -272,81 +272,6 @@ export default function SettingsPage() {
         </div>
       </main>
     </div>
-  );
-}
-
-function Header({ user }: { user: { firstName: string; lastName: string; role: string } }) {
-  const router = useRouter();
-
-  const handleLogout = () => {
-    localStorage.removeItem("sda_user");
-    router.push("/login");
-  };
-
-  return (
-    <header className="bg-gray-800 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-8">
-            <Link href="/dashboard">
-              <Image
-                src="/Logo.jpg"
-                alt="Better Living Solutions"
-                width={140}
-                height={40}
-                className="rounded"
-              />
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/properties" className="text-gray-400 hover:text-white transition-colors">
-                Properties
-              </Link>
-              <Link href="/participants" className="text-gray-400 hover:text-white transition-colors">
-                Participants
-              </Link>
-              <Link href="/payments" className="text-gray-400 hover:text-white transition-colors">
-                Payments
-              </Link>
-              <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors">
-                Maintenance
-              </Link>
-              <Link href="/documents" className="text-gray-400 hover:text-white transition-colors">
-                Documents
-              </Link>
-              <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors">
-                Alerts
-              </Link>
-              <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors">
-                Schedule
-              </Link>
-              <Link href="/reports" className="text-gray-400 hover:text-white transition-colors">
-                Reports
-              </Link>
-              <Link href="/settings" className="text-white font-medium">
-                Settings
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-300">
-              {user.firstName} {user.lastName}
-            </span>
-            <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-              {user.role.replace("_", " ")}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
   );
 }
 

@@ -43,6 +43,9 @@ export default function EditPropertyPage() {
     suburb: "",
     state: "NSW" as (typeof STATES)[number],
     postcode: "",
+    propertyStatus: "active" as "active" | "under_construction" | "sil_property",
+    expectedCompletionDate: "",
+    silProviderName: "",
     managementFeePercent: "",
     notes: "",
   });
@@ -74,6 +77,9 @@ export default function EditPropertyPage() {
         suburb: property.suburb || "",
         state: property.state || "NSW",
         postcode: property.postcode || "",
+        propertyStatus: (property as any).propertyStatus || "active",
+        expectedCompletionDate: (property as any).expectedCompletionDate || "",
+        silProviderName: (property as any).silProviderName || "",
         managementFeePercent: property.managementFeePercent?.toString() || "",
         notes: property.notes || "",
       });
@@ -127,6 +133,9 @@ export default function EditPropertyPage() {
         suburb: formData.suburb,
         state: formData.state,
         postcode: formData.postcode,
+        propertyStatus: formData.propertyStatus,
+        expectedCompletionDate: formData.expectedCompletionDate || undefined,
+        silProviderName: formData.silProviderName || undefined,
         managementFeePercent: formData.managementFeePercent
           ? parseFloat(formData.managementFeePercent)
           : undefined,
@@ -275,6 +284,51 @@ export default function EditPropertyPage() {
             </div>
           </div>
 
+          {/* Property Status */}
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Property Status</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-300 text-sm mb-1">Status</label>
+                <select
+                  value={formData.propertyStatus}
+                  onChange={(e) => setFormData({ ...formData, propertyStatus: e.target.value as any })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="active">Active (Operational SDA)</option>
+                  <option value="under_construction">Under Construction</option>
+                  <option value="sil_property">SIL Property (Managed for Others)</option>
+                </select>
+              </div>
+
+              {formData.propertyStatus === "under_construction" && (
+                <div>
+                  <label className="block text-gray-300 text-sm mb-1">Expected Completion Date</label>
+                  <input
+                    type="date"
+                    value={formData.expectedCompletionDate}
+                    onChange={(e) => setFormData({ ...formData, expectedCompletionDate: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+                </div>
+              )}
+
+              {formData.propertyStatus === "sil_property" && (
+                <div>
+                  <label className="block text-gray-300 text-sm mb-1">SIL Provider Name</label>
+                  <input
+                    type="text"
+                    value={formData.silProviderName}
+                    onChange={(e) => setFormData({ ...formData, silProviderName: e.target.value })}
+                    placeholder="e.g., Care Provider ABC"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">The SIL provider you are managing this property for</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Financial Settings */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Financial Settings</h2>
@@ -376,7 +430,7 @@ export default function EditPropertyPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div>
                         <label className="block text-gray-300 text-sm mb-1">Bedrooms</label>
                         <input

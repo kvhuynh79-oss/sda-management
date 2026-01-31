@@ -172,8 +172,9 @@ export default function ClaimsPage() {
   });
 
   // Group claims by claim day
-  type ClaimsGrouped = Record<number, NonNullable<typeof filteredClaims>>;
-  const groupedByDay = filteredClaims?.reduce<ClaimsGrouped>((acc: ClaimsGrouped, claim) => {
+  type ClaimItem = NonNullable<typeof filteredClaims>[number];
+  type ClaimsGrouped = Record<number, ClaimItem[]>;
+  const groupedByDay = filteredClaims?.reduce<ClaimsGrouped>((acc: ClaimsGrouped, claim: ClaimItem) => {
     const day = claim.claimDay;
     if (!acc[day]) acc[day] = [];
     acc[day].push(claim);

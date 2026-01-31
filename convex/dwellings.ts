@@ -181,3 +181,61 @@ export const remove = mutation({
     return { success: true };
   },
 });
+
+// Get all dwellings with their property addresses (for bulk updates)
+export const getAllWithAddresses = query({
+  args: {},
+  handler: async (ctx) => {
+    const dwellings = await ctx.db
+      .query("dwellings")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const dwellingsWithAddresses = await Promise.all(
+      dwellings.map(async (dwelling) => {
+        const property = await ctx.db.get(dwelling.propertyId);
+        return {
+          _id: dwelling._id,
+          dwellingName: dwelling.dwellingName,
+          sdaDesignCategory: dwelling.sdaDesignCategory,
+          maxParticipants: dwelling.maxParticipants,
+          sdaRegisteredAmount: dwelling.sdaRegisteredAmount,
+          propertyAddress: property
+            ? `${property.addressLine1}, ${property.suburb} ${property.state} ${property.postcode}`
+            : "Unknown",
+          fullAddress: property
+            ? `${dwelling.dwellingName} - ${property.addressLine1}, ${property.suburb} ${property.state} ${property.postcode}`
+            : dwelling.dwellingName,
+        };
+      })
+    );
+
+    return dwellingsWithAddresses;
+  },
+});
+
+// Bulk update SDA registered amounts
+export const bulkUpdateSdaAmount = mutation({
+  args: {
+    updates: v.array(
+      v.object({
+        dwellingId: v.id("dwellings"),
+        sdaRegisteredAmount: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let updatedCount = 0;
+
+    for (const update of args.updates) {
+      await ctx.db.patch(update.dwellingId, {
+        sdaRegisteredAmount: update.sdaRegisteredAmount,
+        updatedAt: now,
+      });
+      updatedCount++;
+    }
+
+    return { success: true, updatedCount };
+  },
+});

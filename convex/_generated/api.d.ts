@@ -30,6 +30,8 @@ import type * as preventativeScheduleTemplates from "../preventativeScheduleTemp
 import type * as properties from "../properties.js";
 import type * as providerSettings from "../providerSettings.js";
 import type * as reports from "../reports.js";
+import type * as seedAnneMarie from "../seedAnneMarie.js";
+import type * as seedDanielChetty from "../seedDanielChetty.js";
 
 import type {
   ApiFromModules,
@@ -60,6 +62,8 @@ declare const fullApi: ApiFromModules<{
   properties: typeof properties;
   providerSettings: typeof providerSettings;
   reports: typeof reports;
+  seedAnneMarie: typeof seedAnneMarie;
+  seedDanielChetty: typeof seedDanielChetty;
 }>;
 
 /**

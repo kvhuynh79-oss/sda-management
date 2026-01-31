@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
-import Image from "next/image";
+import Header from "@/components/Header";
 
 interface User {
   id: string;
@@ -34,11 +34,6 @@ export default function DashboardPage() {
     setUser(JSON.parse(storedUser));
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("sda_user");
-    router.push("/login");
-  };
-
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -55,71 +50,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Top row - Logo and User info */}
-          <div className="flex justify-between items-center h-14 lg:h-16">
-            <Link href="/dashboard" className="flex-shrink-0">
-              <Image
-                src="/Logo.jpg"
-                alt="Better Living Solutions"
-                width={120}
-                height={48}
-                className="rounded object-contain h-10 lg:h-12 w-auto"
-                priority
-              />
-            </Link>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <span className="hidden sm:inline text-gray-300 text-sm">
-                {user.firstName} {user.lastName}
-              </span>
-              <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                {user.role.replace("_", " ")}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-          {/* Navigation - scrollable on mobile */}
-          <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-            <Link href="/dashboard" className="text-white font-medium whitespace-nowrap text-sm">
-              Dashboard
-            </Link>
-            <Link href="/properties" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Properties
-            </Link>
-            <Link href="/participants" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Participants
-            </Link>
-            <Link href="/payments" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Payments
-            </Link>
-            <Link href="/maintenance" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Maintenance
-            </Link>
-            <Link href="/incidents" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Incidents
-            </Link>
-            <Link href="/documents" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Documents
-            </Link>
-            <Link href="/alerts" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Alerts
-            </Link>
-            <Link href="/preventative-schedule" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Schedule
-            </Link>
-            <Link href="/settings" className="text-gray-400 hover:text-white transition-colors whitespace-nowrap text-sm">
-              Settings
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <Header currentPage="dashboard" />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -165,7 +165,7 @@ export default function ClaimsPage() {
     }
   };
 
-  const filteredClaims = dashboard?.claims.filter((c) => {
+  const filteredClaims = dashboard?.claims.filter((c: { claimMethod: string; status: string }) => {
     if (filterMethod !== "all" && c.claimMethod !== filterMethod) return false;
     if (filterStatus !== "all" && c.status !== filterStatus) return false;
     return true;

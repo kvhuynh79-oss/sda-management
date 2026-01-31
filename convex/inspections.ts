@@ -631,6 +631,162 @@ export const deleteInspectionPhoto = mutation({
   },
 });
 
+// Save a general inspection photo (not tied to a specific item)
+export const saveGeneralPhoto = mutation({
+  args: {
+    inspectionId: v.id("inspections"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(),
+    description: v.optional(v.string()),
+    uploadedBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("inspectionPhotos", {
+      inspectionId: args.inspectionId,
+      inspectionItemId: undefined,
+      storageId: args.storageId,
+      fileName: args.fileName,
+      fileSize: args.fileSize,
+      fileType: args.fileType,
+      description: args.description,
+      isGeneralPhoto: true,
+      uploadedBy: args.uploadedBy,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// Get general photos for an inspection (not tied to items)
+export const getGeneralPhotos = query({
+  args: { inspectionId: v.id("inspections") },
+  handler: async (ctx, args) => {
+    const photos = await ctx.db
+      .query("inspectionPhotos")
+      .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .collect();
+
+    // Filter to only general photos (no item ID)
+    const generalPhotos = photos.filter((p) => !p.inspectionItemId || p.isGeneralPhoto);
+
+    return await Promise.all(
+      generalPhotos.map(async (photo) => {
+        const url = await ctx.storage.getUrl(photo.storageId);
+        return { ...photo, url };
+      })
+    );
+  },
+});
+
+// ============================================
+// CUSTOM INSPECTION ITEMS
+// ============================================
+
+// Add a custom inspection item during an inspection
+export const addCustomItem = mutation({
+  args: {
+    inspectionId: v.id("inspections"),
+    category: v.string(),
+    itemName: v.string(),
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) {
+      throw new Error("Inspection not found");
+    }
+
+    // Get all items to determine the next order number
+    const existingItems = await ctx.db
+      .query("inspectionItems")
+      .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .collect();
+
+    // Find highest order in this category, or overall if category doesn't exist
+    const categoryItems = existingItems.filter((i) => i.category === args.category);
+    let itemOrder = 0;
+
+    if (categoryItems.length > 0) {
+      itemOrder = Math.max(...categoryItems.map((i) => i.itemOrder)) + 1;
+    } else {
+      // New category - put at end
+      itemOrder = existingItems.length > 0
+        ? Math.max(...existingItems.map((i) => i.itemOrder)) + 1
+        : 0;
+    }
+
+    const now = Date.now();
+
+    // Create the custom item
+    const itemId = await ctx.db.insert("inspectionItems", {
+      inspectionId: args.inspectionId,
+      category: args.category,
+      itemName: args.itemName,
+      itemOrder,
+      status: "pending",
+      hasIssue: false,
+      updatedBy: args.createdBy,
+      updatedAt: now,
+    });
+
+    // Update inspection total items count
+    await ctx.db.patch(args.inspectionId, {
+      totalItems: inspection.totalItems + 1,
+      updatedAt: now,
+    });
+
+    return itemId;
+  },
+});
+
+// Delete a custom inspection item
+export const deleteCustomItem = mutation({
+  args: {
+    itemId: v.id("inspectionItems"),
+  },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.itemId);
+    if (!item) {
+      throw new Error("Item not found");
+    }
+
+    // Delete any photos associated with this item
+    const photos = await ctx.db
+      .query("inspectionPhotos")
+      .withIndex("by_item", (q) => q.eq("inspectionItemId", args.itemId))
+      .collect();
+
+    for (const photo of photos) {
+      await ctx.storage.delete(photo.storageId);
+      await ctx.db.delete(photo._id);
+    }
+
+    // Update inspection counts
+    const inspection = await ctx.db.get(item.inspectionId);
+    if (inspection) {
+      const updates: Record<string, number> = {
+        totalItems: Math.max(0, inspection.totalItems - 1),
+        updatedAt: Date.now(),
+      };
+
+      if (item.status !== "pending") {
+        updates.completedItems = Math.max(0, inspection.completedItems - 1);
+        if (item.status === "pass") {
+          updates.passedItems = Math.max(0, inspection.passedItems - 1);
+        } else if (item.status === "fail") {
+          updates.failedItems = Math.max(0, inspection.failedItems - 1);
+        }
+      }
+
+      await ctx.db.patch(item.inspectionId, updates);
+    }
+
+    // Delete the item
+    await ctx.db.delete(args.itemId);
+  },
+});
+
 // ============================================
 // SEED DATA - BLS INSPECTION TEMPLATE
 // ============================================

@@ -38,11 +38,18 @@ export default function InspectionDetailPage() {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemRemarks, setItemRemarks] = useState<Record<string, string>>({});
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const [uploadingGeneral, setUploadingGeneral] = useState(false);
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [newItemCategory, setNewItemCategory] = useState("");
+  const [newItemName, setNewItemName] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const generalPhotoRef = useRef<HTMLInputElement>(null);
 
   const inspectionId = params.id as Id<"inspections">;
   const inspection = useQuery(api.inspections.getInspectionById, { inspectionId });
   const items = useQuery(api.inspections.getItemsByInspection, { inspectionId });
+  const generalPhotos = useQuery(api.inspections.getGeneralPhotos, { inspectionId });
 
   const updateItemStatus = useMutation(api.inspections.updateItemStatus);
   const startInspection = useMutation(api.inspections.startInspection);
@@ -50,6 +57,9 @@ export default function InspectionDetailPage() {
   const generateUploadUrl = useMutation(api.inspections.generateUploadUrl);
   const savePhoto = useMutation(api.inspections.saveInspectionPhoto);
   const deletePhoto = useMutation(api.inspections.deleteInspectionPhoto);
+  const saveGeneralPhoto = useMutation(api.inspections.saveGeneralPhoto);
+  const addCustomItem = useMutation(api.inspections.addCustomItem);
+  const deleteCustomItem = useMutation(api.inspections.deleteCustomItem);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -174,6 +184,77 @@ export default function InspectionDetailPage() {
     }
   };
 
+  const handleGeneralPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !user) return;
+
+    const file = e.target.files[0];
+    setUploadingGeneral(true);
+
+    try {
+      const uploadUrl = await generateUploadUrl({});
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+
+      await saveGeneralPhoto({
+        inspectionId,
+        storageId: storageId as Id<"_storage">,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        uploadedBy: user.id as Id<"users">,
+      });
+    } catch (error) {
+      console.error("Error uploading general photo:", error);
+      alert("Error uploading photo. Please try again.");
+    } finally {
+      setUploadingGeneral(false);
+      if (generalPhotoRef.current) {
+        generalPhotoRef.current.value = "";
+      }
+    }
+  };
+
+  const handleAddCustomItem = async () => {
+    if (!user || !newItemName.trim()) return;
+
+    const category = newItemCategory === "__custom__" ? customCategory.trim() : newItemCategory;
+    if (!category) {
+      alert("Please select or enter a category");
+      return;
+    }
+
+    try {
+      await addCustomItem({
+        inspectionId,
+        category,
+        itemName: newItemName.trim(),
+        createdBy: user.id as Id<"users">,
+      });
+
+      // Reset form
+      setNewItemName("");
+      setNewItemCategory("");
+      setCustomCategory("");
+      setShowAddItemModal(false);
+
+      // Expand the category to show the new item
+      setExpandedCategory(category);
+    } catch (error) {
+      console.error("Error adding custom item:", error);
+      alert("Error adding item. Please try again.");
+    }
+  };
+
+  const handleDeleteItem = async (itemId: Id<"inspectionItems">) => {
+    if (confirm("Delete this inspection item?")) {
+      await deleteCustomItem({ itemId });
+    }
+  };
+
   if (!user) {
     return <LoadingScreen />;
   }
@@ -267,7 +348,15 @@ export default function InspectionDetailPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {inspection.status !== "completed" && (
+                <button
+                  onClick={() => setShowAddItemModal(true)}
+                  className="flex-1 sm:flex-none px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  + Add Item
+                </button>
+              )}
               {inspection.status === "scheduled" && (
                 <button
                   onClick={handleStartInspection}
@@ -444,56 +533,54 @@ export default function InspectionDetailPage() {
                             </div>
                           )}
 
-                          {/* Photo Section - Show for failed items or any item */}
-                          {(item.status === "fail" || item.photos?.length) && (
-                            <div className="mt-2">
-                              {/* Existing Photos */}
-                              {item.photos && item.photos.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                  {item.photos.map((photo) => (
-                                    <div key={photo._id} className="relative group">
-                                      {photo.url && (
-                                        <img
-                                          src={photo.url}
-                                          alt={photo.fileName}
-                                          className="w-20 h-20 object-cover rounded-lg"
-                                        />
-                                      )}
-                                      {inspection.status !== "completed" && (
-                                        <button
-                                          onClick={() => handleDeletePhoto(photo._id)}
-                                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                          ✕
-                                        </button>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                          {/* Photo Section - Always available for all items */}
+                          <div className="mt-2">
+                            {/* Existing Photos */}
+                            {item.photos && item.photos.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {item.photos.map((photo) => (
+                                  <div key={photo._id} className="relative group">
+                                    {photo.url && (
+                                      <img
+                                        src={photo.url}
+                                        alt={photo.fileName}
+                                        className="w-20 h-20 object-cover rounded-lg"
+                                      />
+                                    )}
+                                    {inspection.status !== "completed" && (
+                                      <button
+                                        onClick={() => handleDeletePhoto(photo._id)}
+                                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
-                              {/* Upload Button */}
-                              {inspection.status !== "completed" && (
-                                <label className="inline-flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg cursor-pointer text-sm transition-colors">
-                                  <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    onChange={(e) => handlePhotoUpload(e, item._id)}
-                                    className="hidden"
-                                  />
-                                  {uploadingFor === item._id ? (
-                                    "Uploading..."
-                                  ) : (
-                                    <>
-                                      📷 {item.photos?.length ? "Add Photo" : "Take Photo"}
-                                    </>
-                                  )}
-                                </label>
-                              )}
-                            </div>
-                          )}
+                            {/* Upload Button */}
+                            {inspection.status !== "completed" && (
+                              <label className="inline-flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg cursor-pointer text-sm transition-colors">
+                                <input
+                                  ref={fileInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  onChange={(e) => handlePhotoUpload(e, item._id)}
+                                  className="hidden"
+                                />
+                                {uploadingFor === item._id ? (
+                                  "Uploading..."
+                                ) : (
+                                  <>
+                                    📷 {item.photos?.length ? "Add Photo" : "Take Photo"}
+                                  </>
+                                )}
+                              </label>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -502,6 +589,72 @@ export default function InspectionDetailPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* General Photos Section - For photos not tied to specific items */}
+        <div className="bg-gray-800 rounded-lg overflow-hidden mt-4">
+          <div className="px-4 py-3 border-b border-gray-700">
+            <h3 className="text-white font-medium">General Photos</h3>
+            <p className="text-gray-500 text-sm">
+              Photos for items not on the checklist
+            </p>
+          </div>
+          <div className="p-4">
+            {/* Existing General Photos */}
+            {generalPhotos && generalPhotos.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {generalPhotos.map((photo) => (
+                  <div key={photo._id} className="relative group">
+                    {photo.url && (
+                      <img
+                        src={photo.url}
+                        alt={photo.fileName}
+                        className="w-24 h-24 object-cover rounded-lg"
+                      />
+                    )}
+                    {photo.description && (
+                      <p className="text-xs text-gray-400 mt-1 max-w-[96px] truncate">
+                        {photo.description}
+                      </p>
+                    )}
+                    {inspection.status !== "completed" && (
+                      <button
+                        onClick={() => handleDeletePhoto(photo._id)}
+                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload Button for General Photos */}
+            {inspection.status !== "completed" && (
+              <label className="inline-flex items-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg cursor-pointer transition-colors">
+                <input
+                  ref={generalPhotoRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleGeneralPhotoUpload}
+                  className="hidden"
+                />
+                {uploadingGeneral ? (
+                  "Uploading..."
+                ) : (
+                  <>
+                    📷 Add General Photo
+                  </>
+                )}
+              </label>
+            )}
+
+            {!generalPhotos?.length && inspection.status === "completed" && (
+              <p className="text-gray-500 text-sm">No general photos</p>
+            )}
+          </div>
         </div>
 
         {/* Additional Comments (for completed inspections) */}
@@ -558,6 +711,93 @@ export default function InspectionDetailPage() {
                   className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                 >
                   Complete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Custom Item Modal */}
+        {showAddItemModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Add Inspection Item
+              </h2>
+              <p className="text-gray-400 mb-4 text-sm">
+                Add a custom item for something that came up during the inspection.
+              </p>
+
+              <div className="space-y-4">
+                {/* Category Selection */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={newItemCategory}
+                    onChange={(e) => setNewItemCategory(e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a category...</option>
+                    {sortedCategories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                    <option value="__custom__">+ New Category</option>
+                  </select>
+                </div>
+
+                {/* Custom Category Input */}
+                {newItemCategory === "__custom__" && (
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-2">
+                      New Category Name
+                    </label>
+                    <input
+                      type="text"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      placeholder="e.g., Pool Area, Outdoor Furniture..."
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+
+                {/* Item Name */}
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Item to Inspect
+                  </label>
+                  <input
+                    type="text"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    placeholder="e.g., Check pool pump working..."
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAddItemModal(false);
+                    setNewItemName("");
+                    setNewItemCategory("");
+                    setCustomCategory("");
+                  }}
+                  className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddCustomItem}
+                  disabled={!newItemName.trim() || (!newItemCategory || (newItemCategory === "__custom__" && !customCategory.trim()))}
+                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  Add Item
                 </button>
               </div>
             </div>

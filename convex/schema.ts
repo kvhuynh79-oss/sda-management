@@ -604,15 +604,16 @@ export default defineSchema({
     .index("by_inspection", ["inspectionId"])
     .index("by_status", ["status"]),
 
-  // Inspection Photos table - photos for inspection items
+  // Inspection Photos table - photos for inspection items or general photos
   inspectionPhotos: defineTable({
     inspectionId: v.id("inspections"),
-    inspectionItemId: v.id("inspectionItems"),
+    inspectionItemId: v.optional(v.id("inspectionItems")), // Optional - null for general photos
     storageId: v.id("_storage"),
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
     description: v.optional(v.string()), // Photo caption/description
+    isGeneralPhoto: v.optional(v.boolean()), // True for photos not tied to items
     uploadedBy: v.id("users"),
     createdAt: v.number(),
   })

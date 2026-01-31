@@ -12,10 +12,12 @@ interface HeaderProps {
     | "participants"
     | "financials"
     | "operations"
+    | "contractors"
     | "incidents"
     | "documents"
     | "onboarding"
     | "reports"
+    | "ai"
     | "settings"
     // Legacy - kept for backwards compatibility during transition
     | "payments"
@@ -52,10 +54,12 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/participants", label: "Participants", key: "participants" },
     { href: "/financials", label: "Financials", key: "financials" },
     { href: "/operations", label: "Operations", key: "operations" },
+    { href: "/contractors", label: "Contractors", key: "contractors" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/documents", label: "Documents", key: "documents" },
     { href: "/onboarding", label: "Onboarding", key: "onboarding" },
     { href: "/reports", label: "Reports", key: "reports" },
+    { href: "/admin/ai", label: "AI Assistant", key: "ai" },
     { href: "/settings", label: "Settings", key: "settings" },
   ];
 

@@ -12,7 +12,11 @@
       "Bash(git config:*)",
       "Bash(dir:*)",
       "Bash(if exist .next rmdir /s /q .next)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(vercel:*)",
+      "Bash(CONVEX_DEPLOYMENT=accomplished-hornet-117 npx convex run:*)",
+      "Read(//c/**)",
+      "Bash(findstr:*)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

@@ -121,10 +121,19 @@ src/components/
 
 ## Future Roadmap (Priorities)
 1. PWA for mobile (offline, install prompt)
-2. Custom domain (betterlivingsolutions.com.au)
+2. Custom domain setup
 3. Security enhancements (2FA, audit logging)
-4. AI integration (NDIS plan parsing, document classification)
+4. AI integration - document classification (NDIS plan parsing ✅ DONE)
 5. Inspection PDF reports
+
+## Long-Term / Optional
+- **Subscription SaaS Model** - Transform into multi-tenant app for other SDA providers
+  - Independent branding (separate from Better Living Solutions)
+  - New domain (e.g., SDAManager.com.au or similar)
+  - Multi-tenant architecture (data isolation per organization)
+  - User registration & organization onboarding
+  - Stripe subscription billing
+  - Pricing tiers
 
 ## Commands
 ```bash
@@ -135,4 +144,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-01-29
+**Last Updated**: 2026-01-31

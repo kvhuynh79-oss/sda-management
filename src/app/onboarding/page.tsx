@@ -1,12 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Header from "@/components/Header";
 import { Id } from "../../../convex/_generated/dataModel";
 import jsPDF from "jspdf";
+
+// Types for AI parsing
+interface ExtractedParticipant {
+  firstName: string;
+  lastName: string;
+  ndisNumber: string;
+  dateOfBirth?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+interface ExtractedPlan {
+  planStartDate?: string;
+  planEndDate?: string;
+  sdaDesignCategory?: "improved_liveability" | "fully_accessible" | "robust" | "high_physical_support";
+  sdaEligibilityType?: "standard" | "higher_needs";
+  fundingManagementType?: "ndia_managed" | "plan_managed" | "self_managed";
+  planManagerName?: string;
+  planManagerEmail?: string;
+  planManagerPhone?: string;
+  annualSdaBudget?: number;
+  supportItemNumber?: string;
+}
+
+interface ExtractedData {
+  participant: ExtractedParticipant;
+  plan: ExtractedPlan;
+  confidence: number;
+  warnings: string[];
+  rawNotes: string;
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -21,6 +53,25 @@ export default function OnboardingPage() {
     craFortnightlyRate: "230.80",
     craPercentage: "100",
   });
+
+  // AI Import states
+  const [showAiImport, setShowAiImport] = useState(false);
+  const [aiImportStep, setAiImportStep] = useState<"upload" | "review" | "confirm">("upload");
+  const [isParsing, setIsParsing] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
+  const [editedParticipant, setEditedParticipant] = useState<ExtractedParticipant | null>(null);
+  const [editedPlan, setEditedPlan] = useState<ExtractedPlan | null>(null);
+  const [selectedAiDwellingId, setSelectedAiDwellingId] = useState<string>("");
+  const [aiMoveInDate, setAiMoveInDate] = useState<string>("");
+  const [aiClaimDay, setAiClaimDay] = useState<string>("1");
+  const [isCreating, setIsCreating] = useState(false);
+  const aiFileInputRef = useRef<HTMLInputElement>(null);
+
+  // AI actions
+  const parseNdisPlanWithVision = useAction(api.aiParsing.parseNdisPlanWithVision);
+  const createFromExtracted = useMutation(api.aiParsing.createFromExtracted);
 
   const participants = useQuery(api.participants.getAll);
   const allDwellings = useQuery(api.dwellings.getAllWithAddresses);
@@ -1138,12 +1189,30 @@ export default function OnboardingPage() {
             <h1 className="text-2xl font-bold text-white">Participant Onboarding</h1>
             <p className="text-gray-400 mt-1">Generate onboarding documents for participants</p>
           </div>
-          <button
-            onClick={() => setShowRrcSettings(!showRrcSettings)}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-          >
-            {showRrcSettings ? "Hide RRC Settings" : "RRC Settings"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowAiImport(true);
+                setAiImportStep("upload");
+                setExtractedData(null);
+                setEditedParticipant(null);
+                setEditedPlan(null);
+                setParseError(null);
+              }}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              AI Import
+            </button>
+            <button
+              onClick={() => setShowRrcSettings(!showRrcSettings)}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              {showRrcSettings ? "Hide RRC Settings" : "RRC Settings"}
+            </button>
+          </div>
         </div>
 
         {/* RRC Settings Panel */}
@@ -1373,6 +1442,578 @@ export default function OnboardingPage() {
           )}
         </div>
       </main>
+
+      {/* AI Import Modal */}
+      {showAiImport && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  AI-Powered NDIS Plan Import
+                </h2>
+                <p className="text-gray-400 text-sm">Upload an NDIS plan to automatically extract participant details</p>
+              </div>
+              <button
+                onClick={() => setShowAiImport(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {/* Progress Steps */}
+              <div className="flex items-center justify-center mb-8">
+                <div className="flex items-center">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full ${aiImportStep === "upload" ? "bg-purple-600" : "bg-green-600"} text-white font-medium`}>
+                    {aiImportStep === "upload" ? "1" : "✓"}
+                  </div>
+                  <span className={`ml-2 ${aiImportStep === "upload" ? "text-white" : "text-gray-400"}`}>Upload</span>
+                </div>
+                <div className={`w-16 h-1 mx-2 ${aiImportStep !== "upload" ? "bg-green-600" : "bg-gray-600"}`} />
+                <div className="flex items-center">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full ${aiImportStep === "review" ? "bg-purple-600" : aiImportStep === "confirm" ? "bg-green-600" : "bg-gray-600"} text-white font-medium`}>
+                    {aiImportStep === "confirm" ? "✓" : "2"}
+                  </div>
+                  <span className={`ml-2 ${aiImportStep === "review" ? "text-white" : "text-gray-400"}`}>Review</span>
+                </div>
+                <div className={`w-16 h-1 mx-2 ${aiImportStep === "confirm" ? "bg-green-600" : "bg-gray-600"}`} />
+                <div className="flex items-center">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full ${aiImportStep === "confirm" ? "bg-purple-600" : "bg-gray-600"} text-white font-medium`}>
+                    3
+                  </div>
+                  <span className={`ml-2 ${aiImportStep === "confirm" ? "text-white" : "text-gray-400"}`}>Confirm</span>
+                </div>
+              </div>
+
+              {/* Step 1: Upload */}
+              {aiImportStep === "upload" && (
+                <div className="space-y-6">
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors relative ${
+                      isParsing
+                        ? "border-purple-500 bg-purple-900/20"
+                        : isDragOver
+                          ? "border-purple-400 bg-purple-900/30 ring-4 ring-purple-500/50"
+                          : "border-gray-600 hover:border-purple-500"
+                    }`}
+                    onDragEnter={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragOver(true);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragOver(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // Only set dragOver to false if we're leaving the container itself
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = e.clientX;
+                      const y = e.clientY;
+                      if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                        setIsDragOver(false);
+                      }
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDragOver(false);
+
+                      const file = e.dataTransfer.files?.[0];
+                      if (!file) return;
+
+                      // Validate file type
+                      if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+                        setParseError("Please upload a PDF or image file");
+                        return;
+                      }
+
+                      setIsParsing(true);
+                      setParseError(null);
+
+                      try {
+                        const reader = new FileReader();
+                        reader.onload = async () => {
+                          const base64 = (reader.result as string).split(",")[1];
+                          try {
+                            const result = await parseNdisPlanWithVision({
+                              fileBase64: base64,
+                              mediaType: file.type,
+                            });
+                            setExtractedData(result);
+                            setEditedParticipant(result.participant);
+                            setEditedPlan(result.plan);
+                            setAiImportStep("review");
+                          } catch (err: any) {
+                            setParseError(err.message || "Failed to parse document");
+                          } finally {
+                            setIsParsing(false);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      } catch (err: any) {
+                        setParseError(err.message || "Failed to read file");
+                        setIsParsing(false);
+                      }
+                    }}
+                  >
+                    {/* Drag overlay */}
+                    {isDragOver && !isParsing && (
+                      <div className="absolute inset-0 bg-purple-600/20 rounded-lg flex items-center justify-center z-10 pointer-events-none">
+                        <div className="text-center">
+                          <svg className="w-16 h-16 mx-auto text-purple-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <p className="text-purple-300 font-medium text-lg">Drop to upload</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {isParsing ? (
+                      <div className="space-y-4">
+                        <div className="w-16 h-16 mx-auto border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-white font-medium">Analyzing document with AI...</p>
+                        <p className="text-gray-400 text-sm">This may take a moment</p>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          ref={aiFileInputRef}
+                          type="file"
+                          accept=".pdf,image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            setIsParsing(true);
+                            setParseError(null);
+
+                            try {
+                              // Convert file to base64
+                              const reader = new FileReader();
+                              reader.onload = async () => {
+                                const base64 = (reader.result as string).split(",")[1];
+                                try {
+                                  const result = await parseNdisPlanWithVision({
+                                    fileBase64: base64,
+                                    mediaType: file.type,
+                                  });
+                                  setExtractedData(result);
+                                  setEditedParticipant(result.participant);
+                                  setEditedPlan(result.plan);
+                                  setAiImportStep("review");
+                                } catch (err: any) {
+                                  setParseError(err.message || "Failed to parse document");
+                                } finally {
+                                  setIsParsing(false);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            } catch (err: any) {
+                              setParseError(err.message || "Failed to read file");
+                              setIsParsing(false);
+                            }
+                          }}
+                        />
+                        <svg className="w-16 h-16 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p className="text-white font-medium mb-2">Drop your NDIS plan here</p>
+                        <p className="text-gray-400 text-sm mb-4">or click to browse (PDF or image)</p>
+                        <button
+                          onClick={() => aiFileInputRef.current?.click()}
+                          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                        >
+                          Select File
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {parseError && (
+                    <div className="bg-red-900/30 border border-red-600 rounded-lg p-4">
+                      <p className="text-red-400 font-medium">Error parsing document</p>
+                      <p className="text-red-300 text-sm mt-1">{parseError}</p>
+                    </div>
+                  )}
+
+                  <div className="bg-gray-700/50 rounded-lg p-4">
+                    <h4 className="text-white font-medium mb-2">Supported Documents</h4>
+                    <ul className="text-gray-400 text-sm space-y-1">
+                      <li>• NDIS Plan PDFs (official NDIS documents)</li>
+                      <li>• Scanned plan documents (images)</li>
+                      <li>• Plan manager correspondence with plan details</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Review */}
+              {aiImportStep === "review" && editedParticipant && editedPlan && (
+                <div className="space-y-6">
+                  {/* Confidence & Warnings */}
+                  {extractedData && (
+                    <div className="flex gap-4 mb-4">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-gray-700 rounded-lg">
+                        <span className="text-gray-400 text-sm">Confidence:</span>
+                        <span className={`font-medium ${extractedData.confidence >= 0.8 ? "text-green-400" : extractedData.confidence >= 0.5 ? "text-yellow-400" : "text-red-400"}`}>
+                          {Math.round(extractedData.confidence * 100)}%
+                        </span>
+                      </div>
+                      {extractedData.warnings.length > 0 && (
+                        <div className="flex-1 bg-yellow-900/30 border border-yellow-600 rounded-lg px-3 py-1">
+                          <span className="text-yellow-400 text-sm">{extractedData.warnings.join(", ")}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Participant Details */}
+                  <div className="bg-gray-700/50 rounded-lg p-4">
+                    <h3 className="text-white font-medium mb-4">Participant Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">First Name *</label>
+                        <input
+                          type="text"
+                          value={editedParticipant.firstName}
+                          onChange={(e) => setEditedParticipant({ ...editedParticipant, firstName: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Last Name *</label>
+                        <input
+                          type="text"
+                          value={editedParticipant.lastName}
+                          onChange={(e) => setEditedParticipant({ ...editedParticipant, lastName: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">NDIS Number *</label>
+                        <input
+                          type="text"
+                          value={editedParticipant.ndisNumber}
+                          onChange={(e) => setEditedParticipant({ ...editedParticipant, ndisNumber: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Date of Birth</label>
+                        <input
+                          type="date"
+                          value={editedParticipant.dateOfBirth || ""}
+                          onChange={(e) => setEditedParticipant({ ...editedParticipant, dateOfBirth: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={editedParticipant.email || ""}
+                          onChange={(e) => setEditedParticipant({ ...editedParticipant, email: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Phone</label>
+                        <input
+                          type="tel"
+                          value={editedParticipant.phone || ""}
+                          onChange={(e) => setEditedParticipant({ ...editedParticipant, phone: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Plan Details */}
+                  <div className="bg-gray-700/50 rounded-lg p-4">
+                    <h3 className="text-white font-medium mb-4">Plan Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Plan Start Date *</label>
+                        <input
+                          type="date"
+                          value={editedPlan.planStartDate || ""}
+                          onChange={(e) => setEditedPlan({ ...editedPlan, planStartDate: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Plan End Date *</label>
+                        <input
+                          type="date"
+                          value={editedPlan.planEndDate || ""}
+                          onChange={(e) => setEditedPlan({ ...editedPlan, planEndDate: e.target.value })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">SDA Design Category *</label>
+                        <select
+                          value={editedPlan.sdaDesignCategory || ""}
+                          onChange={(e) => setEditedPlan({ ...editedPlan, sdaDesignCategory: e.target.value as any })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        >
+                          <option value="">Select category</option>
+                          <option value="improved_liveability">Improved Liveability</option>
+                          <option value="fully_accessible">Fully Accessible</option>
+                          <option value="robust">Robust</option>
+                          <option value="high_physical_support">High Physical Support</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">SDA Eligibility Type *</label>
+                        <select
+                          value={editedPlan.sdaEligibilityType || ""}
+                          onChange={(e) => setEditedPlan({ ...editedPlan, sdaEligibilityType: e.target.value as any })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        >
+                          <option value="">Select type</option>
+                          <option value="standard">Standard</option>
+                          <option value="higher_needs">Higher Needs</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Funding Management *</label>
+                        <select
+                          value={editedPlan.fundingManagementType || ""}
+                          onChange={(e) => setEditedPlan({ ...editedPlan, fundingManagementType: e.target.value as any })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        >
+                          <option value="">Select management type</option>
+                          <option value="ndia_managed">NDIA Managed</option>
+                          <option value="plan_managed">Plan Managed</option>
+                          <option value="self_managed">Self Managed</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Annual SDA Budget ($) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editedPlan.annualSdaBudget || ""}
+                          onChange={(e) => setEditedPlan({ ...editedPlan, annualSdaBudget: parseFloat(e.target.value) || undefined })}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                      {editedPlan.fundingManagementType === "plan_managed" && (
+                        <>
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-1">Plan Manager Name</label>
+                            <input
+                              type="text"
+                              value={editedPlan.planManagerName || ""}
+                              onChange={(e) => setEditedPlan({ ...editedPlan, planManagerName: e.target.value })}
+                              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-400 mb-1">Plan Manager Email</label>
+                            <input
+                              type="email"
+                              value={editedPlan.planManagerEmail || ""}
+                              onChange={(e) => setEditedPlan({ ...editedPlan, planManagerEmail: e.target.value })}
+                              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                            />
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Support Item Number</label>
+                        <input
+                          type="text"
+                          value={editedPlan.supportItemNumber || ""}
+                          onChange={(e) => setEditedPlan({ ...editedPlan, supportItemNumber: e.target.value })}
+                          placeholder="e.g. 01_052_0115_1_1"
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Raw Notes if any */}
+                  {extractedData?.rawNotes && (
+                    <div className="bg-gray-700/50 rounded-lg p-4">
+                      <h3 className="text-white font-medium mb-2">Additional Notes from Document</h3>
+                      <p className="text-gray-300 text-sm whitespace-pre-wrap">{extractedData.rawNotes}</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => {
+                        setAiImportStep("upload");
+                        setExtractedData(null);
+                      }}
+                      className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => setAiImportStep("confirm")}
+                      disabled={!editedParticipant.firstName || !editedParticipant.lastName || !editedParticipant.ndisNumber}
+                      className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                      Continue to Confirm
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Confirm */}
+              {aiImportStep === "confirm" && editedParticipant && editedPlan && (
+                <div className="space-y-6">
+                  <div className="bg-green-900/20 border border-green-600 rounded-lg p-4">
+                    <p className="text-green-400 font-medium">Almost done! Select a dwelling and move-in date to complete the import.</p>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="bg-gray-700/50 rounded-lg p-4">
+                    <h3 className="text-white font-medium mb-4">Participant Summary</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-400">Name</p>
+                        <p className="text-white font-medium">{editedParticipant.firstName} {editedParticipant.lastName}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">NDIS Number</p>
+                        <p className="text-white font-medium">{editedParticipant.ndisNumber}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Plan Dates</p>
+                        <p className="text-white font-medium">{editedPlan.planStartDate} to {editedPlan.planEndDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Annual SDA Budget</p>
+                        <p className="text-green-400 font-medium">${(editedPlan.annualSdaBudget || 0).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Select Dwelling *</label>
+                      <select
+                        value={selectedAiDwellingId}
+                        onChange={(e) => setSelectedAiDwellingId(e.target.value)}
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      >
+                        <option value="">-- Select a dwelling --</option>
+                        {allDwellings?.map((d) => (
+                          <option key={d._id} value={d._id}>
+                            {d.fullAddress} ({formatSdaCategory(d.sdaDesignCategory)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Move-in Date *</label>
+                      <input
+                        type="date"
+                        value={aiMoveInDate}
+                        onChange={(e) => setAiMoveInDate(e.target.value)}
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Claim Day of Month</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={aiClaimDay}
+                        onChange={(e) => setAiClaimDay(e.target.value)}
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      />
+                      <p className="text-gray-500 text-xs mt-1">Day of the month when SDA claims are due</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => setAiImportStep("review")}
+                      className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!selectedAiDwellingId || !aiMoveInDate || !user) return;
+
+                        setIsCreating(true);
+                        try {
+                          await createFromExtracted({
+                            participant: {
+                              firstName: editedParticipant.firstName,
+                              lastName: editedParticipant.lastName,
+                              ndisNumber: editedParticipant.ndisNumber,
+                              dateOfBirth: editedParticipant.dateOfBirth || undefined,
+                              email: editedParticipant.email || undefined,
+                              phone: editedParticipant.phone || undefined,
+                            },
+                            plan: {
+                              planStartDate: editedPlan.planStartDate || "",
+                              planEndDate: editedPlan.planEndDate || "",
+                              sdaDesignCategory: editedPlan.sdaDesignCategory || "improved_liveability",
+                              sdaEligibilityType: editedPlan.sdaEligibilityType || "standard",
+                              fundingManagementType: editedPlan.fundingManagementType || "ndia_managed",
+                              planManagerName: editedPlan.planManagerName,
+                              planManagerEmail: editedPlan.planManagerEmail,
+                              planManagerPhone: editedPlan.planManagerPhone,
+                              annualSdaBudget: editedPlan.annualSdaBudget || 0,
+                              supportItemNumber: editedPlan.supportItemNumber,
+                              claimDay: parseInt(aiClaimDay) || 1,
+                            },
+                            dwellingId: selectedAiDwellingId as Id<"dwellings">,
+                            moveInDate: aiMoveInDate,
+                            userId: user.id as Id<"users">,
+                          });
+
+                          // Success - close modal and reset
+                          setShowAiImport(false);
+                          setAiImportStep("upload");
+                          setExtractedData(null);
+                          setEditedParticipant(null);
+                          setEditedPlan(null);
+                          setSelectedAiDwellingId("");
+                          setAiMoveInDate("");
+                          alert("Participant created successfully!");
+                        } catch (err: any) {
+                          alert(`Error: ${err.message}`);
+                        } finally {
+                          setIsCreating(false);
+                        }
+                      }}
+                      disabled={!selectedAiDwellingId || !aiMoveInDate || isCreating}
+                      className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                      {isCreating ? "Creating..." : "Create Participant"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

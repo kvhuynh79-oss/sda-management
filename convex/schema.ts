@@ -361,15 +361,19 @@ export default defineSchema({
   // Maintenance Quotes table - track multiple quotes per request
   maintenanceQuotes: defineTable({
     maintenanceRequestId: v.id("maintenanceRequests"),
-    contractorName: v.string(),
+    contractorId: v.optional(v.id("contractors")), // Link to contractor (optional for backwards compat)
+    contractorName: v.string(), // Kept for backwards compatibility
     contractorContact: v.optional(v.string()),
     contractorEmail: v.optional(v.string()),
     quoteAmount: v.number(),
     quoteDate: v.string(),
     validUntil: v.optional(v.string()), // Quote expiry date
     estimatedDays: v.optional(v.number()), // Estimated days to complete
+    availableDate: v.optional(v.string()), // When contractor can start
     warrantyMonths: v.optional(v.number()), // Warranty offered
     description: v.optional(v.string()), // Quote details/scope
+    laborCost: v.optional(v.number()), // Breakdown: labor
+    materialsCost: v.optional(v.number()), // Breakdown: materials
     status: v.union(
       v.literal("pending"), // Quote received, awaiting decision
       v.literal("accepted"), // Quote accepted, contractor awarded
@@ -378,11 +382,13 @@ export default defineSchema({
     ),
     acceptedDate: v.optional(v.string()),
     rejectionReason: v.optional(v.string()),
-    createdBy: v.id("users"),
+    quoteRequestId: v.optional(v.id("quoteRequests")), // Link to the quote request if submitted via email
+    createdBy: v.optional(v.id("users")), // Optional - null if submitted by contractor via public link
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_maintenance_request", ["maintenanceRequestId"])
+    .index("by_contractor", ["contractorId"])
     .index("by_status", ["status"]),
 
   // Preventative Maintenance Schedule table
@@ -687,4 +693,112 @@ export default defineSchema({
   })
     .index("by_property", ["propertyId"])
     .index("by_mediaType", ["mediaType"]),
+
+  // AI Conversations table - stores chatbot conversation history
+  aiConversations: defineTable({
+    userId: v.id("users"),
+    title: v.optional(v.string()),
+    messages: v.array(
+      v.object({
+        role: v.union(v.literal("user"), v.literal("assistant")),
+        content: v.string(),
+        timestamp: v.number(),
+      })
+    ),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_isActive", ["isActive"]),
+
+  // Contractors table - trade contractors for maintenance work
+  contractors: defineTable({
+    companyName: v.string(),
+    contactName: v.optional(v.string()),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    abn: v.optional(v.string()),
+    specialty: v.union(
+      v.literal("plumbing"),
+      v.literal("electrical"),
+      v.literal("appliances"),
+      v.literal("building"),
+      v.literal("grounds"),
+      v.literal("safety"),
+      v.literal("general"),
+      v.literal("multi_trade")
+    ),
+    secondarySpecialties: v.optional(v.array(v.string())), // Additional specialties
+    licenseNumber: v.optional(v.string()),
+    insuranceExpiry: v.optional(v.string()),
+    address: v.optional(v.string()),
+    suburb: v.optional(v.string()),
+    state: v.optional(v.string()),
+    postcode: v.optional(v.string()),
+    preferredProperties: v.optional(v.array(v.id("properties"))), // Properties they regularly work on
+    rating: v.optional(v.number()), // 1-5 star rating
+    totalJobsCompleted: v.optional(v.number()),
+    averageResponseTime: v.optional(v.number()), // In hours
+    notes: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_specialty", ["specialty"])
+    .index("by_isActive", ["isActive"]),
+
+  // Quote Requests table - tracks emails sent to contractors requesting quotes
+  quoteRequests: defineTable({
+    maintenanceRequestId: v.id("maintenanceRequests"),
+    contractorId: v.id("contractors"),
+    requestToken: v.string(), // Unique token for contractor to submit quote via public link
+    emailSentAt: v.number(),
+    emailSubject: v.string(),
+    emailBody: v.string(),
+    includesPhotos: v.boolean(),
+    status: v.union(
+      v.literal("sent"), // Email sent, awaiting response
+      v.literal("viewed"), // Contractor viewed the request
+      v.literal("quoted"), // Contractor submitted a quote
+      v.literal("declined"), // Contractor declined to quote
+      v.literal("expired") // Request expired without response
+    ),
+    viewedAt: v.optional(v.number()),
+    respondedAt: v.optional(v.number()),
+    expiryDate: v.string(), // When the quote request expires
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_maintenance_request", ["maintenanceRequestId"])
+    .index("by_contractor", ["contractorId"])
+    .index("by_token", ["requestToken"])
+    .index("by_status", ["status"]),
+
+  // AI Processing Queue table - for batch document processing
+  aiProcessingQueue: defineTable({
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    processingType: v.union(
+      v.literal("classification"),
+      v.literal("ndis_plan"),
+      v.literal("accommodation_agreement"),
+      v.literal("csv_claims")
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    result: v.optional(v.string()), // JSON string of extraction result
+    error: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_createdBy", ["createdBy"]),
 });

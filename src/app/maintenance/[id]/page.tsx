@@ -29,12 +29,17 @@ export default function MaintenanceRequestDetailPage() {
   const [error, setError] = useState("");
   const [showAddQuote, setShowAddQuote] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showRequestQuoteModal, setShowRequestQuoteModal] = useState(false);
 
   const request = useQuery(api.maintenanceRequests.getById, { requestId });
   const photos = useQuery(api.maintenancePhotos.getByMaintenanceRequest, {
     maintenanceRequestId: requestId,
   });
   const quotes = useQuery(api.maintenanceQuotes.getByMaintenanceRequest, {
+    maintenanceRequestId: requestId,
+  });
+  const contractors = useQuery(api.contractors.getAll);
+  const quoteRequests = useQuery(api.quoteRequests.getByMaintenanceRequest, {
     maintenanceRequestId: requestId,
   });
 
@@ -47,6 +52,7 @@ export default function MaintenanceRequestDetailPage() {
   const acceptQuote = useMutation(api.maintenanceQuotes.acceptQuote);
   const rejectQuote = useMutation(api.maintenanceQuotes.rejectQuote);
   const deleteQuote = useMutation(api.maintenanceQuotes.deleteQuote);
+  const createQuoteRequest = useMutation(api.quoteRequests.create);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
@@ -573,14 +579,47 @@ export default function MaintenanceRequestDetailPage() {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Contractor Quotes</h3>
               {request.status !== "completed" && request.status !== "cancelled" && (
-                <button
-                  onClick={() => setShowAddQuote(true)}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                >
-                  + Add Quote
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowRequestQuoteModal(true)}
+                    className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+                  >
+                    Request Quotes
+                  </button>
+                  <button
+                    onClick={() => setShowAddQuote(true)}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                  >
+                    + Add Quote
+                  </button>
+                </div>
               )}
             </div>
+
+            {/* Quote Requests Sent */}
+            {quoteRequests && quoteRequests.length > 0 && (
+              <div className="mb-4">
+                <p className="text-gray-400 text-sm mb-2">Quote Requests Sent:</p>
+                <div className="flex flex-wrap gap-2">
+                  {quoteRequests.map((qr) => (
+                    <span
+                      key={qr._id}
+                      className={`px-2 py-1 rounded text-xs ${
+                        qr.status === "quoted"
+                          ? "bg-green-600/20 text-green-400 border border-green-600"
+                          : qr.status === "viewed"
+                          ? "bg-blue-600/20 text-blue-400 border border-blue-600"
+                          : qr.status === "declined"
+                          ? "bg-red-600/20 text-red-400 border border-red-600"
+                          : "bg-yellow-600/20 text-yellow-400 border border-yellow-600"
+                      }`}
+                    >
+                      {qr.contractor?.companyName}: {qr.status}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {quotes && quotes.length > 0 ? (
               <div className="space-y-3">
@@ -1102,6 +1141,29 @@ export default function MaintenanceRequestDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Request Quote Modal */}
+        {showRequestQuoteModal && (
+          <RequestQuoteModal
+            request={request}
+            contractors={contractors || []}
+            photos={photos || []}
+            quoteRequests={quoteRequests || []}
+            onClose={() => setShowRequestQuoteModal(false)}
+            onSend={async (contractorId, emailSubject, emailBody, includesPhotos) => {
+              await createQuoteRequest({
+                maintenanceRequestId: requestId,
+                contractorId: contractorId as Id<"contractors">,
+                emailSubject,
+                emailBody,
+                includesPhotos,
+                expiryDays: 7,
+                createdBy: user?.id as Id<"users">,
+              });
+              setShowRequestQuoteModal(false);
+            }}
+          />
+        )}
       </main>
     </div>
   );
@@ -1111,6 +1173,225 @@ function LoadingScreen() {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="text-white">Loading...</div>
+    </div>
+  );
+}
+
+function RequestQuoteModal({
+  request,
+  contractors,
+  photos,
+  quoteRequests,
+  onClose,
+  onSend,
+}: {
+  request: any;
+  contractors: any[];
+  photos: any[];
+  quoteRequests: any[];
+  onClose: () => void;
+  onSend: (contractorId: string, subject: string, body: string, includesPhotos: boolean) => Promise<void>;
+}) {
+  const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
+  const [includePhotos, setIncludePhotos] = useState(true);
+  const [customMessage, setCustomMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [filterSpecialty, setFilterSpecialty] = useState<string>("all");
+
+  // Filter contractors by category match and not already requested
+  const alreadyRequestedIds = quoteRequests.map((qr: any) => qr.contractorId);
+  const matchingContractors = contractors.filter((c) => {
+    if (alreadyRequestedIds.includes(c._id)) return false;
+    if (filterSpecialty !== "all" && c.specialty !== filterSpecialty) return false;
+    return true;
+  });
+
+  const categoryContractors = contractors.filter(
+    (c) => c.specialty === request.category || c.specialty === "multi_trade"
+  );
+
+  const defaultMessage = `We have a maintenance request that requires attention and would like to request a quote from you.
+
+Job Details:
+- Location: ${request.property?.addressLine1}, ${request.property?.suburb}
+- Category: ${request.category}
+- Priority: ${request.priority.toUpperCase()}
+
+Issue: ${request.title}
+${request.description}
+
+Please review the details and submit your quote using the link provided. Include your:
+- Total quote amount
+- Estimated time to complete
+- Earliest availability
+- Any warranty offered
+
+We look forward to hearing from you.
+
+Best regards,
+Better Living Solutions`;
+
+  const toggleContractor = (id: string) => {
+    setSelectedContractors((prev) =>
+      prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
+    );
+  };
+
+  const handleSend = async () => {
+    if (selectedContractors.length === 0) return;
+    setIsSending(true);
+    try {
+      for (const contractorId of selectedContractors) {
+        const contractor = contractors.find((c) => c._id === contractorId);
+        await onSend(
+          contractorId,
+          `Quote Request: ${request.title} - ${request.property?.suburb}`,
+          customMessage || defaultMessage,
+          includePhotos
+        );
+      }
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl font-bold text-white mb-4">Request Quotes from Contractors</h2>
+
+        <div className="mb-4 p-3 bg-gray-700/50 rounded-lg">
+          <p className="text-gray-300 text-sm">
+            <strong>Job:</strong> {request.title}
+          </p>
+          <p className="text-gray-400 text-sm">
+            {request.property?.addressLine1}, {request.property?.suburb} | {request.category} | {request.priority.toUpperCase()}
+          </p>
+        </div>
+
+        {/* Filter */}
+        <div className="mb-4">
+          <label className="block text-sm text-gray-300 mb-1">Filter by Specialty</label>
+          <select
+            value={filterSpecialty}
+            onChange={(e) => setFilterSpecialty(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          >
+            <option value="all">All Contractors</option>
+            <option value={request.category}>{request.category} (Matching)</option>
+            <option value="plumbing">Plumbing</option>
+            <option value="electrical">Electrical</option>
+            <option value="appliances">Appliances</option>
+            <option value="building">Building</option>
+            <option value="grounds">Grounds</option>
+            <option value="safety">Safety</option>
+            <option value="general">General</option>
+            <option value="multi_trade">Multi-Trade</option>
+          </select>
+        </div>
+
+        {/* Contractor Selection */}
+        <div className="mb-4">
+          <label className="block text-sm text-gray-300 mb-2">
+            Select Contractors ({selectedContractors.length} selected)
+          </label>
+          <div className="bg-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto">
+            {matchingContractors.length === 0 ? (
+              <p className="text-gray-500 text-sm">
+                {contractors.length === 0
+                  ? "No contractors in system. Add contractors first."
+                  : "All matching contractors have already been sent requests."}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {matchingContractors.map((contractor) => (
+                  <label
+                    key={contractor._id}
+                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                      selectedContractors.includes(contractor._id)
+                        ? "bg-blue-600/30"
+                        : "hover:bg-gray-600"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedContractors.includes(contractor._id)}
+                      onChange={() => toggleContractor(contractor._id)}
+                      className="rounded bg-gray-600 border-gray-500"
+                    />
+                    <div className="flex-1">
+                      <p className="text-white text-sm">{contractor.companyName}</p>
+                      <p className="text-gray-400 text-xs">
+                        {contractor.email} | {contractor.specialty}
+                      </p>
+                    </div>
+                    {(contractor.specialty === request.category ||
+                      contractor.specialty === "multi_trade") && (
+                      <span className="px-2 py-0.5 bg-green-600/30 text-green-400 text-xs rounded">
+                        Match
+                      </span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Include Photos */}
+        <div className="mb-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includePhotos}
+              onChange={(e) => setIncludePhotos(e.target.checked)}
+              className="rounded bg-gray-600 border-gray-500"
+            />
+            <span className="text-gray-300 text-sm">
+              Include photos in request ({photos.length} photo{photos.length !== 1 ? "s" : ""})
+            </span>
+          </label>
+        </div>
+
+        {/* Custom Message */}
+        <div className="mb-4">
+          <label className="block text-sm text-gray-300 mb-1">Message (optional - leave blank for default)</label>
+          <textarea
+            value={customMessage}
+            onChange={(e) => setCustomMessage(e.target.value)}
+            rows={6}
+            placeholder={defaultMessage}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+          />
+        </div>
+
+        {/* Info */}
+        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-600 rounded-lg">
+          <p className="text-blue-300 text-sm">
+            Contractors will receive an email with a unique link to submit their quote. You can track
+            responses in the Quotes section above.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={isSending || selectedContractors.length === 0}
+            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg"
+          >
+            {isSending
+              ? "Sending..."
+              : `Send to ${selectedContractors.length} Contractor${selectedContractors.length !== 1 ? "s" : ""}`}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

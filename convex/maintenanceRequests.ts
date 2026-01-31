@@ -29,6 +29,7 @@ export const create = mutation({
     contractorContact: v.optional(v.string()),
     quotedAmount: v.optional(v.number()),
     notes: v.optional(v.string()),
+    incidentId: v.optional(v.id("incidents")),
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {

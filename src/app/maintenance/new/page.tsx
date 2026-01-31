@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
@@ -15,12 +15,14 @@ interface PendingPhoto {
   photoType: "before" | "during" | "after" | "issue";
 }
 
-export default function NewMaintenanceRequestPage() {
+function NewMaintenanceRequestContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [prefilledFromIncident, setPrefilledFromIncident] = useState(false);
 
   const properties = useQuery(api.properties.getAll);
   const dwellings = useQuery(
@@ -95,6 +97,35 @@ export default function NewMaintenanceRequestPage() {
       setAvailableDwellings(dwellings);
     }
   }, [dwellings]);
+
+  // Pre-fill from URL params (e.g., when coming from an incident)
+  useEffect(() => {
+    if (prefilledFromIncident) return; // Only prefill once
+
+    const incidentId = searchParams.get("incidentId");
+    const propertyId = searchParams.get("propertyId");
+    const dwellingId = searchParams.get("dwellingId");
+    const title = searchParams.get("title");
+    const description = searchParams.get("description");
+    const category = searchParams.get("category");
+
+    if (incidentId || propertyId || title) {
+      setFormData((prev) => ({
+        ...prev,
+        propertyId: propertyId || prev.propertyId,
+        dwellingId: dwellingId || prev.dwellingId,
+        title: title || prev.title,
+        description: description || prev.description,
+        category: (category as any) || prev.category,
+      }));
+
+      if (propertyId) {
+        setSelectedPropertyId(propertyId);
+      }
+
+      setPrefilledFromIncident(true);
+    }
+  }, [searchParams, prefilledFromIncident]);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -172,6 +203,7 @@ export default function NewMaintenanceRequestPage() {
         contractorContact: formData.contractorContact || undefined,
         quotedAmount: formData.quotedAmount ? parseFloat(formData.quotedAmount) : undefined,
         notes: formData.notes || undefined,
+        incidentId: searchParams.get("incidentId") ? searchParams.get("incidentId") as Id<"incidents"> : undefined,
         createdBy: user.id as Id<"users">,
       });
 
@@ -252,6 +284,15 @@ export default function NewMaintenanceRequestPage() {
 
         <div className="bg-gray-800 rounded-lg p-6">
           <h1 className="text-2xl font-bold text-white mb-6">Log Maintenance Request</h1>
+
+          {searchParams.get("incidentId") && (
+            <div className="mb-6 p-4 bg-purple-900/50 border border-purple-600 rounded-lg text-purple-200">
+              <p className="font-medium">Creating from Incident</p>
+              <p className="text-sm text-purple-300">
+                This maintenance request will be linked to the incident. The form has been pre-filled with relevant details.
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg text-red-200">
@@ -582,6 +623,14 @@ export default function NewMaintenanceRequestPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function NewMaintenanceRequestPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <NewMaintenanceRequestContent />
+    </Suspense>
   );
 }
 

@@ -371,7 +371,7 @@ export default function IncidentDetailPage() {
                 <h1 className="text-xl font-bold text-white">{incident.title}</h1>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {canResolve && !isEditing && (
                 <button
                   onClick={() => setShowResolveModal(true)}
@@ -387,6 +387,14 @@ export default function IncidentDetailPage() {
                 >
                   Close
                 </button>
+              )}
+              {!isEditing && incident.status !== "closed" && (
+                <Link
+                  href={`/maintenance/new?incidentId=${incidentId}&dwellingId=${incident.dwellingId || ""}&propertyId=${incident.property?._id || ""}&title=${encodeURIComponent("Follow-up: " + incident.title)}&description=${encodeURIComponent(`Follow-up action for incident: ${incident.title}\n\nIncident Description:\n${incident.description}\n\nImmediate Action Taken:\n${incident.immediateActionTaken || "None"}\n\nFollow-up Notes:\n${incident.followUpNotes || "None"}`)}&category=building`}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                >
+                  Create Maintenance Request
+                </Link>
               )}
               {isEditing ? (
                 <>

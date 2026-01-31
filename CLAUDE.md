@@ -17,11 +17,13 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
 2. **Participant Management** - NDIS participants with plans and funding
 3. **Maintenance** - Reactive and preventative maintenance with photos
-4. **Property Inspections** - Mobile-optimized checklists (BLS template)
-5. **Payments** - Track SDA payments and generate NDIS export files
-6. **Documents** - Store documents with expiry tracking
-7. **Alerts** - Automated alerts for expiries, vacancies, maintenance
-8. **Reports** - Compliance, financial, and contractor reports
+4. **Contractor Management** - Track contractors, send quote requests via email
+5. **Quote Request Workflow** - Email contractors, receive quotes via public link
+6. **Property Inspections** - Mobile-optimized checklists (BLS template)
+7. **Payments** - Track SDA payments and generate NDIS export files
+8. **Documents** - Store documents with expiry tracking
+9. **Alerts** - Automated alerts for expiries, vacancies, maintenance
+10. **Reports** - Compliance, financial, and contractor reports
 
 ## Project Structure
 ```
@@ -31,7 +33,9 @@ src/app/                    # Next.js pages
 ├── participants/           # Participant management
 ├── payments/               # Payment tracking + NDIS export
 ├── maintenance/            # Maintenance requests
-├── inspections/            # Property inspection checklists (NEW)
+├── contractors/            # Contractor management
+├── quote/[token]/          # Public quote submission page (for contractors)
+├── inspections/            # Property inspection checklists
 ├── incidents/              # Incident reports
 ├── documents/              # Document management
 ├── alerts/                 # Alert management
@@ -43,7 +47,9 @@ convex/                     # Backend functions
 ├── schema.ts               # Database schema (all tables)
 ├── properties.ts           # Property queries/mutations
 ├── participants.ts         # Participant queries/mutations
-├── inspections.ts          # Inspection system (NEW)
+├── contractors.ts          # Contractor CRUD
+├── quoteRequests.ts        # Quote request workflow + email sending
+├── inspections.ts          # Inspection system
 ├── maintenanceRequests.ts  # Maintenance functions
 ├── payments.ts             # Payment functions
 ├── alerts.ts               # Alert generation
@@ -66,6 +72,9 @@ src/components/
 - `payments` - SDA payment records
 - `maintenanceRequests` - Maintenance work orders
 - `maintenancePhotos` - Photos for maintenance
+- `maintenanceQuotes` - Quotes received from contractors
+- `contractors` - Trade contractors for maintenance work
+- `quoteRequests` - Email requests sent to contractors for quotes
 - `preventativeSchedule` - Scheduled maintenance tasks
 - `documents` - Uploaded documents
 - `alerts` - System-generated alerts
@@ -120,10 +129,14 @@ src/components/
   - Owner bank details for payment
 
 ## Future Roadmap (Priorities)
-1. PWA for mobile (offline, install prompt)
-2. Custom domain setup
-3. Security enhancements (2FA, audit logging)
-4. AI integration - document classification (NDIS plan parsing ✅ DONE)
+1. **Configure Resend API for email** - Set up email sending for quote requests
+   - Sign up at https://resend.com
+   - Add `RESEND_API_KEY` to Convex environment variables
+   - Add `RESEND_FROM_EMAIL` to Convex environment variables
+   - Verify domain for production sending
+2. PWA for mobile (offline, install prompt)
+3. Custom domain setup
+4. Security enhancements (2FA, audit logging)
 5. Inspection PDF reports
 
 ## Long-Term / Optional

@@ -331,13 +331,15 @@ export default defineSchema({
     warrantyPeriodMonths: v.optional(v.number()), // Warranty period in months
     warrantyExpiryDate: v.optional(v.string()), // Auto-calculated warranty end date
     notes: v.optional(v.string()),
+    incidentId: v.optional(v.id("incidents")), // Link to incident if created from one
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_dwelling", ["dwellingId"])
     .index("by_status", ["status"])
-    .index("by_priority", ["priority"]),
+    .index("by_priority", ["priority"])
+    .index("by_incident", ["incidentId"]),
 
   // Maintenance Photos table - photos attached to maintenance requests
   maintenancePhotos: defineTable({

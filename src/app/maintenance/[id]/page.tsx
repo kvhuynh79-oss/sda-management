@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -52,7 +52,7 @@ export default function MaintenanceRequestDetailPage() {
   const acceptQuote = useMutation(api.maintenanceQuotes.acceptQuote);
   const rejectQuote = useMutation(api.maintenanceQuotes.rejectQuote);
   const deleteQuote = useMutation(api.maintenanceQuotes.deleteQuote);
-  const createQuoteRequest = useMutation(api.quoteRequests.create);
+  const createAndSendQuoteRequest = useAction(api.quoteRequests.createAndSendEmail);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
@@ -1151,7 +1151,7 @@ export default function MaintenanceRequestDetailPage() {
             quoteRequests={quoteRequests || []}
             onClose={() => setShowRequestQuoteModal(false)}
             onSend={async (contractorId, emailSubject, emailBody, includesPhotos) => {
-              await createQuoteRequest({
+              await createAndSendQuoteRequest({
                 maintenanceRequestId: requestId,
                 contractorId: contractorId as Id<"contractors">,
                 emailSubject,
@@ -1159,6 +1159,7 @@ export default function MaintenanceRequestDetailPage() {
                 includesPhotos,
                 expiryDays: 7,
                 createdBy: user?.id as Id<"users">,
+                baseUrl: window.location.origin,
               });
               setShowRequestQuoteModal(false);
             }}

@@ -11,6 +11,7 @@ interface HeaderProps {
     | "properties"
     | "participants"
     | "payments"
+    | "claims"
     | "maintenance"
     | "inspections"
     | "incidents"
@@ -47,6 +48,7 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/properties", label: "Properties", key: "properties" },
     { href: "/participants", label: "Participants", key: "participants" },
     { href: "/payments", label: "Payments", key: "payments" },
+    { href: "/claims", label: "Claims", key: "claims" },
     { href: "/maintenance", label: "Maintenance", key: "maintenance" },
     { href: "/inspections", label: "Inspections", key: "inspections" },
     { href: "/incidents", label: "Incidents", key: "incidents" },

@@ -193,6 +193,13 @@ export default defineSchema({
     annualSdaBudget: v.number(),
     monthlySdaAmount: v.optional(v.number()),
     claimDay: v.optional(v.number()), // Day of month when claims are due (1-31)
+    claimMethod: v.optional(
+      v.union(
+        v.literal("agency_managed"), // NDIA direct
+        v.literal("pace"), // PACE bulk upload (CSV)
+        v.literal("plan_managed") // Plan manager portal
+      )
+    ),
     managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     dailySdaRate: v.optional(v.number()), // Deprecated - use monthlySdaAmount
     supportItemNumber: v.optional(v.string()),
@@ -236,6 +243,39 @@ export default defineSchema({
     .index("by_participant", ["participantId"])
     .index("by_plan", ["planId"])
     .index("by_date", ["paymentDate"]),
+
+  // Claims table - SDA funding claims tracking
+  claims: defineTable({
+    participantId: v.id("participants"),
+    planId: v.id("participantPlans"),
+    claimPeriod: v.string(), // Format: "YYYY-MM" (e.g., "2026-01")
+    claimMethod: v.union(
+      v.literal("agency_managed"),
+      v.literal("pace"),
+      v.literal("plan_managed")
+    ),
+    expectedAmount: v.number(), // Expected SDA amount for the period
+    claimedAmount: v.optional(v.number()), // Actual amount claimed (may differ)
+    status: v.union(
+      v.literal("pending"), // Not yet submitted
+      v.literal("submitted"), // Claim submitted
+      v.literal("paid"), // Payment received
+      v.literal("rejected"), // Claim rejected
+      v.literal("partial") // Partially paid
+    ),
+    claimDate: v.optional(v.string()), // Date the claim was submitted
+    paidDate: v.optional(v.string()), // Date payment received
+    paidAmount: v.optional(v.number()), // Actual amount received
+    paymentReference: v.optional(v.string()), // Reference number
+    notes: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_participant", ["participantId"])
+    .index("by_plan", ["planId"])
+    .index("by_period", ["claimPeriod"])
+    .index("by_status", ["status"]),
 
   // Maintenance Requests table
   maintenanceRequests: defineTable({

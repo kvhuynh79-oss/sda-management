@@ -172,12 +172,12 @@ export default function ClaimsPage() {
   });
 
   // Group claims by claim day
-  const groupedByDay = filteredClaims?.reduce((acc, claim) => {
+  const groupedByDay = filteredClaims?.reduce<Record<number, NonNullable<typeof filteredClaims>>>((acc, claim) => {
     const day = claim.claimDay;
     if (!acc[day]) acc[day] = [];
     acc[day].push(claim);
     return acc;
-  }, {} as Record<number, typeof filteredClaims>);
+  }, {});
 
   if (!user) {
     return (

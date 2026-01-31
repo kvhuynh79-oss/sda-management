@@ -416,6 +416,12 @@ export default defineSchema({
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
     address: v.optional(v.string()),
+    // RRC (Reasonable Rent Contribution) settings - rates change twice yearly (Mar 20 & Sep 20)
+    dspFortnightlyRate: v.optional(v.number()), // Disability Support Pension fortnightly base rate
+    dspPercentage: v.optional(v.number()), // % of DSP to contribute (typically 25%)
+    craFortnightlyRate: v.optional(v.number()), // Commonwealth Rent Assistance max fortnightly rate
+    craPercentage: v.optional(v.number()), // % of CRA to contribute (typically 100%)
+    rrcLastUpdated: v.optional(v.string()), // Date RRC rates were last updated
     createdAt: v.number(),
     updatedAt: v.number(),
   }),

@@ -16,6 +16,7 @@ export default function PropertyDetailPage() {
   const propertyId = params.id as Id<"properties">;
   const property = useQuery(api.properties.getById, { propertyId });
   const dwellings = useQuery(api.dwellings.getByProperty, { propertyId });
+  const documents = useQuery(api.documents.getByProperty, { propertyId });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -180,6 +181,30 @@ export default function PropertyDetailPage() {
                 <p className="text-gray-300 whitespace-pre-wrap">{property.notes}</p>
               </div>
             )}
+
+            {/* Documents */}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-white">Documents</h2>
+                <Link
+                  href={`/documents?propertyId=${propertyId}`}
+                  className="text-sm text-blue-400 hover:text-blue-300"
+                >
+                  + Add Document
+                </Link>
+              </div>
+              {documents === undefined ? (
+                <p className="text-gray-500 text-sm">Loading...</p>
+              ) : documents.length === 0 ? (
+                <p className="text-gray-500 text-sm">No documents attached to this property</p>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <DocumentRow key={doc._id} document={doc} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Column - Dwellings */}
@@ -322,6 +347,78 @@ function DwellingCard({ dwelling }: { dwelling: any }) {
             ))}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentRow({ document }: { document: any }) {
+  const getDocTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      ndis_plan: "NDIS Plan",
+      service_agreement: "Service Agreement",
+      lease: "Lease",
+      insurance: "Insurance",
+      compliance: "Compliance",
+      centrepay_consent: "Centrepay Consent",
+      report: "Report",
+      other: "Other",
+    };
+    return labels[type] || type;
+  };
+
+  const getDocTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      lease: "bg-purple-600",
+      insurance: "bg-yellow-600",
+      compliance: "bg-green-600",
+      report: "bg-blue-600",
+      other: "bg-gray-600",
+    };
+    return colors[type] || "bg-gray-600";
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const isExpired = document.expiryDate && new Date(document.expiryDate) < new Date();
+  const isExpiringSoon =
+    document.expiryDate &&
+    !isExpired &&
+    new Date(document.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  return (
+    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-650 transition-colors">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <span className={`px-2 py-1 rounded text-xs text-white ${getDocTypeColor(document.documentType)}`}>
+          {getDocTypeLabel(document.documentType)}
+        </span>
+        <div className="min-w-0">
+          <p className="text-white text-sm truncate">{document.fileName}</p>
+          <p className="text-gray-400 text-xs">
+            Uploaded {formatDate(document.createdAt)}
+            {document.expiryDate && (
+              <span className={isExpired ? "text-red-400" : isExpiringSoon ? "text-yellow-400" : ""}>
+                {" "}| Expires: {document.expiryDate}
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+      {document.downloadUrl && (
+        <a
+          href={document.downloadUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+        >
+          View
+        </a>
       )}
     </div>
   );

@@ -28,6 +28,7 @@ import type * as payments from "../payments.js";
 import type * as preventativeSchedule from "../preventativeSchedule.js";
 import type * as preventativeScheduleTemplates from "../preventativeScheduleTemplates.js";
 import type * as properties from "../properties.js";
+import type * as providerSettings from "../providerSettings.js";
 import type * as reports from "../reports.js";
 
 import type {
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   preventativeSchedule: typeof preventativeSchedule;
   preventativeScheduleTemplates: typeof preventativeScheduleTemplates;
   properties: typeof properties;
+  providerSettings: typeof providerSettings;
   reports: typeof reports;
 }>;
 

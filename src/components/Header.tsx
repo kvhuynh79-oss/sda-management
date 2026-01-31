@@ -17,6 +17,7 @@ interface HeaderProps {
     | "documents"
     | "alerts"
     | "schedule"
+    | "onboarding"
     | "settings"
     | "reports";
 }
@@ -50,6 +51,7 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/inspections", label: "Inspections", key: "inspections" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/documents", label: "Documents", key: "documents" },
+    { href: "/onboarding", label: "Onboarding", key: "onboarding" },
     { href: "/alerts", label: "Alerts", key: "alerts" },
     { href: "/preventative-schedule", label: "Schedule", key: "schedule" },
     { href: "/settings", label: "Settings", key: "settings" },

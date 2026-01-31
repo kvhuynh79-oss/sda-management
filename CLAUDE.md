@@ -116,9 +116,10 @@ src/components/
 - All dates stored as ISO strings (YYYY-MM-DD)
 
 ## Next Session Priorities
-1. **Bug fixing** - Test all features, fix any issues
-2. **Bulk data entry** - User will upload property/participant data
-3. **Owner reports** - Reference the Folio Summary format for 6-month reports
+1. **Verify "Create Maintenance Request" button** - Check incident detail page after hard refresh (Ctrl+Shift+R) to confirm the purple button appears. Code is deployed in commit 657b9bf.
+2. **Bug fixing** - Test all features, fix any issues
+3. **Bulk data entry** - User will upload property/participant data
+4. **Owner reports** - Reference the Folio Summary format for 6-month reports
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:

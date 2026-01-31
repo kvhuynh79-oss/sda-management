@@ -240,7 +240,7 @@ export const getVacancies = internalQuery({
   },
 });
 
-// Get overdue maintenance
+// Get overdue/outstanding maintenance
 export const getOverdueMaintenance = internalQuery({
   args: {
     propertyName: v.optional(v.string()),
@@ -248,6 +248,7 @@ export const getOverdueMaintenance = internalQuery({
   },
   handler: async (ctx, args) => {
     const today = new Date().toISOString().split("T")[0];
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     let requests = await ctx.db
       .query("maintenanceRequests")
@@ -259,10 +260,16 @@ export const getOverdueMaintenance = internalQuery({
       )
       .collect();
 
-    // Filter overdue (scheduled date in the past)
-    requests = requests.filter(
-      (r) => r.scheduledDate && r.scheduledDate < today
-    );
+    // Filter to show:
+    // 1. Requests with scheduledDate in the past (truly overdue)
+    // 2. OR requests older than 7 days in "reported" status (outstanding)
+    // 3. OR urgent/high priority requests
+    requests = requests.filter((r) => {
+      const isOverdue = r.scheduledDate && r.scheduledDate < today;
+      const isOldReported = r.status === "reported" && r.reportedDate && r.reportedDate < sevenDaysAgo;
+      const isUrgent = r.priority === "urgent" || r.priority === "high";
+      return isOverdue || isOldReported || isUrgent;
+    });
 
     if (args.priority) {
       requests = requests.filter((r) =>
@@ -288,11 +295,19 @@ export const getOverdueMaintenance = internalQuery({
           }
         }
 
+        // Calculate days overdue or outstanding
+        let daysOutstanding = 0;
+        if (request.scheduledDate && request.scheduledDate < today) {
+          daysOutstanding = -daysUntil(request.scheduledDate);
+        } else if (request.reportedDate) {
+          daysOutstanding = -daysUntil(request.reportedDate);
+        }
+
         return {
           request,
           dwelling,
           property,
-          daysOverdue: -daysUntil(request.scheduledDate!),
+          daysOverdue: daysOutstanding,
         };
       })
     );

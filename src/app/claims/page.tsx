@@ -90,6 +90,23 @@ export default function ClaimsPage() {
     );
   };
 
+  // Filter and group claims - define types here so they can be used in generateNdisExport
+  const filteredClaims = dashboard?.claims.filter((c: { claimMethod: string; status: string }) => {
+    if (filterMethod !== "all" && c.claimMethod !== filterMethod) return false;
+    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    return true;
+  });
+
+  type ClaimItem = NonNullable<typeof filteredClaims>[number];
+  type ClaimsGrouped = Record<number, ClaimItem[]>;
+
+  const groupedByDay = filteredClaims?.reduce<ClaimsGrouped>((acc: ClaimsGrouped, claim: ClaimItem) => {
+    const day = claim.claimDay;
+    if (!acc[day]) acc[day] = [];
+    acc[day].push(claim);
+    return acc;
+  }, {});
+
   const generateNdisExport = (claim: ClaimItem) => {
     if (!providerSettings) {
       alert("Please configure provider settings first (go to Payments > NDIS Export > Provider Settings)");
@@ -246,22 +263,6 @@ export default function ClaimsPage() {
       alert("Failed to mark as paid");
     }
   };
-
-  const filteredClaims = dashboard?.claims.filter((c: { claimMethod: string; status: string }) => {
-    if (filterMethod !== "all" && c.claimMethod !== filterMethod) return false;
-    if (filterStatus !== "all" && c.status !== filterStatus) return false;
-    return true;
-  });
-
-  // Group claims by claim day
-  type ClaimItem = NonNullable<typeof filteredClaims>[number];
-  type ClaimsGrouped = Record<number, ClaimItem[]>;
-  const groupedByDay = filteredClaims?.reduce<ClaimsGrouped>((acc: ClaimsGrouped, claim: ClaimItem) => {
-    const day = claim.claimDay;
-    if (!acc[day]) acc[day] = [];
-    acc[day].push(claim);
-    return acc;
-  }, {});
 
   if (!user) {
     return (

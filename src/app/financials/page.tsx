@@ -1086,9 +1086,9 @@ function OwnerPaymentsTab() {
 
   const generateOwnerStatement = async (propertyName: string, payments: NonNullable<typeof filteredPayments>) => {
     try {
-      const jsPDFModule = await import("jspdf");
-      const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
-      await import("jspdf-autotable");
+      // Dynamic imports for PDF generation
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
 
       const doc = new jsPDF();
       const owner = payments[0]?.owner;
@@ -1120,7 +1120,7 @@ function OwnerPaymentsTab() {
             : `Period: All Time`;
       doc.text(periodText, 14, startY + 18);
 
-      // Table
+      // Table data
       const tableData = payments.map((p) => [
         p.paymentDate,
         p.paymentType === "sda_share" ? "SDA Share" : p.paymentType === "interim" ? "Interim" : p.paymentType === "rent_contribution" ? "RRC" : "Other",
@@ -1131,8 +1131,8 @@ function OwnerPaymentsTab() {
 
       const total = payments.reduce((sum, p) => sum + p.amount, 0);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (doc as any).autoTable({
+      // Use autoTable function directly
+      autoTable(doc, {
         startY: startY + 28,
         head: [["Date", "Type", "Description", "Reference", "Amount"]],
         body: tableData,
@@ -1168,7 +1168,7 @@ function OwnerPaymentsTab() {
       doc.save(fileName);
     } catch (error) {
       console.error("Error generating statement:", error);
-      alert("Failed to generate statement. Please try again.");
+      alert(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
 

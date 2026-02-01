@@ -8,7 +8,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../convex/_generated/dataModel";
 
-type TabType = "payments" | "claims";
+type TabType = "payments" | "claims" | "owner_payments";
 
 export default function FinancialsPage() {
   return (
@@ -113,6 +113,16 @@ function FinancialsContent() {
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+            <TabButton
+              label="Owner Disbursements"
+              isActive={activeTab === "owner_payments"}
+              onClick={() => handleTabChange("owner_payments")}
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               }
             />
@@ -340,47 +350,49 @@ function ClaimsTab({ userId }: { userId: string }) {
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonthLastDay = new Date(prevYear, prevMonth, 0).getDate();
-    const periodStart = `${prevYear}-${String(prevMonth).padStart(2, "0")}-01`;
-    const periodEnd = `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(prevMonthLastDay).padStart(2, "0")}`;
-    const claimRef = `${String(month).padStart(2, "0")}${year}`;
+    // NDIS format: D/MM/YYYY
+    const periodStart = `1/${String(prevMonth).padStart(2, "0")}/${prevYear}`;
+    const periodEnd = `${prevMonthLastDay}/${String(prevMonth).padStart(2, "0")}/${prevYear}`;
+    // ClaimReference format: day + month + year (e.g., 5012026 for 5th Jan 2026)
+    const fileRef = `${String(month).padStart(2, "0")}${year}`;
 
-    // Short headers (under 10 chars)
+    // NDIS exact headers
     const headers = [
-      "RegNo",
-      "NDISNo",
-      "FromDate",
-      "ToDate",
-      "SupportNo",
-      "ClaimRef",
-      "Qty",
+      "RegistrationNumber",
+      "NDISNumber",
+      "SupportsDeliveredFrom",
+      "SupportsDeliveredTo",
+      "SupportNumber",
+      "ClaimReference",
+      "Quantity",
       "Hours",
       "UnitPrice",
       "GSTCode",
-      "AuthBy",
-      "Approved",
-      "InKind",
+      "AuthorisedBy",
+      "ParticipantApproved",
+      "InKindFundingProgram",
       "ClaimType",
-      "CancelRsn",
-      "ABN",
+      "CancellationReason",
+      "ABN of Support Provider",
     ];
 
     const rows = selectedClaimsList.map((claim) => ({
-      RegNo: providerSettings?.ndisRegistrationNumber || "",
-      NDISNo: claim.participant.ndisNumber,
-      FromDate: periodStart,
-      ToDate: periodEnd,
-      SupportNo: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
-      ClaimRef: claimRef,
-      Qty: "1",
+      RegistrationNumber: providerSettings?.ndisRegistrationNumber || "",
+      NDISNumber: claim.participant.ndisNumber,
+      SupportsDeliveredFrom: periodStart,
+      SupportsDeliveredTo: periodEnd,
+      SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
+      ClaimReference: `${claim.claimDay}${String(month).padStart(2, "0")}${year}`,
+      Quantity: "1",
       Hours: "",
       UnitPrice: claim.expectedAmount.toFixed(2),
       GSTCode: providerSettings?.defaultGstCode || "P2",
-      AuthBy: "",
-      Approved: "",
-      InKind: "",
+      AuthorisedBy: "",
+      ParticipantApproved: "",
+      InKindFundingProgram: "",
       ClaimType: "",
-      CancelRsn: "",
-      ABN: providerSettings?.abn || "",
+      CancellationReason: "",
+      "ABN of Support Provider": providerSettings?.abn || "",
     }));
 
     let csvContent = headers.join(",") + "\n";
@@ -392,7 +404,7 @@ function ClaimsTab({ userId }: { userId: string }) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${claimRef}.csv`;
+    a.download = `${fileRef}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 

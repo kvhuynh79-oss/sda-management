@@ -45,6 +45,7 @@ export default function OnboardingPage() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>("");
   const [selectedDwellingId, setSelectedDwellingId] = useState<string>("");
+  const [proposedMoveInDate, setProposedMoveInDate] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showRrcSettings, setShowRrcSettings] = useState(false);
   const [rrcFormData, setRrcFormData] = useState({
@@ -243,8 +244,10 @@ export default function OnboardingPage() {
 
       // Body paragraph 1
       doc.setFontSize(11);
-      const moveInDateFormatted = selectedParticipant.moveInDate
-        ? new Date(selectedParticipant.moveInDate).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
+      // Use proposed move-in date if set, otherwise fall back to participant's move-in date
+      const effectiveMoveInDate = proposedMoveInDate || selectedParticipant.moveInDate;
+      const moveInDateFormatted = effectiveMoveInDate
+        ? new Date(effectiveMoveInDate).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
         : "TBC";
       const para1 = `Congratulations! Better Living Solutions P/L is delighted to offer you accommodation in our Specialist Disability Accommodation (SDA) at the above address. The accommodation is set to commence on the ${moveInDateFormatted}.`;
       const splitPara1 = doc.splitTextToSize(para1, pageWidth - margin * 2);
@@ -349,8 +352,10 @@ export default function OnboardingPage() {
         postcode: addressParts[1]?.split(" ")[2] || "",
       };
       const sdaAmount = dwelling?.sdaRegisteredAmount || 0;
-      const moveInDate = selectedParticipant.moveInDate
-        ? new Date(selectedParticipant.moveInDate).toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
+      // Use proposed move-in date if set, otherwise fall back to participant's move-in date
+      const effectiveMoveInDate = proposedMoveInDate || selectedParticipant.moveInDate;
+      const moveInDate = effectiveMoveInDate
+        ? new Date(effectiveMoveInDate).toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
         : "_______________";
 
       const addPageFooter = (num: number) => {
@@ -1356,6 +1361,27 @@ export default function OnboardingPage() {
                 Max Participants: {selectedDwelling.maxParticipants}
               </p>
             )}
+          </div>
+
+          {/* Proposed Move-in Date */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Proposed Move-in Date
+            </label>
+            <input
+              type="date"
+              value={proposedMoveInDate}
+              onChange={(e) => setProposedMoveInDate(e.target.value)}
+              className="w-full md:w-1/3 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+            <p className="mt-1 text-sm text-gray-400">
+              This date will appear in the SDA Quotation and Accommodation Agreement documents.
+              {selectedParticipant?.moveInDate && !proposedMoveInDate && (
+                <span className="text-yellow-400 block mt-1">
+                  Currently using participant&apos;s existing move-in date: {new Date(selectedParticipant.moveInDate).toLocaleDateString("en-AU")}
+                </span>
+              )}
+            </p>
           </div>
 
           {/* Selected Participant Details */}

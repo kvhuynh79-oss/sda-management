@@ -380,11 +380,11 @@ export default function IncidentDetailPage() {
           </div>
         )}
 
-        <div className="bg-gray-800 rounded-lg p-6">
+        <div className="bg-gray-800 rounded-lg p-4 sm:p-6">
           {/* Header */}
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
                 <span className={`px-2 py-1 rounded text-xs text-white ${getSeverityColor(incident.severity)}`}>
                   {incident.severity.toUpperCase()}
                 </span>
@@ -398,17 +398,17 @@ export default function IncidentDetailPage() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="text-xl font-bold text-white bg-gray-700 border border-gray-600 rounded px-3 py-1 w-full"
+                  className="text-lg sm:text-xl font-bold text-white bg-gray-700 border border-gray-600 rounded px-3 py-1 w-full"
                 />
               ) : (
-                <h1 className="text-xl font-bold text-white">{incident.title}</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-white">{incident.title}</h1>
               )}
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap flex-shrink-0">
               {canResolve && !isEditing && (
                 <button
                   onClick={() => setShowResolveModal(true)}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm sm:text-base"
                 >
                   Resolve
                 </button>
@@ -416,7 +416,7 @@ export default function IncidentDetailPage() {
               {canClose && !isEditing && (
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors text-sm sm:text-base"
                 >
                   Close
                 </button>
@@ -424,31 +424,31 @@ export default function IncidentDetailPage() {
               {!isEditing && incident.status !== "closed" && (
                 <Link
                   href={`/maintenance/new?incidentId=${incidentId}&dwellingId=${incident.dwellingId || ""}&propertyId=${incident.property?._id || ""}&title=${encodeURIComponent("Follow-up: " + incident.title)}&description=${encodeURIComponent(`Follow-up action for incident: ${incident.title}\n\nIncident Description:\n${incident.description}\n\nImmediate Action Taken:\n${incident.immediateActionTaken || "None"}\n\nFollow-up Notes:\n${incident.followUpNotes || "None"}`)}&category=building`}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm sm:text-base"
                 >
-                  Create Maintenance Request
+                  Create MR
                 </Link>
               )}
               {isEditing ? (
                 <>
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isSaving || uploadingMedia}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm sm:text-base"
                   >
-                    {isSaving ? (uploadingMedia ? "Uploading..." : "Saving...") : "Save Changes"}
+                    {isSaving ? (uploadingMedia ? "Uploading..." : "Saving...") : "Save"}
                   </button>
                 </>
               ) : (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm sm:text-base"
                 >
                   Edit
                 </button>

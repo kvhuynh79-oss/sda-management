@@ -16,7 +16,8 @@
       "Bash(vercel:*)",
       "Bash(CONVEX_DEPLOYMENT=accomplished-hornet-117 npx convex run:*)",
       "Read(//c/**)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

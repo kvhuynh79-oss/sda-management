@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -13,6 +13,7 @@ interface HeaderProps {
     | "financials"
     | "operations"
     | "contractors"
+    | "database"
     | "incidents"
     | "documents"
     | "onboarding"
@@ -28,6 +29,12 @@ interface HeaderProps {
     | "schedule";
 }
 
+// Database dropdown items
+const databaseItems = [
+  { href: "/database/support-coordinators", label: "Support Coordinators" },
+  { href: "/contractors", label: "Contractors" },
+];
+
 export default function Header({ currentPage }: HeaderProps) {
   const router = useRouter();
   const [user, setUser] = useState<{
@@ -35,12 +42,25 @@ export default function Header({ currentPage }: HeaderProps) {
     lastName: string;
     role: string;
   } | null>(null);
+  const [databaseOpen, setDatabaseOpen] = useState(false);
+  const databaseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (databaseRef.current && !databaseRef.current.contains(event.target as Node)) {
+        setDatabaseOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -54,7 +74,6 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/participants", label: "Participants", key: "participants" },
     { href: "/financials", label: "Financials", key: "financials" },
     { href: "/operations", label: "Operations", key: "operations" },
-    { href: "/contractors", label: "Contractors", key: "contractors" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/documents", label: "Documents", key: "documents" },
     { href: "/onboarding", label: "Onboarding", key: "onboarding" },
@@ -62,6 +81,8 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/admin/ai", label: "AI Assistant", key: "ai" },
     { href: "/settings", label: "Settings", key: "settings" },
   ];
+
+  const isDatabaseActive = currentPage === "database" || currentPage === "contractors";
 
   return (
     <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
@@ -98,12 +119,62 @@ export default function Header({ currentPage }: HeaderProps) {
           </div>
         </div>
         {/* Navigation - scrollable on mobile */}
-        <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          {navItems.map((item) => (
+        <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide items-center min-w-0">
+          {navItems.slice(0, 5).map((item) => (
             <Link
               key={item.key}
               href={item.href}
-              className={`whitespace-nowrap text-sm ${
+              className={`whitespace-nowrap text-sm flex-shrink-0 ${
+                currentPage === item.key
+                  ? "text-white font-medium"
+                  : "text-gray-400 hover:text-white transition-colors"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+
+          {/* Database Dropdown */}
+          <div ref={databaseRef} className="relative flex-shrink-0">
+            <button
+              onClick={() => setDatabaseOpen(!databaseOpen)}
+              className={`whitespace-nowrap text-sm flex items-center gap-1 ${
+                isDatabaseActive
+                  ? "text-white font-medium"
+                  : "text-gray-400 hover:text-white transition-colors"
+              }`}
+            >
+              Database
+              <svg
+                className={`w-3 h-3 transition-transform ${databaseOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {databaseOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 min-w-[180px] z-50">
+                {databaseItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setDatabaseOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {navItems.slice(5).map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              className={`whitespace-nowrap text-sm flex-shrink-0 ${
                 currentPage === item.key
                   ? "text-white font-medium"
                   : "text-gray-400 hover:text-white transition-colors"

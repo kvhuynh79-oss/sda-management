@@ -97,8 +97,8 @@ function OperationsContent() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-700 mb-6">
-          <nav className="flex gap-4">
+        <div className="border-b border-gray-700 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <nav className="flex gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
             <TabButton
               label="Maintenance"
               isActive={activeTab === "maintenance"}
@@ -156,14 +156,15 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+      className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 text-sm sm:text-base ${
         isActive
           ? "border-blue-500 text-blue-400"
           : "border-transparent text-gray-400 hover:text-white hover:border-gray-600"
       }`}
     >
       {icon}
-      {label}
+      <span className="hidden sm:inline">{label}</span>
+      <span className="sm:hidden">{label.split(' ')[0]}</span>
     </button>
   );
 }

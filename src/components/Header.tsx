@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -36,6 +36,8 @@ export default function Header({ currentPage }: HeaderProps) {
     lastName: string;
     role: string;
   } | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const activeItemRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -43,6 +45,21 @@ export default function Header({ currentPage }: HeaderProps) {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  // Scroll active nav item into view on mount/page change
+  useEffect(() => {
+    if (activeItemRef.current && navRef.current) {
+      const nav = navRef.current;
+      const activeItem = activeItemRef.current;
+
+      // Calculate scroll position to center the active item
+      const navRect = nav.getBoundingClientRect();
+      const itemRect = activeItem.getBoundingClientRect();
+      const scrollLeft = activeItem.offsetLeft - (navRect.width / 2) + (itemRect.width / 2);
+
+      nav.scrollTo({ left: Math.max(0, scrollLeft), behavior: "instant" });
+    }
+  }, [currentPage]);
 
   const handleLogout = () => {
     localStorage.removeItem("sda_user");
@@ -99,11 +116,12 @@ export default function Header({ currentPage }: HeaderProps) {
           </div>
         </div>
         {/* Navigation - scrollable on mobile */}
-        <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-hide">
+        <nav ref={navRef} className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-hide">
           {navItems.map((item) => (
             <Link
               key={item.key}
               href={item.href}
+              ref={currentPage === item.key ? activeItemRef : null}
               className={`whitespace-nowrap text-sm flex-shrink-0 ${
                 currentPage === item.key
                   ? "text-white font-medium"

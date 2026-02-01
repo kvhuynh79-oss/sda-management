@@ -500,7 +500,8 @@ function ClaimsTab({ userId }: { userId: string }) {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <StatCard label="Monthly Total" value={formatCurrency(filteredClaims?.reduce((sum, c) => sum + c.expectedAmount, 0) || 0)} color="green" />
           <StatCard label="Total Claims" value={summary.total.toString()} color="blue" />
           <StatCard label="Pending" value={summary.pending.toString()} color="yellow" />
           <StatCard label="Submitted" value={summary.submitted.toString()} color="blue" />

@@ -132,6 +132,7 @@ function FinancialsContent() {
         {/* Tab Content */}
         {activeTab === "claims" && <ClaimsTab userId={user.id} />}
         {activeTab === "payments" && <PaymentsTab />}
+        {activeTab === "owner_payments" && <OwnerPaymentsTab />}
       </main>
     </div>
   );
@@ -350,9 +351,9 @@ function ClaimsTab({ userId }: { userId: string }) {
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonthLastDay = new Date(prevYear, prevMonth, 0).getDate();
-    // NDIS format: D/MM/YYYY
-    const periodStart = `1/${String(prevMonth).padStart(2, "0")}/${prevYear}`;
-    const periodEnd = `${prevMonthLastDay}/${String(prevMonth).padStart(2, "0")}/${prevYear}`;
+    // NDIS format: YYYY/MM/DD
+    const periodStart = `${prevYear}/${String(prevMonth).padStart(2, "0")}/01`;
+    const periodEnd = `${prevYear}/${String(prevMonth).padStart(2, "0")}/${String(prevMonthLastDay).padStart(2, "0")}`;
     // ClaimReference format: day + month + year (e.g., 5012026 for 5th Jan 2026)
     const fileRef = `${String(month).padStart(2, "0")}${year}`;
 
@@ -1007,6 +1008,265 @@ function PaymentsTab() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// OWNER PAYMENTS TAB
+// ============================================
+function OwnerPaymentsTab() {
+  const [filterProperty, setFilterProperty] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+
+  const ownerPayments = useQuery(api.ownerPayments.getAll, {});
+  const properties = useQuery(api.properties.getAll);
+
+  const filteredPayments = ownerPayments?.filter((payment) => {
+    const matchesProperty = filterProperty === "all" || payment.propertyId === filterProperty;
+    const matchesType = filterType === "all" || payment.paymentType === filterType;
+    const matchesDateFrom = !dateFrom || payment.paymentDate >= dateFrom;
+    const matchesDateTo = !dateTo || payment.paymentDate <= dateTo;
+    return matchesProperty && matchesType && matchesDateFrom && matchesDateTo;
+  });
+
+  const generateOwnerStatement = async (propertyName: string, payments: NonNullable<typeof filteredPayments>) => {
+    const { jsPDF } = await import("jspdf");
+    await import("jspdf-autotable");
+
+    const doc = new jsPDF();
+    const owner = payments[0]?.owner;
+    const property = payments[0]?.property;
+    const ownerName = owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown";
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Owner Payment Statement", 105, 20, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Better Living Solutions", 105, 28, { align: "center" });
+
+    // Statement Details
+    doc.setFontSize(10);
+    const startY = 45;
+    doc.text(`Property: ${property?.addressLine1 || propertyName}`, 14, startY);
+    doc.text(`Owner: ${ownerName}`, 14, startY + 6);
+    doc.text(`Statement Date: ${new Date().toLocaleDateString("en-AU")}`, 14, startY + 12);
+
+    const periodText = dateFrom && dateTo
+      ? `Period: ${dateFrom} to ${dateTo}`
+      : dateFrom
+        ? `Period: From ${dateFrom}`
+        : dateTo
+          ? `Period: Up to ${dateTo}`
+          : `Period: All Time`;
+    doc.text(periodText, 14, startY + 18);
+
+    // Table
+    const tableData = payments.map((p) => [
+      p.paymentDate,
+      p.paymentType === "sda_share" ? "SDA Share" : p.paymentType === "interim" ? "Interim" : p.paymentType === "rent_contribution" ? "RRC" : "Other",
+      p.description || "-",
+      p.bankReference || "-",
+      formatCurrency(p.amount),
+    ]);
+
+    const total = payments.reduce((sum, p) => sum + p.amount, 0);
+
+    (doc as typeof doc & { autoTable: (options: unknown) => void }).autoTable({
+      startY: startY + 28,
+      head: [["Date", "Type", "Description", "Reference", "Amount"]],
+      body: tableData,
+      foot: [["", "", "", "Total:", formatCurrency(total)]],
+      theme: "striped",
+      headStyles: { fillColor: [59, 130, 246] },
+      footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold" },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        4: { halign: "right" },
+      },
+    });
+
+    // Bank Details
+    const finalY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
+    if (owner?.bankBsb || owner?.bankAccountNumber) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Bank Details:", 14, finalY);
+      doc.setFont("helvetica", "normal");
+      if (owner?.bankAccountName) doc.text(`Account Name: ${owner.bankAccountName}`, 14, finalY + 6);
+      if (owner?.bankBsb) doc.text(`BSB: ${owner.bankBsb}`, 14, finalY + 12);
+      if (owner?.bankAccountNumber) doc.text(`Account: ${owner.bankAccountNumber}`, 14, finalY + 18);
+    }
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128);
+    doc.text("This statement was generated by Better Living Solutions SDA Management System", 105, 285, { align: "center" });
+
+    const fileName = `Owner_Statement_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+    doc.save(fileName);
+  };
+
+  const totalAmount = filteredPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(amount);
+  };
+
+  const getPaymentTypeBadge = (type: string) => {
+    const styles: Record<string, string> = {
+      interim: "bg-orange-600 text-white",
+      sda_share: "bg-blue-600 text-white",
+      rent_contribution: "bg-purple-600 text-white",
+      other: "bg-gray-600 text-white",
+    };
+    const labels: Record<string, string> = {
+      interim: "Interim",
+      sda_share: "SDA Share",
+      rent_contribution: "RRC",
+      other: "Other",
+    };
+    return (
+      <span className={`px-2 py-1 text-xs rounded-full ${styles[type] || "bg-gray-600 text-white"}`}>
+        {labels[type] || type}
+      </span>
+    );
+  };
+
+  // Group payments by property
+  const paymentsByProperty = filteredPayments?.reduce<Record<string, typeof filteredPayments>>((acc, payment) => {
+    const propertyName = payment.property?.propertyName || payment.property?.addressLine1 || "Unknown";
+    if (!acc[propertyName]) acc[propertyName] = [];
+    acc[propertyName].push(payment);
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StatCard label="Total Disbursements" value={formatCurrency(totalAmount)} color="blue" />
+        <StatCard label="Total Payments" value={(filteredPayments?.length || 0).toString()} color="green" />
+        <StatCard label="Properties" value={Object.keys(paymentsByProperty || {}).length.toString()} color="yellow" />
+      </div>
+
+      {/* Filters */}
+      <div className="bg-gray-800 rounded-lg p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <select
+            value={filterProperty}
+            onChange={(e) => setFilterProperty(e.target.value)}
+            className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+          >
+            <option value="all">All Properties</option>
+            {properties?.map((property) => (
+              <option key={property._id} value={property._id}>
+                {property.propertyName || property.addressLine1}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+          >
+            <option value="all">All Types</option>
+            <option value="interim">Interim</option>
+            <option value="sda_share">SDA Share</option>
+            <option value="rent_contribution">Rent Contribution</option>
+            <option value="other">Other</option>
+          </select>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">From Date</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">To Date</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Payments by Property */}
+      {!filteredPayments ? (
+        <div className="text-gray-400 text-center py-8">Loading...</div>
+      ) : filteredPayments.length === 0 ? (
+        <div className="text-center py-12 bg-gray-800 rounded-lg">
+          <p className="text-gray-400">No owner disbursements found</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {paymentsByProperty && Object.entries(paymentsByProperty).map(([propertyName, payments]) => {
+            const propertyTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+            const owner = payments[0]?.owner;
+            return (
+              <div key={propertyName} className="bg-gray-800 rounded-lg overflow-hidden">
+                <div className="bg-gray-700 px-4 py-3 flex justify-between items-center">
+                  <div>
+                    <h4 className="text-white font-medium">{propertyName}</h4>
+                    <p className="text-gray-400 text-sm">
+                      Owner: {owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-white font-medium">{formatCurrency(propertyTotal)}</p>
+                      <p className="text-gray-400 text-sm">{payments.length} payment(s)</p>
+                    </div>
+                    <button
+                      onClick={() => generateOwnerStatement(propertyName, payments)}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-2"
+                      title="Generate PDF Statement"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Statement
+                    </button>
+                  </div>
+                </div>
+                <table className="w-full">
+                  <thead className="bg-gray-750">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Type</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Description</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Reference</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-400 uppercase">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {payments.map((payment) => (
+                      <tr key={payment._id} className="hover:bg-gray-750">
+                        <td className="px-4 py-3 text-white text-sm">{payment.paymentDate}</td>
+                        <td className="px-4 py-3">{getPaymentTypeBadge(payment.paymentType)}</td>
+                        <td className="px-4 py-3 text-gray-400 text-sm">{payment.description || "-"}</td>
+                        <td className="px-4 py-3 text-gray-400 text-sm">{payment.bankReference || "-"}</td>
+                        <td className="px-4 py-3 text-right text-green-400 text-sm font-medium">{formatCurrency(payment.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

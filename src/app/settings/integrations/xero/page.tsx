@@ -26,7 +26,8 @@ export default function XeroSettingsPage() {
     lastName: string;
     role: string;
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [syncingAccounts, setSyncingAccounts] = useState<Set<string>>(new Set());
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -94,7 +95,7 @@ export default function XeroSettingsPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsDisconnecting(true);
     try {
       await disconnectXero({ connectionId: connection._id });
       setMessage({ type: "success", text: "Successfully disconnected from Xero" });
@@ -102,7 +103,7 @@ export default function XeroSettingsPage() {
       console.error("Error disconnecting:", error);
       setMessage({ type: "error", text: "Failed to disconnect from Xero" });
     } finally {
-      setIsLoading(false);
+      setIsDisconnecting(false);
     }
   };
 
@@ -128,9 +129,10 @@ export default function XeroSettingsPage() {
 
   const handleSyncTransactions = async (
     bankAccountId: Id<"bankAccounts">,
-    xeroAccountId: string
+    xeroAccountId: string,
+    accountName: string
   ) => {
-    setIsLoading(true);
+    setSyncingAccounts((prev) => new Set(prev).add(bankAccountId));
     setMessage(null);
     try {
       const result = await syncBankTransactions({
@@ -139,16 +141,20 @@ export default function XeroSettingsPage() {
       });
       setMessage({
         type: "success",
-        text: `Synced ${result.imported} new transactions (${result.skipped} already existed)`,
+        text: `${accountName}: Synced ${result.imported} new transactions (${result.skipped} already existed)`,
       });
     } catch (error) {
       console.error("Error syncing transactions:", error);
       setMessage({
         type: "error",
-        text: `Failed to sync: ${error}`,
+        text: `${accountName}: Failed to sync - ${error}`,
       });
     } finally {
-      setIsLoading(false);
+      setSyncingAccounts((prev) => {
+        const next = new Set(prev);
+        next.delete(bankAccountId);
+        return next;
+      });
     }
   };
 
@@ -266,10 +272,10 @@ export default function XeroSettingsPage() {
                 {isConnected && (
                   <button
                     onClick={handleDisconnect}
-                    disabled={isLoading}
+                    disabled={isDisconnecting}
                     className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded text-sm transition-colors"
                   >
-                    Disconnect
+                    {isDisconnecting ? "Disconnecting..." : "Disconnect"}
                   </button>
                 )}
               </div>
@@ -415,15 +421,15 @@ export default function XeroSettingsPage() {
                           ) as HTMLSelectElement;
                           const xeroAccountId = select?.value;
                           if (xeroAccountId && xeroAccountId !== "") {
-                            handleSyncTransactions(account._id, xeroAccountId);
+                            handleSyncTransactions(account._id, xeroAccountId, account.accountName);
                           } else {
                             alert("Please select a Xero account first");
                           }
                         }}
-                        disabled={isLoading}
+                        disabled={syncingAccounts.has(account._id)}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm"
                       >
-                        {isLoading ? "Syncing..." : "Sync Now"}
+                        {syncingAccounts.has(account._id) ? "Syncing..." : "Sync Now"}
                       </button>
                     </div>
                   ) : (

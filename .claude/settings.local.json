@@ -21,7 +21,12 @@
       "Read(//tmp/claude/c--Projects-sda-management/tasks/**)",
       "Bash(python3:*)",
       "Bash(Select-String -Pattern '\"\"firstName\"\": \"\"Marcel\"\"' -Context 50,5)",
-      "Bash(more:*)"
+      "Bash(more:*)",
+      "WebFetch(domain:www.whois.com)",
+      "WebFetch(domain:www.auda.org.au)",
+      "WebFetch(domain:whois.ausregistry.com.au)",
+      "WebFetch(domain:whois.auda.org.au)",
+      "WebFetch(domain:mysdamanager.com)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

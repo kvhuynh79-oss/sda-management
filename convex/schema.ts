@@ -151,7 +151,7 @@ export default defineSchema({
     emergencyContactPhone: v.optional(v.string()),
     emergencyContactRelation: v.optional(v.string()),
     dwellingId: v.id("dwellings"),
-    moveInDate: v.string(),
+    moveInDate: v.optional(v.string()),
     moveOutDate: v.optional(v.string()),
     status: v.union(
       v.literal("active"),
@@ -902,6 +902,39 @@ export default defineSchema({
   })
     .index("by_dwelling", ["dwellingId"])
     .index("by_status", ["vacancyStatus"]),
+
+  // Owner Payments table - outgoing payments to property owners/landlords
+  ownerPayments: defineTable({
+    propertyId: v.id("properties"),
+    ownerId: v.id("owners"),
+    participantId: v.optional(v.id("participants")), // Which participant the payment relates to
+    paymentType: v.union(
+      v.literal("interim"), // Fixed payments while waiting for SDA approval
+      v.literal("sda_share"), // Owner's share of SDA revenue
+      v.literal("rent_contribution"), // RRC payments forwarded to owner
+      v.literal("other")
+    ),
+    amount: v.number(),
+    paymentDate: v.string(), // Date payment was made
+    periodStart: v.optional(v.string()), // Start of period covered
+    periodEnd: v.optional(v.string()), // End of period covered (e.g., "week ending")
+    bankReference: v.optional(v.string()), // Bank transaction reference
+    description: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("paid"),
+      v.literal("reconciled")
+    ),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_owner", ["ownerId"])
+    .index("by_participant", ["participantId"])
+    .index("by_payment_date", ["paymentDate"])
+    .index("by_type", ["paymentType"]),
 
   // AI Processing Queue table - for batch document processing
   aiProcessingQueue: defineTable({

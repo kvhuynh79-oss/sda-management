@@ -23,6 +23,7 @@ export const create = mutation({
       v.union(
         v.literal("active"),
         v.literal("under_construction"),
+        v.literal("planning"),
         v.literal("sil_property")
       )
     ),
@@ -130,6 +131,7 @@ export const update = mutation({
       v.union(
         v.literal("active"),
         v.literal("under_construction"),
+        v.literal("planning"),
         v.literal("sil_property")
       )
     ),

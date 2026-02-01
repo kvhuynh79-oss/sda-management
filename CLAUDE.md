@@ -133,13 +133,14 @@ src/components/
   - Owner bank details for payment
 
 ## Future Roadmap (Priorities)
-1. **Configure Resend API for email** - Set up email sending for quote requests
+1. **Custom domain setup** - Set up production domain for the app
+2. **Configure Resend API for email** - Set up email sending for alerts & quote requests (after domain setup)
    - Sign up at https://resend.com
    - Add `RESEND_API_KEY` to Convex environment variables
    - Add `RESEND_FROM_EMAIL` to Convex environment variables
    - Verify domain for production sending
-2. PWA for mobile (offline, install prompt)
-3. Custom domain setup
+   - Enables: claim due alerts, contractor quote requests, daily digests
+3. PWA for mobile (offline, install prompt)
 4. Security enhancements (2FA, audit logging)
 5. Inspection PDF reports
 

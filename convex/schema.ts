@@ -82,6 +82,7 @@ export default defineSchema({
       v.union(
         v.literal("active"), // Property is operational
         v.literal("under_construction"), // Property being built
+        v.literal("planning"), // Property in planning stage
         v.literal("sil_property") // SIL property managed for other providers
       )
     ),

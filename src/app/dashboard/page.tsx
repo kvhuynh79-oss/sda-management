@@ -48,6 +48,11 @@ export default function DashboardPage() {
   const totalVacancies = properties?.reduce((sum, p) => sum + p.vacancies, 0) || 0;
   const totalDwellings = properties?.reduce((sum, p) => sum + p.dwellingCount, 0) || 0;
 
+  // Property status counts
+  const activeSdaCount = properties?.filter(p => !p.propertyStatus || p.propertyStatus === "active").length || 0;
+  const underConstructionCount = properties?.filter(p => p.propertyStatus === "under_construction").length || 0;
+  const planningCount = properties?.filter(p => p.propertyStatus === "planning").length || 0;
+
   return (
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="dashboard" />
@@ -56,11 +61,39 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h2 className="text-2xl font-bold text-white mb-8">Dashboard</h2>
 
-        {/* Stats Cards */}
+        {/* Property Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Link href="/properties?status=active">
+            <DashboardCard
+              title="Active SDA"
+              value={activeSdaCount.toString()}
+              subtitle="Operational properties"
+              color="green"
+            />
+          </Link>
+          <Link href="/properties?status=under_construction">
+            <DashboardCard
+              title="Under Construction"
+              value={underConstructionCount.toString()}
+              subtitle="Properties being built"
+              color="yellow"
+            />
+          </Link>
+          <Link href="/properties?status=planning">
+            <DashboardCard
+              title="Planning Stage"
+              value={planningCount.toString()}
+              subtitle="Future developments"
+              color="blue"
+            />
+          </Link>
+        </div>
+
+        {/* General Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Link href="/properties">
             <DashboardCard
-              title="Properties"
+              title="Total Properties"
               value={totalProperties.toString()}
               subtitle={`${totalDwellings} dwellings total`}
               color="blue"
@@ -74,7 +107,7 @@ export default function DashboardPage() {
               color="green"
             />
           </Link>
-          <Link href="/properties">
+          <Link href="/vacancies">
             <DashboardCard
               title="Vacancies"
               value={totalVacancies.toString()}

@@ -57,12 +57,16 @@ export const getAll = query({
         const dwelling = await ctx.db.get(request.dwellingId);
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
         const createdByUser = await ctx.db.get(request.createdBy);
+        const assignedContractor = request.assignedContractorId
+          ? await ctx.db.get(request.assignedContractorId)
+          : null;
 
         return {
           ...request,
           dwelling,
           property,
           createdByUser,
+          assignedContractor,
         };
       })
     );
@@ -139,12 +143,16 @@ export const getById = query({
     const dwelling = await ctx.db.get(request.dwellingId);
     const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
     const createdByUser = await ctx.db.get(request.createdBy);
+    const assignedContractor = request.assignedContractorId
+      ? await ctx.db.get(request.assignedContractorId)
+      : null;
 
     return {
       ...request,
       dwelling,
       property,
       createdByUser,
+      assignedContractor,
     };
   },
 });
@@ -179,6 +187,7 @@ export const update = mutation({
     completedDate: v.optional(v.string()),
     contractorName: v.optional(v.string()),
     contractorContact: v.optional(v.string()),
+    assignedContractorId: v.optional(v.id("contractors")),
     quotedAmount: v.optional(v.number()),
     actualCost: v.optional(v.number()),
     invoiceNumber: v.optional(v.string()),
@@ -193,6 +202,25 @@ export const update = mutation({
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
         filteredUpdates[key] = value;
+      }
+    }
+
+    // If assignedContractorId is provided, auto-populate contractor name/contact
+    if (updates.assignedContractorId) {
+      const contractor = await ctx.db.get(updates.assignedContractorId);
+      if (contractor) {
+        filteredUpdates.contractorName = contractor.companyName;
+        filteredUpdates.contractorContact = contractor.phone || contractor.email;
+      }
+    }
+    // If contractorName is provided without ID, try to find matching contractor
+    else if (updates.contractorName && !updates.assignedContractorId) {
+      const contractors = await ctx.db.query("contractors").collect();
+      const matchingContractor = contractors.find(
+        (c) => c.companyName.toLowerCase() === updates.contractorName!.toLowerCase()
+      );
+      if (matchingContractor) {
+        filteredUpdates.assignedContractorId = matchingContractor._id;
       }
     }
 
@@ -447,5 +475,127 @@ export const getRecent = query({
     return requestsWithDetails
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, limit);
+  },
+});
+
+// Get maintenance requests by contractor
+export const getByContractor = query({
+  args: { contractorId: v.id("contractors") },
+  handler: async (ctx, args) => {
+    const requests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_contractor", (q) => q.eq("assignedContractorId", args.contractorId))
+      .collect();
+
+    const requestsWithDetails = await Promise.all(
+      requests.map(async (request) => {
+        const dwelling = await ctx.db.get(request.dwellingId);
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        return {
+          ...request,
+          dwelling,
+          property,
+        };
+      })
+    );
+
+    return requestsWithDetails.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+// Get contractors used at a property (for contractor suggestions)
+export const getContractorsUsedAtProperty = query({
+  args: { propertyId: v.id("properties") },
+  handler: async (ctx, args) => {
+    // Get all dwellings for this property
+    const dwellings = await ctx.db
+      .query("dwellings")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .collect();
+
+    const dwellingIds = new Set(dwellings.map((d) => d._id));
+
+    // Get all maintenance requests with assigned contractors for these dwellings
+    const allRequests = await ctx.db.query("maintenanceRequests").collect();
+    const relevantRequests = allRequests.filter(
+      (req) => dwellingIds.has(req.dwellingId) && req.assignedContractorId
+    );
+
+    // Count jobs per contractor
+    const contractorStats = new Map<string, { count: number; lastUsed: number }>();
+    for (const req of relevantRequests) {
+      if (!req.assignedContractorId) continue;
+      const id = req.assignedContractorId;
+      const existing = contractorStats.get(id) || { count: 0, lastUsed: 0 };
+      contractorStats.set(id, {
+        count: existing.count + 1,
+        lastUsed: Math.max(existing.lastUsed, req.createdAt),
+      });
+    }
+
+    // Get contractor details
+    const contractorsWithStats = await Promise.all(
+      Array.from(contractorStats.entries()).map(async ([contractorId, stats]) => {
+        const contractor = await ctx.db.get(contractorId as any);
+        if (!contractor) return null;
+        return {
+          ...contractor,
+          jobCount: stats.count,
+          lastUsed: stats.lastUsed,
+        };
+      })
+    );
+
+    return contractorsWithStats
+      .filter((c) => c !== null)
+      .sort((a, b) => b!.jobCount - a!.jobCount);
+  },
+});
+
+// Migration: Link existing maintenance requests to contractors by matching name
+export const migrateContractorLinks = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const requests = await ctx.db.query("maintenanceRequests").collect();
+    const contractors = await ctx.db.query("contractors").collect();
+
+    const results = {
+      linked: 0,
+      skipped: 0,
+      noMatch: 0,
+    };
+
+    for (const request of requests) {
+      // Skip if already linked
+      if (request.assignedContractorId) {
+        results.skipped++;
+        continue;
+      }
+
+      // Skip if no contractor name
+      if (!request.contractorName) {
+        results.noMatch++;
+        continue;
+      }
+
+      // Try to find matching contractor
+      const normalizedName = request.contractorName.toLowerCase().trim();
+      const matchingContractor = contractors.find(
+        (c) => c.companyName.toLowerCase().trim() === normalizedName
+      );
+
+      if (matchingContractor) {
+        await ctx.db.patch(request._id, {
+          assignedContractorId: matchingContractor._id,
+          updatedAt: Date.now(),
+        });
+        results.linked++;
+      } else {
+        results.noMatch++;
+      }
+    }
+
+    return results;
   },
 });

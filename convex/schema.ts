@@ -324,6 +324,7 @@ export default defineSchema({
     completedDate: v.optional(v.string()),
     contractorName: v.optional(v.string()),
     contractorContact: v.optional(v.string()),
+    assignedContractorId: v.optional(v.id("contractors")), // Link to contractor record
     quotedAmount: v.optional(v.number()),
     actualCost: v.optional(v.number()),
     invoiceNumber: v.optional(v.string()),
@@ -341,7 +342,8 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_priority", ["priority"])
     .index("by_incident", ["incidentId"])
-    .index("by_incident_action", ["incidentActionId"]),
+    .index("by_incident_action", ["incidentActionId"])
+    .index("by_contractor", ["assignedContractorId"]),
 
   // Maintenance Photos table - photos attached to maintenance requests
   maintenancePhotos: defineTable({

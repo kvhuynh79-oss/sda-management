@@ -97,7 +97,7 @@ function OperationsContent() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-700 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="border-b border-gray-700 mb-6">
           <nav className="flex gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
             <TabButton
               label="Maintenance"

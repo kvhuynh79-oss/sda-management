@@ -119,7 +119,7 @@ export default function Header({ currentPage }: HeaderProps) {
           </div>
         </div>
         {/* Navigation - scrollable on mobile */}
-        <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide items-center min-w-0 overflow-y-visible">
+        <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-hide items-center min-w-0">
           {navItems.slice(0, 5).map((item) => (
             <Link
               key={item.key}

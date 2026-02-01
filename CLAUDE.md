@@ -122,14 +122,16 @@ src/components/
 - **Custom domain** - https://mysdamanager.com
 - **Resend email** - Configured with noreply@mysdamanager.com, sending to khen@betterlivingsolutions.com.au
 - **PWA for mobile** - Offline support, install prompt
-- **Xero Integration** - OAuth setup complete (needs testing)
+- **Xero Integration** - OAuth fixed (state validation, sync buttons work per account)
 - **Owner reports** - 6-month Folio Summary (needs testing)
+- **Onboarding documents** - Proposed move-in date field for SDA Quotation & Accommodation Agreement
 
 ## Next Session Priorities
 1. **Testing needed:**
-   - Xero Integration - Connect and sync bank transactions
+   - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
    - Owner reports - Generate 6-month Folio Summary PDF
    - Incident Actions - Add Action → Contractor/In-House → Complete
+   - Onboarding documents - Test proposed move-in date in generated PDFs
 2. **Bug fixing** - Test all features, fix any issues
 3. **Bulk data entry** - User will upload property/participant data
 
@@ -175,4 +177,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-01
+**Last Updated**: 2026-02-02

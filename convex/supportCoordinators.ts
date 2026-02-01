@@ -315,3 +315,109 @@ export const search = query({
     );
   },
 });
+
+// Migration: Extract support coordinators from existing participant data
+export const migrateFromParticipants = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+
+    // Get all participants with support coordinator info
+    const participants = await ctx.db.query("participants").collect();
+
+    // Group by unique coordinator (using email as primary key, fallback to name)
+    const coordinatorMap = new Map<string, {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      participantIds: Id<"participants">[];
+    }>();
+
+    for (const participant of participants) {
+      if (!participant.supportCoordinatorName) continue;
+
+      // Parse name into first/last
+      const nameParts = participant.supportCoordinatorName.trim().split(/\s+/);
+      const firstName = nameParts[0] || "Unknown";
+      const lastName = nameParts.slice(1).join(" ") || "Coordinator";
+
+      // Use email as key if available, otherwise use full name
+      const key = participant.supportCoordinatorEmail?.toLowerCase() ||
+                  participant.supportCoordinatorName.toLowerCase().trim();
+
+      if (coordinatorMap.has(key)) {
+        // Add participant to existing coordinator
+        coordinatorMap.get(key)!.participantIds.push(participant._id);
+      } else {
+        // Create new coordinator entry
+        coordinatorMap.set(key, {
+          firstName,
+          lastName,
+          email: participant.supportCoordinatorEmail || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@placeholder.com`,
+          phone: participant.supportCoordinatorPhone,
+          participantIds: [participant._id],
+        });
+      }
+    }
+
+    const results = {
+      coordinatorsCreated: 0,
+      linksCreated: 0,
+      skipped: 0,
+    };
+
+    // Create coordinators and links
+    for (const [, data] of coordinatorMap) {
+      // Check if coordinator already exists by email
+      const existing = await ctx.db
+        .query("supportCoordinators")
+        .withIndex("by_email", (q) => q.eq("email", data.email))
+        .first();
+
+      let coordinatorId: Id<"supportCoordinators">;
+
+      if (existing) {
+        coordinatorId = existing._id;
+        results.skipped++;
+      } else {
+        // Create new coordinator
+        coordinatorId = await ctx.db.insert("supportCoordinators", {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          areas: ["Western Sydney"], // Default area - can be updated later
+          status: "active",
+          totalReferrals: data.participantIds.length,
+          createdAt: now,
+          updatedAt: now,
+        });
+        results.coordinatorsCreated++;
+      }
+
+      // Create links for each participant
+      for (const participantId of data.participantIds) {
+        // Check if link already exists
+        const existingLinks = await ctx.db
+          .query("supportCoordinatorParticipants")
+          .withIndex("by_participant", (q) => q.eq("participantId", participantId))
+          .collect();
+
+        const hasLink = existingLinks.some((l) => l.supportCoordinatorId === coordinatorId);
+
+        if (!hasLink) {
+          await ctx.db.insert("supportCoordinatorParticipants", {
+            supportCoordinatorId: coordinatorId,
+            participantId,
+            relationshipType: "current",
+            createdAt: now,
+          });
+          results.linksCreated++;
+        }
+      }
+    }
+
+    return results;
+  },
+});

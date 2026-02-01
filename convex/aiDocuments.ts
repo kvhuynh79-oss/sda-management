@@ -1,4 +1,5 @@
-import { action, mutation, query } from "./_generated/server";
+import { action, mutation, query, internalQuery, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {
   callClaudeAPI,
@@ -317,5 +318,178 @@ export const getQueueItemsByUser = query({
       .withIndex("by_createdBy", (q) => q.eq("createdBy", args.userId))
       .order("desc")
       .take(50);
+  },
+});
+
+// Save document classification to conversation
+export const saveClassificationToConversation = mutation({
+  args: {
+    conversationId: v.optional(v.id("aiConversations")),
+    userId: v.id("users"),
+    userMessage: v.string(),
+    assistantResponse: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    if (args.conversationId) {
+      // Add to existing conversation
+      const conversation = await ctx.db.get(args.conversationId);
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      interface ChatMessage {
+        role: "user" | "assistant";
+        content: string;
+        timestamp: number;
+      }
+
+      const newMessages: ChatMessage[] = [
+        ...(conversation.messages as ChatMessage[]),
+        { role: "user", content: args.userMessage, timestamp: now },
+        { role: "assistant", content: args.assistantResponse, timestamp: now },
+      ];
+
+      await ctx.db.patch(args.conversationId, {
+        messages: newMessages,
+        updatedAt: now,
+      });
+
+      return args.conversationId;
+    } else {
+      // Create new conversation
+      const title = args.userMessage.slice(0, 50) + (args.userMessage.length > 50 ? "..." : "");
+
+      const conversationId = await ctx.db.insert("aiConversations", {
+        userId: args.userId,
+        title,
+        messages: [
+          { role: "user", content: args.userMessage, timestamp: now },
+          { role: "assistant", content: args.assistantResponse, timestamp: now },
+        ],
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return conversationId;
+    }
+  },
+});
+
+// File document to a property (store and create document record)
+export const fileDocumentToProperty = action({
+  args: {
+    fileBase64: v.string(),
+    mediaType: v.string(),
+    fileName: v.string(),
+    propertyName: v.string(),
+    documentType: v.union(
+      v.literal("ndis_plan"),
+      v.literal("service_agreement"),
+      v.literal("lease"),
+      v.literal("insurance"),
+      v.literal("compliance"),
+      v.literal("other")
+    ),
+    description: v.optional(v.string()),
+    expiryDate: v.optional(v.string()),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; message: string; documentId?: string }> => {
+    // Find the property by name (fuzzy match)
+    const properties = await ctx.runQuery(internal.aiDocuments.getAllProperties);
+
+    const normalizedSearch = args.propertyName.toLowerCase().trim();
+    const matchedProperty = properties.find((p: { propertyName?: string; addressLine1: string }) => {
+      const name = (p.propertyName || p.addressLine1).toLowerCase();
+      return name.includes(normalizedSearch) || normalizedSearch.includes(name);
+    });
+
+    if (!matchedProperty) {
+      return {
+        success: false,
+        message: `Could not find a property matching "${args.propertyName}". Available properties: ${properties.map((p: { propertyName?: string; addressLine1: string }) => p.propertyName || p.addressLine1).join(", ")}`,
+      };
+    }
+
+    // Convert base64 to blob and upload to storage
+    const binaryString = atob(args.fileBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: args.mediaType });
+
+    // Upload to Convex storage
+    const storageId = await ctx.storage.store(blob);
+
+    // Create document record
+    const documentId = await ctx.runMutation(internal.aiDocuments.createDocumentRecord, {
+      fileName: args.fileName,
+      fileSize: bytes.length,
+      fileType: args.mediaType,
+      storageId,
+      documentType: args.documentType,
+      documentCategory: "property",
+      linkedPropertyId: matchedProperty._id,
+      description: args.description,
+      expiryDate: args.expiryDate,
+      uploadedBy: args.userId,
+    });
+
+    return {
+      success: true,
+      message: `Document "${args.fileName}" has been filed to ${matchedProperty.propertyName || matchedProperty.addressLine1}`,
+      documentId: documentId,
+    };
+  },
+});
+
+// Internal query to get all properties
+export const getAllProperties = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("properties").collect();
+  },
+});
+
+// Internal mutation to create document record
+export const createDocumentRecord = internalMutation({
+  args: {
+    fileName: v.string(),
+    fileSize: v.number(),
+    fileType: v.string(),
+    storageId: v.id("_storage"),
+    documentType: v.union(
+      v.literal("ndis_plan"),
+      v.literal("service_agreement"),
+      v.literal("lease"),
+      v.literal("insurance"),
+      v.literal("compliance"),
+      v.literal("other")
+    ),
+    documentCategory: v.union(
+      v.literal("participant"),
+      v.literal("property"),
+      v.literal("dwelling"),
+      v.literal("owner")
+    ),
+    linkedPropertyId: v.optional(v.id("properties")),
+    linkedParticipantId: v.optional(v.id("participants")),
+    linkedDwellingId: v.optional(v.id("dwellings")),
+    linkedOwnerId: v.optional(v.id("owners")),
+    description: v.optional(v.string()),
+    expiryDate: v.optional(v.string()),
+    uploadedBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    return await ctx.db.insert("documents", {
+      ...args,
+      createdAt: now,
+      updatedAt: now,
+    });
   },
 });

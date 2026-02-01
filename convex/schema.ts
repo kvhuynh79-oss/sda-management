@@ -499,7 +499,9 @@ export default defineSchema({
       v.literal("document_expiry"),
       v.literal("vacancy"),
       v.literal("preventative_schedule_due"),
-      v.literal("claim_due") // Reminder to submit SDA claim
+      v.literal("claim_due"), // Reminder to submit SDA claim
+      v.literal("owner_payment_due"), // Reminder to pay owners
+      v.literal("payment_overdue") // Expected payment not received
     ),
     severity: v.union(
       v.literal("critical"),
@@ -514,6 +516,7 @@ export default defineSchema({
     linkedMaintenanceId: v.optional(v.id("maintenanceRequests")),
     linkedPreventativeScheduleId: v.optional(v.id("preventativeSchedule")),
     linkedPlanId: v.optional(v.id("participantPlans")), // For claim_due alerts
+    linkedOwnerId: v.optional(v.id("owners")), // For owner_payment_due alerts
     triggerDate: v.string(),
     dueDate: v.optional(v.string()),
     status: v.union(
@@ -963,4 +966,231 @@ export default defineSchema({
   })
     .index("by_status", ["status"])
     .index("by_createdBy", ["createdBy"]),
+
+  // ============================================
+  // FINANCIAL RECONCILIATION TABLES
+  // ============================================
+
+  // Bank Accounts table - company bank accounts for reconciliation
+  bankAccounts: defineTable({
+    accountName: v.string(), // e.g., "Operating Account", "Trust Account"
+    bankName: v.string(), // e.g., "ANZ", "Westpac"
+    bsb: v.string(),
+    accountNumber: v.string(),
+    accountType: v.union(
+      v.literal("operating"), // Main operating account
+      v.literal("trust") // Client trust account
+    ),
+    currency: v.optional(v.string()), // Default: "AUD"
+    isActive: v.boolean(),
+    openingBalance: v.optional(v.number()),
+    openingBalanceDate: v.optional(v.string()),
+    lastReconciledDate: v.optional(v.string()),
+    lastReconciledBalance: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    organizationId: v.optional(v.string()), // Future SaaS multi-tenancy
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_accountType", ["accountType"])
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
+
+  // Bank Transactions table - imported bank statement transactions
+  bankTransactions: defineTable({
+    bankAccountId: v.id("bankAccounts"),
+    transactionDate: v.string(), // YYYY-MM-DD
+    description: v.string(), // Bank description/narration
+    reference: v.optional(v.string()), // Bank reference number
+    amount: v.number(), // Positive = credit (money in), Negative = debit (money out)
+    balance: v.optional(v.number()), // Running balance after transaction
+    transactionType: v.union(
+      v.literal("credit"), // Money in
+      v.literal("debit") // Money out
+    ),
+    // Categorization
+    category: v.optional(
+      v.union(
+        v.literal("sda_income"), // SDA funding received from NDIS/plan manager
+        v.literal("rrc_income"), // RRC (rent contribution) received
+        v.literal("owner_payment"), // Payment to property owner
+        v.literal("maintenance"), // Maintenance expense
+        v.literal("other_income"),
+        v.literal("other_expense"),
+        v.literal("transfer"), // Internal transfer between accounts
+        v.literal("uncategorized")
+      )
+    ),
+    // Matching to existing records
+    matchStatus: v.union(
+      v.literal("unmatched"), // Not yet matched
+      v.literal("matched"), // Matched to a payment/claim
+      v.literal("partially_matched"), // Part of a split payment
+      v.literal("excluded") // Marked to ignore (e.g., bank fees)
+    ),
+    matchedPaymentId: v.optional(v.id("payments")), // Linked SDA payment record
+    matchedOwnerPaymentId: v.optional(v.id("ownerPayments")), // Linked owner payment
+    matchedClaimId: v.optional(v.id("claims")), // Linked claim
+    matchedParticipantId: v.optional(v.id("participants")), // For RRC matching
+    matchedExpectedPaymentId: v.optional(v.id("expectedPayments")),
+    matchConfidence: v.optional(v.number()), // 0-100 auto-match confidence score
+    // Import metadata
+    importSource: v.union(
+      v.literal("csv_anz"), // ANZ CSV import
+      v.literal("csv_westpac"), // Westpac CSV import
+      v.literal("csv_other"), // Other bank CSV
+      v.literal("manual"), // Manual entry
+      v.literal("xero_sync") // Synced from Xero
+    ),
+    importBatchId: v.optional(v.string()), // Group transactions from same import
+    rawData: v.optional(v.string()), // Original CSV row as JSON (for debugging)
+    // Xero integration
+    xeroTransactionId: v.optional(v.string()),
+    xeroSyncStatus: v.optional(
+      v.union(v.literal("pending"), v.literal("synced"), v.literal("error"))
+    ),
+    notes: v.optional(v.string()),
+    organizationId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_bankAccount", ["bankAccountId"])
+    .index("by_date", ["transactionDate"])
+    .index("by_matchStatus", ["matchStatus"])
+    .index("by_category", ["category"])
+    .index("by_importBatch", ["importBatchId"])
+    .index("by_organizationId", ["organizationId"]),
+
+  // Expected Payments table - scheduled/expected payments for matching
+  expectedPayments: defineTable({
+    paymentType: v.union(
+      v.literal("sda_income"), // Expected SDA payment from NDIS/plan manager
+      v.literal("rrc_income"), // Expected RRC from participant
+      v.literal("owner_disbursement") // Scheduled payment to owner
+    ),
+    // Links to related records
+    participantId: v.optional(v.id("participants")),
+    planId: v.optional(v.id("participantPlans")),
+    propertyId: v.optional(v.id("properties")),
+    ownerId: v.optional(v.id("owners")),
+    // Amount and timing
+    expectedAmount: v.number(),
+    expectedDate: v.string(), // YYYY-MM-DD
+    periodMonth: v.string(), // YYYY-MM format for the period
+    periodStart: v.optional(v.string()),
+    periodEnd: v.optional(v.string()),
+    // Status tracking
+    status: v.union(
+      v.literal("pending"), // Awaiting payment
+      v.literal("partial"), // Partially received
+      v.literal("received"), // Fully received
+      v.literal("overdue"), // Past expected date, not received
+      v.literal("cancelled") // Cancelled/no longer expected
+    ),
+    receivedAmount: v.optional(v.number()),
+    receivedDate: v.optional(v.string()),
+    variance: v.optional(v.number()), // Difference from expected
+    // Matched bank transaction
+    matchedTransactionId: v.optional(v.id("bankTransactions")),
+    matchedTransactionIds: v.optional(v.array(v.id("bankTransactions"))), // For split payments
+    // Source tracking
+    sourceType: v.optional(
+      v.union(
+        v.literal("auto_generated"), // System generated from schedules
+        v.literal("manual") // Manually created
+      )
+    ),
+    paymentScheduleId: v.optional(v.id("paymentSchedules")),
+    notes: v.optional(v.string()),
+    organizationId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_type", ["paymentType"])
+    .index("by_status", ["status"])
+    .index("by_expectedDate", ["expectedDate"])
+    .index("by_periodMonth", ["periodMonth"])
+    .index("by_participant", ["participantId"])
+    .index("by_property", ["propertyId"])
+    .index("by_owner", ["ownerId"])
+    .index("by_organizationId", ["organizationId"]),
+
+  // Payment Schedules table - recurring payment configurations
+  paymentSchedules: defineTable({
+    scheduleType: v.union(
+      v.literal("owner_disbursement"), // Monthly owner payments
+      v.literal("sda_claim") // Expected SDA claim receipts
+    ),
+    // Links
+    propertyId: v.optional(v.id("properties")),
+    ownerId: v.optional(v.id("owners")),
+    participantId: v.optional(v.id("participants")),
+    // Schedule configuration
+    frequency: v.union(
+      v.literal("weekly"),
+      v.literal("fortnightly"),
+      v.literal("monthly")
+    ),
+    dayOfMonth: v.optional(v.number()), // For monthly (1-31), default: 5 for owner payments
+    dayOfWeek: v.optional(v.number()), // For weekly (0-6, 0=Sunday)
+    // Amount calculation
+    calculationMethod: v.union(
+      v.literal("calculated"), // Auto-calculate from participants
+      v.literal("fixed") // Fixed amount
+    ),
+    fixedAmount: v.optional(v.number()), // Used when calculationMethod is "fixed"
+    // Tracking
+    nextDueDate: v.string(), // Next scheduled date
+    lastProcessedDate: v.optional(v.string()),
+    lastCalculatedAmount: v.optional(v.number()),
+    // Alert settings
+    alertDaysBefore: v.optional(v.number()), // Days before to create alert (default: 3)
+    autoCreateExpected: v.boolean(), // Auto-create expectedPayments records
+    isActive: v.boolean(),
+    notes: v.optional(v.string()),
+    organizationId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_owner", ["ownerId"])
+    .index("by_participant", ["participantId"])
+    .index("by_nextDueDate", ["nextDueDate"])
+    .index("by_scheduleType", ["scheduleType"])
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
+
+  // Xero Connections table - OAuth credentials for Xero integration
+  xeroConnections: defineTable({
+    tenantId: v.string(), // Xero tenant/organization ID
+    tenantName: v.string(), // Display name from Xero
+    accessToken: v.string(), // Encrypted OAuth access token
+    refreshToken: v.string(), // Encrypted OAuth refresh token
+    tokenExpiresAt: v.number(), // Timestamp when access token expires
+    scope: v.optional(v.string()), // OAuth scopes granted
+    connectionStatus: v.union(
+      v.literal("connected"),
+      v.literal("disconnected"),
+      v.literal("error"),
+      v.literal("token_expired")
+    ),
+    lastSyncAt: v.optional(v.number()),
+    lastSyncError: v.optional(v.string()),
+    // Account mapping settings
+    defaultIncomeAccountCode: v.optional(v.string()),
+    defaultExpenseAccountCode: v.optional(v.string()),
+    sdaRevenueAccountCode: v.optional(v.string()),
+    rrcRevenueAccountCode: v.optional(v.string()),
+    managementFeeAccountCode: v.optional(v.string()),
+    // Sync preferences
+    autoSyncEnabled: v.boolean(),
+    syncFrequencyMinutes: v.optional(v.number()),
+    organizationId: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_tenantId", ["tenantId"])
+    .index("by_status", ["connectionStatus"])
+    .index("by_organizationId", ["organizationId"]),
 });

@@ -192,7 +192,7 @@ export const notifyCoordinator = mutation({
   },
 });
 
-// Get vacancy summary (for dashboard)
+// Get vacancy summary (for dashboard) - only includes active properties
 export const getSummary = query({
   args: {},
   handler: async (ctx) => {
@@ -207,10 +207,16 @@ export const getSummary = query({
       )
       .collect();
 
-    // Get listings for these dwellings
+    // Get listings for these dwellings (only from active properties)
     const summary = await Promise.all(
       dwellings.map(async (dwelling) => {
         const property = await ctx.db.get(dwelling.propertyId);
+
+        // Skip dwellings from non-active properties (under construction, planning, etc.)
+        if (property && property.propertyStatus && property.propertyStatus !== "active") {
+          return null;
+        }
+
         const listing = await ctx.db
           .query("vacancyListings")
           .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
@@ -230,12 +236,15 @@ export const getSummary = query({
       })
     );
 
+    // Filter out null entries (non-active properties)
+    const activeVacancies = summary.filter((s) => s !== null);
+
     return {
-      totalVacantDwellings: summary.filter((s) => s.dwelling.occupancyStatus === "vacant").length,
-      totalPartiallyOccupied: summary.filter((s) => s.dwelling.occupancyStatus === "partially_occupied").length,
-      totalVacantSpots: summary.reduce((sum, s) => sum + s.vacantSpots, 0),
-      fullyListedCount: summary.filter((s) => s.isFullyListed).length,
-      vacancies: summary,
+      totalVacantDwellings: activeVacancies.filter((s) => s.dwelling.occupancyStatus === "vacant").length,
+      totalPartiallyOccupied: activeVacancies.filter((s) => s.dwelling.occupancyStatus === "partially_occupied").length,
+      totalVacantSpots: activeVacancies.reduce((sum, s) => sum + s.vacantSpots, 0),
+      fullyListedCount: activeVacancies.filter((s) => s.isFullyListed).length,
+      vacancies: activeVacancies,
     };
   },
 });

@@ -44,12 +44,16 @@ export default function DashboardPage() {
 
   // Calculate stats from properties
   const totalProperties = properties?.length || 0;
-  const totalParticipants = properties?.reduce((sum, p) => sum + p.currentOccupancy, 0) || 0;
-  const totalVacancies = properties?.reduce((sum, p) => sum + p.vacancies, 0) || 0;
+
+  // Filter active properties for accurate stats
+  const activeProperties = properties?.filter(p => !p.propertyStatus || p.propertyStatus === "active") || [];
+
+  const totalParticipants = activeProperties.reduce((sum, p) => sum + p.currentOccupancy, 0);
+  const totalVacancies = activeProperties.reduce((sum, p) => sum + p.vacancies, 0);
   const totalDwellings = properties?.reduce((sum, p) => sum + p.dwellingCount, 0) || 0;
 
   // Property status counts
-  const activeSdaCount = properties?.filter(p => !p.propertyStatus || p.propertyStatus === "active").length || 0;
+  const activeSdaCount = activeProperties.length;
   const underConstructionCount = properties?.filter(p => p.propertyStatus === "under_construction").length || 0;
   const planningCount = properties?.filter(p => p.propertyStatus === "planning").length || 0;
 

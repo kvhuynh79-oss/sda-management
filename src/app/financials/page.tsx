@@ -68,6 +68,18 @@ function FinancialsContent() {
             <p className="text-gray-400 mt-1">Manage claims and payment records</p>
           </div>
           <div className="flex gap-2">
+            <Link
+              href="/financials/bank-accounts"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Bank Accounts
+            </Link>
+            <Link
+              href="/financials/reconciliation"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Reconciliation
+            </Link>
             {activeTab === "payments" && (
               <>
                 <Link
@@ -1084,6 +1096,19 @@ function OwnerPaymentsTab() {
     return matchesProperty && matchesType && matchesDateFrom && matchesDateTo;
   });
 
+  // Find properties with participants but no payment records
+  const propertiesWithPayments = new Set(ownerPayments?.map(p => p.propertyId) || []);
+  const propertiesWithParticipantsNoPayments = properties?.filter(property => {
+    // Property not in payments list
+    if (propertiesWithPayments.has(property._id)) return false;
+    // Has at least one participant with a plan
+    const propertyParticipants = participants?.filter(p => {
+      const dwelling = p.dwelling;
+      return dwelling && dwelling.propertyId === property._id;
+    }) || [];
+    return propertyParticipants.some(p => p.currentPlan?.monthlySdaAmount);
+  }) || [];
+
   const generateOwnerStatement = async (propertyName: string, payments: NonNullable<typeof filteredPayments>) => {
     try {
       // Dynamic imports for PDF generation
@@ -1435,6 +1460,283 @@ function OwnerPaymentsTab() {
     }
   };
 
+  // Generate statement for property without payment records (using plan data)
+  const generateStatementFromPlans = async (property: NonNullable<typeof properties>[0]) => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const doc = new jsPDF({ orientation: "landscape" });
+      const owner = property.owner;
+      const ownerName = owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown";
+      const propertyName = property.propertyName || property.addressLine1;
+
+      // Get participants for this property
+      const propertyParticipants = participants?.filter(p => {
+        const dwelling = p.dwelling;
+        return dwelling && dwelling.propertyId === property._id;
+      }) || [];
+
+      // Generate past 12 months
+      const monthPeriods: { label: string; monthKey: string }[] = [];
+      const now = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+        monthPeriods.push({ label, monthKey });
+      }
+
+      // Load logo
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = "anonymous";
+        await new Promise<void>((resolve) => {
+          logoImg.onload = () => {
+            try {
+              const naturalWidth = logoImg.naturalWidth;
+              const naturalHeight = logoImg.naturalHeight;
+              const maxWidth = 35;
+              const aspectRatio = naturalWidth / naturalHeight;
+              const height = maxWidth / aspectRatio;
+              doc.addImage(logoImg, "JPEG", 250, 8, maxWidth, height);
+            } catch {
+              // Logo failed
+            }
+            resolve();
+          };
+          logoImg.onerror = () => resolve();
+          logoImg.src = "/Logo.jpg";
+          setTimeout(resolve, 1000);
+        });
+      } catch {
+        // Continue without logo
+      }
+
+      // Header
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      doc.text(ownerName, 148, 12, { align: "center" });
+
+      const propertyAddress = `${property.addressLine1}${property.suburb ? `, ${property.suburb}` : ""}${property.state ? ` ${property.state}` : ""}${property.postcode ? ` ${property.postcode}` : ""}`;
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("SDA RENTAL STATEMENT", 148, 20, { align: "center" });
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(propertyAddress, 148, 28, { align: "center" });
+
+      const startMonth = monthPeriods[0].label;
+      const endMonth = monthPeriods[11].label;
+      doc.setFontSize(10);
+      doc.text(`Statement Period: ${startMonth} - ${endMonth}`, 148, 35, { align: "center" });
+
+      let currentY = 45;
+      let grandTotalSda = 0;
+      let grandTotalRrc = 0;
+      let grandTotalFee = 0;
+      let grandTotalNet = 0;
+
+      const managementFeePercent = property.managementFeePercent || 30;
+      const isSpecialArrangement = managementFeePercent === 100;
+
+      for (const participant of propertyParticipants) {
+        const plan = participant.currentPlan;
+        const dwelling = participant.dwelling;
+        const participantName = `${participant.firstName} ${participant.lastName}`;
+        const sdaCategory = dwelling?.sdaDesignCategory || "SDA";
+        const annualSda = plan?.annualSdaBudget || (plan?.monthlySdaAmount ? plan.monthlySdaAmount * 12 : 0);
+        const monthlySda = plan?.monthlySdaAmount || annualSda / 12;
+
+        const totalRrc = plan?.reasonableRentContribution || 0;
+        const rrcFrequency = plan?.rentContributionFrequency || "fortnightly";
+        const monthlyRrc = rrcFrequency === "fortnightly" ? totalRrc * 26 / 12 : totalRrc;
+
+        if (currentY > 140) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        doc.setFillColor(240, 240, 240);
+        doc.rect(14, currentY, 269, 18, "F");
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(14, currentY, 269, 18, "S");
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
+        doc.text(participantName, 18, currentY + 6);
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Address: ${propertyAddress}`, 18, currentY + 11);
+        doc.text(`Dwelling: ${dwelling?.dwellingName || "Unit"} | SDA Category: ${sdaCategory}`, 18, currentY + 15);
+
+        doc.setFont("helvetica", "bold");
+        doc.text(`Annual SDA Funding: ${formatCurrency(annualSda)}`, 270, currentY + 10, { align: "right" });
+
+        currentY += 22;
+
+        let monthlySubtotal: number;
+        let monthlyFee: number;
+        let monthlyNet: number;
+
+        if (isSpecialArrangement) {
+          monthlySubtotal = monthlySda + monthlyRrc;
+          monthlyFee = monthlyRrc;
+          monthlyNet = monthlySda;
+        } else {
+          monthlySubtotal = monthlySda + monthlyRrc;
+          monthlyFee = monthlySubtotal * (managementFeePercent / 100);
+          monthlyNet = monthlySubtotal - monthlyFee;
+        }
+
+        const tableHead = [["", ...monthPeriods.map(m => m.label)]];
+
+        let tableBody;
+        if (isSpecialArrangement) {
+          tableBody = [
+            ["SDA Funding", ...monthPeriods.map(() => formatCurrency(monthlySda))],
+            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(() => formatCurrency(monthlyRrc))],
+            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlySubtotal), styles: { fontStyle: "bold" as const } }))],
+            ["Less: RRC to BLS (100%)", ...monthPeriods.map(() => `(${formatCurrency(monthlyRrc)})`)],
+            [{ content: "Owner Share (SDA Only)", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
+          ];
+        } else {
+          tableBody = [
+            ["SDA Funding", ...monthPeriods.map(() => formatCurrency(monthlySda))],
+            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(() => formatCurrency(monthlyRrc))],
+            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlySubtotal), styles: { fontStyle: "bold" as const } }))],
+            [`Less: Provider Fee (${managementFeePercent}%)`, ...monthPeriods.map(() => `(${formatCurrency(monthlyFee)})`)],
+            [{ content: "Net to Owner", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
+          ];
+        }
+
+        autoTable(doc, {
+          startY: currentY,
+          head: tableHead,
+          body: tableBody,
+          theme: "grid",
+          styles: { fontSize: 7, cellPadding: 1.5, halign: "right" },
+          headStyles: { fillColor: [70, 130, 180], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+          columnStyles: { 0: { cellWidth: 45, halign: "left" } },
+          tableLineColor: [180, 180, 180],
+          tableLineWidth: 0.1,
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        currentY = (doc as any).lastAutoTable?.finalY + 8 || currentY + 50;
+
+        grandTotalSda += monthlySda * 12;
+        grandTotalRrc += monthlyRrc * 12;
+        grandTotalFee += monthlyFee * 12;
+        grandTotalNet += monthlyNet * 12;
+      }
+
+      // Grand Total Section
+      if (currentY > 150) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("ANNUAL SUMMARY", 14, currentY);
+      currentY += 6;
+
+      const summaryBody = isSpecialArrangement
+        ? [
+            ["Total SDA Funding (Annual)", formatCurrency(grandTotalSda)],
+            ["Total RRC (Annual)", formatCurrency(grandTotalRrc)],
+            ["Total Revenue", formatCurrency(grandTotalSda + grandTotalRrc)],
+            ["Less: RRC to BLS", `(${formatCurrency(grandTotalFee)})`],
+            [{ content: "NET AMOUNT TO OWNER (SDA)", styles: { fontStyle: "bold" as const, fillColor: [200, 230, 200] as [number, number, number] } }, { content: formatCurrency(grandTotalNet), styles: { fontStyle: "bold" as const, fillColor: [200, 230, 200] as [number, number, number] } }],
+          ]
+        : [
+            ["Total SDA Funding (Annual)", formatCurrency(grandTotalSda)],
+            ["Total RRC (Annual)", formatCurrency(grandTotalRrc)],
+            ["Total Revenue", formatCurrency(grandTotalSda + grandTotalRrc)],
+            [`Less: Provider Fee (${managementFeePercent}%)`, `(${formatCurrency(grandTotalFee)})`],
+            [{ content: "NET AMOUNT TO OWNER", styles: { fontStyle: "bold" as const, fillColor: [200, 230, 200] as [number, number, number] } }, { content: formatCurrency(grandTotalNet), styles: { fontStyle: "bold" as const, fillColor: [200, 230, 200] as [number, number, number] } }],
+          ];
+
+      autoTable(doc, {
+        startY: currentY,
+        body: summaryBody,
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: { 0: { cellWidth: 120, halign: "left" }, 1: { cellWidth: 60, halign: "right" } },
+        tableLineColor: [180, 180, 180],
+        tableLineWidth: 0.1,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 40;
+
+      // Bank Details
+      if (owner?.bankBsb && owner?.bankAccountNumber) {
+        if (currentY > 170) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("PAYMENT DETAILS", 14, currentY);
+        currentY += 6;
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Account Name: ${owner.bankAccountName || ownerName}`, 14, currentY);
+        doc.text(`BSB: ${owner.bankBsb}`, 14, currentY + 5);
+        doc.text(`Account Number: ${owner.bankAccountNumber}`, 14, currentY + 10);
+        currentY += 20;
+      }
+
+      // Notes
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("Notes:", 14, currentY);
+      doc.setFont("helvetica", "normal");
+      currentY += 4;
+
+      const notes = isSpecialArrangement
+        ? [
+            "Special arrangement: SDA funding paid to owner, RRC retained by BLS",
+            "RRC comprises 25% of Disability Support Pension + 100% Commonwealth Rent Assistance",
+            "All amounts are in Australian Dollars (AUD)",
+          ]
+        : [
+            "This statement shows expected revenue based on participant plans",
+            "RRC comprises 25% of Disability Support Pension + 100% Commonwealth Rent Assistance",
+            "All amounts are in Australian Dollars (AUD)",
+          ];
+
+      notes.forEach((note, i) => {
+        doc.text(`• ${note}`, 14, currentY + i * 4);
+      });
+
+      // Footer
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.text(`Page ${i} of ${pageCount} | Generated: ${new Date().toLocaleDateString("en-AU")}`, 148, 200, { align: "center" });
+      }
+
+      const fileName = `SDA_Rental_Statement_-_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toLocaleDateString("en-AU").replace(/\//g, "-")}.pdf`;
+      doc.save(fileName);
+    } catch (error) {
+      console.error("Error generating statement:", error);
+      alert(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  };
+
   const totalAmount = filteredPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
 
   const formatCurrency = (amount: number) => {
@@ -1615,6 +1917,77 @@ function OwnerPaymentsTab() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Properties with participants but no payment records */}
+      {propertiesWithParticipantsNoPayments.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Properties Awaiting Payment Records
+          </h3>
+          <div className="space-y-4">
+            {propertiesWithParticipantsNoPayments.map((property) => {
+              const suggested = calculateSuggestedAmount(property._id);
+              const owner = property.owner;
+              const propertyName = property.propertyName || property.addressLine1;
+              const propertyParticipants = participants?.filter(p => {
+                const dwelling = p.dwelling;
+                return dwelling && dwelling.propertyId === property._id;
+              }) || [];
+
+              return (
+                <div key={property._id} className="bg-gray-800 rounded-lg overflow-hidden border border-yellow-600/30">
+                  <div className="bg-gray-700 px-4 py-3 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
+                      <div>
+                        <h4 className="text-white font-medium">{propertyName}</h4>
+                        <p className="text-gray-400 text-sm">
+                          Owner: {owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-yellow-400 font-medium">{formatCurrency(suggested.netAmount)}/mo expected</p>
+                        <p className="text-gray-400 text-sm">{propertyParticipants.length} participant(s)</p>
+                      </div>
+                      <button
+                        onClick={() => generateStatementFromPlans(property)}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-2"
+                        title="Generate PDF Statement from Plan Data"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Statement
+                      </button>
+                    </div>
+                  </div>
+                  <div className="px-4 py-3 bg-gray-750 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-300">
+                      <div>
+                        <span className="text-gray-500">Monthly SDA:</span> {formatCurrency(suggested.sdaAmount)}
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Monthly RRC:</span> {formatCurrency(suggested.rrcAmount)}
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Mgmt Fee ({suggested.managementFeePercent}%):</span> ({formatCurrency(suggested.managementFee)})
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Net to Owner:</span> <span className="text-green-400 font-medium">{formatCurrency(suggested.netAmount)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

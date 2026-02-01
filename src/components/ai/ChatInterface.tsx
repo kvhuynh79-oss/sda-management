@@ -22,7 +22,7 @@ interface ChatInterfaceProps {
   onSendMessage: (message: string) => Promise<void>;
   onConfirmAction: (action: PendingAction) => Promise<void>;
   onCancelAction: () => void;
-  onFileUpload?: (file: File) => Promise<void>;
+  onFileUpload?: (file: File, instructions?: string) => Promise<void>;
   isLoading: boolean;
   pendingAction: PendingAction | null;
 }
@@ -90,8 +90,10 @@ export default function ChatInterface({
 
   const handleFileUpload = async () => {
     if (!selectedFile || !onFileUpload) return;
-    await onFileUpload(selectedFile);
+    const instructions = input.trim() || undefined;
+    await onFileUpload(selectedFile, instructions);
     setSelectedFile(null);
+    setInput("");
   };
 
   const clearSelectedFile = () => {
@@ -264,26 +266,20 @@ export default function ChatInterface({
         )}
         {/* Selected File Preview */}
         {selectedFile && (
-          <div className="mb-3 flex items-center gap-2 p-3 bg-gray-800 border border-gray-700 rounded-lg">
-            <FileText className="w-5 h-5 text-blue-400 flex-shrink-0" />
+          <div className="mb-3 flex items-center gap-2 p-3 bg-purple-900/30 border border-purple-600/50 rounded-lg">
+            <FileText className="w-5 h-5 text-purple-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-white truncate">{selectedFile.name}</p>
               <p className="text-xs text-gray-400">
-                {(selectedFile.size / 1024).toFixed(1)} KB
+                {(selectedFile.size / 1024).toFixed(1)} KB • Add instructions below or click send to analyze
               </p>
             </div>
             <button
               onClick={clearSelectedFile}
-              className="p-1 text-gray-400 hover:text-white transition-colors"
+              disabled={isLoading}
+              className="p-1 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             >
               <X className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleFileUpload}
-              disabled={isLoading}
-              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors"
-            >
-              {isLoading ? "Analyzing..." : "Analyze"}
             </button>
           </div>
         )}
@@ -314,22 +310,23 @@ export default function ChatInterface({
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={selectedFile ? undefined : handleKeyDown}
             placeholder={
               pendingAction
                 ? "Confirm or cancel the pending action above..."
                 : selectedFile
-                ? "Click 'Analyze' to process the document..."
+                ? "Add instructions (optional), e.g. 'File this to Waldron Rd' or 'Extract participant details'..."
                 : "Ask a question or upload a document..."
             }
-            disabled={isLoading || !!pendingAction || !!selectedFile}
+            disabled={isLoading || !!pendingAction}
             rows={1}
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
             style={{ minHeight: "48px", maxHeight: "120px" }}
           />
           <button
-            type="submit"
-            disabled={!input.trim() || isLoading || !!pendingAction || !!selectedFile}
+            type={selectedFile ? "button" : "submit"}
+            onClick={selectedFile ? handleFileUpload : undefined}
+            disabled={selectedFile ? isLoading : (!input.trim() || isLoading || !!pendingAction)}
             className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
             {isLoading ? (
@@ -340,7 +337,10 @@ export default function ChatInterface({
           </button>
         </form>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line • Drag & drop or click <Paperclip className="w-3 h-3 inline" /> to upload
+          {selectedFile
+            ? "Type instructions like 'file to Waldron Rd' then click send, or just send to analyze"
+            : "Press Enter to send • Drag & drop or click 📎 to upload documents"
+          }
         </p>
       </div>
     </div>

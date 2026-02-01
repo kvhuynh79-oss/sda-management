@@ -15,11 +15,14 @@ import type * as aiParsing from "../aiParsing.js";
 import type * as aiUtils from "../aiUtils.js";
 import type * as alerts from "../alerts.js";
 import type * as auth from "../auth.js";
+import type * as bankAccounts from "../bankAccounts.js";
+import type * as bankTransactions from "../bankTransactions.js";
 import type * as claims from "../claims.js";
 import type * as contractors from "../contractors.js";
 import type * as crons from "../crons.js";
 import type * as documents from "../documents.js";
 import type * as dwellings from "../dwellings.js";
+import type * as expectedPayments from "../expectedPayments.js";
 import type * as fixPaulDwelling from "../fixPaulDwelling.js";
 import type * as incidentActions from "../incidentActions.js";
 import type * as incidents from "../incidents.js";
@@ -51,6 +54,7 @@ import type * as seedPaulMortensen from "../seedPaulMortensen.js";
 import type * as seedPaulMortensenPayments from "../seedPaulMortensenPayments.js";
 import type * as supportCoordinators from "../supportCoordinators.js";
 import type * as vacancyListings from "../vacancyListings.js";
+import type * as xero from "../xero.js";
 
 import type {
   ApiFromModules,
@@ -66,11 +70,14 @@ declare const fullApi: ApiFromModules<{
   aiUtils: typeof aiUtils;
   alerts: typeof alerts;
   auth: typeof auth;
+  bankAccounts: typeof bankAccounts;
+  bankTransactions: typeof bankTransactions;
   claims: typeof claims;
   contractors: typeof contractors;
   crons: typeof crons;
   documents: typeof documents;
   dwellings: typeof dwellings;
+  expectedPayments: typeof expectedPayments;
   fixPaulDwelling: typeof fixPaulDwelling;
   incidentActions: typeof incidentActions;
   incidents: typeof incidents;
@@ -102,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   seedPaulMortensenPayments: typeof seedPaulMortensenPayments;
   supportCoordinators: typeof supportCoordinators;
   vacancyListings: typeof vacancyListings;
+  xero: typeof xero;
 }>;
 
 /**

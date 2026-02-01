@@ -336,7 +336,9 @@ async function createAlertInternal(
       | "document_expiry"
       | "vacancy"
       | "preventative_schedule_due"
-      | "claim_due";
+      | "claim_due"
+      | "owner_payment_due"
+      | "payment_overdue";
     severity: "critical" | "warning" | "info";
     title: string;
     message: string;
@@ -346,6 +348,7 @@ async function createAlertInternal(
     linkedMaintenanceId?: any;
     linkedPreventativeScheduleId?: any;
     linkedPlanId?: any;
+    linkedOwnerId?: any;
     triggerDate: string;
     dueDate?: string;
   }
@@ -364,7 +367,8 @@ async function createAlertInternal(
       alert.linkedDwellingId === args.linkedDwellingId &&
       alert.linkedMaintenanceId === args.linkedMaintenanceId &&
       alert.linkedPreventativeScheduleId === args.linkedPreventativeScheduleId &&
-      alert.linkedPlanId === args.linkedPlanId
+      alert.linkedPlanId === args.linkedPlanId &&
+      alert.linkedOwnerId === args.linkedOwnerId
     );
   });
 
@@ -822,6 +826,75 @@ export const generateAlertsInternal = internalMutation({
 
         if (claimAlertId) alertsCreated++;
       }
+    }
+
+    return { success: true, alertsCreated };
+  },
+});
+
+// Create owner payment reminders (called by cron on 2nd of month, 3 days before 5th)
+export const createOwnerPaymentReminders = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const periodMonth = `${year}-${String(month).padStart(2, "0")}`;
+    const paymentDueDate = `${periodMonth}-05`; // Owner payments due on 5th
+
+    let alertsCreated = 0;
+
+    // Get expected owner disbursements for this month
+    const expectedOwnerPayments = await ctx.db
+      .query("expectedPayments")
+      .withIndex("by_periodMonth", (q) => q.eq("periodMonth", periodMonth))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("paymentType"), "owner_disbursement"),
+          q.eq(q.field("status"), "pending")
+        )
+      )
+      .collect();
+
+    for (const payment of expectedOwnerPayments) {
+      // Get owner and property details
+      const owner = payment.ownerId ? await ctx.db.get(payment.ownerId) : null;
+      const property = payment.propertyId ? await ctx.db.get(payment.propertyId) : null;
+
+      if (!owner || !property) continue;
+
+      const ownerName = owner.companyName || `${owner.firstName} ${owner.lastName}`;
+      const propertyName = property.propertyName || property.addressLine1;
+
+      // Check if alert already exists
+      const existingAlert = await ctx.db
+        .query("alerts")
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("alertType"), "owner_payment_due"),
+            q.eq(q.field("linkedPropertyId"), property._id),
+            q.eq(q.field("dueDate"), paymentDueDate),
+            q.neq(q.field("status"), "resolved")
+          )
+        )
+        .first();
+
+      if (existingAlert) continue;
+
+      // Create the alert
+      const alertId = await createAlertInternal(ctx, {
+        alertType: "owner_payment_due",
+        severity: "warning",
+        title: `Owner Payment Due in 3 Days`,
+        message: `Payment of $${payment.expectedAmount.toLocaleString("en-AU", { minimumFractionDigits: 2 })} due to ${ownerName} for ${propertyName}`,
+        linkedPropertyId: property._id,
+        linkedOwnerId: owner._id,
+        triggerDate: todayStr,
+        dueDate: paymentDueDate,
+      });
+
+      if (alertId) alertsCreated++;
     }
 
     return { success: true, alertsCreated };

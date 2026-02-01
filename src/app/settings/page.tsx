@@ -125,6 +125,30 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        {/* Integrations */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Integrations</h3>
+          <div className="space-y-4">
+            <Link
+              href="/settings/integrations/xero"
+              className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex-1">
+                <h4 className="text-white font-medium">Xero Integration</h4>
+                <p className="text-gray-400 text-sm mt-1">
+                  Connect to Xero for automatic bank feed syncing
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-gray-400">
+                <span className="text-sm">Configure</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </Link>
+          </div>
+        </div>
+
         {/* Appearance */}
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
           <h3 className="text-lg font-semibold text-white mb-4">Appearance</h3>

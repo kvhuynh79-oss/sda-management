@@ -344,10 +344,12 @@ export default function AIAssistantPage() {
     }
   };
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (file: File, instructions?: string) => {
     if (!userId) return;
 
-    const userMessageContent = `📄 Analyzing document: **${file.name}**`;
+    const userMessageContent = instructions
+      ? `📄 **${file.name}**\n\n${instructions}`
+      : `📄 Analyzing document: **${file.name}**`;
 
     // Add user message showing the file being uploaded
     const userMessage: Message = {
@@ -376,7 +378,54 @@ export default function AIAssistantPage() {
         mediaType = file.type;
       }
 
-      // Call the classify document action
+      // Check if instructions indicate direct filing (e.g., "file to Waldron Rd")
+      const fileToMatch = instructions?.toLowerCase().match(/^file\s+(?:this\s+)?(?:document\s+)?to\s+(.+)$/i);
+
+      if (fileToMatch) {
+        // Direct filing request - classify first, then file
+        const result = await classifyDocument({
+          fileBase64: base64,
+          mediaType,
+          fileName: file.name,
+        });
+
+        const docType = result.documentType === "accommodation_agreement" ? "other" :
+                        result.documentType === "csv_claims" ? "other" :
+                        result.documentType;
+
+        const propertyName = fileToMatch[1].trim();
+        const fileResult = await fileDocument({
+          fileBase64: base64,
+          mediaType,
+          fileName: file.name,
+          propertyName,
+          documentType: docType as "ndis_plan" | "service_agreement" | "lease" | "insurance" | "compliance" | "other",
+          expiryDate: result.extractedExpiry || undefined,
+          userId,
+        });
+
+        const responseContent = fileResult.success
+          ? `✅ ${fileResult.message}\n\n**Document Type:** ${result.documentType}\n**Confidence:** ${Math.round(result.confidence * 100)}%`
+          : `❌ ${fileResult.message}`;
+
+        const assistantMessage: Message = {
+          role: "assistant",
+          content: responseContent,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        await saveClassification({
+          conversationId: activeConversationId,
+          userId,
+          userMessage: userMessageContent,
+          assistantResponse: responseContent,
+        });
+
+        return;
+      }
+
+      // Regular classification flow
       const result = await classifyDocument({
         fileBase64: base64,
         mediaType,
@@ -395,15 +444,17 @@ export default function AIAssistantPage() {
         expiryDate: result.extractedExpiry || undefined,
       });
 
-      // Set pending filing for confirmation UI
-      setPendingFiling({
-        fileBase64: base64,
-        mediaType,
-        fileName: file.name,
-        documentType: docType,
-        expiryDate: result.extractedExpiry || undefined,
-        selectedPropertyId: null,
-      });
+      // Set pending filing for confirmation UI (only if no specific instructions)
+      if (!instructions) {
+        setPendingFiling({
+          fileBase64: base64,
+          mediaType,
+          fileName: file.name,
+          documentType: docType,
+          expiryDate: result.extractedExpiry || undefined,
+          selectedPropertyId: null,
+        });
+      }
 
       // Format the response
       const docTypeLabels: Record<string, string> = {
@@ -434,8 +485,10 @@ export default function AIAssistantPage() {
         responseContent += `\n**Expiry Date:** ${result.extractedExpiry}`;
       }
 
-      // Add tip based on document type
-      if (result.documentType === "accommodation_agreement") {
+      // Add tip based on document type or instructions
+      if (instructions) {
+        responseContent += `\n\n---\n**Your instructions:** "${instructions}"\n\nI've analyzed the document. You can now tell me what to do with it, such as "file to [property name]".`;
+      } else if (result.documentType === "accommodation_agreement") {
         responseContent += `\n\n💡 **Tip:** This appears to be an Accommodation Agreement. You can upload it again and I can extract participant details, RRC amounts, and bank information to help with onboarding.`;
       } else if (result.documentType === "ndis_plan") {
         responseContent += `\n\n💡 **Tip:** This appears to be an NDIS Plan. I found the plan details above. You may want to update the participant's plan information in the system.`;

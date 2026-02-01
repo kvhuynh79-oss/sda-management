@@ -24,6 +24,34 @@ crons.daily(
   internal.notifications.sendDailyDigestForAllUsers
 );
 
+// ============================================
+// FINANCIAL AUTOMATION CRON JOBS
+// ============================================
+
+// Generate expected payments on 1st of each month at 6 AM UTC
+// This creates expected SDA, RRC, and owner disbursement records
+crons.monthly(
+  "generate-monthly-expected-payments",
+  { day: 1, hourUTC: 6, minuteUTC: 0 },
+  internal.expectedPayments.generateMonthlyExpectedInternal
+);
+
+// Check for overdue expected payments daily at 8 AM UTC
+// Updates status of past-due payments and can trigger alerts
+crons.daily(
+  "check-overdue-payments",
+  { hourUTC: 8, minuteUTC: 0 },
+  internal.expectedPayments.checkOverdue
+);
+
+// Create owner payment reminders on the 2nd of each month at 9 AM UTC
+// (3 days before standard owner payment date of 5th)
+crons.monthly(
+  "owner-payment-reminder",
+  { day: 2, hourUTC: 9, minuteUTC: 0 },
+  internal.alerts.createOwnerPaymentReminders
+);
+
 // Alternative: Generate alerts every 6 hours for more frequent checks
 // Uncomment to enable 6-hourly alert generation instead of daily
 // crons.interval(

@@ -205,9 +205,9 @@ export const revertToPending = mutation({
       throw new Error("Can only revert active participants to pending");
     }
 
+    // Just update status - keep moveInDate for reference (it will be overwritten on next move-in)
     await ctx.db.patch(args.participantId, {
       status: "pending_move_in",
-      moveInDate: undefined,
       updatedAt: Date.now(),
     });
 

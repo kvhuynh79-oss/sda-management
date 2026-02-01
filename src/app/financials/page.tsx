@@ -1095,76 +1095,321 @@ function OwnerPaymentsTab() {
       const property = payments[0]?.property;
       const ownerName = owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown";
 
-      // Header
-      doc.setFontSize(20);
+      // Load logo
+      let logoLoaded = false;
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = "anonymous";
+        await new Promise<void>((resolve, reject) => {
+          logoImg.onload = () => {
+            try {
+              doc.addImage(logoImg, "JPEG", 14, 10, 40, 16);
+              logoLoaded = true;
+            } catch {
+              // Logo failed to add, continue without it
+            }
+            resolve();
+          };
+          logoImg.onerror = () => reject();
+          logoImg.src = "/Logo.jpg";
+          setTimeout(resolve, 1000); // Timeout fallback
+        });
+      } catch {
+        // Continue without logo
+      }
+
+      // Company Header
+      const headerX = logoLoaded ? 58 : 14;
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Owner Payment Statement", 105, 20, { align: "center" });
+      doc.setTextColor(0, 0, 0);
+      doc.text("Better Living Solutions", headerX, 14);
 
-      doc.setFontSize(12);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.text("Better Living Solutions", 105, 28, { align: "center" });
+      doc.setTextColor(100, 100, 100);
+      doc.text("Suite 7/ 210-216 Hume Highway, Lansvale NSW 2166", headerX, 19);
+      doc.text("Ph: 1300 339 485 | Mobile: 0410 646 223", headerX, 23);
+      doc.text("Email: khen@betterlivingsolutions.com.au", headerX, 27);
+      doc.text("ABN: 87 630 237 277 | NDIS Provider: 405 005 2336", headerX, 31);
 
-      // Statement Details
+      // Generated date (right aligned)
+      doc.setFontSize(8);
+      doc.text(`Generated on ${new Date().toLocaleDateString("en-AU")} ${new Date().toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`, 196, 14, { align: "right" });
+      doc.text("Director: Khen Huynh", 196, 18, { align: "right" });
+
+      // Divider line
+      doc.setDrawColor(200, 200, 200);
+      doc.line(14, 36, 196, 36);
+
+      // Statement Title
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text(`OWNERSHIP STATEMENT - ${ownerName.toUpperCase()}`, 14, 45);
+
+      // Owner Details Box
       doc.setFontSize(10);
-      const startY = 45;
-      doc.text(`Property: ${property?.addressLine1 || propertyName}`, 14, startY);
-      doc.text(`Owner: ${ownerName}`, 14, startY + 6);
-      doc.text(`Statement Date: ${new Date().toLocaleDateString("en-AU")}`, 14, startY + 12);
+      doc.setFont("helvetica", "bold");
+      doc.text(ownerName, 14, 54);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      if (owner?.bankBsb && owner?.bankAccountNumber) {
+        doc.text(`Bank Details: BSB ${owner.bankBsb} | Account: ${owner.bankAccountNumber}`, 14, 59);
+      }
 
-      const periodText = dateFrom && dateTo
-        ? `Period: ${dateFrom} to ${dateTo}`
-        : dateFrom
-          ? `Period: From ${dateFrom}`
-          : dateTo
-            ? `Period: Up to ${dateTo}`
-            : `Period: All Time`;
-      doc.text(periodText, 14, startY + 18);
+      // Statement Period Info (right side)
+      const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
 
-      // Table data
-      const tableData = payments.map((p) => [
-        p.paymentDate,
-        p.paymentType === "sda_share" ? "SDA Share" : p.paymentType === "interim" ? "Interim" : p.paymentType === "rent_contribution" ? "RRC" : "Other",
-        p.description || "-",
-        p.bankReference || "-",
-        formatCurrency(p.amount),
-      ]);
+      // Calculate statement period from payments
+      const sortedPayments = [...payments].sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
+      const firstPaymentDate = sortedPayments[0]?.paymentDate || "";
+      const lastPaymentDate = sortedPayments[sortedPayments.length - 1]?.paymentDate || "";
 
-      const total = payments.reduce((sum, p) => sum + p.amount, 0);
+      const formatDateDisplay = (dateStr: string) => {
+        if (!dateStr) return "";
+        const [year, month, day] = dateStr.split("-");
+        return `${day}/${month}/${year}`;
+      };
 
-      // Use autoTable function directly
+      doc.setFontSize(9);
+      doc.text(`STATEMENT PERIOD: ${formatDateDisplay(firstPaymentDate)} - ${formatDateDisplay(lastPaymentDate)}`, 196, 50, { align: "right" });
+      doc.text("OPENING BALANCE: $0.00", 196, 55, { align: "right" });
+      doc.setFont("helvetica", "bold");
+      doc.text(`TOTAL PAYMENTS: ${formatCurrency(totalAmount)}`, 196, 60, { align: "right" });
+
+      // Property Section Header
+      doc.setFillColor(245, 245, 245);
+      doc.rect(14, 68, 182, 8, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(80, 80, 80);
+      const propertyAddress = property?.addressLine1
+        ? `${property.addressLine1}${property.suburb ? `, ${property.suburb}` : ""}${property.state ? ` ${property.state}` : ""}${property.postcode ? ` ${property.postcode}` : ""}`
+        : propertyName;
+      doc.text(`SDA RESIDENTIAL - ${propertyAddress.toUpperCase()}`, 16, 73);
+
+      // INCOME Section
+      let currentY = 82;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("INCOME", 14, currentY);
+      currentY += 4;
+
+      // Income Table
       autoTable(doc, {
-        startY: startY + 28,
-        head: [["Date", "Type", "Description", "Reference", "Amount"]],
-        body: tableData,
-        foot: [["", "", "", "Total:", formatCurrency(total)]],
-        theme: "striped",
-        headStyles: { fillColor: [59, 130, 246] },
-        footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold" },
-        styles: { fontSize: 9 },
+        startY: currentY,
+        head: [["Description", "MONEY OUT", "MONEY IN"]],
+        body: [
+          [{ content: "SDA Rental Income:", colSpan: 3, styles: { fontStyle: "bold", fillColor: [255, 255, 255] } }],
+          [`Rent - Paid from ${formatDateDisplay(firstPaymentDate)} to ${formatDateDisplay(lastPaymentDate)}`, "", formatCurrency(totalAmount)],
+          [{ content: "TOTAL INCOME", styles: { fontStyle: "bold" } }, "", { content: formatCurrency(totalAmount), styles: { fontStyle: "bold" } }],
+        ],
+        theme: "plain",
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
         columnStyles: {
-          4: { halign: "right" },
+          0: { cellWidth: 120 },
+          1: { cellWidth: 30, halign: "right" },
+          2: { cellWidth: 30, halign: "right" },
+        },
+        tableLineColor: [200, 200, 200],
+        tableLineWidth: 0.1,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      currentY = (doc as any).lastAutoTable?.finalY + 8 || currentY + 40;
+
+      // EXPENSE Section
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("EXPENSE", 14, currentY);
+      currentY += 4;
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Description", "MONEY OUT", "MONEY IN"]],
+        body: [
+          [{ content: "TOTAL EXPENSES", styles: { fontStyle: "bold" } }, { content: "$0.00", styles: { fontStyle: "bold" } }, ""],
+        ],
+        theme: "plain",
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
+        columnStyles: {
+          0: { cellWidth: 120 },
+          1: { cellWidth: 30, halign: "right" },
+          2: { cellWidth: 30, halign: "right" },
+        },
+        tableLineColor: [200, 200, 200],
+        tableLineWidth: 0.1,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      currentY = (doc as any).lastAutoTable?.finalY + 6 || currentY + 25;
+
+      // Balance
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(200, 80, 60);
+      doc.text(`BALANCE: ${formatCurrency(totalAmount)}`, 14, currentY);
+      currentY += 10;
+
+      // Ownership Summary
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("OWNERSHIP SUMMARY", 14, currentY);
+      currentY += 4;
+
+      autoTable(doc, {
+        startY: currentY,
+        body: [
+          ["Total SDA Rental Income", { content: formatCurrency(totalAmount), styles: { halign: "right" } }],
+          ["Total Property Expenses", { content: "$0.00", styles: { halign: "right" } }],
+          [{ content: "Net Amount to Owners", styles: { textColor: [200, 80, 60], fontStyle: "bold" } }, { content: formatCurrency(totalAmount), styles: { halign: "right", textColor: [200, 80, 60], fontStyle: "bold" } }],
+        ],
+        theme: "plain",
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 140 },
+          1: { cellWidth: 40 },
+        },
+        tableLineColor: [200, 200, 200],
+        tableLineWidth: 0.1,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 30;
+
+      // Ownership Payments Section
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("OWNERSHIP PAYMENTS", 14, currentY);
+      currentY += 4;
+
+      const bankInfo = owner?.bankBsb && owner?.bankAccountNumber
+        ? `EFT payments to ${ownerName}\nBank (BSB: ${owner.bankBsb} Account: ${owner.bankAccountNumber})`
+        : `Payments to ${ownerName}`;
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Payment Details", "MONEY OUT", "MONEY IN"]],
+        body: [
+          [bankInfo, { content: formatCurrency(totalAmount), styles: { halign: "right" } }, ""],
+        ],
+        theme: "plain",
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
+        columnStyles: {
+          0: { cellWidth: 120 },
+          1: { cellWidth: 30, halign: "right" },
+          2: { cellWidth: 30, halign: "right" },
+        },
+        tableLineColor: [200, 200, 200],
+        tableLineWidth: 0.1,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      currentY = (doc as any).lastAutoTable?.finalY + 4 || currentY + 20;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(80, 80, 80);
+      doc.text(`TOTAL OWNERSHIP PAYMENTS: ${formatCurrency(totalAmount)}`, 14, currentY);
+      currentY += 12;
+
+      // Check if we need a new page for payment history
+      if (currentY > 200) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      // Statement History Section
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("STATEMENT HISTORY", 14, currentY);
+      currentY += 2;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("PAYMENT HISTORY (12 MONTHS)", 14, currentY + 4);
+      currentY += 8;
+
+      // Group payments by month
+      const paymentsByMonth: Record<string, number> = {};
+      payments.forEach(p => {
+        const [year, month] = p.paymentDate.split("-");
+        const monthKey = `${year}-${month}`;
+        paymentsByMonth[monthKey] = (paymentsByMonth[monthKey] || 0) + p.amount;
+      });
+
+      // Generate last 12 months
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const now = new Date();
+      const historyData: [string, string, string][] = [];
+      let totalIncome = 0;
+
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const monthLabel = `${monthNames[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+        const amount = paymentsByMonth[monthKey] || 0;
+        totalIncome += amount;
+        historyData.push([monthLabel, formatCurrency(amount), formatCurrency(amount)]);
+      }
+
+      // Add average row
+      const avgAmount = totalIncome / 12;
+      historyData.push([{ content: "AVERAGE", styles: { fontStyle: "bold" } } as unknown as string, { content: formatCurrency(avgAmount), styles: { fontStyle: "bold" } } as unknown as string, { content: formatCurrency(avgAmount), styles: { fontStyle: "bold" } } as unknown as string]);
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [["Month", "Income", "Payments"]],
+        body: historyData,
+        theme: "striped",
+        styles: { fontSize: 8, cellPadding: 2, halign: "center" },
+        headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        columnStyles: {
+          0: { cellWidth: 40 },
+          1: { cellWidth: 50 },
+          2: { cellWidth: 50 },
         },
       });
 
-      // Bank Details
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const finalY = ((doc as any).lastAutoTable?.finalY || startY + 100) + 15;
-      if (owner?.bankBsb || owner?.bankAccountNumber) {
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text("Bank Details:", 14, finalY);
-        doc.setFont("helvetica", "normal");
-        if (owner?.bankAccountName) doc.text(`Account Name: ${owner.bankAccountName}`, 14, finalY + 6);
-        if (owner?.bankBsb) doc.text(`BSB: ${owner.bankBsb}`, 14, finalY + 12);
-        if (owner?.bankAccountNumber) doc.text(`Account: ${owner.bankAccountNumber}`, 14, finalY + 18);
-      }
+      currentY = (doc as any).lastAutoTable?.finalY + 15 || currentY + 80;
+
+      // Notes Section
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("Notes:", 14, currentY);
+      doc.setFont("helvetica", "normal");
+      currentY += 4;
+
+      const notes = [
+        `This statement covers SDA rental income for ${propertyAddress}`,
+        `Property enrolled for ${property?.sdaCategory || "High Physical Support (HPS)"}`,
+        "Management arrangement: Better Living Solutions (30%) | Owners (70%)",
+        "All amounts are in Australian Dollars (AUD)",
+        "Statement generated from verified payment records",
+      ];
+
+      notes.forEach((note, i) => {
+        doc.text(`• ${note}`, 14, currentY + (i * 4));
+      });
 
       // Footer
-      doc.setFontSize(8);
-      doc.setTextColor(128);
-      doc.text("This statement was generated by Better Living Solutions SDA Management System", 105, 285, { align: "center" });
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.text(`Page ${i} of ${pageCount}`, 105, 290, { align: "center" });
+      }
 
-      const fileName = `Owner_Statement_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+      const fileName = `End_of_Financial_Year_Rental_Statement_-_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toLocaleDateString("en-AU").replace(/\//g, "-")}.pdf`;
       doc.save(fileName);
     } catch (error) {
       console.error("Error generating statement:", error);

@@ -118,11 +118,20 @@ src/components/
 - User stored in localStorage as `sda_user` (temporary auth)
 - All dates stored as ISO strings (YYYY-MM-DD)
 
+## Completed Features
+- **Custom domain** - https://mysdamanager.com
+- **Resend email** - Configured with noreply@mysdamanager.com, sending to khen@betterlivingsolutions.com.au
+- **PWA for mobile** - Offline support, install prompt
+- **Xero Integration** - OAuth setup complete (needs testing)
+- **Owner reports** - 6-month Folio Summary (needs testing)
+
 ## Next Session Priorities
-1. **Test Incident Actions feature** - New feature deployed (commit de4e744). Test workflow: Add Action -> Contractor/In-House -> Complete
+1. **Testing needed:**
+   - Xero Integration - Connect and sync bank transactions
+   - Owner reports - Generate 6-month Folio Summary PDF
+   - Incident Actions - Add Action → Contractor/In-House → Complete
 2. **Bug fixing** - Test all features, fix any issues
 3. **Bulk data entry** - User will upload property/participant data
-4. **Owner reports** - Reference the Folio Summary format for 6-month reports
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:
@@ -133,16 +142,8 @@ src/components/
   - Owner bank details for payment
 
 ## Future Roadmap (Priorities)
-1. **Custom domain setup** - Set up production domain for the app
-2. **Configure Resend API for email** - Set up email sending for alerts & quote requests (after domain setup)
-   - Sign up at https://resend.com
-   - Add `RESEND_API_KEY` to Convex environment variables
-   - Add `RESEND_FROM_EMAIL` to Convex environment variables
-   - Verify domain for production sending
-   - Enables: claim due alerts, contractor quote requests, daily digests
-3. PWA for mobile (offline, install prompt)
-4. Security enhancements (2FA, audit logging)
-5. Inspection PDF reports
+1. Security enhancements (2FA, audit logging)
+2. Inspection PDF reports
 
 ## Long-Term / Optional
 - **Subscription SaaS Model** - Transform into multi-tenant app for other SDA providers
@@ -162,4 +163,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-02-01

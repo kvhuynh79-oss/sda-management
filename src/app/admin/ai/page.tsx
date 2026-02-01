@@ -7,7 +7,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
 import ChatInterface from "../../../components/ai/ChatInterface";
 import ConversationsList from "../../../components/ai/ConversationsList";
-import { Bot, Menu, X } from "lucide-react";
+import { Bot, Menu, X, FileText, Building2, CheckCircle, XCircle } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,6 +19,15 @@ interface PendingAction {
   actionType: string;
   description: string;
   params: Record<string, unknown>;
+}
+
+interface PendingFiling {
+  fileBase64: string;
+  mediaType: string;
+  fileName: string;
+  documentType: string;
+  expiryDate?: string;
+  selectedPropertyId: Id<"properties"> | null;
 }
 
 export default function AIAssistantPage() {
@@ -37,6 +46,7 @@ export default function AIAssistantPage() {
     documentType: string;
     expiryDate?: string;
   } | null>(null);
+  const [pendingFiling, setPendingFiling] = useState<PendingFiling | null>(null);
 
   // Get user from localStorage
   useEffect(() => {
@@ -59,6 +69,9 @@ export default function AIAssistantPage() {
     api.aiChatbot.getConversation,
     activeConversationId ? { conversationId: activeConversationId } : "skip"
   );
+
+  // Fetch properties for filing dropdown
+  const properties = useQuery(api.properties.getAll);
 
   // Actions and mutations
   const processQuery = useAction(api.aiChatbot.processUserQuery);
@@ -126,9 +139,10 @@ export default function AIAssistantPage() {
           assistantResponse: responseContent,
         });
 
-        // Clear the classified doc if successful
+        // Clear the classified doc and pending filing if successful
         if (result.success) {
           setLastClassifiedDoc(null);
+          setPendingFiling(null);
         }
       } catch (error) {
         console.error("Error filing document:", error);
@@ -243,10 +257,79 @@ export default function AIAssistantPage() {
     setMessages((prev) => [...prev, cancelMessage]);
   };
 
+  const handleConfirmFiling = async () => {
+    if (!userId || !pendingFiling || !pendingFiling.selectedPropertyId) return;
+
+    setIsLoading(true);
+
+    const selectedProperty = properties?.find(p => p._id === pendingFiling.selectedPropertyId);
+    const propertyName = selectedProperty?.propertyName || selectedProperty?.addressLine1 || "Unknown";
+
+    try {
+      const result = await fileDocument({
+        fileBase64: pendingFiling.fileBase64,
+        mediaType: pendingFiling.mediaType,
+        fileName: pendingFiling.fileName,
+        propertyName,
+        documentType: pendingFiling.documentType as "ndis_plan" | "service_agreement" | "lease" | "insurance" | "compliance" | "other",
+        expiryDate: pendingFiling.expiryDate,
+        userId,
+      });
+
+      const responseContent = result.success
+        ? `✅ ${result.message}`
+        : `❌ ${result.message}`;
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: responseContent,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // Save to conversation
+      await saveClassification({
+        conversationId: activeConversationId,
+        userId,
+        userMessage: `File document to ${propertyName}`,
+        assistantResponse: responseContent,
+      });
+
+      // Clear states if successful
+      if (result.success) {
+        setLastClassifiedDoc(null);
+        setPendingFiling(null);
+      }
+    } catch (error) {
+      console.error("Error filing document:", error);
+      const errorMessage: Message = {
+        role: "assistant",
+        content: "Sorry, I encountered an error filing the document. Please try again.",
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelFiling = () => {
+    setPendingFiling(null);
+    setLastClassifiedDoc(null);
+    const cancelMessage: Message = {
+      role: "assistant",
+      content: "Document filing cancelled. Is there anything else I can help you with?",
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, cancelMessage]);
+  };
+
   const handleNewConversation = () => {
     setActiveConversationId(undefined);
     setMessages([]);
     setPendingAction(null);
+    setPendingFiling(null);
+    setLastClassifiedDoc(null);
   };
 
   const handleSelectConversation = (id: Id<"aiConversations">) => {
@@ -312,6 +395,16 @@ export default function AIAssistantPage() {
         expiryDate: result.extractedExpiry || undefined,
       });
 
+      // Set pending filing for confirmation UI
+      setPendingFiling({
+        fileBase64: base64,
+        mediaType,
+        fileName: file.name,
+        documentType: docType,
+        expiryDate: result.extractedExpiry || undefined,
+        selectedPropertyId: null,
+      });
+
       // Format the response
       const docTypeLabels: Record<string, string> = {
         ndis_plan: "NDIS Plan",
@@ -341,16 +434,13 @@ export default function AIAssistantPage() {
         responseContent += `\n**Expiry Date:** ${result.extractedExpiry}`;
       }
 
-      // Add filing instructions
-      responseContent += `\n\n---\n`;
-      responseContent += `📁 **To file this document**, type: "file to [property name]" (e.g., "file to Tregear")\n\n`;
-
+      // Add tip based on document type
       if (result.documentType === "accommodation_agreement") {
-        responseContent += `💡 **Tip:** This appears to be an Accommodation Agreement. You can upload it again and I can extract participant details, RRC amounts, and bank information to help with onboarding.`;
+        responseContent += `\n\n💡 **Tip:** This appears to be an Accommodation Agreement. You can upload it again and I can extract participant details, RRC amounts, and bank information to help with onboarding.`;
       } else if (result.documentType === "ndis_plan") {
-        responseContent += `💡 **Tip:** This appears to be an NDIS Plan. I found the plan details above. You may want to update the participant's plan information in the system.`;
+        responseContent += `\n\n💡 **Tip:** This appears to be an NDIS Plan. I found the plan details above. You may want to update the participant's plan information in the system.`;
       } else if (result.documentType === "compliance" || result.documentType === "insurance") {
-        responseContent += `💡 **Tip:** Consider adding this document to the Documents section and setting up an expiry alert.`;
+        responseContent += `\n\n💡 **Tip:** Consider setting up an expiry alert after filing.`;
       }
 
       const assistantMessage: Message = {
@@ -447,7 +537,7 @@ export default function AIAssistantPage() {
         )}
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
           <ChatInterface
             messages={messages}
             onSendMessage={handleSendMessage}
@@ -457,6 +547,65 @@ export default function AIAssistantPage() {
             isLoading={isLoading}
             pendingAction={pendingAction}
           />
+
+          {/* Document Filing Confirmation Panel */}
+          {pendingFiling && !isLoading && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4 shadow-lg">
+              <div className="max-w-2xl mx-auto">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium">File Document to Property</h3>
+                    <p className="text-sm text-gray-400">
+                      {pendingFiling.fileName}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <Building2 className="w-4 h-4 inline mr-1" />
+                    Select Property
+                  </label>
+                  <select
+                    value={pendingFiling.selectedPropertyId || ""}
+                    onChange={(e) => setPendingFiling({
+                      ...pendingFiling,
+                      selectedPropertyId: e.target.value ? e.target.value as Id<"properties"> : null
+                    })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Select a property --</option>
+                    {properties?.map((property) => (
+                      <option key={property._id} value={property._id}>
+                        {property.propertyName || property.addressLine1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleConfirmFiling}
+                    disabled={!pendingFiling.selectedPropertyId}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    File Document
+                  </button>
+                  <button
+                    onClick={handleCancelFiling}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

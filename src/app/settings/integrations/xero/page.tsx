@@ -26,7 +26,7 @@ export default function XeroSettingsPage() {
     lastName: string;
     role: string;
   } | null>(null);
-  const [syncingAccounts, setSyncingAccounts] = useState<Set<string>>(new Set());
+  const [syncingAccounts, setSyncingAccounts] = useState<Record<string, boolean>>({});
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -132,7 +132,7 @@ export default function XeroSettingsPage() {
     xeroAccountId: string,
     accountName: string
   ) => {
-    setSyncingAccounts((prev) => new Set(prev).add(bankAccountId));
+    setSyncingAccounts((prev) => ({ ...prev, [bankAccountId]: true }));
     setMessage(null);
     try {
       const result = await syncBankTransactions({
@@ -151,8 +151,8 @@ export default function XeroSettingsPage() {
       });
     } finally {
       setSyncingAccounts((prev) => {
-        const next = new Set(prev);
-        next.delete(bankAccountId);
+        const next = { ...prev };
+        delete next[bankAccountId];
         return next;
       });
     }
@@ -426,10 +426,10 @@ export default function XeroSettingsPage() {
                             alert("Please select a Xero account first");
                           }
                         }}
-                        disabled={syncingAccounts.has(account._id)}
+                        disabled={syncingAccounts[account._id]}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm"
                       >
-                        {syncingAccounts.has(account._id) ? "Syncing..." : "Sync Now"}
+                        {syncingAccounts[account._id] ? "Syncing..." : "Sync Now"}
                       </button>
                     </div>
                   ) : (

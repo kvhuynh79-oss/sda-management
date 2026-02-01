@@ -12,12 +12,60 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Light theme - explicit class */
+html.light {
+  --background: #f3f4f6;
+  --foreground: #171717;
 }
+
+/* Dark theme - explicit class */
+html.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* Light mode overrides for Tailwind gray colors */
+/* Page background - soft warm gray */
+html.light .bg-gray-900 { background-color: #e5e7eb !important; }
+/* Cards - white with shadow for definition */
+html.light .bg-gray-800 {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+}
+/* Inner elements - visible contrast against white cards */
+html.light .bg-gray-700 { background-color: #f3f4f6 !important; }
+html.light .bg-gray-700\/50 { background-color: rgb(229 231 235 / 0.5) !important; }
+html.light .bg-gray-600 { background-color: #d1d5db !important; }
+/* Text colors - darker for better readability */
+html.light .text-white { color: #111827 !important; }
+html.light .text-gray-400 { color: #4b5563 !important; }
+html.light .text-gray-300 { color: #374151 !important; }
+html.light .text-gray-200 { color: #1f2937 !important; }
+/* Borders - more visible */
+html.light .border-gray-700 { border-color: #d1d5db !important; }
+html.light .border-gray-600 { border-color: #9ca3af !important; }
+html.light .border-gray-800 { border-color: #e5e7eb !important; }
+/* Hover states */
+html.light .hover\:bg-gray-600:hover { background-color: #d1d5db !important; }
+html.light .hover\:bg-gray-700:hover { background-color: #e5e7eb !important; }
+html.light .hover\:text-white:hover { color: #111827 !important; }
+/* Header specific */
+html.light header.bg-gray-800 {
+  background-color: #ffffff !important;
+  border-bottom-color: #d1d5db !important;
+}
+/* Blue info boxes - better contrast in light mode */
+html.light .bg-blue-900\/20 { background-color: #dbeafe !important; }
+html.light .border-blue-800 { border-color: #3b82f6 !important; }
+html.light .text-blue-300 { color: #1d4ed8 !important; }
+html.light .text-blue-200 { color: #1e40af !important; }
+html.light .bg-blue-950 { background-color: #bfdbfe !important; }
+/* Red/error boxes */
+html.light .bg-red-900\/30 { background-color: #fee2e2 !important; }
+html.light .border-red-800 { border-color: #dc2626 !important; }
+/* Green/success boxes */
+html.light .bg-green-900\/30 { background-color: #dcfce7 !important; }
+html.light .border-green-800 { border-color: #16a34a !important; }
 
 html, body {
   background: var(--background);

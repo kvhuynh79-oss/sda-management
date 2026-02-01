@@ -6,10 +6,12 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Header from "@/components/Header";
+import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; role: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -117,9 +119,52 @@ export default function SettingsPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white">Notification Settings</h2>
+          <h1 className="text-2xl font-bold text-white">Settings</h1>
           <p className="text-gray-400 mt-1">
-            Manage how you receive alerts and updates from Better Living Solutions
+            Manage your preferences for Better Living Solutions
+          </p>
+        </div>
+
+        {/* Appearance */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Appearance</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+              <div className="flex-1">
+                <h4 className="text-white font-medium">Theme</h4>
+                <p className="text-gray-400 text-sm mt-1">Choose your preferred color scheme</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    theme === "dark"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                  }`}
+                >
+                  Dark
+                </button>
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    theme === "light"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                  }`}
+                >
+                  Light
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Notification Settings Header */}
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-white">Notification Settings</h2>
+          <p className="text-gray-400 text-sm mt-1">
+            Manage how you receive alerts and updates
           </p>
         </div>
 

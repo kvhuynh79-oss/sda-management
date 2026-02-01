@@ -145,13 +145,25 @@ src/components/
 1. Security enhancements (2FA, audit logging)
 2. Inspection PDF reports
 
-## Long-Term / Optional
-- **Subscription SaaS Model** - Transform into multi-tenant app for other SDA providers
-  - Independent branding (separate from Better Living Solutions)
-  - New domain (e.g., SDAManager.com.au or similar)
-  - Multi-tenant architecture (data isolation per organization)
-  - User registration & organization onboarding
-  - Stripe subscription billing
+## Phase 2: SaaS Subscription Model (Start: Mid-February 2026)
+**Prerequisite:** Complete 2-3 weeks of testing/debugging current app first.
+
+See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for full details.
+
+### Summary
+- **Brand**: MySDAManager (https://mysdamanager.com - SECURED)
+- Transform into multi-tenant SaaS for other SDA providers
+- New independent company (Pty Ltd)
+- Stripe subscription billing
+- Pricing: $250-600/month (match Re-Leased, but FREE onboarding)
+- **Competitor**: Re-Leased ($7,500 year 1) - same annual, save $2,500 on onboarding
+
+### Key Steps
+1. Register company, ABN, trademark
+2. Implement multi-tenant architecture
+3. Add Stripe billing
+4. Beta launch with 5-10 customers
+5. Public launch
   - Pricing tiers
 
 ## Commands

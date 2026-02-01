@@ -57,6 +57,7 @@ export default function AIAssistantPage() {
   const processQuery = useAction(api.aiChatbot.processUserQuery);
   const executeAction = useAction(api.aiChatbot.executeAction);
   const deleteConversation = useMutation(api.aiChatbot.deleteConversation);
+  const classifyDocument = useAction(api.aiDocuments.classifyDocument);
 
   // Update messages when active conversation changes
   useEffect(() => {
@@ -185,6 +186,102 @@ export default function AIAssistantPage() {
     }
   };
 
+  const handleFileUpload = async (file: File) => {
+    if (!userId) return;
+
+    // Add user message showing the file being uploaded
+    const userMessage: Message = {
+      role: "user",
+      content: `📄 Analyzing document: **${file.name}**`,
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      // Convert file to base64
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce(
+          (data, byte) => data + String.fromCharCode(byte),
+          ""
+        )
+      );
+
+      // Determine media type
+      let mediaType = file.type;
+      if (file.type === "application/pdf") {
+        mediaType = "application/pdf";
+      } else if (file.type.startsWith("image/")) {
+        mediaType = file.type;
+      }
+
+      // Call the classify document action
+      const result = await classifyDocument({
+        fileBase64: base64,
+        mediaType,
+        fileName: file.name,
+      });
+
+      // Format the response
+      const docTypeLabels: Record<string, string> = {
+        ndis_plan: "NDIS Plan",
+        accommodation_agreement: "Accommodation Agreement",
+        service_agreement: "Service Agreement",
+        lease: "Lease Agreement",
+        insurance: "Insurance Certificate",
+        compliance: "Compliance Certificate",
+        csv_claims: "CSV Claims File",
+        other: "Other Document",
+      };
+
+      const categoryLabels: Record<string, string> = {
+        participant: "Participant",
+        property: "Property",
+        dwelling: "Dwelling",
+        owner: "Owner",
+      };
+
+      let responseContent = `### Document Analysis Results\n\n`;
+      responseContent += `**Document Type:** ${docTypeLabels[result.documentType] || result.documentType}\n`;
+      responseContent += `**Category:** ${categoryLabels[result.suggestedCategory] || result.suggestedCategory}\n`;
+      responseContent += `**Confidence:** ${Math.round(result.confidence * 100)}%\n\n`;
+      responseContent += `**Summary:** ${result.summary}\n`;
+
+      if (result.extractedExpiry) {
+        responseContent += `\n**Expiry Date:** ${result.extractedExpiry}`;
+      }
+
+      // Add suggestions based on document type
+      responseContent += `\n\n---\n`;
+      if (result.documentType === "accommodation_agreement") {
+        responseContent += `💡 **Tip:** This appears to be an Accommodation Agreement. You can upload it again and I can extract participant details, RRC amounts, and bank information to help with onboarding.`;
+      } else if (result.documentType === "ndis_plan") {
+        responseContent += `💡 **Tip:** This appears to be an NDIS Plan. I found the plan details above. You may want to update the participant's plan information in the system.`;
+      } else if (result.documentType === "compliance" || result.documentType === "insurance") {
+        responseContent += `💡 **Tip:** Consider adding this document to the Documents section and setting up an expiry alert.`;
+      }
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: responseContent,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error analyzing document:", error);
+      const errorMessage: Message = {
+        role: "assistant",
+        content:
+          "Sorry, I encountered an error analyzing the document. Please make sure it's a clear image or PDF and try again.",
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!userId) {
     return (
       <div className="min-h-screen bg-gray-900">
@@ -253,6 +350,7 @@ export default function AIAssistantPage() {
             onSendMessage={handleSendMessage}
             onConfirmAction={handleConfirmAction}
             onCancelAction={handleCancelAction}
+            onFileUpload={handleFileUpload}
             isLoading={isLoading}
             pendingAction={pendingAction}
           />

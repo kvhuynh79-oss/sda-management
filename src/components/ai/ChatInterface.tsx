@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, CheckCircle, XCircle } from "lucide-react";
+import { Send, Loader2, Bot, CheckCircle, XCircle, Paperclip, FileText, X } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import QuickActions from "./QuickActions";
 
@@ -22,6 +22,7 @@ interface ChatInterfaceProps {
   onSendMessage: (message: string) => Promise<void>;
   onConfirmAction: (action: PendingAction) => Promise<void>;
   onCancelAction: () => void;
+  onFileUpload?: (file: File) => Promise<void>;
   isLoading: boolean;
   pendingAction: PendingAction | null;
 }
@@ -31,11 +32,14 @@ export default function ChatInterface({
   onSendMessage,
   onConfirmAction,
   onCancelAction,
+  onFileUpload,
   isLoading,
   pendingAction,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,6 +75,41 @@ export default function ChatInterface({
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please upload an image (PNG, JPG, WebP, GIF) or PDF file.');
+        return;
+      }
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB.');
+        return;
+      }
+      setSelectedFile(file);
+    }
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !onFileUpload) return;
+    await onFileUpload(selectedFile);
+    setSelectedFile(null);
+  };
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Messages Area */}
@@ -91,6 +130,7 @@ export default function ChatInterface({
               <li>Move participants between dwellings</li>
               <li>Create and update maintenance requests</li>
               <li>Record payments</li>
+              <li>Upload and analyze documents (NDIS plans, agreements, etc.)</li>
             </ul>
             <QuickActions onAction={handleQuickAction} disabled={isLoading} />
           </div>
@@ -163,7 +203,55 @@ export default function ChatInterface({
             <QuickActions onAction={handleQuickAction} disabled={isLoading} />
           </div>
         )}
+        {/* Selected File Preview */}
+        {selectedFile && (
+          <div className="mb-3 flex items-center gap-2 p-3 bg-gray-800 border border-gray-700 rounded-lg">
+            <FileText className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-white truncate">{selectedFile.name}</p>
+              <p className="text-xs text-gray-400">
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+            <button
+              onClick={clearSelectedFile}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleFileUpload}
+              disabled={isLoading}
+              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+            >
+              {isLoading ? "Analyzing..." : "Analyze"}
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex gap-2">
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,application/pdf"
+            className="hidden"
+          />
+
+          {/* File upload button */}
+          {onFileUpload && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || !!pendingAction || !!selectedFile}
+              className="px-3 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-gray-300 hover:text-white disabled:text-gray-500 rounded-lg transition-colors"
+              title="Upload document"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
+          )}
+
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -171,16 +259,18 @@ export default function ChatInterface({
             placeholder={
               pendingAction
                 ? "Confirm or cancel the pending action above..."
-                : "Ask a question or give a command..."
+                : selectedFile
+                ? "Click 'Analyze' to process the document..."
+                : "Ask a question or upload a document..."
             }
-            disabled={isLoading || !!pendingAction}
+            disabled={isLoading || !!pendingAction || !!selectedFile}
             rows={1}
             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
             style={{ minHeight: "48px", maxHeight: "120px" }}
           />
           <button
             type="submit"
-            disabled={!input.trim() || isLoading || !!pendingAction}
+            disabled={!input.trim() || isLoading || !!pendingAction || !!selectedFile}
             className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
             {isLoading ? (
@@ -191,7 +281,7 @@ export default function ChatInterface({
           </button>
         </form>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line
+          Press Enter to send, Shift+Enter for new line • Click <Paperclip className="w-3 h-3 inline" /> to upload documents
         </p>
       </div>
     </div>

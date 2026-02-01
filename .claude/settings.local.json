@@ -18,7 +18,10 @@
       "Read(//c/**)",
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
-      "Read(//tmp/claude/c--Projects-sda-management/tasks/**)"
+      "Read(//tmp/claude/c--Projects-sda-management/tasks/**)",
+      "Bash(python3:*)",
+      "Bash(Select-String -Pattern '\"\"firstName\"\": \"\"Marcel\"\"' -Context 50,5)",
+      "Bash(more:*)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

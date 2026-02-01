@@ -658,7 +658,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                     </div>
                     <div className="text-right">
                       <p className="text-white font-medium">{formatCurrency(claim.expectedAmount)}</p>
-                      <div className="flex gap-2 mt-2 justify-end">
+                      <div className="flex gap-2 mt-2 justify-end min-w-[280px]">
                         {claim.status === "pending" && !claim.existingClaim && (
                           <button
                             onClick={() => handleCreateAndSubmit(claim)}

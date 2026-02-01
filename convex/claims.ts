@@ -348,6 +348,23 @@ export const markRejected = mutation({
   },
 });
 
+// Revert claim to pending
+export const revertToPending = mutation({
+  args: {
+    claimId: v.id("claims"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.claimId, {
+      status: "pending",
+      claimDate: undefined,
+      claimedAmount: undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
 // Get PACE export data (for CSV bulk upload)
 export const getPaceExport = query({
   args: { claimPeriod: v.string() },

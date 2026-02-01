@@ -186,6 +186,7 @@ function ClaimsTab({ userId }: { userId: string }) {
   const markSubmitted = useMutation(api.claims.markSubmitted);
   const markPaid = useMutation(api.claims.markPaid);
   const markRejected = useMutation(api.claims.markRejected);
+  const revertToPending = useMutation(api.claims.revertToPending);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(amount);
@@ -432,6 +433,15 @@ function ClaimsTab({ userId }: { userId: string }) {
     } catch (error) {
       console.error("Error rejecting claim:", error);
       alert("Failed to reject claim");
+    }
+  };
+
+  const handleRevertToPending = async (claimId: Id<"claims">) => {
+    try {
+      await revertToPending({ claimId });
+    } catch (error) {
+      console.error("Error reverting claim:", error);
+      alert("Failed to revert claim to pending");
     }
   };
 
@@ -695,6 +705,12 @@ function ClaimsTab({ userId }: { userId: string }) {
                               className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
                             >
                               Reject
+                            </button>
+                            <button
+                              onClick={() => handleRevertToPending(claim.existingClaim!._id)}
+                              className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded"
+                            >
+                              Revert
                             </button>
                           </>
                         )}

@@ -497,7 +497,8 @@ export default defineSchema({
       v.literal("maintenance_due"),
       v.literal("document_expiry"),
       v.literal("vacancy"),
-      v.literal("preventative_schedule_due")
+      v.literal("preventative_schedule_due"),
+      v.literal("claim_due") // Reminder to submit SDA claim
     ),
     severity: v.union(
       v.literal("critical"),
@@ -511,6 +512,7 @@ export default defineSchema({
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedMaintenanceId: v.optional(v.id("maintenanceRequests")),
     linkedPreventativeScheduleId: v.optional(v.id("preventativeSchedule")),
+    linkedPlanId: v.optional(v.id("participantPlans")), // For claim_due alerts
     triggerDate: v.string(),
     dueDate: v.optional(v.string()),
     status: v.union(

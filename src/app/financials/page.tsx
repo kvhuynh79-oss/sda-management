@@ -1227,10 +1227,10 @@ function OwnerPaymentsTab() {
         let monthlyNet: number;
 
         if (isSpecialArrangement) {
-          // Special arrangement: Management takes 100% SDA, owner gets 100% RRC
+          // Special arrangement: Owner gets 100% SDA, BLS takes 100% RRC
           monthlySubtotal = monthlySda + monthlyRrc;
-          monthlyFee = monthlySda; // Fee is entire SDA amount
-          monthlyNet = monthlyRrc; // Owner only gets RRC
+          monthlyFee = monthlyRrc; // BLS takes RRC
+          monthlyNet = monthlySda; // Owner gets SDA
         } else {
           // Standard arrangement
           monthlySubtotal = monthlySda + monthlyRrc;
@@ -1243,13 +1243,13 @@ function OwnerPaymentsTab() {
 
         let tableBody;
         if (isSpecialArrangement) {
-          // Special arrangement table layout
+          // Special arrangement table layout: Owner gets SDA, BLS gets RRC
           tableBody = [
             ["SDA Funding", ...monthPeriods.map(() => formatCurrency(monthlySda))],
             ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(() => formatCurrency(monthlyRrc))],
             [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlySubtotal), styles: { fontStyle: "bold" as const } }))],
-            ["Less: SDA to Provider (100%)", ...monthPeriods.map(() => `(${formatCurrency(monthlySda)})`)],
-            [{ content: "Owner Share (RRC Only)", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
+            ["Less: RRC to BLS (100%)", ...monthPeriods.map(() => `(${formatCurrency(monthlyRrc)})`)],
+            [{ content: "Owner Share (SDA Only)", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
           ];
         } else {
           // Standard arrangement table layout
@@ -1306,8 +1306,8 @@ function OwnerPaymentsTab() {
         ["Total SDA Funding", formatCurrency(grandTotalSda)],
         ["Total RRC", formatCurrency(grandTotalRrc)],
         ["Gross Revenue", formatCurrency(grandTotalSda + grandTotalRrc)],
-        ["Less: SDA to Provider (100%)", `(${formatCurrency(grandTotalSda)})`],
-        [{ content: "NET AMOUNT TO OWNER (RRC)", styles: { fontStyle: "bold" as const } }, { content: formatCurrency(grandTotalNet), styles: { fontStyle: "bold" as const } }],
+        ["Less: RRC to BLS (100%)", `(${formatCurrency(grandTotalRrc)})`],
+        [{ content: "NET AMOUNT TO OWNER (SDA)", styles: { fontStyle: "bold" as const } }, { content: formatCurrency(grandTotalNet), styles: { fontStyle: "bold" as const } }],
       ] : [
         ["Total SDA Funding", formatCurrency(grandTotalSda)],
         ["Total RRC", formatCurrency(grandTotalRrc)],
@@ -1405,7 +1405,7 @@ function OwnerPaymentsTab() {
       currentY += 4;
 
       const notes = isSpecialArrangement ? [
-        "Special arrangement: SDA funding retained by provider, RRC paid to owner",
+        "Special arrangement: SDA funding paid to owner, RRC retained by BLS",
         "RRC comprises 25% of Disability Support Pension + 100% Commonwealth Rent Assistance",
         "All amounts are in Australian Dollars (AUD)",
       ] : [

@@ -145,6 +145,7 @@ export default function AlertsPage() {
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Types</option>
+                <option value="claim_due">Claim Due</option>
                 <option value="plan_expiry">Plan Expiry</option>
                 <option value="document_expiry">Document Expiry</option>
                 <option value="maintenance_due">Maintenance Due</option>
@@ -248,6 +249,14 @@ function AlertCard({
   };
 
   const getLinkedEntity = () => {
+    // For claim_due alerts, show participant and link to financials
+    if (alert.alertType === "claim_due" && alert.participant) {
+      return {
+        name: `${alert.participant.firstName} ${alert.participant.lastName}`,
+        link: `/financials?tab=claims`,
+        type: "Claim",
+      };
+    }
     if (alert.participant) {
       return {
         name: `${alert.participant.firstName} ${alert.participant.lastName}`,

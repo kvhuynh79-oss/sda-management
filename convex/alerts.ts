@@ -12,7 +12,8 @@ export const create = mutation({
       v.literal("maintenance_due"),
       v.literal("document_expiry"),
       v.literal("vacancy"),
-      v.literal("preventative_schedule_due")
+      v.literal("preventative_schedule_due"),
+      v.literal("claim_due")
     ),
     severity: v.union(v.literal("critical"), v.literal("warning"), v.literal("info")),
     title: v.string(),
@@ -22,6 +23,7 @@ export const create = mutation({
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedMaintenanceId: v.optional(v.id("maintenanceRequests")),
     linkedPreventativeScheduleId: v.optional(v.id("preventativeSchedule")),
+    linkedPlanId: v.optional(v.id("participantPlans")),
     triggerDate: v.string(),
     dueDate: v.optional(v.string()),
   },
@@ -38,7 +40,8 @@ export const create = mutation({
         alert.linkedParticipantId === args.linkedParticipantId &&
         alert.linkedPropertyId === args.linkedPropertyId &&
         alert.linkedDwellingId === args.linkedDwellingId &&
-        alert.linkedMaintenanceId === args.linkedMaintenanceId
+        alert.linkedMaintenanceId === args.linkedMaintenanceId &&
+        alert.linkedPlanId === args.linkedPlanId
       );
     });
 
@@ -96,6 +99,9 @@ export const getAll = query({
         const preventativeSchedule = alert.linkedPreventativeScheduleId
           ? await ctx.db.get(alert.linkedPreventativeScheduleId)
           : null;
+        const plan = alert.linkedPlanId
+          ? await ctx.db.get(alert.linkedPlanId)
+          : null;
 
         return {
           ...alert,
@@ -104,6 +110,7 @@ export const getAll = query({
           dwelling,
           maintenance,
           preventativeSchedule,
+          plan,
         };
       })
     );
@@ -193,7 +200,8 @@ export const getByType = query({
       v.literal("maintenance_due"),
       v.literal("document_expiry"),
       v.literal("vacancy"),
-      v.literal("preventative_schedule_due")
+      v.literal("preventative_schedule_due"),
+      v.literal("claim_due")
     ),
   },
   handler: async (ctx, args) => {
@@ -309,6 +317,8 @@ export const getStats = query({
         preventative_schedule_due: activeAlerts.filter(
           (a) => a.alertType === "preventative_schedule_due"
         ).length,
+        claim_due: activeAlerts.filter((a) => a.alertType === "claim_due")
+          .length,
       },
     };
   },
@@ -325,7 +335,8 @@ async function createAlertInternal(
       | "maintenance_due"
       | "document_expiry"
       | "vacancy"
-      | "preventative_schedule_due";
+      | "preventative_schedule_due"
+      | "claim_due";
     severity: "critical" | "warning" | "info";
     title: string;
     message: string;
@@ -334,6 +345,7 @@ async function createAlertInternal(
     linkedDwellingId?: any;
     linkedMaintenanceId?: any;
     linkedPreventativeScheduleId?: any;
+    linkedPlanId?: any;
     triggerDate: string;
     dueDate?: string;
   }
@@ -351,7 +363,8 @@ async function createAlertInternal(
       alert.linkedPropertyId === args.linkedPropertyId &&
       alert.linkedDwellingId === args.linkedDwellingId &&
       alert.linkedMaintenanceId === args.linkedMaintenanceId &&
-      alert.linkedPreventativeScheduleId === args.linkedPreventativeScheduleId
+      alert.linkedPreventativeScheduleId === args.linkedPreventativeScheduleId &&
+      alert.linkedPlanId === args.linkedPlanId
     );
   });
 
@@ -542,6 +555,52 @@ export const generateAlerts = mutation({
       }
     }
 
+    // 6. Check for claim due dates - alerts on the day the claim is due
+    const currentPlans = await ctx.db
+      .query("participantPlans")
+      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
+      .collect();
+
+    // Get current day of month
+    const currentDay = today.getDate();
+
+    for (const plan of currentPlans) {
+      const claimDay = plan.claimDay;
+      if (!claimDay) continue; // Skip if no claim day set
+
+      // Only create alert if today IS the claim day
+      if (currentDay === claimDay) {
+        const participant = await ctx.db.get(plan.participantId);
+        if (!participant) continue;
+
+        // Get dwelling and property info
+        const dwelling = participant.dwellingId
+          ? await ctx.db.get(participant.dwellingId)
+          : null;
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        const claimMethod = plan.claimMethod || plan.fundingManagementType;
+        const claimMethodLabel = claimMethod === "pace" ? "PACE" :
+                                  claimMethod === "agency_managed" ? "Agency Managed" :
+                                  claimMethod === "plan_managed" ? "Plan Managed" : "Unknown";
+
+        const alertId = await createAlertInternal(ctx, {
+          alertType: "claim_due",
+          severity: "critical",
+          title: `SDA Claim Due Today`,
+          message: `Submit claim for ${participant.firstName} ${participant.lastName} (${claimMethodLabel}) - $${plan.monthlySdaAmount?.toLocaleString() || "N/A"}/month`,
+          linkedParticipantId: plan.participantId,
+          linkedPlanId: plan._id,
+          linkedDwellingId: dwelling?._id,
+          linkedPropertyId: property?._id,
+          triggerDate: todayStr,
+          dueDate: todayStr,
+        });
+
+        if (alertId) alertsCreated++;
+      }
+    }
+
     return { success: true, alertsCreated };
   },
 });
@@ -716,6 +775,52 @@ export const generateAlertsInternal = internalMutation({
         });
 
         if (alertId) alertsCreated++;
+      }
+    }
+
+    // 6. Check for claim due dates - alerts on the day the claim is due
+    const currentPlansForClaims = await ctx.db
+      .query("participantPlans")
+      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
+      .collect();
+
+    // Get current day of month
+    const currentDayOfMonth = today.getDate();
+
+    for (const plan of currentPlansForClaims) {
+      const claimDay = plan.claimDay;
+      if (!claimDay) continue; // Skip if no claim day set
+
+      // Only create alert if today IS the claim day
+      if (currentDayOfMonth === claimDay) {
+        const participant = await ctx.db.get(plan.participantId);
+        if (!participant) continue;
+
+        // Get dwelling and property info
+        const dwelling = participant.dwellingId
+          ? await ctx.db.get(participant.dwellingId)
+          : null;
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        const claimMethod = plan.claimMethod || plan.fundingManagementType;
+        const claimMethodLabel = claimMethod === "pace" ? "PACE" :
+                                  claimMethod === "agency_managed" ? "Agency Managed" :
+                                  claimMethod === "plan_managed" ? "Plan Managed" : "Unknown";
+
+        const claimAlertId = await createAlertInternal(ctx, {
+          alertType: "claim_due",
+          severity: "critical",
+          title: `SDA Claim Due Today`,
+          message: `Submit claim for ${participant.firstName} ${participant.lastName} (${claimMethodLabel}) - $${plan.monthlySdaAmount?.toLocaleString() || "N/A"}/month`,
+          linkedParticipantId: plan.participantId,
+          linkedPlanId: plan._id,
+          linkedDwellingId: dwelling?._id,
+          linkedPropertyId: property?._id,
+          triggerDate: todayStr,
+          dueDate: todayStr,
+        });
+
+        if (claimAlertId) alertsCreated++;
       }
     }
 

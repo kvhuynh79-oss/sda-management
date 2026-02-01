@@ -71,7 +71,7 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/properties", label: "Properties", key: "properties" },
     { href: "/participants", label: "Participants", key: "participants" },
     { href: "/financials", label: "Financials", key: "financials" },
-    { href: "/operations", label: "Operations", key: "operations" },
+    { href: "/operations", label: "Maintenance", key: "operations" },
     { href: "/database", label: "Database", key: "database" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/documents", label: "Documents", key: "documents" },

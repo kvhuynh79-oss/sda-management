@@ -1022,9 +1022,58 @@ function OwnerPaymentsTab() {
   const [filterType, setFilterType] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
   const ownerPayments = useQuery(api.ownerPayments.getAll, {});
   const properties = useQuery(api.properties.getAll);
+  const participants = useQuery(api.participants.getAll);
+  const createOwnerPayment = useMutation(api.ownerPayments.create);
+
+  const togglePropertyExpanded = (propertyName: string) => {
+    setExpandedProperties(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(propertyName)) {
+        newSet.delete(propertyName);
+      } else {
+        newSet.add(propertyName);
+      }
+      return newSet;
+    });
+  };
+
+  // Calculate suggested payment amount for a property
+  const calculateSuggestedAmount = (propertyId: string) => {
+    const property = properties?.find(p => p._id === propertyId);
+    if (!property) return { sdaAmount: 0, rrcAmount: 0, managementFee: 0, netAmount: 0 };
+
+    // Get participants at this property
+    const propertyParticipants = participants?.filter(p => {
+      const dwelling = p.dwelling;
+      return dwelling && dwelling.propertyId === propertyId;
+    }) || [];
+
+    let totalSda = 0;
+    let totalRrc = 0;
+
+    for (const participant of propertyParticipants) {
+      const plan = participant.currentPlan;
+      if (plan) {
+        totalSda += plan.monthlySdaAmount || 0;
+        // Convert RRC to monthly if fortnightly
+        const rrc = plan.reasonableRentContribution || 0;
+        const rrcMonthly = plan.rentContributionFrequency === "fortnightly" ? rrc * 26 / 12 : rrc;
+        totalRrc += rrcMonthly;
+      }
+    }
+
+    const grossAmount = totalSda + totalRrc;
+    const managementFeePercent = property.managementFeePercent || 0;
+    const managementFee = grossAmount * (managementFeePercent / 100);
+    const netAmount = grossAmount - managementFee;
+
+    return { sdaAmount: totalSda, rrcAmount: totalRrc, managementFee, netAmount, managementFeePercent };
+  };
 
   const filteredPayments = ownerPayments?.filter((payment) => {
     const matchesProperty = filterProperty === "all" || payment.propertyId === filterProperty;
@@ -1035,83 +1084,91 @@ function OwnerPaymentsTab() {
   });
 
   const generateOwnerStatement = async (propertyName: string, payments: NonNullable<typeof filteredPayments>) => {
-    const { jsPDF } = await import("jspdf");
-    await import("jspdf-autotable");
+    try {
+      const jsPDFModule = await import("jspdf");
+      const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
+      await import("jspdf-autotable");
 
-    const doc = new jsPDF();
-    const owner = payments[0]?.owner;
-    const property = payments[0]?.property;
-    const ownerName = owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown";
+      const doc = new jsPDF();
+      const owner = payments[0]?.owner;
+      const property = payments[0]?.property;
+      const ownerName = owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown";
 
-    // Header
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("Owner Payment Statement", 105, 20, { align: "center" });
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text("Better Living Solutions", 105, 28, { align: "center" });
-
-    // Statement Details
-    doc.setFontSize(10);
-    const startY = 45;
-    doc.text(`Property: ${property?.addressLine1 || propertyName}`, 14, startY);
-    doc.text(`Owner: ${ownerName}`, 14, startY + 6);
-    doc.text(`Statement Date: ${new Date().toLocaleDateString("en-AU")}`, 14, startY + 12);
-
-    const periodText = dateFrom && dateTo
-      ? `Period: ${dateFrom} to ${dateTo}`
-      : dateFrom
-        ? `Period: From ${dateFrom}`
-        : dateTo
-          ? `Period: Up to ${dateTo}`
-          : `Period: All Time`;
-    doc.text(periodText, 14, startY + 18);
-
-    // Table
-    const tableData = payments.map((p) => [
-      p.paymentDate,
-      p.paymentType === "sda_share" ? "SDA Share" : p.paymentType === "interim" ? "Interim" : p.paymentType === "rent_contribution" ? "RRC" : "Other",
-      p.description || "-",
-      p.bankReference || "-",
-      formatCurrency(p.amount),
-    ]);
-
-    const total = payments.reduce((sum, p) => sum + p.amount, 0);
-
-    (doc as typeof doc & { autoTable: (options: unknown) => void }).autoTable({
-      startY: startY + 28,
-      head: [["Date", "Type", "Description", "Reference", "Amount"]],
-      body: tableData,
-      foot: [["", "", "", "Total:", formatCurrency(total)]],
-      theme: "striped",
-      headStyles: { fillColor: [59, 130, 246] },
-      footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold" },
-      styles: { fontSize: 9 },
-      columnStyles: {
-        4: { halign: "right" },
-      },
-    });
-
-    // Bank Details
-    const finalY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
-    if (owner?.bankBsb || owner?.bankAccountNumber) {
-      doc.setFontSize(10);
+      // Header
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text("Bank Details:", 14, finalY);
+      doc.text("Owner Payment Statement", 105, 20, { align: "center" });
+
+      doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
-      if (owner?.bankAccountName) doc.text(`Account Name: ${owner.bankAccountName}`, 14, finalY + 6);
-      if (owner?.bankBsb) doc.text(`BSB: ${owner.bankBsb}`, 14, finalY + 12);
-      if (owner?.bankAccountNumber) doc.text(`Account: ${owner.bankAccountNumber}`, 14, finalY + 18);
+      doc.text("Better Living Solutions", 105, 28, { align: "center" });
+
+      // Statement Details
+      doc.setFontSize(10);
+      const startY = 45;
+      doc.text(`Property: ${property?.addressLine1 || propertyName}`, 14, startY);
+      doc.text(`Owner: ${ownerName}`, 14, startY + 6);
+      doc.text(`Statement Date: ${new Date().toLocaleDateString("en-AU")}`, 14, startY + 12);
+
+      const periodText = dateFrom && dateTo
+        ? `Period: ${dateFrom} to ${dateTo}`
+        : dateFrom
+          ? `Period: From ${dateFrom}`
+          : dateTo
+            ? `Period: Up to ${dateTo}`
+            : `Period: All Time`;
+      doc.text(periodText, 14, startY + 18);
+
+      // Table
+      const tableData = payments.map((p) => [
+        p.paymentDate,
+        p.paymentType === "sda_share" ? "SDA Share" : p.paymentType === "interim" ? "Interim" : p.paymentType === "rent_contribution" ? "RRC" : "Other",
+        p.description || "-",
+        p.bankReference || "-",
+        formatCurrency(p.amount),
+      ]);
+
+      const total = payments.reduce((sum, p) => sum + p.amount, 0);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (doc as any).autoTable({
+        startY: startY + 28,
+        head: [["Date", "Type", "Description", "Reference", "Amount"]],
+        body: tableData,
+        foot: [["", "", "", "Total:", formatCurrency(total)]],
+        theme: "striped",
+        headStyles: { fillColor: [59, 130, 246] },
+        footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: "bold" },
+        styles: { fontSize: 9 },
+        columnStyles: {
+          4: { halign: "right" },
+        },
+      });
+
+      // Bank Details
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const finalY = ((doc as any).lastAutoTable?.finalY || startY + 100) + 15;
+      if (owner?.bankBsb || owner?.bankAccountNumber) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("Bank Details:", 14, finalY);
+        doc.setFont("helvetica", "normal");
+        if (owner?.bankAccountName) doc.text(`Account Name: ${owner.bankAccountName}`, 14, finalY + 6);
+        if (owner?.bankBsb) doc.text(`BSB: ${owner.bankBsb}`, 14, finalY + 12);
+        if (owner?.bankAccountNumber) doc.text(`Account: ${owner.bankAccountNumber}`, 14, finalY + 18);
+      }
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(128);
+      doc.text("This statement was generated by Better Living Solutions SDA Management System", 105, 285, { align: "center" });
+
+      const fileName = `Owner_Statement_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+      doc.save(fileName);
+    } catch (error) {
+      console.error("Error generating statement:", error);
+      alert("Failed to generate statement. Please try again.");
     }
-
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(128);
-    doc.text("This statement was generated by Better Living Solutions SDA Management System", 105, 285, { align: "center" });
-
-    const fileName = `Owner_Statement_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
-    doc.save(fileName);
   };
 
   const totalAmount = filteredPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
@@ -1150,11 +1207,22 @@ function OwnerPaymentsTab() {
 
   return (
     <div>
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Total Disbursements" value={formatCurrency(totalAmount)} color="blue" />
-        <StatCard label="Total Payments" value={(filteredPayments?.length || 0).toString()} color="green" />
-        <StatCard label="Properties" value={Object.keys(paymentsByProperty || {}).length.toString()} color="yellow" />
+      {/* Header with Add Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 mr-4">
+          <StatCard label="Total Disbursements" value={formatCurrency(totalAmount)} color="blue" />
+          <StatCard label="Total Payments" value={(filteredPayments?.length || 0).toString()} color="green" />
+          <StatCard label="Properties" value={Object.keys(paymentsByProperty || {}).length.toString()} color="yellow" />
+        </div>
+        <button
+          onClick={() => setShowAddPaymentModal(true)}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Payment
+        </button>
       </div>
 
       {/* Filters */}
@@ -1212,18 +1280,32 @@ function OwnerPaymentsTab() {
           <p className="text-gray-400">No owner disbursements found</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {paymentsByProperty && Object.entries(paymentsByProperty).map(([propertyName, payments]) => {
             const propertyTotal = payments.reduce((sum, p) => sum + p.amount, 0);
             const owner = payments[0]?.owner;
+            const isExpanded = expandedProperties.has(propertyName);
             return (
               <div key={propertyName} className="bg-gray-800 rounded-lg overflow-hidden">
-                <div className="bg-gray-700 px-4 py-3 flex justify-between items-center">
-                  <div>
-                    <h4 className="text-white font-medium">{propertyName}</h4>
-                    <p className="text-gray-400 text-sm">
-                      Owner: {owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown"}
-                    </p>
+                <div
+                  className="bg-gray-700 px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-gray-650"
+                  onClick={() => togglePropertyExpanded(propertyName)}
+                >
+                  <div className="flex items-center gap-3">
+                    <svg
+                      className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <div>
+                      <h4 className="text-white font-medium">{propertyName}</h4>
+                      <p className="text-gray-400 text-sm">
+                        Owner: {owner?.companyName || `${owner?.firstName || ""} ${owner?.lastName || ""}`.trim() || "Unknown"}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
@@ -1231,7 +1313,7 @@ function OwnerPaymentsTab() {
                       <p className="text-gray-400 text-sm">{payments.length} payment(s)</p>
                     </div>
                     <button
-                      onClick={() => generateOwnerStatement(propertyName, payments)}
+                      onClick={(e) => { e.stopPropagation(); generateOwnerStatement(propertyName, payments); }}
                       className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-2"
                       title="Generate PDF Statement"
                     >
@@ -1242,33 +1324,266 @@ function OwnerPaymentsTab() {
                     </button>
                   </div>
                 </div>
-                <table className="w-full">
-                  <thead className="bg-gray-750">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Type</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Description</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Reference</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-400 uppercase">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {payments.map((payment) => (
-                      <tr key={payment._id} className="hover:bg-gray-750">
-                        <td className="px-4 py-3 text-white text-sm">{payment.paymentDate}</td>
-                        <td className="px-4 py-3">{getPaymentTypeBadge(payment.paymentType)}</td>
-                        <td className="px-4 py-3 text-gray-400 text-sm">{payment.description || "-"}</td>
-                        <td className="px-4 py-3 text-gray-400 text-sm">{payment.bankReference || "-"}</td>
-                        <td className="px-4 py-3 text-right text-green-400 text-sm font-medium">{formatCurrency(payment.amount)}</td>
+                {isExpanded && (
+                  <table className="w-full">
+                    <thead className="bg-gray-750">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Type</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Description</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Reference</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-400 uppercase">Amount</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {payments.map((payment) => (
+                        <tr key={payment._id} className="hover:bg-gray-750">
+                          <td className="px-4 py-3 text-white text-sm">{payment.paymentDate}</td>
+                          <td className="px-4 py-3">{getPaymentTypeBadge(payment.paymentType)}</td>
+                          <td className="px-4 py-3 text-gray-400 text-sm">{payment.description || "-"}</td>
+                          <td className="px-4 py-3 text-gray-400 text-sm">{payment.bankReference || "-"}</td>
+                          <td className="px-4 py-3 text-right text-green-400 text-sm font-medium">{formatCurrency(payment.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             );
           })}
         </div>
       )}
+
+      {/* Add Payment Modal */}
+      {showAddPaymentModal && (
+        <AddOwnerPaymentModal
+          properties={properties || []}
+          calculateSuggestedAmount={calculateSuggestedAmount}
+          formatCurrency={formatCurrency}
+          onClose={() => setShowAddPaymentModal(false)}
+          onSubmit={async (data) => {
+            try {
+              await createOwnerPayment({
+                propertyId: data.propertyId as Id<"properties">,
+                ownerId: data.ownerId as Id<"owners">,
+                paymentType: data.paymentType as "interim" | "sda_share" | "rent_contribution" | "other",
+                amount: data.amount,
+                paymentDate: data.paymentDate,
+                bankReference: data.bankReference || undefined,
+                description: data.description || undefined,
+                notes: data.notes || undefined,
+              });
+              setShowAddPaymentModal(false);
+            } catch (error) {
+              console.error("Error creating payment:", error);
+              alert("Failed to create payment");
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Add Owner Payment Modal Component
+function AddOwnerPaymentModal({
+  properties,
+  calculateSuggestedAmount,
+  formatCurrency,
+  onClose,
+  onSubmit,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  properties: Array<any>;
+  calculateSuggestedAmount: (propertyId: string) => { sdaAmount: number; rrcAmount: number; managementFee: number; netAmount: number; managementFeePercent?: number };
+  formatCurrency: (amount: number) => string;
+  onClose: () => void;
+  onSubmit: (data: { propertyId: string; ownerId: string; paymentType: string; amount: number; paymentDate: string; bankReference?: string; description?: string; notes?: string }) => void;
+}) {
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [paymentType, setPaymentType] = useState<string>("sda_share");
+  const [amount, setAmount] = useState<string>("");
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [bankReference, setBankReference] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
+
+  const selectedProperty = properties.find(p => p._id === selectedPropertyId);
+  const suggested = selectedPropertyId ? calculateSuggestedAmount(selectedPropertyId) : null;
+
+  const handlePropertyChange = (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
+    if (propertyId) {
+      const calc = calculateSuggestedAmount(propertyId);
+      setAmount(calc.netAmount.toFixed(2));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPropertyId || !amount) return;
+
+    onSubmit({
+      propertyId: selectedPropertyId,
+      ownerId: selectedProperty?.ownerId || selectedProperty?.owner?._id || "",
+      paymentType,
+      amount: parseFloat(amount),
+      paymentDate,
+      bankReference: bankReference || undefined,
+      description: description || undefined,
+      notes: notes || undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-gray-800 rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg font-semibold text-white mb-4">Add Owner Payment</h3>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Property Selection */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Property *</label>
+            <select
+              value={selectedPropertyId}
+              onChange={(e) => handlePropertyChange(e.target.value)}
+              required
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            >
+              <option value="">Select property...</option>
+              {properties.map((property) => (
+                <option key={property._id} value={property._id}>
+                  {property.propertyName || property.addressLine1}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Suggested Amount Breakdown */}
+          {suggested && selectedPropertyId && (
+            <div className="bg-gray-700 rounded-lg p-3 text-sm">
+              <p className="text-gray-300 font-medium mb-2">Suggested Calculation:</p>
+              <div className="space-y-1 text-gray-400">
+                <div className="flex justify-between">
+                  <span>Monthly SDA:</span>
+                  <span className="text-white">{formatCurrency(suggested.sdaAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Monthly RRC:</span>
+                  <span className="text-white">{formatCurrency(suggested.rrcAmount)}</span>
+                </div>
+                <div className="flex justify-between border-t border-gray-600 pt-1">
+                  <span>Gross:</span>
+                  <span className="text-white">{formatCurrency(suggested.sdaAmount + suggested.rrcAmount)}</span>
+                </div>
+                <div className="flex justify-between text-red-400">
+                  <span>Management Fee ({suggested.managementFeePercent || 0}%):</span>
+                  <span>-{formatCurrency(suggested.managementFee)}</span>
+                </div>
+                <div className="flex justify-between border-t border-gray-600 pt-1 font-medium">
+                  <span className="text-green-400">Net to Owner:</span>
+                  <span className="text-green-400">{formatCurrency(suggested.netAmount)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Type */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Payment Type *</label>
+            <select
+              value={paymentType}
+              onChange={(e) => setPaymentType(e.target.value)}
+              required
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            >
+              <option value="sda_share">SDA Share</option>
+              <option value="interim">Interim</option>
+              <option value="rent_contribution">Rent Contribution</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Amount *</label>
+            <input
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+
+          {/* Payment Date */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Payment Date *</label>
+            <input
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              required
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+
+          {/* Bank Reference */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Bank Reference</label>
+            <input
+              type="text"
+              value={bankReference}
+              onChange={(e) => setBankReference(e.target.value)}
+              placeholder="Optional"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Description</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g., Month ending January"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              placeholder="Optional notes"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 justify-end pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!selectedPropertyId || !amount}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg"
+            >
+              Add Payment
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

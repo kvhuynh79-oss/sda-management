@@ -395,6 +395,7 @@ export default function XeroSettingsPage() {
                   {xeroBankAccounts.length > 0 ? (
                     <div className="flex items-center gap-3">
                       <select
+                        data-account-id={account._id}
                         className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-blue-500 focus:outline-none"
                         defaultValue=""
                       >
@@ -412,11 +413,11 @@ export default function XeroSettingsPage() {
                           const select = document.querySelector(
                             `select[data-account-id="${account._id}"]`
                           ) as HTMLSelectElement;
-                          const xeroAccountId =
-                            select?.value ||
-                            xeroBankAccounts[0]?.xeroAccountId;
-                          if (xeroAccountId) {
+                          const xeroAccountId = select?.value;
+                          if (xeroAccountId && xeroAccountId !== "") {
                             handleSyncTransactions(account._id, xeroAccountId);
+                          } else {
+                            alert("Please select a Xero account first");
                           }
                         }}
                         disabled={isLoading}

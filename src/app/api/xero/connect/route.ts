@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 
 // Xero OAuth2 authorization endpoint
 const XERO_AUTH_URL = "https://login.xero.com/identity/connect/authorize";
@@ -13,6 +14,25 @@ const SCOPES = [
   "accounting.contacts.read",
   "offline_access", // Required for refresh tokens
 ].join(" ");
+
+// Create a signed state parameter that can be verified without cookies
+function createSignedState(userId: string | null): string {
+  const secret = process.env.XERO_CLIENT_SECRET || "fallback-secret";
+  const timestamp = Date.now();
+  const nonce = crypto.randomUUID();
+  const data = `${timestamp}:${nonce}:${userId || ""}`;
+
+  // Create HMAC signature
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(data)
+    .digest("hex")
+    .substring(0, 16); // Truncate for shorter URL
+
+  // Encode as base64 URL-safe string
+  const state = Buffer.from(`${data}:${signature}`).toString("base64url");
+  return state;
+}
 
 export async function GET(request: NextRequest) {
   const clientId = process.env.XERO_CLIENT_ID;
@@ -29,10 +49,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Generate a random state for CSRF protection
-  const state = crypto.randomUUID();
+  // Get user ID from query param
+  const userId = request.nextUrl.searchParams.get("userId");
 
-  // Store state in a cookie for validation in callback
+  // Generate a signed state for CSRF protection (no cookies needed)
+  const state = createSignedState(userId);
+
+  // Build Xero auth URL
   const authUrl = new URL(XERO_AUTH_URL);
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("client_id", clientId);
@@ -40,17 +63,6 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set("scope", SCOPES);
   authUrl.searchParams.set("state", state);
 
-  // Create response with redirect
-  const response = NextResponse.redirect(authUrl.toString());
-
-  // Set state cookie for validation
-  response.cookies.set("xero_oauth_state", state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 600, // 10 minutes
-    path: "/",
-  });
-
-  return response;
+  // Redirect to Xero
+  return NextResponse.redirect(authUrl.toString());
 }

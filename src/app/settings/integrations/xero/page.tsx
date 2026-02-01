@@ -57,9 +57,6 @@ export default function XeroSettingsPage() {
       return;
     }
     setUser(JSON.parse(storedUser));
-
-    // Store user ID in cookie for OAuth callback
-    document.cookie = `sda_user_id=${JSON.parse(storedUser).id}; path=/; max-age=3600`;
   }, [router]);
 
   // Handle OAuth callback messages
@@ -78,8 +75,12 @@ export default function XeroSettingsPage() {
   }, [searchParams]);
 
   const handleConnect = () => {
-    // Redirect to Xero OAuth
-    window.location.href = "/api/xero/connect";
+    // Redirect to Xero OAuth with userId
+    if (user) {
+      window.location.href = `/api/xero/connect?userId=${encodeURIComponent(user.id)}`;
+    } else {
+      window.location.href = "/api/xero/connect";
+    }
   };
 
   const handleDisconnect = async () => {

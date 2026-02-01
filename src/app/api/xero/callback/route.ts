@@ -2,12 +2,52 @@ import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import crypto from "crypto";
 
 // Xero OAuth2 token endpoint
 const XERO_TOKEN_URL = "https://identity.xero.com/connect/token";
 const XERO_CONNECTIONS_URL = "https://api.xero.com/connections";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+// Verify the signed state parameter
+function verifySignedState(state: string): { valid: boolean; userId: string | null; error?: string } {
+  try {
+    const secret = process.env.XERO_CLIENT_SECRET || "fallback-secret";
+
+    // Decode from base64url
+    const decoded = Buffer.from(state, "base64url").toString("utf-8");
+    const parts = decoded.split(":");
+
+    if (parts.length !== 4) {
+      return { valid: false, userId: null, error: "Invalid state format" };
+    }
+
+    const [timestamp, nonce, userId, signature] = parts;
+
+    // Check if state is expired (10 minutes)
+    const stateAge = Date.now() - parseInt(timestamp, 10);
+    if (stateAge > 10 * 60 * 1000) {
+      return { valid: false, userId: null, error: "State expired - please try again" };
+    }
+
+    // Verify signature
+    const data = `${timestamp}:${nonce}:${userId}`;
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(data)
+      .digest("hex")
+      .substring(0, 16);
+
+    if (signature !== expectedSignature) {
+      return { valid: false, userId: null, error: "Invalid state signature" };
+    }
+
+    return { valid: true, userId: userId || null };
+  } catch {
+    return { valid: false, userId: null, error: "Failed to verify state" };
+  }
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -27,17 +67,29 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Validate state from cookie
-  const storedState = request.cookies.get("xero_oauth_state")?.value;
-  if (!state || state !== storedState) {
-    console.error("State mismatch:", { received: state, stored: storedState });
+  // Validate signed state (no cookies needed)
+  if (!state) {
     return NextResponse.redirect(
       new URL(
-        `/settings/integrations/xero?error=${encodeURIComponent("Invalid state parameter")}`,
+        `/settings/integrations/xero?error=${encodeURIComponent("No state parameter received")}`,
         request.url
       )
     );
   }
+
+  const stateResult = verifySignedState(state);
+  if (!stateResult.valid) {
+    console.error("State verification failed:", stateResult.error);
+    return NextResponse.redirect(
+      new URL(
+        `/settings/integrations/xero?error=${encodeURIComponent(stateResult.error || "Invalid state parameter")}`,
+        request.url
+      )
+    );
+  }
+
+  // Get user ID from verified state
+  const userId = stateResult.userId;
 
   if (!code) {
     return NextResponse.redirect(
@@ -122,11 +174,7 @@ export async function GET(request: NextRequest) {
     // Use the first connected organization
     const tenant = connections[0];
 
-    // Get user ID from cookie/session (simplified - in production use proper auth)
-    const userIdCookie = request.cookies.get("sda_user_id")?.value;
-    const userId = userIdCookie || null;
-
-    // If no user ID, redirect with error
+    // If no user ID from state, redirect with error
     if (!userId) {
       return NextResponse.redirect(
         new URL(
@@ -147,13 +195,10 @@ export async function GET(request: NextRequest) {
       userId: userId as Id<"users">,
     });
 
-    // Clear state cookie and redirect to success
-    const response = NextResponse.redirect(
+    // Redirect to success
+    return NextResponse.redirect(
       new URL("/settings/integrations/xero?success=true", request.url)
     );
-    response.cookies.delete("xero_oauth_state");
-
-    return response;
   } catch (error) {
     console.error("Xero OAuth callback error:", error);
     return NextResponse.redirect(

@@ -44,6 +44,7 @@ export default function PropertyDetailPage() {
   const dwellings = useQuery(api.dwellings.getByProperty, { propertyId });
   const documents = useQuery(api.documents.getByProperty, { propertyId });
   const propertyMedia = useQuery(api.propertyMedia.getByProperty, { propertyId });
+  const removeDwelling = useMutation(api.dwellings.remove);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -275,7 +276,11 @@ export default function PropertyDetailPage() {
               ) : (
                 <div className="space-y-4">
                   {dwellings.map((dwelling) => (
-                    <DwellingCard key={dwelling._id} dwelling={dwelling} />
+                    <DwellingCard
+                      key={dwelling._id}
+                      dwelling={dwelling}
+                      onDelete={(id) => removeDwelling({ dwellingId: id as Id<"dwellings"> })}
+                    />
                   ))}
                 </div>
               )}
@@ -329,7 +334,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DwellingCard({ dwelling }: { dwelling: any }) {
+function DwellingCard({ dwelling, onDelete }: { dwelling: any; onDelete: (id: string) => void }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const getOccupancyColor = () => {
     if (dwelling.occupancyStatus === "fully_occupied") return "bg-green-600";
     if (dwelling.occupancyStatus === "vacant") return "bg-red-600";
@@ -347,9 +354,20 @@ function DwellingCard({ dwelling }: { dwelling: any }) {
           <h3 className="text-lg font-semibold text-white">{dwelling.dwellingName}</h3>
           <p className="text-gray-400 text-sm capitalize">{dwelling.dwellingType}</p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs text-white ${getOccupancyColor()}`}>
-          {dwelling.currentOccupancy}/{dwelling.maxParticipants} occupied
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 rounded-full text-xs text-white ${getOccupancyColor()}`}>
+            {dwelling.currentOccupancy}/{dwelling.maxParticipants} occupied
+          </span>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors"
+            title="Delete dwelling"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
@@ -395,6 +413,40 @@ function DwellingCard({ dwelling }: { dwelling: any }) {
                 <span className="text-gray-400 text-xs">{participant.ndisNumber}</span>
               </Link>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-2">Delete Dwelling?</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Are you sure you want to delete &quot;{dwelling.dwellingName}&quot;?
+              {dwelling.participants && dwelling.participants.length > 0 && (
+                <span className="block mt-2 text-yellow-400">
+                  Warning: This dwelling has {dwelling.participants.length} resident(s) assigned.
+                </span>
+              )}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDelete(dwelling._id);
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1390,7 +1390,7 @@ function OwnerPaymentsTab() {
 
       const notes = [
         `This statement covers SDA rental income for ${propertyAddress}`,
-        `Property enrolled for ${property?.sdaCategory || "High Physical Support (HPS)"}`,
+        "Property enrolled for High Physical Support (HPS) and Robust SDA categories",
         "Management arrangement: Better Living Solutions (30%) | Owners (70%)",
         "All amounts are in Australian Dollars (AUD)",
         "Statement generated from verified payment records",

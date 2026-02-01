@@ -27,7 +27,7 @@ export default function SupportCoordinatorDetailPage() {
   if (coordinator === undefined) {
     return (
       <div className="min-h-screen bg-gray-900">
-        <Header currentPage="contractors" />
+        <Header currentPage="database" />
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
@@ -38,7 +38,7 @@ export default function SupportCoordinatorDetailPage() {
   if (coordinator === null) {
     return (
       <div className="min-h-screen bg-gray-900">
-        <Header currentPage="contractors" />
+        <Header currentPage="database" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12 bg-gray-800 rounded-lg">
             <p className="text-gray-400">Support coordinator not found</p>
@@ -111,7 +111,7 @@ export default function SupportCoordinatorDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Header currentPage="contractors" />
+      <Header currentPage="database" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}

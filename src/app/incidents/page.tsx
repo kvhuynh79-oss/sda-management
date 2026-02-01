@@ -59,14 +59,14 @@ export default function IncidentsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Incident Reports</h1>
-            <p className="text-gray-400 mt-1">Track and manage incident reports</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Incident Reports</h1>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">Track and manage incident reports</p>
           </div>
           <Link
             href="/incidents/new"
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex-shrink-0 self-start sm:self-auto"
           >
             + Report Incident
           </Link>
@@ -74,14 +74,14 @@ export default function IncidentsPage() {
 
         {/* Filters */}
         <div className="bg-gray-800 rounded-lg p-4 mb-6">
-          <div className="flex gap-4 items-center">
-            <span className="text-gray-400">Filter by status:</span>
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
+            <span className="text-gray-400 flex-shrink-0">Filter by status:</span>
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
               {["all", "reported", "under_investigation", "resolved", "closed"].map((status) => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors whitespace-nowrap flex-shrink-0 ${
                     statusFilter === status
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"

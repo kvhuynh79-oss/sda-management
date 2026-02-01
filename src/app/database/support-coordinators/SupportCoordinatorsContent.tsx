@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
-import Header from "../../../components/Header";
 import Link from "next/link";
 
 const SYDNEY_REGIONS = [
@@ -24,13 +23,12 @@ const SYDNEY_REGIONS = [
   "Other",
 ];
 
-export default function SupportCoordinatorsPage() {
+export default function SupportCoordinatorsContent() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<Id<"supportCoordinators"> | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Form state
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -69,8 +67,6 @@ export default function SupportCoordinatorsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Combine predefined areas with custom area if provided
     const allAreas = [...formData.areas];
     if (formData.customArea.trim()) {
       allAreas.push(formData.customArea.trim());
@@ -108,7 +104,6 @@ export default function SupportCoordinatorsPage() {
   };
 
   const handleEdit = (coordinator: NonNullable<typeof coordinators>[0]) => {
-    // Separate predefined areas from custom areas
     const predefinedAreas = coordinator.areas.filter((a) => SYDNEY_REGIONS.includes(a));
     const customAreas = coordinator.areas.filter((a) => !SYDNEY_REGIONS.includes(a));
 
@@ -150,7 +145,6 @@ export default function SupportCoordinatorsPage() {
     }));
   };
 
-  // Filter coordinators by search term
   const filteredCoordinators = coordinators?.filter((c) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -164,179 +158,156 @@ export default function SupportCoordinatorsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header currentPage="database" />
+    <>
+      {/* Header with Add Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div />
+        <button
+          onClick={() => {
+            resetForm();
+            setShowAddModal(true);
+          }}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          + Add Coordinator
+        </button>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Support Coordinators</h1>
-            <p className="text-gray-400 mt-1">
-              Manage support coordinators and their participant relationships
-            </p>
-          </div>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search by name, organization, or area..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="active">Active Only</option>
+          <option value="inactive">Inactive Only</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+
+      {/* Coordinators List */}
+      {!coordinators ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-gray-400 mt-4">Loading...</p>
+        </div>
+      ) : filteredCoordinators?.length === 0 ? (
+        <div className="text-center py-12 bg-gray-800 rounded-lg">
+          <p className="text-gray-400">No support coordinators found</p>
           <button
             onClick={() => {
               resetForm();
               setShowAddModal(true);
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
-            + Add Coordinator
+            Add Your First Coordinator
           </button>
         </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search by name, organization, or area..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
-            <option value="all">All</option>
-          </select>
-        </div>
-
-        {/* Coordinators List */}
-        {!coordinators ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="text-gray-400 mt-4">Loading...</p>
-          </div>
-        ) : filteredCoordinators?.length === 0 ? (
-          <div className="text-center py-12 bg-gray-800 rounded-lg">
-            <p className="text-gray-400">No support coordinators found</p>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowAddModal(true);
-              }}
-              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Add Your First Coordinator
-            </button>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {filteredCoordinators?.map((coordinator) => (
-              <div
-                key={coordinator._id}
-                className="bg-gray-800 rounded-lg p-4 sm:p-6"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-white">
-                        {coordinator.firstName} {coordinator.lastName}
-                      </h3>
-                      <span
-                        className={`px-2 py-0.5 text-xs rounded-full ${
-                          coordinator.status === "active"
-                            ? "bg-green-500/20 text-green-400"
-                            : "bg-gray-500/20 text-gray-400"
-                        }`}
-                      >
-                        {coordinator.status}
-                      </span>
-                      {coordinator.rating && (
-                        <div className="flex items-center text-yellow-400">
-                          {"★".repeat(coordinator.rating)}
-                          {"☆".repeat(5 - coordinator.rating)}
-                        </div>
-                      )}
-                    </div>
-                    {coordinator.organization && (
-                      <p className="text-gray-400 mt-1">{coordinator.organization}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <a
-                        href={`mailto:${coordinator.email}`}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
-                      >
-                        {coordinator.email}
-                      </a>
-                      {coordinator.phone && (
-                        <a
-                          href={`tel:${coordinator.phone}`}
-                          className="text-gray-400 hover:text-gray-300 text-sm"
-                        >
-                          {coordinator.phone}
-                        </a>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {coordinator.areas.map((area) => (
-                        <span
-                          key={area}
-                          className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded"
-                        >
-                          {area}
-                        </span>
-                      ))}
-                    </div>
-                    {coordinator.relationship && (
-                      <p className="text-gray-400 text-sm mt-2 italic">
-                        {coordinator.relationship}
-                      </p>
-                    )}
-                    <div className="flex gap-4 mt-3 text-sm">
-                      <span className="text-gray-400">
-                        <span className="text-white font-medium">{coordinator.participantCount}</span> linked participants
-                      </span>
-                      {coordinator.totalReferrals !== undefined && coordinator.totalReferrals > 0 && (
-                        <span className="text-gray-400">
-                          <span className="text-green-400 font-medium">{coordinator.totalReferrals}</span> referrals
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/database/support-coordinators/${coordinator._id}`}
-                      className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
-                    >
-                      View
-                    </Link>
-                    <button
-                      onClick={() => handleEdit(coordinator)}
-                      className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleToggleStatus(coordinator)}
-                      className={`px-3 py-1.5 text-sm rounded transition-colors ${
+      ) : (
+        <div className="grid gap-4">
+          {filteredCoordinators?.map((coordinator) => (
+            <div key={coordinator._id} className="bg-gray-800 rounded-lg p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-semibold text-white">
+                      {coordinator.firstName} {coordinator.lastName}
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full ${
                         coordinator.status === "active"
-                          ? "bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400"
-                          : "bg-green-600/20 hover:bg-green-600/30 text-green-400"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-gray-500/20 text-gray-400"
                       }`}
                     >
-                      {coordinator.status === "active" ? "Deactivate" : "Activate"}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(coordinator._id)}
-                      className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded transition-colors"
-                    >
-                      Delete
-                    </button>
+                      {coordinator.status}
+                    </span>
+                    {coordinator.rating && (
+                      <div className="flex items-center text-yellow-400">
+                        {"★".repeat(coordinator.rating)}
+                        {"☆".repeat(5 - coordinator.rating)}
+                      </div>
+                    )}
+                  </div>
+                  {coordinator.organization && (
+                    <p className="text-gray-400 mt-1">{coordinator.organization}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <a href={`mailto:${coordinator.email}`} className="text-blue-400 hover:text-blue-300 text-sm">
+                      {coordinator.email}
+                    </a>
+                    {coordinator.phone && (
+                      <a href={`tel:${coordinator.phone}`} className="text-gray-400 hover:text-gray-300 text-sm">
+                        {coordinator.phone}
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-3">
+                    {coordinator.areas.map((area) => (
+                      <span key={area} className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                  {coordinator.relationship && (
+                    <p className="text-gray-400 text-sm mt-2 italic">{coordinator.relationship}</p>
+                  )}
+                  <div className="flex gap-4 mt-3 text-sm">
+                    <span className="text-gray-400">
+                      <span className="text-white font-medium">{coordinator.participantCount}</span> linked participants
+                    </span>
+                    {coordinator.totalReferrals !== undefined && coordinator.totalReferrals > 0 && (
+                      <span className="text-gray-400">
+                        <span className="text-green-400 font-medium">{coordinator.totalReferrals}</span> referrals
+                      </span>
+                    )}
                   </div>
                 </div>
+
+                <div className="flex gap-2">
+                  <Link
+                    href={`/database/support-coordinators/${coordinator._id}`}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+                  >
+                    View
+                  </Link>
+                  <button
+                    onClick={() => handleEdit(coordinator)}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(coordinator)}
+                    className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                      coordinator.status === "active"
+                        ? "bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400"
+                        : "bg-green-600/20 hover:bg-green-600/30 text-green-400"
+                    }`}
+                  >
+                    {coordinator.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(coordinator._id)}
+                    className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </main>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {showAddModal && (
@@ -348,29 +319,21 @@ export default function SupportCoordinatorsPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    First Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">First Name *</label>
                   <input
                     type="text"
                     value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Last Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Last Name *</label>
                   <input
                     type="text"
                     value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     required
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -378,15 +341,11 @@ export default function SupportCoordinatorsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Organization
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Organization</label>
                 <input
                   type="text"
                   value={formData.organization}
-                  onChange={(e) =>
-                    setFormData({ ...formData, organization: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                   placeholder="e.g., NDIS Support Services"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -394,38 +353,28 @@ export default function SupportCoordinatorsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Email *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Email *</label>
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Phone
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Areas Covered *
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Areas Covered *</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
                   {SYDNEY_REGIONS.map((area) => (
                     <button
@@ -445,46 +394,32 @@ export default function SupportCoordinatorsPage() {
                 <input
                   type="text"
                   value={formData.customArea}
-                  onChange={(e) =>
-                    setFormData({ ...formData, customArea: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, customArea: e.target.value })}
                   placeholder="Or enter custom area(s)..."
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  How We Know Them
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">How We Know Them</label>
                 <input
                   type="text"
                   value={formData.relationship}
-                  onChange={(e) =>
-                    setFormData({ ...formData, relationship: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
                   placeholder="e.g., Referred by John Smith, Met at conference..."
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Rating
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Rating</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       type="button"
-                      onClick={() =>
-                        setFormData({ ...formData, rating: star })
-                      }
-                      className={`text-2xl ${
-                        star <= formData.rating
-                          ? "text-yellow-400"
-                          : "text-gray-600"
-                      }`}
+                      onClick={() => setFormData({ ...formData, rating: star })}
+                      className={`text-2xl ${star <= formData.rating ? "text-yellow-400" : "text-gray-600"}`}
                     >
                       ★
                     </button>
@@ -502,14 +437,10 @@ export default function SupportCoordinatorsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Notes
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
                   placeholder="Any additional notes..."
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -538,6 +469,6 @@ export default function SupportCoordinatorsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

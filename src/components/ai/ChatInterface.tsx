@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, CheckCircle, XCircle, Paperclip, FileText, X } from "lucide-react";
+import { Send, Loader2, Bot, CheckCircle, XCircle, Paperclip, FileText, X, Upload } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import QuickActions from "./QuickActions";
 
@@ -38,8 +38,10 @@ export default function ChatInterface({
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,18 +80,7 @@ export default function ChatInterface({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Please upload an image (PNG, JPG, WebP, GIF) or PDF file.');
-        return;
-      }
-      // Validate file size (10MB max)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB.');
-        return;
-      }
-      setSelectedFile(file);
+      validateAndSetFile(file);
     }
     // Reset file input
     if (fileInputRef.current) {
@@ -110,8 +101,76 @@ export default function ChatInterface({
     }
   };
 
+  // Shared file validation logic
+  const validateAndSetFile = (file: File): boolean => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please upload an image (PNG, JPG, WebP, GIF) or PDF file.');
+      return false;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB.');
+      return false;
+    }
+    setSelectedFile(file);
+    return true;
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    if (!onFileUpload || isLoading || pendingAction || selectedFile) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      validateAndSetFile(files[0]);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div
+      className="flex flex-col h-full min-h-0 relative"
+      onDragEnter={onFileUpload ? handleDragEnter : undefined}
+      onDragLeave={onFileUpload ? handleDragLeave : undefined}
+      onDragOver={onFileUpload ? handleDragOver : undefined}
+      onDrop={onFileUpload ? handleDrop : undefined}
+    >
+      {/* Drag Overlay */}
+      {isDragging && onFileUpload && (
+        <div className="absolute inset-0 z-50 bg-purple-900/90 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-purple-400">
+          <Upload className="w-16 h-16 text-purple-300 mb-4" />
+          <p className="text-xl font-semibold text-white mb-2">Drop document here</p>
+          <p className="text-sm text-purple-300">PNG, JPG, WebP, GIF, or PDF (max 10MB)</p>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 ? (
@@ -281,7 +340,7 @@ export default function ChatInterface({
           </button>
         </form>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line • Click <Paperclip className="w-3 h-3 inline" /> to upload documents
+          Press Enter to send, Shift+Enter for new line • Drag & drop or click <Paperclip className="w-3 h-3 inline" /> to upload
         </p>
       </div>
     </div>

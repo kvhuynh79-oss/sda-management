@@ -96,14 +96,14 @@ export default function ContractorsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white">Contractors</h2>
-            <p className="text-gray-400 mt-1">Manage trade contractors for maintenance work</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Contractors</h2>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">Manage trade contractors for maintenance work</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex-shrink-0 self-start sm:self-auto"
           >
             + Add Contractor
           </button>

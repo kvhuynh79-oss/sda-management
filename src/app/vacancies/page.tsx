@@ -288,20 +288,22 @@ export default function VacanciesPage() {
   );
 }
 
+type CoordinatorForNotify = {
+  _id: Id<"supportCoordinators">;
+  firstName: string;
+  lastName: string;
+  organization?: string;
+  areas: string[];
+};
+
 interface NotifyCoordinatorsModalProps {
   vacancy: {
     dwelling: { _id: Id<"dwellings"> };
     property: { suburb: string } | null;
     listing?: { coordinatorsNotified?: Id<"supportCoordinators">[] } | null;
   };
-  coordinators: Array<{
-    _id: Id<"supportCoordinators">;
-    firstName: string;
-    lastName: string;
-    organization?: string;
-    areas: string[];
-  }>;
-  getMatchingCoordinators: (suburb?: string) => typeof coordinators;
+  coordinators: CoordinatorForNotify[];
+  getMatchingCoordinators: (suburb?: string) => CoordinatorForNotify[];
   onNotify: (ids: Id<"supportCoordinators">[]) => void;
   onClose: () => void;
 }

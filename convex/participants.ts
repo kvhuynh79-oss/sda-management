@@ -14,7 +14,8 @@ export const create = mutation({
     emergencyContactPhone: v.optional(v.string()),
     emergencyContactRelation: v.optional(v.string()),
     dwellingId: v.id("dwellings"),
-    moveInDate: v.string(),
+    moveInDate: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("active"), v.literal("pending_move_in"))),
     silProviderName: v.optional(v.string()),
     supportCoordinatorName: v.optional(v.string()),
     supportCoordinatorEmail: v.optional(v.string()),
@@ -33,14 +34,18 @@ export const create = mutation({
     }
 
     const now = Date.now();
+    // Use provided status, or default to active if moveInDate is provided, pending_move_in otherwise
+    const status = args.status || (args.moveInDate ? "active" : "pending_move_in");
+
+    const { status: _, ...restArgs } = args;
     const participantId = await ctx.db.insert("participants", {
-      ...args,
-      status: "active",
+      ...restArgs,
+      status,
       createdAt: now,
       updatedAt: now,
     });
 
-    // Update dwelling occupancy
+    // Update dwelling occupancy (only counts active participants)
     await updateDwellingOccupancy(ctx, args.dwellingId);
 
     return participantId;
@@ -182,6 +187,33 @@ export const update = mutation({
       await updateDwellingOccupancy(ctx, oldDwellingId);
       await updateDwellingOccupancy(ctx, updates.dwellingId);
     }
+
+    return { success: true };
+  },
+});
+
+// Move participant in (change status from pending_move_in to active)
+export const moveIn = mutation({
+  args: {
+    participantId: v.id("participants"),
+    moveInDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) throw new Error("Participant not found");
+
+    if (participant.status !== "pending_move_in") {
+      throw new Error("Participant is not in pending move-in status");
+    }
+
+    await ctx.db.patch(args.participantId, {
+      status: "active",
+      moveInDate: args.moveInDate,
+      updatedAt: Date.now(),
+    });
+
+    // Update dwelling occupancy
+    await updateDwellingOccupancy(ctx, participant.dwellingId);
 
     return { success: true };
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -12,10 +12,14 @@ export default function ParticipantDetailPage() {
   const router = useRouter();
   const params = useParams();
   const [user, setUser] = useState<{ role: string } | null>(null);
+  const [showMoveInModal, setShowMoveInModal] = useState(false);
+  const [moveInDate, setMoveInDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [isMovingIn, setIsMovingIn] = useState(false);
 
   const participantId = params.id as Id<"participants">;
   const participant = useQuery(api.participants.getById, { participantId });
   const documents = useQuery(api.documents.getByParticipant, { participantId });
+  const moveInMutation = useMutation(api.participants.moveIn);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -65,6 +69,23 @@ export default function ParticipantDetailPage() {
     return colors[status] || "bg-gray-600";
   };
 
+  const handleMoveIn = async () => {
+    if (!moveInDate) {
+      alert("Please select a move-in date");
+      return;
+    }
+    setIsMovingIn(true);
+    try {
+      await moveInMutation({ participantId, moveInDate });
+      setShowMoveInModal(false);
+    } catch (error) {
+      console.error("Error moving in participant:", error);
+      alert("Failed to move in participant. Please try again.");
+    } finally {
+      setIsMovingIn(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="participants" />
@@ -110,6 +131,14 @@ export default function ParticipantDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
+              {participant.status === "pending_move_in" && (
+                <button
+                  onClick={() => setShowMoveInModal(true)}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                >
+                  Move In
+                </button>
+              )}
               <Link
                 href={`/participants/${participantId}/edit`}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -154,7 +183,10 @@ export default function ParticipantDetailPage() {
                         value={`${participant.property.addressLine1}, ${participant.property.suburb}`}
                       />
                     )}
-                    <DetailRow label="Move In Date" value={participant.moveInDate} />
+                    <DetailRow
+                      label="Move In Date"
+                      value={participant.moveInDate || "Pending"}
+                    />
                     {participant.property && (
                       <Link
                         href={`/properties/${participant.property._id}`}
@@ -320,6 +352,47 @@ export default function ParticipantDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Move In Modal */}
+        {showMoveInModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Move In Participant
+              </h3>
+              <p className="text-gray-400 mb-4">
+                Confirm move-in for {participant.firstName} {participant.lastName}
+              </p>
+              <div className="mb-6">
+                <label className="block text-sm text-gray-300 mb-2">
+                  Move-In Date
+                </label>
+                <input
+                  type="date"
+                  value={moveInDate}
+                  onChange={(e) => setMoveInDate(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowMoveInModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                  disabled={isMovingIn}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleMoveIn}
+                  disabled={isMovingIn}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg"
+                >
+                  {isMovingIn ? "Moving In..." : "Confirm Move In"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

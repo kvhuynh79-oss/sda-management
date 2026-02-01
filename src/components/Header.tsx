@@ -85,8 +85,8 @@ export default function Header({ currentPage }: HeaderProps) {
   const isDatabaseActive = currentPage === "database" || currentPage === "contractors";
 
   return (
-    <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50 overflow-visible">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-visible">
         {/* Top row - Logo and User info */}
         <div className="flex justify-between items-center h-14 lg:h-16">
           <Link href="/dashboard" className="flex-shrink-0">
@@ -119,7 +119,7 @@ export default function Header({ currentPage }: HeaderProps) {
           </div>
         </div>
         {/* Navigation - scrollable on mobile */}
-        <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide items-center min-w-0">
+        <nav className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide items-center min-w-0 overflow-y-visible">
           {navItems.slice(0, 5).map((item) => (
             <Link
               key={item.key}
@@ -137,6 +137,7 @@ export default function Header({ currentPage }: HeaderProps) {
           {/* Database Dropdown */}
           <div ref={databaseRef} className="relative flex-shrink-0">
             <button
+              type="button"
               onClick={() => setDatabaseOpen(!databaseOpen)}
               className={`whitespace-nowrap text-sm flex items-center gap-1 ${
                 isDatabaseActive
@@ -155,7 +156,10 @@ export default function Header({ currentPage }: HeaderProps) {
               </svg>
             </button>
             {databaseOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 min-w-[180px] z-50">
+              <div
+                className="absolute left-0 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 min-w-[180px]"
+                style={{ top: '100%', marginTop: '4px', zIndex: 9999 }}
+              >
                 {databaseItems.map((item) => (
                   <Link
                     key={item.href}

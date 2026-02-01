@@ -331,6 +331,23 @@ export const markPaid = mutation({
   },
 });
 
+// Mark claim as rejected
+export const markRejected = mutation({
+  args: {
+    claimId: v.id("claims"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.claimId, {
+      status: "rejected",
+      notes: args.reason || "Claim rejected",
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
 // Get PACE export data (for CSV bulk upload)
 export const getPaceExport = query({
   args: { claimPeriod: v.string() },

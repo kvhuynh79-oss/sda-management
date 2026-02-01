@@ -30,6 +30,7 @@ import type * as maintenanceRequests from "../maintenanceRequests.js";
 import type * as ndisClaimExport from "../ndisClaimExport.js";
 import type * as notifications from "../notifications.js";
 import type * as ownerDistributions from "../ownerDistributions.js";
+import type * as ownerPayments from "../ownerPayments.js";
 import type * as owners from "../owners.js";
 import type * as participantPlans from "../participantPlans.js";
 import type * as participants from "../participants.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   ndisClaimExport: typeof ndisClaimExport;
   notifications: typeof notifications;
   ownerDistributions: typeof ownerDistributions;
+  ownerPayments: typeof ownerPayments;
   owners: typeof owners;
   participantPlans: typeof participantPlans;
   participants: typeof participants;

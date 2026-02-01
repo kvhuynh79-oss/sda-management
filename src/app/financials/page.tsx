@@ -166,19 +166,26 @@ function ClaimsTab({ userId }: { userId: string }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showMarkSubmittedModal, setShowMarkSubmittedModal] = useState(false);
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<{
     claimId?: Id<"claims">;
     participantId: Id<"participants">;
     planId: Id<"participantPlans">;
     participantName: string;
     expectedAmount: number;
+    claimPeriod?: string;
+    claimRef?: string;
   } | null>(null);
+
+  // Bulk selection state
+  const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
 
   const dashboard = useQuery(api.claims.getDashboard);
   const providerSettings = useQuery(api.providerSettings.get);
   const createClaim = useMutation(api.claims.create);
   const markSubmitted = useMutation(api.claims.markSubmitted);
   const markPaid = useMutation(api.claims.markPaid);
+  const markRejected = useMutation(api.claims.markRejected);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(amount);
@@ -190,8 +197,10 @@ function ClaimsTab({ userId }: { userId: string }) {
     }
     const styles: Record<string, string> = {
       pending: "bg-yellow-600 text-white",
-      submitted: "bg-blue-600 text-white",
+      submitted: "bg-orange-500 text-white",
       paid: "bg-green-600 text-white",
+      rejected: "bg-red-600 text-white",
+      partial: "bg-purple-600 text-white",
     };
     return (
       <span className={`px-2 py-1 text-xs rounded-full ${styles[status] || "bg-gray-600 text-white"}`}>
@@ -284,6 +293,113 @@ function ClaimsTab({ userId }: { userId: string }) {
     window.URL.revokeObjectURL(url);
   };
 
+  // Toggle individual claim selection
+  const toggleClaimSelection = (claimKey: string) => {
+    setSelectedClaims((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(claimKey)) {
+        newSet.delete(claimKey);
+      } else {
+        newSet.add(claimKey);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all visible claims
+  const selectAllClaims = () => {
+    if (!filteredClaims) return;
+    const allKeys = filteredClaims.map((c) => `${c.participant._id}-${c.claimDay}`);
+    setSelectedClaims(new Set(allKeys));
+  };
+
+  // Clear all selections
+  const clearAllSelections = () => {
+    setSelectedClaims(new Set());
+  };
+
+  // Export selected claims to CSV (PACE format for NDIS portal)
+  const exportSelectedClaimsCsv = () => {
+    if (selectedClaims.size === 0) {
+      alert("Please select at least one claim to export");
+      return;
+    }
+
+    const selectedClaimsList = filteredClaims?.filter(
+      (c) => selectedClaims.has(`${c.participant._id}-${c.claimDay}`)
+    );
+
+    if (!selectedClaimsList || selectedClaimsList.length === 0) {
+      alert("No claims selected for export");
+      return;
+    }
+
+    // Calculate previous month's date range (service period is previous month)
+    const [year, month] = selectedPeriod.split("-").map(Number);
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const prevMonthLastDay = new Date(prevYear, prevMonth, 0).getDate();
+    const periodStart = `${prevYear}-${String(prevMonth).padStart(2, "0")}-01`;
+    const periodEnd = `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(prevMonthLastDay).padStart(2, "0")}`;
+    const claimRef = `${String(month).padStart(2, "0")}${year}`;
+
+    // Short headers (under 10 chars)
+    const headers = [
+      "RegNo",
+      "NDISNo",
+      "FromDate",
+      "ToDate",
+      "SupportNo",
+      "ClaimRef",
+      "Qty",
+      "Hours",
+      "UnitPrice",
+      "GSTCode",
+      "AuthBy",
+      "Approved",
+      "InKind",
+      "ClaimType",
+      "CancelRsn",
+      "ABN",
+    ];
+
+    const rows = selectedClaimsList.map((claim) => ({
+      RegNo: providerSettings?.ndisRegistrationNumber || "",
+      NDISNo: claim.participant.ndisNumber,
+      FromDate: periodStart,
+      ToDate: periodEnd,
+      SupportNo: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
+      ClaimRef: claimRef,
+      Qty: "1",
+      Hours: "",
+      UnitPrice: claim.expectedAmount.toFixed(2),
+      GSTCode: providerSettings?.defaultGstCode || "P2",
+      AuthBy: "",
+      Approved: "",
+      InKind: "",
+      ClaimType: "",
+      CancelRsn: "",
+      ABN: providerSettings?.abn || "",
+    }));
+
+    let csvContent = headers.join(",") + "\n";
+    rows.forEach((row) => {
+      csvContent += headers.map((h) => row[h as keyof typeof row]).join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${claimRef}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    // Clear selections after export (manual submit required)
+    clearAllSelections();
+    alert(`CSV exported with ${selectedClaimsList.length} claim(s).\nClick "Submit" on each claim after uploading to NDIS portal.`);
+  };
+
   const handleMarkSubmitted = async (claimId: Id<"claims">, amount: number, notes?: string) => {
     const today = new Date().toISOString().split("T")[0];
     try {
@@ -305,6 +421,17 @@ function ClaimsTab({ userId }: { userId: string }) {
     } catch (error) {
       console.error("Error marking paid:", error);
       alert("Failed to mark claim as paid");
+    }
+  };
+
+  const handleReject = async (claimId: Id<"claims">, reason?: string) => {
+    try {
+      await markRejected({ claimId, reason });
+      setShowRejectModal(false);
+      setSelectedClaim(null);
+    } catch (error) {
+      console.error("Error rejecting claim:", error);
+      alert("Failed to reject claim");
     }
   };
 
@@ -438,7 +565,36 @@ function ClaimsTab({ userId }: { userId: string }) {
           <option value="pending">Pending</option>
           <option value="submitted">Submitted</option>
           <option value="paid">Paid</option>
+          <option value="rejected">Rejected</option>
         </select>
+      </div>
+
+      {/* Bulk Actions Bar */}
+      <div className="flex items-center justify-between bg-gray-800 rounded-lg p-3 mb-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={selectedClaims.size === filteredClaims?.length ? clearAllSelections : selectAllClaims}
+            className="text-sm text-blue-400 hover:text-blue-300"
+          >
+            {selectedClaims.size === filteredClaims?.length && filteredClaims?.length > 0 ? "Deselect All" : "Select All"}
+          </button>
+          {selectedClaims.size > 0 && (
+            <span className="text-sm text-gray-400">
+              {selectedClaims.size} claim{selectedClaims.size !== 1 ? "s" : ""} selected
+            </span>
+          )}
+        </div>
+        {selectedClaims.size > 0 && (
+          <button
+            onClick={exportSelectedClaimsCsv}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export CSV ({selectedClaims.size})
+          </button>
+        )}
       </div>
 
       {/* Claims List */}
@@ -456,65 +612,97 @@ function ClaimsTab({ userId }: { userId: string }) {
               <h4 className="text-white font-medium">Claim Day: {day}{day === "1" ? "st" : day === "2" ? "nd" : day === "3" ? "rd" : "th"}</h4>
             </div>
             <div className="divide-y divide-gray-700">
-              {(claims as ClaimItem[]).map((claim) => (
-                <div key={`${claim.participant._id}-${claim.claimDay}`} className="p-4 flex justify-between items-center">
-                  <div>
-                    <p className="text-white font-medium">{claim.participant.firstName} {claim.participant.lastName}</p>
-                    <p className="text-gray-400 text-sm">{claim.property?.addressLine1} - {claim.dwelling?.dwellingName}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {getStatusBadge(claim.status, claim.isOverdue)}
-                      <span className="text-xs text-gray-500 capitalize">{claim.claimMethod.replace(/_/g, " ")}</span>
+              {(claims as ClaimItem[]).map((claim) => {
+                const claimKey = `${claim.participant._id}-${claim.claimDay}`;
+                return (
+                  <div key={claimKey} className="p-4 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedClaims.has(claimKey)}
+                        onChange={() => toggleClaimSelection(claimKey)}
+                        className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 cursor-pointer"
+                      />
+                      <div>
+                        <p className="text-white font-medium">{claim.participant.firstName} {claim.participant.lastName}</p>
+                        <p className="text-gray-400 text-sm">{claim.property?.addressLine1} - {claim.dwelling?.dwellingName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {getStatusBadge(claim.status, claim.isOverdue)}
+                          <span className="text-xs text-gray-500 capitalize">{claim.claimMethod.replace(/_/g, " ")}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white font-medium">{formatCurrency(claim.expectedAmount)}</p>
+                      <div className="flex gap-2 mt-2">
+                        {claim.status === "pending" && !claim.existingClaim && (
+                          <button
+                            onClick={() => handleCreateAndSubmit(claim)}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                          >
+                            Submit
+                          </button>
+                        )}
+                        {claim.status === "pending" && claim.existingClaim && (
+                          <button
+                            onClick={() => {
+                              setSelectedClaim({
+                                claimId: claim.existingClaim!._id,
+                                participantId: claim.participant._id,
+                                planId: claim.plan._id,
+                                participantName: `${claim.participant.firstName} ${claim.participant.lastName}`,
+                                expectedAmount: claim.expectedAmount,
+                              });
+                              setShowMarkSubmittedModal(true);
+                            }}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                          >
+                            Mark Submitted
+                          </button>
+                        )}
+                        {claim.status === "submitted" && claim.existingClaim && (
+                          <>
+                            <button
+                              onClick={() => {
+                                const [year, month] = selectedPeriod.split("-").map(Number);
+                                const claimRef = `${String(month).padStart(2, "0")}${year}`;
+                                setSelectedClaim({
+                                  claimId: claim.existingClaim!._id,
+                                  participantId: claim.participant._id,
+                                  planId: claim.plan._id,
+                                  participantName: `${claim.participant.firstName} ${claim.participant.lastName}`,
+                                  expectedAmount: claim.expectedAmount,
+                                  claimPeriod: selectedPeriod,
+                                  claimRef,
+                                });
+                                setShowMarkPaidModal(true);
+                              }}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded"
+                            >
+                              Mark Paid
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedClaim({
+                                  claimId: claim.existingClaim!._id,
+                                  participantId: claim.participant._id,
+                                  planId: claim.plan._id,
+                                  participantName: `${claim.participant.firstName} ${claim.participant.lastName}`,
+                                  expectedAmount: claim.expectedAmount,
+                                });
+                                setShowRejectModal(true);
+                              }}
+                              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-white font-medium">{formatCurrency(claim.expectedAmount)}</p>
-                    <div className="flex gap-2 mt-2">
-                      {claim.status === "pending" && !claim.existingClaim && (
-                        <button
-                          onClick={() => handleCreateAndSubmit(claim)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
-                        >
-                          Submit
-                        </button>
-                      )}
-                      {claim.status === "pending" && claim.existingClaim && (
-                        <button
-                          onClick={() => {
-                            setSelectedClaim({
-                              claimId: claim.existingClaim!._id,
-                              participantId: claim.participant._id,
-                              planId: claim.plan._id,
-                              participantName: `${claim.participant.firstName} ${claim.participant.lastName}`,
-                              expectedAmount: claim.expectedAmount,
-                            });
-                            setShowMarkSubmittedModal(true);
-                          }}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
-                        >
-                          Mark Submitted
-                        </button>
-                      )}
-                      {claim.status === "submitted" && claim.existingClaim && (
-                        <button
-                          onClick={() => {
-                            setSelectedClaim({
-                              claimId: claim.existingClaim!._id,
-                              participantId: claim.participant._id,
-                              planId: claim.plan._id,
-                              participantName: `${claim.participant.firstName} ${claim.participant.lastName}`,
-                              expectedAmount: claim.expectedAmount,
-                            });
-                            setShowMarkPaidModal(true);
-                          }}
-                          className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded"
-                        >
-                          Mark Paid
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
@@ -542,6 +730,16 @@ function ClaimsTab({ userId }: { userId: string }) {
           buttonLabel="Mark Paid"
           buttonColor="green"
           showReference
+          defaultReference={selectedClaim.claimPeriod && selectedClaim.claimRef ? `Claims_${selectedClaim.claimPeriod} / ${selectedClaim.claimRef}` : ""}
+        />
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && selectedClaim && (
+        <RejectModal
+          claim={selectedClaim}
+          onClose={() => { setShowRejectModal(false); setSelectedClaim(null); }}
+          onReject={(reason) => handleReject(selectedClaim.claimId!, reason)}
         />
       )}
     </div>
@@ -556,6 +754,7 @@ function ClaimModal({
   buttonLabel,
   buttonColor,
   showReference,
+  defaultReference,
 }: {
   title: string;
   claim: { participantName: string; expectedAmount: number };
@@ -564,10 +763,11 @@ function ClaimModal({
   buttonLabel: string;
   buttonColor: "blue" | "green";
   showReference?: boolean;
+  defaultReference?: string;
 }) {
   const [amount, setAmount] = useState(claim.expectedAmount.toString());
   const [notes, setNotes] = useState("");
-  const [reference, setReference] = useState("");
+  const [reference, setReference] = useState(defaultReference || "");
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -614,6 +814,67 @@ function ClaimModal({
             className={`px-4 py-2 ${buttonColor === "blue" ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"} text-white rounded-lg`}
           >
             {buttonLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RejectModal({
+  claim,
+  onClose,
+  onReject,
+}: {
+  claim: { participantName: string; expectedAmount: number };
+  onClose: () => void;
+  onReject: (reason?: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+        <h3 className="text-lg font-semibold text-white mb-4">Reject Claim</h3>
+        <p className="text-gray-400 mb-4">{claim.participantName}</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Rejection Reason</label>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            >
+              <option value="">Select a reason...</option>
+              <option value="Insufficient funds">Insufficient funds</option>
+              <option value="CSV format error">CSV format error</option>
+              <option value="Invalid NDIS number">Invalid NDIS number</option>
+              <option value="Plan expired">Plan expired</option>
+              <option value="Duplicate claim">Duplicate claim</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          {reason === "Other" && (
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Custom Reason</label>
+              <textarea
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                placeholder="Enter rejection reason..."
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg">
+            Cancel
+          </button>
+          <button
+            onClick={() => onReject(reason || undefined)}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+          >
+            Reject Claim
           </button>
         </div>
       </div>

@@ -192,6 +192,32 @@ export const update = mutation({
   },
 });
 
+// Revert participant to pending move-in status (undo move-in)
+export const revertToPending = mutation({
+  args: {
+    participantId: v.id("participants"),
+  },
+  handler: async (ctx, args) => {
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) throw new Error("Participant not found");
+
+    if (participant.status !== "active") {
+      throw new Error("Can only revert active participants to pending");
+    }
+
+    await ctx.db.patch(args.participantId, {
+      status: "pending_move_in",
+      moveInDate: undefined,
+      updatedAt: Date.now(),
+    });
+
+    // Update dwelling occupancy
+    await updateDwellingOccupancy(ctx, participant.dwellingId);
+
+    return { success: true };
+  },
+});
+
 // Move participant in (change status from pending_move_in to active)
 export const moveIn = mutation({
   args: {

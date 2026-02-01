@@ -13,13 +13,16 @@ export default function ParticipantDetailPage() {
   const params = useParams();
   const [user, setUser] = useState<{ role: string } | null>(null);
   const [showMoveInModal, setShowMoveInModal] = useState(false);
+  const [showRevertModal, setShowRevertModal] = useState(false);
   const [moveInDate, setMoveInDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [isMovingIn, setIsMovingIn] = useState(false);
+  const [isReverting, setIsReverting] = useState(false);
 
   const participantId = params.id as Id<"participants">;
   const participant = useQuery(api.participants.getById, { participantId });
   const documents = useQuery(api.documents.getByParticipant, { participantId });
   const moveInMutation = useMutation(api.participants.moveIn);
+  const revertToPendingMutation = useMutation(api.participants.revertToPending);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -86,6 +89,19 @@ export default function ParticipantDetailPage() {
     }
   };
 
+  const handleRevertToPending = async () => {
+    setIsReverting(true);
+    try {
+      await revertToPendingMutation({ participantId });
+      setShowRevertModal(false);
+    } catch (error) {
+      console.error("Error reverting participant:", error);
+      alert("Failed to revert participant status. Please try again.");
+    } finally {
+      setIsReverting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="participants" />
@@ -137,6 +153,14 @@ export default function ParticipantDetailPage() {
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                 >
                   Move In
+                </button>
+              )}
+              {participant.status === "active" && (
+                <button
+                  onClick={() => setShowRevertModal(true)}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors"
+                >
+                  Revert to Pending
                 </button>
               )}
               <Link
@@ -388,6 +412,39 @@ export default function ParticipantDetailPage() {
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg"
                 >
                   {isMovingIn ? "Moving In..." : "Confirm Move In"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Revert to Pending Modal */}
+        {showRevertModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Revert to Pending Move-In
+              </h3>
+              <p className="text-gray-400 mb-4">
+                Are you sure you want to change {participant.firstName} {participant.lastName} back to pending move-in status?
+              </p>
+              <p className="text-yellow-400 text-sm mb-6">
+                This will remove them from Financials until they are moved in again.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowRevertModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                  disabled={isReverting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRevertToPending}
+                  disabled={isReverting}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white rounded-lg"
+                >
+                  {isReverting ? "Reverting..." : "Confirm Revert"}
                 </button>
               </div>
             </div>

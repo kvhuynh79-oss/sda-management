@@ -125,12 +125,12 @@ src/components/
 - **Xero Integration** - OAuth fixed (state validation, sync buttons work per account)
 - **Owner reports** - 6-month Folio Summary (needs testing)
 - **Onboarding documents** - Proposed move-in date field for SDA Quotation & Accommodation Agreement
+- **Incident Actions** - Tested workflow: Add Action → Contractor/In-House → Complete ✓
 
 ## Next Session Priorities
 1. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
    - Owner reports - Generate 6-month Folio Summary PDF
-   - Incident Actions - Add Action → Contractor/In-House → Complete
    - Onboarding documents - Test proposed move-in date in generated PDFs
 2. **Bug fixing** - Test all features, fix any issues
 3. **Bulk data entry** - User will upload property/participant data

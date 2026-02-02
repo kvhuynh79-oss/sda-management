@@ -11,9 +11,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSubmitted, setResetSubmitted] = useState(false);
+
   const login = useMutation(api.auth.login);
   const router = useRouter();
+
+  // Sanitize error messages to be user-friendly
+  const getErrorMessage = (err: unknown): string => {
+    if (err instanceof Error) {
+      const message = err.message.toLowerCase();
+      if (message.includes("invalid") || message.includes("not found")) {
+        return "Invalid email or password. Please try again.";
+      }
+      if (message.includes("disabled") || message.includes("inactive")) {
+        return "This account has been disabled. Please contact your administrator.";
+      }
+    }
+    return "Login failed. Please check your credentials and try again.";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +46,7 @@ export default function LoginPage() {
       // Redirect to dashboard
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -90,12 +107,21 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div>
-              <label 
-                htmlFor="password" 
-                className="block text-sm font-medium text-gray-300 mb-2"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-300"
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
                 id="password"
                 type="password"
@@ -123,6 +149,106 @@ export default function LoginPage() {
           SDA Property Management System
         </p>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">Reset Password</h2>
+              <button
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setResetEmail("");
+                  setResetSubmitted(false);
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6">
+              {!resetSubmitted ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setResetSubmitted(true);
+                  }}
+                  className="space-y-4"
+                >
+                  <p className="text-gray-300 text-sm">
+                    Enter your email address and we&apos;ll help you reset your password.
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Email address
+                    </label>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="you@example.com"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setResetEmail("");
+                      }}
+                      className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto">
+                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-white">Contact your administrator</h3>
+                  <p className="text-gray-400 text-sm">
+                    To reset your password for <span className="text-white font-medium">{resetEmail}</span>, please contact your system administrator.
+                  </p>
+                  <div className="pt-2 p-4 bg-gray-700/50 rounded-lg">
+                    <p className="text-gray-300 text-sm">
+                      <strong>Contact:</strong><br />
+                      khen@betterlivingsolutions.com.au
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetEmail("");
+                      setResetSubmitted(false);
+                    }}
+                    className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors mt-4"
+                  >
+                    Back to Login
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

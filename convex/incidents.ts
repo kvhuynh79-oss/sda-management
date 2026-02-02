@@ -93,9 +93,10 @@ export const create = mutation({
     // Determine if this is an NDIS reportable incident
     const { isReportable, timeframe } = getNdisReportableInfo(args.incidentType);
 
-    const incidentData: Record<string, unknown> = {
+    // Build base incident data
+    const baseData = {
       ...args,
-      status: "reported",
+      status: "reported" as const,
       isNdisReportable: isReportable,
       createdAt: now,
       updatedAt: now,
@@ -103,13 +104,17 @@ export const create = mutation({
 
     // Add NDIS notification tracking if reportable
     if (isReportable && timeframe) {
-      incidentData.ndisNotificationTimeframe = timeframe;
-      incidentData.ndisNotificationDueDate = calculateDueDate(args.incidentDate, timeframe);
-      incidentData.ndisCommissionNotified = false;
-      incidentData.ndisNotificationOverdue = false;
+      const incidentId = await ctx.db.insert("incidents", {
+        ...baseData,
+        ndisNotificationTimeframe: timeframe,
+        ndisNotificationDueDate: calculateDueDate(args.incidentDate, timeframe),
+        ndisCommissionNotified: false,
+        ndisNotificationOverdue: false,
+      });
+      return incidentId;
     }
 
-    const incidentId = await ctx.db.insert("incidents", incidentData);
+    const incidentId = await ctx.db.insert("incidents", baseData);
     return incidentId;
   },
 });

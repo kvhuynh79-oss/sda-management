@@ -1264,26 +1264,38 @@ function OwnerPaymentsTab() {
         }
 
         // Build table data with 12 historical month columns
+        // Check plan start date to only show amounts for active months
+        const planStartDate = plan?.planStartDate;
+        const isMonthActive = (monthKey: string) => {
+          if (!planStartDate) return true; // If no start date, assume always active
+          // monthKey format: "2025-03", planStartDate format: "YYYY-MM-DD"
+          const planYearMonth = planStartDate.substring(0, 7); // "2025-03"
+          return monthKey >= planYearMonth;
+        };
+
+        // Count active months for grand total calculation
+        const activeMonthCount = monthPeriods.filter(m => isMonthActive(m.monthKey)).length;
+
         const tableHead = [["", ...monthPeriods.map(m => m.label)]];
 
         let tableBody;
         if (isSpecialArrangement) {
           // Special arrangement table layout: Owner gets SDA, BLS gets RRC
           tableBody = [
-            ["SDA Funding", ...monthPeriods.map(() => formatCurrency(monthlySda))],
-            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(() => formatCurrency(monthlyRrc))],
-            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlySubtotal), styles: { fontStyle: "bold" as const } }))],
-            ["Less: RRC to BLS (100%)", ...monthPeriods.map(() => `(${formatCurrency(monthlyRrc)})`)],
-            [{ content: "Owner Share (SDA Only)", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
+            ["SDA Funding", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlySda) : "-")],
+            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlyRrc) : "-")],
+            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlySubtotal) : "-", styles: { fontStyle: "bold" as const } }))],
+            ["Less: RRC to BLS (100%)", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? `(${formatCurrency(monthlyRrc)})` : "-")],
+            [{ content: "Owner Share (SDA Only)", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlyNet) : "-", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
           ];
         } else {
           // Standard arrangement table layout
           tableBody = [
-            ["SDA Funding", ...monthPeriods.map(() => formatCurrency(monthlySda))],
-            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(() => formatCurrency(monthlyRrc))],
-            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlySubtotal), styles: { fontStyle: "bold" as const } }))],
-            [`Less: Provider Fee (${managementFeePercent}%)`, ...monthPeriods.map(() => `(${formatCurrency(monthlyFee)})`)],
-            [{ content: "Net to Owner", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
+            ["SDA Funding", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlySda) : "-")],
+            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlyRrc) : "-")],
+            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlySubtotal) : "-", styles: { fontStyle: "bold" as const } }))],
+            [`Less: Provider Fee (${managementFeePercent}%)`, ...monthPeriods.map(m => isMonthActive(m.monthKey) ? `(${formatCurrency(monthlyFee)})` : "-")],
+            [{ content: "Net to Owner", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlyNet) : "-", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
           ];
         }
 
@@ -1304,11 +1316,11 @@ function OwnerPaymentsTab() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         currentY = (doc as any).lastAutoTable?.finalY + 8 || currentY + 50;
 
-        // Accumulate grand totals (12 months)
-        grandTotalSda += monthlySda * 12;
-        grandTotalRrc += monthlyRrc * 12;
-        grandTotalFee += monthlyFee * 12;
-        grandTotalNet += monthlyNet * 12;
+        // Accumulate grand totals (only active months)
+        grandTotalSda += monthlySda * activeMonthCount;
+        grandTotalRrc += monthlyRrc * activeMonthCount;
+        grandTotalFee += monthlyFee * activeMonthCount;
+        grandTotalNet += monthlyNet * activeMonthCount;
       }
 
       // Check if need new page for grand total
@@ -1594,24 +1606,34 @@ function OwnerPaymentsTab() {
           monthlyNet = monthlySubtotal - monthlyFee;
         }
 
+        // Check plan start date to only show amounts for active months
+        const planStartDate = plan?.planStartDate;
+        const isMonthActive = (monthKey: string) => {
+          if (!planStartDate) return true;
+          const planYearMonth = planStartDate.substring(0, 7);
+          return monthKey >= planYearMonth;
+        };
+
+        const activeMonthCount = monthPeriods.filter(m => isMonthActive(m.monthKey)).length;
+
         const tableHead = [["", ...monthPeriods.map(m => m.label)]];
 
         let tableBody;
         if (isSpecialArrangement) {
           tableBody = [
-            ["SDA Funding", ...monthPeriods.map(() => formatCurrency(monthlySda))],
-            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(() => formatCurrency(monthlyRrc))],
-            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlySubtotal), styles: { fontStyle: "bold" as const } }))],
-            ["Less: RRC to BLS (100%)", ...monthPeriods.map(() => `(${formatCurrency(monthlyRrc)})`)],
-            [{ content: "Owner Share (SDA Only)", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
+            ["SDA Funding", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlySda) : "-")],
+            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlyRrc) : "-")],
+            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlySubtotal) : "-", styles: { fontStyle: "bold" as const } }))],
+            ["Less: RRC to BLS (100%)", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? `(${formatCurrency(monthlyRrc)})` : "-")],
+            [{ content: "Owner Share (SDA Only)", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlyNet) : "-", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
           ];
         } else {
           tableBody = [
-            ["SDA Funding", ...monthPeriods.map(() => formatCurrency(monthlySda))],
-            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(() => formatCurrency(monthlyRrc))],
-            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlySubtotal), styles: { fontStyle: "bold" as const } }))],
-            [`Less: Provider Fee (${managementFeePercent}%)`, ...monthPeriods.map(() => `(${formatCurrency(monthlyFee)})`)],
-            [{ content: "Net to Owner", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(() => ({ content: formatCurrency(monthlyNet), styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
+            ["SDA Funding", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlySda) : "-")],
+            ["RRC (25% DSP + 100% CRA)", ...monthPeriods.map(m => isMonthActive(m.monthKey) ? formatCurrency(monthlyRrc) : "-")],
+            [{ content: "Subtotal Revenue", styles: { fontStyle: "bold" as const } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlySubtotal) : "-", styles: { fontStyle: "bold" as const } }))],
+            [`Less: Provider Fee (${managementFeePercent}%)`, ...monthPeriods.map(m => isMonthActive(m.monthKey) ? `(${formatCurrency(monthlyFee)})` : "-")],
+            [{ content: "Net to Owner", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }, ...monthPeriods.map(m => ({ content: isMonthActive(m.monthKey) ? formatCurrency(monthlyNet) : "-", styles: { fontStyle: "bold" as const, fillColor: [230, 230, 230] as [number, number, number] } }))],
           ];
         }
 
@@ -1630,10 +1652,10 @@ function OwnerPaymentsTab() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         currentY = (doc as any).lastAutoTable?.finalY + 8 || currentY + 50;
 
-        grandTotalSda += monthlySda * 12;
-        grandTotalRrc += monthlyRrc * 12;
-        grandTotalFee += monthlyFee * 12;
-        grandTotalNet += monthlyNet * 12;
+        grandTotalSda += monthlySda * activeMonthCount;
+        grandTotalRrc += monthlyRrc * activeMonthCount;
+        grandTotalFee += monthlyFee * activeMonthCount;
+        grandTotalNet += monthlyNet * activeMonthCount;
       }
 
       // Grand Total Section

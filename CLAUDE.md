@@ -127,6 +127,10 @@ src/components/
 - **Onboarding documents** - Address display + proposed move-in date ✓
 - **Incident Actions** - Tested workflow: Add Action → Contractor/In-House → Complete ✓
 - **Property addresses** - Dwelling number + street name display ✓
+- **NDIS Compliance Guides** - Collapsible guides in Compliance Dashboard ✓
+  - Incident Reporting Guide (24-hour & 5-day notification requirements)
+  - Complaints Handling Guide (5-day ack, 21-day resolution, advocacy)
+  - Certifications Guide (org-level, property-level, worker requirements)
 
 ## Next Session Priorities
 1. **Testing needed:**

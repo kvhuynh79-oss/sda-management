@@ -123,15 +123,14 @@ src/components/
 - **Resend email** - Configured with noreply@mysdamanager.com, sending to khen@betterlivingsolutions.com.au
 - **PWA for mobile** - Offline support, install prompt
 - **Xero Integration** - OAuth fixed (state validation, sync buttons work per account)
-- **Owner reports** - 6-month Folio Summary (needs testing)
-- **Onboarding documents** - Proposed move-in date field for SDA Quotation & Accommodation Agreement
+- **Owner reports** - 6-month Folio Summary ✓ (fixed plan start date check)
+- **Onboarding documents** - Address display + proposed move-in date ✓
 - **Incident Actions** - Tested workflow: Add Action → Contractor/In-House → Complete ✓
+- **Property addresses** - Dwelling number + street name display ✓
 
 ## Next Session Priorities
 1. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
-   - Owner reports - Generate 6-month Folio Summary PDF
-   - Onboarding documents - Test proposed move-in date in generated PDFs
 2. **Bug fixing** - Test all features, fix any issues
 3. **Bulk data entry** - User will upload property/participant data
 

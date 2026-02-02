@@ -133,239 +133,6 @@ export default function CompliancePage() {
           </div>
         </div>
 
-        {/* NDIS Compliance Guides */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-white">NDIS Compliance Guides</h2>
-            <span className="text-gray-400 text-sm">Click to expand</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Incident Reporting Guide */}
-            <button
-              onClick={() => setExpandedGuide(expandedGuide === "incidents" ? null : "incidents")}
-              className={`p-4 rounded-lg text-left transition-colors ${
-                expandedGuide === "incidents" ? "bg-red-900/30 border border-red-600" : "bg-gray-800 hover:bg-gray-700"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🚨</span>
-                  <span className="text-white font-medium">Incident Reporting</span>
-                </div>
-                <span className="text-gray-400">{expandedGuide === "incidents" ? "▼" : "▶"}</span>
-              </div>
-              <p className="text-gray-400 text-sm mt-1">24-hour & 5-day notification requirements</p>
-            </button>
-
-            {/* Complaints Guide */}
-            <button
-              onClick={() => setExpandedGuide(expandedGuide === "complaints" ? null : "complaints")}
-              className={`p-4 rounded-lg text-left transition-colors ${
-                expandedGuide === "complaints" ? "bg-yellow-900/30 border border-yellow-600" : "bg-gray-800 hover:bg-gray-700"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">📝</span>
-                  <span className="text-white font-medium">Complaints Handling</span>
-                </div>
-                <span className="text-gray-400">{expandedGuide === "complaints" ? "▼" : "▶"}</span>
-              </div>
-              <p className="text-gray-400 text-sm mt-1">5-day acknowledgment & 21-day resolution</p>
-            </button>
-
-            {/* Certifications Guide */}
-            <button
-              onClick={() => setExpandedGuide(expandedGuide === "certifications" ? null : "certifications")}
-              className={`p-4 rounded-lg text-left transition-colors ${
-                expandedGuide === "certifications" ? "bg-blue-900/30 border border-blue-600" : "bg-gray-800 hover:bg-gray-700"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">📋</span>
-                  <span className="text-white font-medium">Certifications</span>
-                </div>
-                <span className="text-gray-400">{expandedGuide === "certifications" ? "▼" : "▶"}</span>
-              </div>
-              <p className="text-gray-400 text-sm mt-1">Required SDA provider certifications</p>
-            </button>
-          </div>
-
-          {/* Expanded Guide Content */}
-          {expandedGuide === "incidents" && (
-            <div className="mt-4 bg-red-900/20 border border-red-700 rounded-lg p-4">
-              <h3 className="text-red-200 font-semibold text-lg mb-3">NDIS Incident Reporting Guide</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-red-300 font-semibold flex items-center gap-2 mb-2">
-                    <span>🚨</span> 24-Hour Notification Required
-                  </h4>
-                  <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
-                    <li><strong>Death</strong> - Any death while receiving supports</li>
-                    <li><strong>Serious injury</strong> - Requiring emergency hospital treatment</li>
-                    <li><strong>Abuse or neglect</strong> - Causing serious harm</li>
-                    <li><strong>Unlawful sexual/physical contact</strong> - By staff</li>
-                    <li><strong>Sexual misconduct</strong> - By staff</li>
-                    <li><strong>Unauthorized restrictive practice</strong></li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="text-yellow-300 font-semibold flex items-center gap-2 mb-2">
-                    <span>⚠️</span> 5 Business Day Notification
-                  </h4>
-                  <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
-                    <li><strong>Abuse/neglect concerns</strong> - Suspected</li>
-                    <li><strong>Unlawful conduct</strong> - Physical contact</li>
-                    <li><strong>Unexplained serious injury</strong></li>
-                    <li><strong>Missing participant</strong> - Risk of harm</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-                <h4 className="text-white font-semibold mb-2">How to Report</h4>
-                <ol className="text-gray-300 text-sm space-y-1 ml-4 list-decimal">
-                  <li>Log into <a href="https://www.ndiscommission.gov.au/providers/provider-portal" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">NDIS Commission Provider Portal</a></li>
-                  <li>Navigate to "Reportable Incidents"</li>
-                  <li>Complete and submit notification</li>
-                  <li>Record reference number</li>
-                </ol>
-                <p className="text-gray-400 text-xs mt-2">Phone: 1800 035 544</p>
-              </div>
-
-              <div className="mt-4 p-3 border border-red-600 rounded-lg">
-                <h4 className="text-red-200 font-semibold mb-1">Key Reminders</h4>
-                <ul className="text-gray-300 text-sm">
-                  <li>• Timeframes start when you become <strong>aware</strong></li>
-                  <li>• All reportable incidents require <strong>60-day follow-up</strong></li>
-                  <li>• Keep records for <strong>7 years</strong></li>
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {expandedGuide === "complaints" && (
-            <div className="mt-4 bg-yellow-900/20 border border-yellow-700 rounded-lg p-4">
-              <h3 className="text-yellow-200 font-semibold text-lg mb-3">NDIS Complaints Handling Guide</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                  <p className="text-yellow-400 font-bold text-xl">5 Days</p>
-                  <p className="text-gray-300 text-sm">Acknowledge receipt</p>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                  <p className="text-yellow-400 font-bold text-xl">21 Days</p>
-                  <p className="text-gray-300 text-sm">Resolve where possible</p>
-                </div>
-                <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                  <p className="text-yellow-400 font-bold text-xl">7 Years</p>
-                  <p className="text-gray-300 text-sm">Retain records</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-green-300 font-semibold mb-2">Complaint Handling Process</h4>
-                  <ol className="text-gray-300 text-sm space-y-1 ml-4 list-decimal">
-                    <li><strong>Receive</strong> - Log details and date</li>
-                    <li><strong>Acknowledge</strong> - Within 5 business days</li>
-                    <li><strong>Offer Advocacy</strong> - Independent support</li>
-                    <li><strong>Investigate</strong> - Gather facts</li>
-                    <li><strong>Resolve</strong> - Implement outcome</li>
-                    <li><strong>Communicate</strong> - Inform complainant</li>
-                    <li><strong>Review</strong> - Identify improvements</li>
-                  </ol>
-                </div>
-
-                <div>
-                  <h4 className="text-purple-300 font-semibold mb-2">🤝 Advocacy Requirement</h4>
-                  <p className="text-gray-300 text-sm mb-2">
-                    NDIS requires offering access to an <strong>independent advocate</strong>.
-                  </p>
-                  <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
-                    <li>Disability Advocacy Network Australia</li>
-                    <li>State/Territory advocacy services</li>
-                    <li>NDIS Appeals support</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-                <h4 className="text-white font-semibold mb-1">Escalation to NDIS Commission</h4>
-                <p className="text-gray-300 text-sm">
-                  Complainants can escalate if not satisfied, complaint not resolved in time, or involves serious safety concerns.
-                </p>
-                <p className="text-gray-400 text-xs mt-1">NDIS Commission: 1800 035 544 | <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">www.ndiscommission.gov.au</a></p>
-              </div>
-            </div>
-          )}
-
-          {expandedGuide === "certifications" && (
-            <div className="mt-4 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-              <h3 className="text-blue-200 font-semibold text-lg mb-3">NDIS SDA Provider Certifications Guide</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-red-300 font-semibold mb-2">🏢 Organisation-Level (Required)</h4>
-                  <div className="space-y-2">
-                    <div className="bg-gray-800/50 rounded-lg p-2">
-                      <p className="text-white font-medium text-sm">NDIS Practice Standards</p>
-                      <p className="text-gray-400 text-xs">Renewal: 3 years | Mid-term audit: 18 months</p>
-                    </div>
-                    <div className="bg-gray-800/50 rounded-lg p-2">
-                      <p className="text-white font-medium text-sm">SDA Provider Registration</p>
-                      <p className="text-gray-400 text-xs">Renewal: 3 years | NDIS Commission</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-yellow-300 font-semibold mb-2">🏠 Property-Level</h4>
-                  <div className="space-y-2">
-                    <div className="bg-gray-800/50 rounded-lg p-2">
-                      <p className="text-white font-medium text-sm">SDA Design Standard Certification</p>
-                      <p className="text-gray-400 text-xs">One-time (unless modifications)</p>
-                    </div>
-                    <div className="bg-gray-800/50 rounded-lg p-2">
-                      <p className="text-white font-medium text-sm">Fire Safety Certificate</p>
-                      <p className="text-yellow-400 text-xs font-medium">ANNUAL renewal required</p>
-                    </div>
-                    <div className="bg-gray-800/50 rounded-lg p-2">
-                      <p className="text-white font-medium text-sm">Building Compliance Certificate</p>
-                      <p className="text-gray-400 text-xs">One-time (unless modifications)</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <h4 className="text-green-300 font-semibold mb-2">👤 Worker Requirements</h4>
-                <div className="bg-gray-800/50 rounded-lg p-2">
-                  <p className="text-white font-medium text-sm">NDIS Worker Screening Check</p>
-                  <p className="text-gray-400 text-xs">Renewal: 5 years | All workers with participant contact</p>
-                  <p className="text-yellow-300 text-xs mt-1">⚠️ Workers cannot start until clearance received!</p>
-                </div>
-              </div>
-
-              <div className="mt-4 p-3 bg-red-900/30 rounded-lg">
-                <h4 className="text-red-200 font-semibold mb-1">Non-Compliance Consequences</h4>
-                <p className="text-red-300 text-sm">Registration suspension/revocation • Civil penalties up to $93,900 • Banning orders</p>
-              </div>
-
-              <div className="mt-3 p-3 border border-blue-600 rounded-lg">
-                <ul className="text-gray-300 text-sm space-y-1">
-                  <li>• Set reminders <strong>90 days before</strong> expiry</li>
-                  <li>• Keep certificates for <strong>7 years</strong></li>
-                  <li>• Upload documents to Documents section</li>
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {[
@@ -520,18 +287,82 @@ export default function CompliancePage() {
 
         {/* Certifications Tab */}
         {activeTab === "certifications" && (
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-white">Compliance Certifications</h2>
-              <Link
-                href="/compliance/certifications/new"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+          <div className="space-y-6">
+            {/* Certifications Guide */}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <button
+                onClick={() => setExpandedGuide(expandedGuide === "certifications" ? null : "certifications")}
+                className="w-full flex items-center justify-between"
               >
-                + Add Certification
-              </Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📋</span>
+                  <span className="text-white font-medium">NDIS Certifications Guide</span>
+                </div>
+                <span className="text-gray-400">{expandedGuide === "certifications" ? "▼" : "▶"}</span>
+              </button>
+
+              {expandedGuide === "certifications" && (
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-red-300 font-semibold mb-2">🏢 Organisation-Level (Required)</h4>
+                      <div className="space-y-2">
+                        <div className="bg-gray-700/50 rounded-lg p-2">
+                          <p className="text-white font-medium text-sm">NDIS Practice Standards</p>
+                          <p className="text-gray-400 text-xs">Renewal: 3 years | Mid-term audit: 18 months</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded-lg p-2">
+                          <p className="text-white font-medium text-sm">SDA Provider Registration</p>
+                          <p className="text-gray-400 text-xs">Renewal: 3 years | NDIS Commission</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-yellow-300 font-semibold mb-2">🏠 Property-Level</h4>
+                      <div className="space-y-2">
+                        <div className="bg-gray-700/50 rounded-lg p-2">
+                          <p className="text-white font-medium text-sm">SDA Design Standard Certification</p>
+                          <p className="text-gray-400 text-xs">One-time (unless modifications)</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded-lg p-2">
+                          <p className="text-white font-medium text-sm">Fire Safety Certificate</p>
+                          <p className="text-yellow-400 text-xs font-medium">ANNUAL renewal required</p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded-lg p-2">
+                          <p className="text-white font-medium text-sm">Building Compliance Certificate</p>
+                          <p className="text-gray-400 text-xs">One-time (unless modifications)</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <h4 className="text-green-300 font-semibold mb-2">👤 Worker Requirements</h4>
+                    <div className="bg-gray-700/50 rounded-lg p-2">
+                      <p className="text-white font-medium text-sm">NDIS Worker Screening Check</p>
+                      <p className="text-gray-400 text-xs">Renewal: 5 years | All workers with participant contact</p>
+                      <p className="text-yellow-300 text-xs mt-1">⚠️ Workers cannot start until clearance received!</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-3 bg-red-900/30 rounded-lg">
+                    <h4 className="text-red-200 font-semibold mb-1">Non-Compliance Consequences</h4>
+                    <p className="text-red-300 text-sm">Registration suspension/revocation • Civil penalties up to $93,900 • Banning orders</p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {!certifications ? (
+            <div className="bg-gray-800 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-white">Compliance Certifications</h2>
+                <Link
+                  href="/compliance/certifications/new"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                >
+                  + Add Certification
+                </Link>
+              </div>
+
+              {!certifications ? (
               <p className="text-gray-400">Loading...</p>
             ) : certifications.length === 0 ? (
               <p className="text-gray-400 text-center py-8">No certifications recorded yet</p>
@@ -572,6 +403,7 @@ export default function CompliancePage() {
                 ))}
               </div>
             )}
+            </div>
           </div>
         )}
 
@@ -660,18 +492,84 @@ export default function CompliancePage() {
 
         {/* Complaints Tab */}
         {activeTab === "complaints" && (
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-white">Complaints Register</h2>
-              <Link
-                href="/compliance/complaints/new"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+          <div className="space-y-6">
+            {/* Complaints Guide */}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <button
+                onClick={() => setExpandedGuide(expandedGuide === "complaints" ? null : "complaints")}
+                className="w-full flex items-center justify-between"
               >
-                + Log Complaint
-              </Link>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📝</span>
+                  <span className="text-white font-medium">NDIS Complaints Handling Guide</span>
+                </div>
+                <span className="text-gray-400">{expandedGuide === "complaints" ? "▼" : "▶"}</span>
+              </button>
+
+              {expandedGuide === "complaints" && (
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                      <p className="text-yellow-400 font-bold text-xl">5 Days</p>
+                      <p className="text-gray-300 text-sm">Acknowledge receipt</p>
+                    </div>
+                    <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                      <p className="text-yellow-400 font-bold text-xl">21 Days</p>
+                      <p className="text-gray-300 text-sm">Resolve where possible</p>
+                    </div>
+                    <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                      <p className="text-yellow-400 font-bold text-xl">7 Years</p>
+                      <p className="text-gray-300 text-sm">Retain records</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-green-300 font-semibold mb-2">Complaint Handling Process</h4>
+                      <ol className="text-gray-300 text-sm space-y-1 ml-4 list-decimal">
+                        <li><strong>Receive</strong> - Log details and date</li>
+                        <li><strong>Acknowledge</strong> - Within 5 business days</li>
+                        <li><strong>Offer Advocacy</strong> - Independent support</li>
+                        <li><strong>Investigate</strong> - Gather facts</li>
+                        <li><strong>Resolve</strong> - Implement outcome</li>
+                        <li><strong>Communicate</strong> - Inform complainant</li>
+                        <li><strong>Review</strong> - Identify improvements</li>
+                      </ol>
+                    </div>
+                    <div>
+                      <h4 className="text-purple-300 font-semibold mb-2">🤝 Advocacy Requirement</h4>
+                      <p className="text-gray-300 text-sm mb-2">
+                        NDIS requires offering access to an <strong>independent advocate</strong>.
+                      </p>
+                      <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
+                        <li>Disability Advocacy Network Australia</li>
+                        <li>State/Territory advocacy services</li>
+                        <li>NDIS Appeals support</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
+                    <h4 className="text-white font-semibold mb-1">Escalation to NDIS Commission</h4>
+                    <p className="text-gray-300 text-sm">
+                      Complainants can escalate if not satisfied, complaint not resolved in time, or involves serious safety concerns.
+                    </p>
+                    <p className="text-gray-400 text-xs mt-1">NDIS Commission: 1800 035 544 | <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">www.ndiscommission.gov.au</a></p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {!complaintsStats ? (
+            <div className="bg-gray-800 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-white">Complaints Register</h2>
+                <Link
+                  href="/compliance/complaints/new"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                >
+                  + Log Complaint
+                </Link>
+              </div>
+
+              {!complaintsStats ? (
               <p className="text-gray-400">Loading...</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -696,79 +594,145 @@ export default function CompliancePage() {
               </div>
             )}
 
-            <p className="text-gray-400 text-center py-4">
-              <Link href="/compliance/complaints" className="text-blue-400 hover:text-blue-300">
-                View full complaints register →
-              </Link>
-            </p>
+              <p className="text-gray-400 text-center py-4">
+                <Link href="/compliance/complaints" className="text-blue-400 hover:text-blue-300">
+                  View full complaints register →
+                </Link>
+              </p>
+            </div>
           </div>
         )}
 
         {/* NDIS Incidents Tab */}
         {activeTab === "incidents" && (
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-white">NDIS Reportable Incidents</h2>
-              <Link
-                href="/incidents/new"
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+          <div className="space-y-6">
+            {/* Incidents Guide */}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <button
+                onClick={() => setExpandedGuide(expandedGuide === "incidents" ? null : "incidents")}
+                className="w-full flex items-center justify-between"
               >
-                + Report Incident
-              </Link>
-            </div>
-
-            {!incidentStats ? (
-              <p className="text-gray-400">Loading...</p>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                  <div className="bg-gray-700 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-white">{incidentStats.ndisReportable.total}</p>
-                    <p className="text-gray-400 text-sm">Total Reportable</p>
-                  </div>
-                  <div className="bg-gray-700 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-red-400">{incidentStats.ndisReportable.immediate}</p>
-                    <p className="text-gray-400 text-sm">24-Hour</p>
-                  </div>
-                  <div className="bg-gray-700 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-orange-400">{incidentStats.ndisReportable.fiveDay}</p>
-                    <p className="text-gray-400 text-sm">5-Day</p>
-                  </div>
-                  <div className="bg-gray-700 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-green-400">{incidentStats.ndisReportable.notified}</p>
-                    <p className="text-gray-400 text-sm">Notified</p>
-                  </div>
-                  <div className="bg-gray-700 rounded-lg p-4 text-center">
-                    <p className={`text-2xl font-bold ${incidentStats.ndisReportable.overdue > 0 ? "text-red-400 animate-pulse" : "text-green-400"}`}>
-                      {incidentStats.ndisReportable.overdue}
-                    </p>
-                    <p className="text-gray-400 text-sm">Overdue</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🚨</span>
+                  <span className="text-white font-medium">NDIS Incident Reporting Guide</span>
                 </div>
+                <span className="text-gray-400">{expandedGuide === "incidents" ? "▼" : "▶"}</span>
+              </button>
 
-                {incidentStats.ndisReportable.overdue > 0 && (
-                  <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg mb-6">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">🚨</span>
-                      <div>
-                        <p className="text-red-200 font-semibold">
-                          {incidentStats.ndisReportable.overdue} incident{incidentStats.ndisReportable.overdue > 1 ? "s" : ""} overdue for NDIS Commission notification
-                        </p>
-                        <p className="text-red-300 text-sm">
-                          Immediate action required. View incidents and complete notifications.
-                        </p>
-                      </div>
+              {expandedGuide === "incidents" && (
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-red-300 font-semibold flex items-center gap-2 mb-2">
+                        <span>🚨</span> 24-Hour Notification Required
+                      </h4>
+                      <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
+                        <li><strong>Death</strong> - Any death while receiving supports</li>
+                        <li><strong>Serious injury</strong> - Requiring emergency hospital treatment</li>
+                        <li><strong>Abuse or neglect</strong> - Causing serious harm</li>
+                        <li><strong>Unlawful sexual/physical contact</strong> - By staff</li>
+                        <li><strong>Sexual misconduct</strong> - By staff</li>
+                        <li><strong>Unauthorized restrictive practice</strong></li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-yellow-300 font-semibold flex items-center gap-2 mb-2">
+                        <span>⚠️</span> 5 Business Day Notification
+                      </h4>
+                      <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
+                        <li><strong>Abuse/neglect concerns</strong> - Suspected</li>
+                        <li><strong>Unlawful conduct</strong> - Physical contact</li>
+                        <li><strong>Unexplained serious injury</strong></li>
+                        <li><strong>Missing participant</strong> - Risk of harm</li>
+                      </ul>
                     </div>
                   </div>
-                )}
+                  <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
+                    <h4 className="text-white font-semibold mb-2">How to Report</h4>
+                    <ol className="text-gray-300 text-sm space-y-1 ml-4 list-decimal">
+                      <li>Log into <a href="https://www.ndiscommission.gov.au/providers/provider-portal" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">NDIS Commission Provider Portal</a></li>
+                      <li>Navigate to &quot;Reportable Incidents&quot;</li>
+                      <li>Complete and submit notification</li>
+                      <li>Record reference number</li>
+                    </ol>
+                    <p className="text-gray-400 text-xs mt-2">Phone: 1800 035 544</p>
+                  </div>
+                  <div className="mt-4 p-3 border border-red-600 rounded-lg">
+                    <h4 className="text-red-200 font-semibold mb-1">Key Reminders</h4>
+                    <ul className="text-gray-300 text-sm">
+                      <li>• Timeframes start when you become <strong>aware</strong></li>
+                      <li>• All reportable incidents require <strong>60-day follow-up</strong></li>
+                      <li>• Keep records for <strong>7 years</strong></li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
 
-                <p className="text-gray-400 text-center py-4">
-                  <Link href="/incidents" className="text-blue-400 hover:text-blue-300">
-                    View all incidents →
-                  </Link>
-                </p>
-              </>
-            )}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-white">NDIS Reportable Incidents</h2>
+                <Link
+                  href="/incidents/new"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                >
+                  + Report Incident
+                </Link>
+              </div>
+
+              {!incidentStats ? (
+                <p className="text-gray-400">Loading...</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div className="bg-gray-700 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-white">{incidentStats.ndisReportable.total}</p>
+                      <p className="text-gray-400 text-sm">Total Reportable</p>
+                    </div>
+                    <div className="bg-gray-700 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-red-400">{incidentStats.ndisReportable.immediate}</p>
+                      <p className="text-gray-400 text-sm">24-Hour</p>
+                    </div>
+                    <div className="bg-gray-700 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-orange-400">{incidentStats.ndisReportable.fiveDay}</p>
+                      <p className="text-gray-400 text-sm">5-Day</p>
+                    </div>
+                    <div className="bg-gray-700 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-green-400">{incidentStats.ndisReportable.notified}</p>
+                      <p className="text-gray-400 text-sm">Notified</p>
+                    </div>
+                    <div className="bg-gray-700 rounded-lg p-4 text-center">
+                      <p className={`text-2xl font-bold ${incidentStats.ndisReportable.overdue > 0 ? "text-red-400 animate-pulse" : "text-green-400"}`}>
+                        {incidentStats.ndisReportable.overdue}
+                      </p>
+                      <p className="text-gray-400 text-sm">Overdue</p>
+                    </div>
+                  </div>
+
+                  {incidentStats.ndisReportable.overdue > 0 && (
+                    <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg mb-6">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">🚨</span>
+                        <div>
+                          <p className="text-red-200 font-semibold">
+                            {incidentStats.ndisReportable.overdue} incident{incidentStats.ndisReportable.overdue > 1 ? "s" : ""} overdue for NDIS Commission notification
+                          </p>
+                          <p className="text-red-300 text-sm">
+                            Immediate action required. View incidents and complete notifications.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-gray-400 text-center py-4">
+                    <Link href="/incidents" className="text-blue-400 hover:text-blue-300">
+                      View all incidents →
+                    </Link>
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         )}
       </main>

@@ -27,6 +27,11 @@ export default function IncidentDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [showResolveModal, setShowResolveModal] = useState(false);
+  const [showNdisNotifyModal, setShowNdisNotifyModal] = useState(false);
+  const [ndisNotifyFormData, setNdisNotifyFormData] = useState({
+    notificationDate: new Date().toISOString().split("T")[0],
+    referenceNumber: "",
+  });
 
   const incident = useQuery(api.incidents.getById, { incidentId });
   const updateIncident = useMutation(api.incidents.update);
@@ -34,6 +39,7 @@ export default function IncidentDetailPage() {
   const generateUploadUrl = useMutation(api.incidents.generateUploadUrl);
   const addPhoto = useMutation(api.incidents.addPhoto);
   const deletePhoto = useMutation(api.incidents.deletePhoto);
+  const markNdisNotified = useMutation(api.incidents.markNdisNotified);
 
   // Incident Actions
   const incidentActions = useQuery(api.incidentActions.getByIncident, { incidentId });
@@ -800,41 +806,135 @@ export default function IncidentDetailPage() {
             )}
           </div>
 
-          {/* NDIS Reporting */}
+          {/* NDIS Commission Notification */}
           <div className="border-t border-gray-700 pt-6 mb-6">
-            <h3 className="text-lg font-semibold text-white mb-4">NDIS Reporting</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-gray-400 text-sm">Reported to NDIS</p>
-                {isEditing ? (
-                  <select
-                    value={formData.reportedToNdis ? "yes" : "no"}
-                    onChange={(e) => setFormData({ ...formData, reportedToNdis: e.target.value === "yes" })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  >
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
+            <h3 className="text-lg font-semibold text-white mb-4">NDIS Commission Notification</h3>
+
+            {(incident as any).isNdisReportable ? (
+              <div className="space-y-4">
+                {/* Notification Status Banner */}
+                {(incident as any).ndisCommissionNotified ? (
+                  <div className="p-4 bg-green-900/50 border border-green-600 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">✓</span>
+                      <div>
+                        <h4 className="text-green-200 font-semibold">NDIS Commission Notified</h4>
+                        <p className="text-green-300 text-sm">
+                          Notified on {(incident as any).ndisCommissionNotificationDate || (incident as any).ndisReportDate}
+                          {(incident as any).ndisCommissionReferenceNumber && (
+                            <span> - Reference: {(incident as any).ndisCommissionReferenceNumber}</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (incident as any).ndisNotificationOverdue ? (
+                  <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🚨</span>
+                      <div>
+                        <h4 className="text-red-200 font-semibold">NOTIFICATION OVERDUE</h4>
+                        <p className="text-red-300 text-sm">
+                          This incident required {(incident as any).ndisNotificationTimeframe === "24_hours" ? "24-hour" : "5-day"} notification.
+                          Due date was {(incident as any).ndisNotificationDueDate}.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-white">{incident.reportedToNdis ? "Yes" : "No"}</p>
+                  <div className={`p-4 rounded-lg ${
+                    (incident as any).ndisNotificationTimeframe === "24_hours"
+                      ? "bg-red-900/50 border border-red-600"
+                      : "bg-yellow-900/50 border border-yellow-600"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{(incident as any).ndisNotificationTimeframe === "24_hours" ? "🚨" : "⚠️"}</span>
+                      <div>
+                        <h4 className={`font-semibold ${
+                          (incident as any).ndisNotificationTimeframe === "24_hours" ? "text-red-200" : "text-yellow-200"
+                        }`}>
+                          {(incident as any).ndisNotificationTimeframe === "24_hours"
+                            ? "24-Hour Notification Required"
+                            : "5-Business Day Notification Required"}
+                        </h4>
+                        <p className={`text-sm ${
+                          (incident as any).ndisNotificationTimeframe === "24_hours" ? "text-red-300" : "text-yellow-300"
+                        }`}>
+                          Due by: {(incident as any).ndisNotificationDueDate || "Not calculated"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </div>
-              {(incident.reportedToNdis || formData.reportedToNdis) && (
-                <div>
-                  <p className="text-gray-400 text-sm">NDIS Report Date</p>
-                  {isEditing ? (
-                    <input
-                      type="date"
-                      value={formData.ndisReportDate}
-                      onChange={(e) => setFormData({ ...formData, ndisReportDate: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                    />
-                  ) : (
-                    <p className="text-white">{incident.ndisReportDate || "-"}</p>
-                  )}
+
+                {/* Notification Details */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-700/50 rounded-lg">
+                  <div>
+                    <p className="text-gray-400 text-xs">NDIS Reportable</p>
+                    <p className="text-green-400 font-medium">Yes</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs">Timeframe</p>
+                    <p className="text-white">
+                      {(incident as any).ndisNotificationTimeframe === "24_hours" ? "24 Hours" : "5 Business Days"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs">Due Date</p>
+                    <p className="text-white">{(incident as any).ndisNotificationDueDate || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs">Status</p>
+                    <p className={`font-medium ${
+                      (incident as any).ndisCommissionNotified
+                        ? "text-green-400"
+                        : (incident as any).ndisNotificationOverdue
+                          ? "text-red-400"
+                          : "text-yellow-400"
+                    }`}>
+                      {(incident as any).ndisCommissionNotified
+                        ? "Notified"
+                        : (incident as any).ndisNotificationOverdue
+                          ? "Overdue"
+                          : "Pending"}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Mark as Notified Button */}
+                {!(incident as any).ndisCommissionNotified && (
+                  <button
+                    onClick={() => setShowNdisNotifyModal(true)}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                  >
+                    Mark as Notified to NDIS Commission
+                  </button>
+                )}
+
+                <p className="text-gray-400 text-sm">
+                  Report to the{" "}
+                  <a
+                    href="https://www.ndiscommission.gov.au/providers/reportable-incidents"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300 underline"
+                  >
+                    NDIS Commission Portal
+                  </a>
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 bg-gray-700/50 rounded-lg">
+                <p className="text-gray-300">
+                  This incident type ({formatIncidentType(incident.incidentType)}) is not classified as NDIS reportable.
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  NDIS reportable incidents include: death, serious injury, unauthorized restrictive practice,
+                  sexual assault/misconduct, staff assault, abuse/neglect, unlawful conduct, unexplained injury,
+                  and missing participants.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Resolution Info (if resolved) */}
@@ -1241,6 +1341,72 @@ export default function IncidentDetailPage() {
                   className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg"
                 >
                   {isSavingAction ? "Saving..." : "Mark Complete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* NDIS Notification Modal */}
+        {showNdisNotifyModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-lg w-full">
+              <h2 className="text-xl font-bold text-white mb-4">Mark as Notified to NDIS Commission</h2>
+              <p className="text-gray-300 mb-4">
+                Record that this incident has been reported to the NDIS Quality and Safeguards Commission.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Notification Date *</label>
+                  <input
+                    type="date"
+                    value={ndisNotifyFormData.notificationDate}
+                    onChange={(e) => setNdisNotifyFormData({ ...ndisNotifyFormData, notificationDate: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-300 mb-1">Reference Number (optional)</label>
+                  <input
+                    type="text"
+                    value={ndisNotifyFormData.referenceNumber}
+                    onChange={(e) => setNdisNotifyFormData({ ...ndisNotifyFormData, referenceNumber: e.target.value })}
+                    placeholder="e.g., RI-2026-12345"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowNdisNotifyModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!ndisNotifyFormData.notificationDate) {
+                      alert("Notification date is required");
+                      return;
+                    }
+                    try {
+                      await markNdisNotified({
+                        incidentId,
+                        notificationDate: ndisNotifyFormData.notificationDate,
+                        referenceNumber: ndisNotifyFormData.referenceNumber || undefined,
+                      });
+                      setShowNdisNotifyModal(false);
+                      setNdisNotifyFormData({
+                        notificationDate: new Date().toISOString().split("T")[0],
+                        referenceNumber: "",
+                      });
+                    } catch (err: any) {
+                      alert(err.message || "Failed to record notification");
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                >
+                  Confirm Notification
                 </button>
               </div>
             </div>

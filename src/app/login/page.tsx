@@ -39,10 +39,14 @@ export default function LoginPage() {
 
     try {
       const user = await login({ email, password });
-      
-      // Store user info in localStorage
-      localStorage.setItem("sda_user", JSON.stringify(user));
-      
+
+      // Store user info with session expiry (24 hours)
+      const sessionData = {
+        ...user,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+      };
+      localStorage.setItem("sda_user", JSON.stringify(sessionData));
+
       // Redirect to dashboard
       router.push("/dashboard");
     } catch (err) {

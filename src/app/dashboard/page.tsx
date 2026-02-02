@@ -1,23 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
-
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-}
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
+  const { user, isLoading } = useAuth();
   const properties = useQuery(api.properties.getAll);
   const alertStats = useQuery(api.alerts.getStats);
   const scheduleStats = useQuery(api.preventativeSchedule.getStats);
@@ -25,16 +15,7 @@ export default function DashboardPage() {
   const overdueSchedules = useQuery(api.preventativeSchedule.getOverdue);
   const activeAlerts = useQuery(api.alerts.getActive);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (!storedUser) {
-      router.push("/login");
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-  }, [router]);
-
-  if (!user) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white">Loading...</div>

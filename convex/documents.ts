@@ -14,20 +14,39 @@ export const create = mutation({
     fileType: v.string(),
     storageId: v.id("_storage"),
     documentType: v.union(
+      // Participant documents
       v.literal("ndis_plan"),
-      v.literal("service_agreement"),
-      v.literal("lease"),
-      v.literal("insurance"),
-      v.literal("compliance"),
+      v.literal("accommodation_agreement"),
+      v.literal("sda_quotation"),
       v.literal("centrepay_consent"),
+      // Property documents
+      v.literal("lease"),
+      v.literal("fire_safety_certificate"),
+      v.literal("building_compliance_certificate"),
+      v.literal("sda_design_certificate"),
+      // Insurance documents
+      v.literal("public_liability_insurance"),
+      v.literal("professional_indemnity_insurance"),
+      v.literal("building_insurance"),
+      v.literal("workers_compensation_insurance"),
+      // Compliance/Certification documents
+      v.literal("ndis_practice_standards_cert"),
+      v.literal("sda_registration_cert"),
+      v.literal("ndis_worker_screening"),
+      // General
       v.literal("report"),
-      v.literal("other")
+      v.literal("other"),
+      // Legacy
+      v.literal("service_agreement"),
+      v.literal("insurance"),
+      v.literal("compliance")
     ),
     documentCategory: v.union(
       v.literal("participant"),
       v.literal("property"),
       v.literal("dwelling"),
-      v.literal("owner")
+      v.literal("owner"),
+      v.literal("organisation")
     ),
     linkedParticipantId: v.optional(v.id("participants")),
     linkedPropertyId: v.optional(v.id("properties")),
@@ -171,24 +190,11 @@ export const getByDwelling = query({
 // Get documents by type
 export const getByType = query({
   args: {
-    documentType: v.union(
-      v.literal("ndis_plan"),
-      v.literal("service_agreement"),
-      v.literal("lease"),
-      v.literal("insurance"),
-      v.literal("compliance"),
-      v.literal("centrepay_consent"),
-      v.literal("report"),
-      v.literal("other")
-    ),
+    documentType: v.string(), // Accept any string to avoid listing all types
   },
   handler: async (ctx, args) => {
-    const documents = await ctx.db
-      .query("documents")
-      .withIndex("by_documentType", (q) =>
-        q.eq("documentType", args.documentType)
-      )
-      .collect();
+    const allDocuments = await ctx.db.query("documents").collect();
+    const documents = allDocuments.filter(doc => doc.documentType === args.documentType);
 
     const documentsWithDetails = await Promise.all(
       documents.map(async (doc) => {
@@ -252,17 +258,7 @@ export const update = mutation({
   args: {
     documentId: v.id("documents"),
     fileName: v.optional(v.string()),
-    documentType: v.optional(
-      v.union(
-        v.literal("ndis_plan"),
-        v.literal("service_agreement"),
-        v.literal("lease"),
-        v.literal("insurance"),
-        v.literal("compliance"),
-        v.literal("report"),
-        v.literal("other")
-      )
-    ),
+    documentType: v.optional(v.string()), // Accept any string to avoid listing all types
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
   },

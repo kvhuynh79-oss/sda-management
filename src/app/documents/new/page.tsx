@@ -8,6 +8,39 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
 
+// Document type definitions with suggested categories
+const DOCUMENT_TYPES = {
+  // Participant Documents
+  ndis_plan: { label: "NDIS Plan", category: "participant", group: "Participant Documents" },
+  accommodation_agreement: { label: "Accommodation Agreement", category: "participant", group: "Participant Documents" },
+  sda_quotation: { label: "SDA Quotation", category: "participant", group: "Participant Documents" },
+  centrepay_consent: { label: "Centrepay Consent Form", category: "participant", group: "Participant Documents" },
+
+  // Property Documents
+  lease: { label: "Lease Agreement", category: "property", group: "Property Documents" },
+  fire_safety_certificate: { label: "Fire Safety Certificate", category: "property", group: "Property Documents" },
+  building_compliance_certificate: { label: "Building Compliance Certificate", category: "property", group: "Property Documents" },
+  sda_design_certificate: { label: "SDA Design Certificate", category: "dwelling", group: "Property Documents" },
+
+  // Insurance Documents (Organisation-wide)
+  public_liability_insurance: { label: "Public Liability Insurance", category: "organisation", group: "Insurance Documents" },
+  professional_indemnity_insurance: { label: "Professional Indemnity Insurance", category: "organisation", group: "Insurance Documents" },
+  building_insurance: { label: "Building Insurance", category: "property", group: "Insurance Documents" },
+  workers_compensation_insurance: { label: "Workers Compensation Insurance", category: "organisation", group: "Insurance Documents" },
+
+  // Compliance/Certification Documents
+  ndis_practice_standards_cert: { label: "NDIS Practice Standards Certificate", category: "organisation", group: "Compliance Certifications" },
+  sda_registration_cert: { label: "SDA Registration Certificate", category: "organisation", group: "Compliance Certifications" },
+  ndis_worker_screening: { label: "NDIS Worker Screening Check", category: "organisation", group: "Compliance Certifications" },
+
+  // General
+  report: { label: "Report", category: "participant", group: "General" },
+  other: { label: "Other", category: "participant", group: "General" },
+};
+
+type DocumentType = keyof typeof DOCUMENT_TYPES;
+type DocumentCategory = "participant" | "property" | "dwelling" | "owner" | "organisation";
+
 export default function NewDocumentPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
@@ -25,16 +58,8 @@ export default function NewDocumentPage() {
   const createDocument = useMutation(api.documents.create);
 
   const [formData, setFormData] = useState({
-    documentType: "other" as
-      | "ndis_plan"
-      | "service_agreement"
-      | "lease"
-      | "insurance"
-      | "compliance"
-      | "centrepay_consent"
-      | "report"
-      | "other",
-    documentCategory: "participant" as "participant" | "property" | "dwelling" | "owner",
+    documentType: "other" as DocumentType,
+    documentCategory: "participant" as DocumentCategory,
     linkedParticipantId: "",
     linkedPropertyId: "",
     linkedDwellingId: "",
@@ -60,7 +85,6 @@ export default function NewDocumentPage() {
     const parsed = JSON.parse(storedUser);
     const userId = parsed.id || parsed._id;
 
-    // If user ID is missing, clear session and redirect to login
     if (!userId) {
       localStorage.removeItem("sda_user");
       router.push("/login");
@@ -72,6 +96,22 @@ export default function NewDocumentPage() {
       role: parsed.role,
     });
   }, [router]);
+
+  // Auto-select category when document type changes
+  const handleDocumentTypeChange = (docType: DocumentType) => {
+    const typeInfo = DOCUMENT_TYPES[docType];
+    setFormData({
+      ...formData,
+      documentType: docType,
+      documentCategory: typeInfo?.category as DocumentCategory || "participant",
+      // Clear linked entities when type changes
+      linkedParticipantId: "",
+      linkedPropertyId: "",
+      linkedDwellingId: "",
+      linkedOwnerId: "",
+    });
+    setSelectedPropertyForDwelling("");
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -143,7 +183,7 @@ export default function NewDocumentPage() {
       return;
     }
 
-    // Validate that a link is selected based on category
+    // Validate that a link is selected based on category (except for organisation-wide)
     if (formData.documentCategory === "participant" && !formData.linkedParticipantId) {
       setError("Please select a participant");
       return;
@@ -160,6 +200,7 @@ export default function NewDocumentPage() {
       setError("Please select an owner");
       return;
     }
+    // Organisation-wide documents don't need a linked entity
 
     setIsSubmitting(true);
 
@@ -212,6 +253,21 @@ export default function NewDocumentPage() {
     }
   };
 
+  // Group document types for the select dropdown
+  const groupedDocTypes = Object.entries(DOCUMENT_TYPES).reduce((acc, [key, value]) => {
+    if (!acc[value.group]) {
+      acc[value.group] = [];
+    }
+    acc[value.group].push({ key, ...value });
+    return acc;
+  }, {} as Record<string, Array<{ key: string; label: string; category: string; group: string }>>);
+
+  // Check if selected document type is compliance-related (for showing compliance link)
+  const isComplianceDoc = ["public_liability_insurance", "professional_indemnity_insurance",
+    "workers_compensation_insurance", "ndis_practice_standards_cert", "sda_registration_cert",
+    "ndis_worker_screening", "fire_safety_certificate", "building_compliance_certificate",
+    "sda_design_certificate", "building_insurance"].includes(formData.documentType);
+
   if (!user) {
     return <LoadingScreen />;
   }
@@ -246,6 +302,19 @@ export default function NewDocumentPage() {
           {error && (
             <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg text-red-200">
               {error}
+            </div>
+          )}
+
+          {/* Compliance Document Notice */}
+          {isComplianceDoc && (
+            <div className="mb-6 p-4 bg-blue-900/30 border border-blue-600 rounded-lg">
+              <p className="text-blue-200 text-sm">
+                <span className="font-semibold">Tip:</span> This document type will also appear in the{" "}
+                <Link href="/compliance" className="underline hover:text-white">Compliance Dashboard</Link>.
+                For full compliance tracking, consider adding the related record in{" "}
+                <Link href="/compliance/certifications/new" className="underline hover:text-white">Certifications</Link> or{" "}
+                <Link href="/compliance/insurance/new" className="underline hover:text-white">Insurance</Link>.
+              </p>
             </div>
           )}
 
@@ -326,58 +395,60 @@ export default function NewDocumentPage() {
               </div>
             </div>
 
-            {/* Document Type */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Document Type *
-                </label>
-                <select
-                  required
-                  value={formData.documentType}
-                  onChange={(e) =>
-                    setFormData({ ...formData, documentType: e.target.value as any })
-                  }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="ndis_plan">NDIS Plan</option>
-                  <option value="service_agreement">Service Agreement</option>
-                  <option value="lease">Lease Agreement</option>
-                  <option value="insurance">Insurance</option>
-                  <option value="compliance">Compliance Certificate</option>
-                  <option value="centrepay_consent">Centrepay Consent Form</option>
-                  <option value="report">Report</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Category *
-                </label>
-                <select
-                  required
-                  value={formData.documentCategory}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      documentCategory: e.target.value as any,
-                      linkedParticipantId: "",
-                      linkedPropertyId: "",
-                      linkedDwellingId: "",
-                      linkedOwnerId: "",
-                    });
-                  }}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="participant">Participant</option>
-                  <option value="property">Property</option>
-                  <option value="dwelling">Dwelling</option>
-                  <option value="owner">Owner</option>
-                </select>
-              </div>
+            {/* Document Type - Grouped */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Document Type *
+              </label>
+              <select
+                required
+                value={formData.documentType}
+                onChange={(e) => handleDocumentTypeChange(e.target.value as DocumentType)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {Object.entries(groupedDocTypes).map(([group, types]) => (
+                  <optgroup key={group} label={group}>
+                    {types.map((type) => (
+                      <option key={type.key} value={type.key}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
             </div>
 
-            {/* Linked Entity Selection */}
+            {/* Category - Auto-selected but can be changed */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Category *
+                <span className="text-gray-500 font-normal ml-2">(auto-selected based on document type)</span>
+              </label>
+              <select
+                required
+                value={formData.documentCategory}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    documentCategory: e.target.value as DocumentCategory,
+                    linkedParticipantId: "",
+                    linkedPropertyId: "",
+                    linkedDwellingId: "",
+                    linkedOwnerId: "",
+                  });
+                  setSelectedPropertyForDwelling("");
+                }}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="participant">Participant</option>
+                <option value="property">Property</option>
+                <option value="dwelling">Dwelling</option>
+                <option value="owner">Owner</option>
+                <option value="organisation">Organisation (Company-wide)</option>
+              </select>
+            </div>
+
+            {/* Linked Entity Selection - Based on Category */}
             {formData.documentCategory === "participant" && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -494,6 +565,15 @@ export default function NewDocumentPage() {
               </div>
             )}
 
+            {formData.documentCategory === "organisation" && (
+              <div className="p-4 bg-gray-700/50 border border-gray-600 rounded-lg">
+                <p className="text-gray-300 text-sm">
+                  This document will be stored as an <strong>organisation-wide</strong> document
+                  and will be accessible from the Compliance Dashboard.
+                </p>
+              </div>
+            )}
+
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
@@ -518,7 +598,7 @@ export default function NewDocumentPage() {
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Set an expiry date for documents like insurance, plans, or certificates
+                Set an expiry date for documents like insurance, plans, or certificates. You&apos;ll receive alerts before expiry.
               </p>
             </div>
 

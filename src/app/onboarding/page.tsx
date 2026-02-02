@@ -221,8 +221,19 @@ export default function OnboardingPage() {
       doc.setFont("helvetica", "bold");
       doc.text("Address of Accommodation: ", margin, y);
       doc.setFont("helvetica", "normal");
-      const dwellingPrefix = dwelling?.dwellingName ? `${dwelling.dwellingName}/` : "";
-      const addressText = property ? `${dwellingPrefix}${property.addressLine1}, ${property.suburb}` : "";
+      // Smart address handling: if dwelling name contains street number, don't duplicate it
+      const quotationStreetNumber = property?.addressLine1?.match(/^(\d+)/)?.[1] || "";
+      const quotationStreetName = property?.addressLine1?.replace(/^\d+\s*/, "") || property?.addressLine1;
+      let addressText = "";
+      if (dwelling?.dwellingName && property) {
+        if (quotationStreetNumber && dwelling.dwellingName.endsWith(`/${quotationStreetNumber}`)) {
+          addressText = `${dwelling.dwellingName} ${quotationStreetName}, ${property.suburb}`;
+        } else {
+          addressText = `${dwelling.dwellingName}/${property.addressLine1}, ${property.suburb}`;
+        }
+      } else if (property) {
+        addressText = `${property.addressLine1}, ${property.suburb}`;
+      }
       doc.text(addressText, margin + 55, y);
       y += 6;
 

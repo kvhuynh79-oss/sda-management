@@ -403,11 +403,11 @@ export default function EditPropertyPage() {
               <div className="space-y-6">
                 {dwellings.map((dwelling, index) => {
                   // Build full address for display
-                  const streetNumber = form.addressLine1?.match(/^(\d+)/)?.[1] || "";
-                  const streetName = form.addressLine1?.replace(/^\d+\s*/, "") || form.addressLine1;
+                  const streetNumber = formData.addressLine1?.match(/^(\d+)/)?.[1] || "";
+                  const streetName = formData.addressLine1?.replace(/^\d+\s*/, "") || formData.addressLine1;
                   const fullDwellingAddress = dwelling.dwellingName
-                    ? `${dwelling.dwellingName}/${streetNumber} ${streetName}, ${form.suburb} ${form.postcode}`
-                    : form.addressLine1;
+                    ? `${dwelling.dwellingName}/${streetNumber} ${streetName}, ${formData.suburb} ${formData.postcode}`
+                    : formData.addressLine1;
 
                   return (
                   <div key={dwelling._id} className="bg-gray-700 rounded-lg p-4">

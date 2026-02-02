@@ -164,7 +164,7 @@ export default function NewDwellingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Dwelling Name *
+                  Dwelling Number *
                 </label>
                 <input
                   type="text"
@@ -172,7 +172,7 @@ export default function NewDwellingPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, dwellingName: e.target.value })
                   }
-                  placeholder="e.g., Unit 1, Villa A"
+                  placeholder="e.g., 1/82, 2/82, Unit A"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />

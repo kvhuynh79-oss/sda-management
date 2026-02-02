@@ -221,7 +221,8 @@ export default function OnboardingPage() {
       doc.setFont("helvetica", "bold");
       doc.text("Address of Accommodation: ", margin, y);
       doc.setFont("helvetica", "normal");
-      const addressText = property ? `${property.addressLine1}, ${property.suburb}` : "";
+      const dwellingPrefix = dwelling?.dwellingName ? `${dwelling.dwellingName}/` : "";
+      const addressText = property ? `${dwellingPrefix}${property.addressLine1}, ${property.suburb}` : "";
       doc.text(addressText, margin + 55, y);
       y += 6;
 
@@ -498,7 +499,8 @@ export default function OnboardingPage() {
       doc.rect(margin + propCol1, y, propCol2, dataRowHeight);
       doc.text(`${dwelling?.maxParticipants || 3} Resident House`, margin + 3, y + 8);
       doc.text("without OOA", margin + 3, y + 15);
-      const fullAddress = `${property?.addressLine1 || ""}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
+      const dwellingAddressPrefix = dwelling?.dwellingName ? `${dwelling.dwellingName}/` : "";
+      const fullAddress = `${dwellingAddressPrefix}${property?.addressLine1 || ""}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
       doc.text(fullAddress, margin + propCol1 + 3, y + 8);
       doc.text(`SDA Category: ${formatSdaCategory(dwelling?.sdaDesignCategory || "")}`, margin + propCol1 + 3, y + 15);
       y += dataRowHeight + 8;

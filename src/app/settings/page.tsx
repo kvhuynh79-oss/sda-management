@@ -9,6 +9,26 @@ import Header from "@/components/Header";
 import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 
+type UserRole = "admin" | "property_manager" | "staff" | "accountant";
+
+interface UserFormData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  phone: string;
+}
+
+const emptyUserForm: UserFormData = {
+  email: "",
+  password: "",
+  firstName: "",
+  lastName: "",
+  role: "staff",
+  phone: "",
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -16,6 +36,21 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+
+  // User management state
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [userFormData, setUserFormData] = useState<UserFormData>(emptyUserForm);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isSubmittingUser, setIsSubmittingUser] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [showResetPassword, setShowResetPassword] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  // User management queries/mutations
+  const allUsers = useQuery(api.auth.getAllUsers);
+  const createUser = useMutation(api.auth.createUser);
+  const updateUser = useMutation(api.auth.updateUser);
+  const resetPassword = useMutation(api.auth.resetPassword);
 
   // Get notification preferences
   const preferences = useQuery(
@@ -105,6 +140,109 @@ export default function SettingsPage() {
     }
   };
 
+  // User management handlers
+  const handleOpenCreateUser = () => {
+    setUserFormData(emptyUserForm);
+    setEditingUserId(null);
+    setUserError(null);
+    setShowUserModal(true);
+  };
+
+  const handleOpenEditUser = (userToEdit: { id: string; firstName: string; lastName: string; role: string; email: string }) => {
+    setUserFormData({
+      email: userToEdit.email,
+      password: "", // Don't show password
+      firstName: userToEdit.firstName,
+      lastName: userToEdit.lastName,
+      role: userToEdit.role as UserRole,
+      phone: "",
+    });
+    setEditingUserId(userToEdit.id);
+    setUserError(null);
+    setShowUserModal(true);
+  };
+
+  const handleSubmitUser = async () => {
+    setIsSubmittingUser(true);
+    setUserError(null);
+
+    try {
+      if (editingUserId) {
+        // Update existing user
+        await updateUser({
+          userId: editingUserId as Id<"users">,
+          firstName: userFormData.firstName,
+          lastName: userFormData.lastName,
+          role: userFormData.role,
+        });
+      } else {
+        // Create new user
+        if (!userFormData.password) {
+          setUserError("Password is required for new users");
+          setIsSubmittingUser(false);
+          return;
+        }
+        await createUser({
+          email: userFormData.email,
+          password: userFormData.password,
+          firstName: userFormData.firstName,
+          lastName: userFormData.lastName,
+          role: userFormData.role,
+          phone: userFormData.phone || undefined,
+        });
+      }
+      setShowUserModal(false);
+      setUserFormData(emptyUserForm);
+      setEditingUserId(null);
+    } catch (error) {
+      console.error("Error saving user:", error);
+      setUserError(error instanceof Error ? error.message : "Failed to save user");
+    } finally {
+      setIsSubmittingUser(false);
+    }
+  };
+
+  const handleToggleUserActive = async (userId: string, currentlyActive: boolean) => {
+    try {
+      await updateUser({
+        userId: userId as Id<"users">,
+        isActive: !currentlyActive,
+      });
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      alert("Failed to update user status");
+    }
+  };
+
+  const handleResetPassword = async (userId: string) => {
+    if (!newPassword) {
+      alert("Please enter a new password");
+      return;
+    }
+    try {
+      await resetPassword({
+        userId: userId as Id<"users">,
+        newPassword,
+      });
+      setShowResetPassword(null);
+      setNewPassword("");
+      alert("Password reset successfully");
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      alert("Failed to reset password");
+    }
+  };
+
+  const formatRole = (role: string) => {
+    const roles: Record<string, string> = {
+      admin: "Admin",
+      property_manager: "Property Manager",
+      staff: "Staff",
+      accountant: "Accountant",
+    };
+    return roles[role] || role;
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -148,6 +286,143 @@ export default function SettingsPage() {
             </Link>
           </div>
         </div>
+
+        {/* User Management - Admin Only */}
+        {user.role === "admin" && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">User Management</h3>
+                <p className="text-gray-400 text-sm mt-1">Manage user accounts and permissions</p>
+              </div>
+              <button
+                onClick={handleOpenCreateUser}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                + Add User
+              </button>
+            </div>
+
+            {/* User List */}
+            <div className="space-y-3">
+              {allUsers?.map((u) => (
+                <div
+                  key={u.id}
+                  className={`flex items-center justify-between p-4 rounded-lg ${
+                    u.isActive ? "bg-gray-700/50" : "bg-gray-700/30 opacity-60"
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                        {u.firstName[0]}{u.lastName[0]}
+                      </div>
+                      <div>
+                        <h4 className="text-white font-medium">
+                          {u.firstName} {u.lastName}
+                          {u.id === user.id && (
+                            <span className="ml-2 text-xs text-blue-400">(You)</span>
+                          )}
+                        </h4>
+                        <p className="text-gray-400 text-sm">{u.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`px-2 py-1 text-xs rounded font-medium ${
+                      u.role === "admin" ? "bg-purple-600 text-white" :
+                      u.role === "property_manager" ? "bg-blue-600 text-white" :
+                      u.role === "accountant" ? "bg-green-600 text-white" :
+                      "bg-gray-600 text-white"
+                    }`}>
+                      {formatRole(u.role)}
+                    </span>
+                    <span className={`px-2 py-1 text-xs rounded ${
+                      u.isActive ? "bg-green-900/50 text-green-400" : "bg-red-900/50 text-red-400"
+                    }`}>
+                      {u.isActive ? "Active" : "Disabled"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenEditUser(u)}
+                        className="p-2 text-gray-400 hover:text-white hover:bg-gray-600 rounded transition-colors"
+                        title="Edit user"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setShowResetPassword(u.id)}
+                        className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-gray-600 rounded transition-colors"
+                        title="Reset password"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                      </button>
+                      {u.id !== user.id && (
+                        <button
+                          onClick={() => handleToggleUserActive(u.id, u.isActive)}
+                          className={`p-2 rounded transition-colors ${
+                            u.isActive
+                              ? "text-gray-400 hover:text-red-400 hover:bg-gray-600"
+                              : "text-gray-400 hover:text-green-400 hover:bg-gray-600"
+                          }`}
+                          title={u.isActive ? "Disable user" : "Enable user"}
+                        >
+                          {u.isActive ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!allUsers?.length && (
+                <p className="text-gray-500 text-center py-8">No users found</p>
+              )}
+            </div>
+
+            {/* Reset Password Inline */}
+            {showResetPassword && (
+              <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-800 rounded-lg">
+                <h4 className="text-yellow-300 font-medium mb-2">Reset Password</h4>
+                <p className="text-yellow-200 text-sm mb-3">
+                  Enter a new password for {allUsers?.find(u => u.id === showResetPassword)?.firstName}
+                </p>
+                <div className="flex gap-3">
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password"
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+                  <button
+                    onClick={() => handleResetPassword(showResetPassword)}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => { setShowResetPassword(null); setNewPassword(""); }}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Appearance */}
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
@@ -340,6 +615,128 @@ export default function SettingsPage() {
           </Link>
         </div>
       </main>
+
+      {/* User Modal */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">
+                {editingUserId ? "Edit User" : "Add New User"}
+              </h2>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {userError && (
+                <div className="p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-300 text-sm">
+                  {userError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">First Name</label>
+                  <input
+                    type="text"
+                    value={userFormData.firstName}
+                    onChange={(e) => setUserFormData({ ...userFormData, firstName: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={userFormData.lastName}
+                    onChange={(e) => setUserFormData({ ...userFormData, lastName: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={userFormData.email}
+                  onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white disabled:opacity-50"
+                  disabled={!!editingUserId}
+                  required
+                />
+                {editingUserId && (
+                  <p className="text-gray-500 text-xs mt-1">Email cannot be changed</p>
+                )}
+              </div>
+
+              {!editingUserId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={userFormData.password}
+                    onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    required
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Role</label>
+                <select
+                  value={userFormData.role}
+                  onChange={(e) => setUserFormData({ ...userFormData, role: e.target.value as UserRole })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="staff">Staff</option>
+                  <option value="property_manager">Property Manager</option>
+                  <option value="accountant">Accountant</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              {!editingUserId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Phone (optional)</label>
+                  <input
+                    type="tel"
+                    value={userFormData.phone}
+                    onChange={(e) => setUserFormData({ ...userFormData, phone: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end gap-3">
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitUser}
+                disabled={isSubmittingUser || !userFormData.firstName || !userFormData.lastName || (!editingUserId && (!userFormData.email || !userFormData.password))}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                {isSubmittingUser ? "Saving..." : editingUserId ? "Save Changes" : "Create User"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

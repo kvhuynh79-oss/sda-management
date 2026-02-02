@@ -7,6 +7,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
 import ChatInterface from "../../../components/ai/ChatInterface";
 import ConversationsList from "../../../components/ai/ConversationsList";
+import AIHelpGuide from "../../../components/ai/AIHelpGuide";
 import { Bot, Menu, X, FileText, Building2, CheckCircle, XCircle } from "lucide-react";
 
 interface Message {
@@ -73,9 +74,9 @@ export default function AIAssistantPage() {
   // Fetch properties for filing dropdown
   const properties = useQuery(api.properties.getAll);
 
-  // Actions and mutations
-  const processQuery = useAction(api.aiChatbot.processUserQuery);
-  const executeAction = useAction(api.aiChatbot.executeAction);
+  // Actions and mutations - using V2 tool-based API
+  const processQuery = useAction(api.aiChatbot.processUserQueryV2);
+  const executeAction = useAction(api.aiChatbot.executeActionV2);
   const deleteConversation = useMutation(api.aiChatbot.deleteConversation);
   const classifyDocument = useAction(api.aiDocuments.classifyDocument);
   const saveClassification = useMutation(api.aiDocuments.saveClassificationToConversation);
@@ -562,7 +563,7 @@ export default function AIAssistantPage() {
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } lg:translate-x-0 fixed lg:relative z-40 w-72 h-full bg-gray-800 border-r border-gray-700 p-4 transition-transform duration-300`}
         >
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
               <Bot className="w-6 h-6 text-white" />
             </div>
@@ -570,6 +571,14 @@ export default function AIAssistantPage() {
               <h1 className="text-lg font-semibold text-white">AI Assistant</h1>
               <p className="text-xs text-gray-400">Powered by Claude</p>
             </div>
+          </div>
+
+          {/* Help Guide with Sample Prompts */}
+          <div className="mb-4">
+            <AIHelpGuide
+              onTryPrompt={handleSendMessage}
+              disabled={isLoading}
+            />
           </div>
 
           <ConversationsList

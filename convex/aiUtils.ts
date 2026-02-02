@@ -12,19 +12,44 @@ export interface ClaudeMessage {
 }
 
 export interface ClaudeContentBlock {
-  type: "text" | "image" | "document";
+  type: "text" | "image" | "document" | "tool_use" | "tool_result";
   text?: string;
   source?: {
     type: "base64";
     media_type: string;
     data: string;
   };
+  id?: string;
+  name?: string;
+  input?: Record<string, unknown>;
+  tool_use_id?: string;
+  content?: string;
+}
+
+export interface ClaudeTool {
+  name: string;
+  description: string;
+  input_schema: {
+    type: "object";
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+export interface ClaudeToolUse {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
 }
 
 export interface ClaudeResponse {
   content: Array<{
     type: string;
-    text: string;
+    text?: string;
+    id?: string;
+    name?: string;
+    input?: Record<string, unknown>;
   }>;
   model: string;
   stop_reason: string;
@@ -76,6 +101,70 @@ export async function callClaudeAPI(
   }
 
   return content;
+}
+
+// Helper function to call Claude API with tool calling
+export async function callClaudeWithTools(
+  systemPrompt: string,
+  messages: ClaudeMessage[],
+  tools: ClaudeTool[],
+  maxTokens: number = 4096
+): Promise<ClaudeResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "ANTHROPIC_API_KEY not configured. Add it to your Convex environment variables."
+    );
+  }
+
+  const response = await fetch(CLAUDE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      messages,
+      system: systemPrompt,
+      tools,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error("Claude API error:", errorData);
+    throw new Error(`Claude API error: ${JSON.stringify(errorData)}`);
+  }
+
+  return (await response.json()) as ClaudeResponse;
+}
+
+// Extract tool use from Claude response
+export function extractToolUse(response: ClaudeResponse): ClaudeToolUse | null {
+  for (const block of response.content) {
+    if (block.type === "tool_use" && block.id && block.name && block.input) {
+      return {
+        type: "tool_use",
+        id: block.id,
+        name: block.name,
+        input: block.input,
+      };
+    }
+  }
+  return null;
+}
+
+// Extract text from Claude response
+export function extractText(response: ClaudeResponse): string {
+  for (const block of response.content) {
+    if (block.type === "text" && block.text) {
+      return block.text;
+    }
+  }
+  return "";
 }
 
 // Helper function to extract JSON from Claude's response

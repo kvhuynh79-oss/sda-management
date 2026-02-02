@@ -1386,3 +1386,655 @@ export const updateConversationTitle = mutation({
     return { success: true };
   },
 });
+
+// ==================== Tool-Based Chat (V2) ====================
+
+import {
+  callClaudeWithTools,
+  extractToolUse,
+  extractText,
+} from "./aiUtils";
+import {
+  SDA_ASSISTANT_TOOLS,
+  requiresConfirmation,
+  getActionDescription,
+} from "./aiTools";
+
+const TOOL_SYSTEM_PROMPT = `You are an AI assistant for an SDA (Specialist Disability Accommodation) property management system in Australia.
+
+Your role is to help staff manage properties, participants, maintenance, payments, and documents.
+
+Key context:
+- SDA = Specialist Disability Accommodation (NDIS-funded housing)
+- Participants = NDIS participants living in the accommodation
+- Dwellings = Individual units within a property
+- RRC = Reasonable Rent Contribution (participant's rent payment)
+
+When responding:
+- Use Australian date format (DD Month YYYY)
+- Format currency as AUD (e.g., $1,234.56)
+- Be concise but helpful
+- For actions that modify data, always use the appropriate tool - never just describe what you would do
+
+Always use the available tools to answer questions. If you need to perform an action like moving a participant or creating maintenance, use the appropriate tool.`;
+
+// New tool-based query processor
+export const processUserQueryV2 = action({
+  args: {
+    conversationId: v.optional(v.id("aiConversations")),
+    userMessage: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<ProcessQueryResult> => {
+    // Call Claude with tools
+    const response = await callClaudeWithTools(
+      TOOL_SYSTEM_PROMPT,
+      [{ role: "user", content: args.userMessage }],
+      SDA_ASSISTANT_TOOLS,
+      4096
+    );
+
+    // Check if Claude wants to use a tool
+    const toolUse = extractToolUse(response);
+
+    if (toolUse) {
+      // Handle tool use
+      const result = await handleToolUse(ctx, toolUse, args.userId);
+
+      // Save to conversation
+      const conversationId = await ctx.runMutation(
+        internal.aiChatbot.saveMessage,
+        {
+          conversationId: args.conversationId,
+          userId: args.userId,
+          userMessage: args.userMessage,
+          assistantResponse: result.response,
+        }
+      );
+
+      return {
+        response: result.response,
+        conversationId,
+        pendingAction: result.pendingAction,
+      };
+    }
+
+    // No tool use - just text response
+    const textResponse = extractText(response) || "I'm not sure how to help with that. Could you please rephrase your question?";
+
+    const conversationId = await ctx.runMutation(
+      internal.aiChatbot.saveMessage,
+      {
+        conversationId: args.conversationId,
+        userId: args.userId,
+        userMessage: args.userMessage,
+        assistantResponse: textResponse,
+      }
+    );
+
+    return { response: textResponse, conversationId };
+  },
+});
+
+// Handle tool use from Claude
+async function handleToolUse(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ctx: any,
+  toolUse: { name: string; input: Record<string, unknown> },
+  userId: string
+): Promise<{ response: string; pendingAction?: { actionType: string; description: string; params: Record<string, unknown> } }> {
+  const { name, input } = toolUse;
+
+  // Check if this action requires confirmation
+  if (requiresConfirmation(name)) {
+    const description = getActionDescription(name, input);
+    return {
+      response: `I'll ${description.toLowerCase()}.\n\nPlease confirm this action by clicking the button below.`,
+      pendingAction: {
+        actionType: name,
+        description,
+        params: { ...input, userId },
+      },
+    };
+  }
+
+  // Execute query tools directly
+  let queryResult: unknown = null;
+
+  switch (name) {
+    case "get_vacancies":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getVacancies, {
+        propertyName: input.property_name as string | undefined,
+        suburb: input.suburb as string | undefined,
+      });
+      break;
+
+    case "get_participant_plan_expiry":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getParticipantPlanExpiry, {
+        participantName: input.participant_name as string,
+      });
+      break;
+
+    case "get_expiring_plans":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getExpiringPlans, {
+        daysAhead: (input.days_ahead as number) || 60,
+      });
+      break;
+
+    case "get_overdue_maintenance":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getOverdueMaintenance, {
+        propertyName: input.property_name as string | undefined,
+        priority: input.priority as string | undefined,
+      });
+      break;
+
+    case "get_payment_status":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getPaymentStatus, {
+        participantName: input.participant_name as string,
+      });
+      break;
+
+    case "get_expiring_documents":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getExpiringDocuments, {
+        daysAhead: (input.days_ahead as number) || 30,
+      });
+      break;
+
+    case "get_property_summary":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getPropertySummary, {
+        propertyName: input.property_name as string,
+      });
+      break;
+
+    case "get_participant_info":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getParticipantInfo, {
+        participantName: input.participant_name as string,
+      });
+      break;
+
+    case "list_all_participants":
+      queryResult = await ctx.runQuery(internal.aiChatbot.listAllParticipants, {});
+      break;
+
+    case "get_recent_activity":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getRecentActivity, {
+        daysBack: (input.days_back as number) || 7,
+      });
+      break;
+
+    case "generate_text_response":
+      return { response: generateTextResponse(input.response_type as string, input.context as string) };
+
+    default:
+      return { response: `I don't know how to handle the "${name}" tool yet.` };
+  }
+
+  // Format the query result into a response
+  const formattedResponse = await formatToolResult(name, queryResult);
+  return { response: formattedResponse };
+}
+
+// Generate text responses for general queries
+function generateTextResponse(responseType: string, context?: string): string {
+  switch (responseType) {
+    case "greeting":
+      return "Hello! I'm your SDA Assistant. I can help you with:\n\n- Finding vacant rooms and dwellings\n- Checking participant plan expiry dates\n- Viewing overdue maintenance\n- Recording payments\n- And more!\n\nWhat would you like help with?";
+    case "help":
+      return "Here's what I can help you with:\n\n**Queries:**\n- Show vacancies\n- Check participant plans\n- View overdue maintenance\n- Check expiring documents\n- Get property summaries\n- View payment history\n\n**Actions:**\n- Move participants between dwellings\n- Create maintenance requests\n- Record payments\n- Update participant status\n\nJust ask in natural language!";
+    case "clarification":
+      return context ? `I need more information: ${context}` : "Could you please provide more details?";
+    case "unknown":
+      return "I'm not sure how to help with that. Try asking about:\n- Vacancies\n- Participant plans\n- Maintenance\n- Payments\n- Property details";
+    default:
+      return "How can I help you today?";
+  }
+}
+
+// Format tool results into readable responses
+async function formatToolResult(toolName: string, result: unknown): Promise<string> {
+  if (!result) {
+    return "I couldn't find any information for that query.";
+  }
+
+  // Type the result for each case
+  switch (toolName) {
+    case "get_vacancies": {
+      const vacancies = result as Array<{
+        property: { propertyName?: string; addressLine1: string; suburb: string };
+        dwellings: Array<{ dwelling: { dwellingName: string }; vacantSpots: number; capacity: number }>;
+        totalVacant: number;
+      }>;
+      if (!vacancies || vacancies.length === 0) {
+        return "No vacant rooms found at the moment. All dwellings are fully occupied.";
+      }
+      let response = "### Available Vacancies\n\n";
+      for (const v of vacancies) {
+        response += `**${v.property.propertyName || v.property.addressLine1}** (${v.property.suburb})\n`;
+        for (const d of v.dwellings) {
+          response += `- ${d.dwelling.dwellingName}: ${d.vacantSpots} vacant (capacity: ${d.capacity})\n`;
+        }
+        response += `Total vacant: ${v.totalVacant}\n\n`;
+      }
+      return response;
+    }
+
+    case "get_participant_plan_expiry": {
+      const data = result as { found: boolean; message?: string; results?: Array<{
+        participant: { firstName: string; lastName: string };
+        plan: { planEndDate: string } | null;
+        daysUntilExpiry: number | null;
+      }> };
+      if (!data.found) {
+        return data.message || "Participant not found.";
+      }
+      let response = "### Plan Expiry Information\n\n";
+      for (const r of data.results || []) {
+        response += `**${r.participant.firstName} ${r.participant.lastName}**\n`;
+        if (r.plan) {
+          const expiryStatus = r.daysUntilExpiry !== null && r.daysUntilExpiry <= 30 ? " ⚠️" : "";
+          response += `- Plan expires: ${r.plan.planEndDate}${expiryStatus}\n`;
+          response += `- Days until expiry: ${r.daysUntilExpiry}\n`;
+        } else {
+          response += `- No current plan on file\n`;
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "get_overdue_maintenance": {
+      const items = result as Array<{
+        request: { title: string; priority: string; status: string };
+        property: { propertyName?: string; addressLine1: string } | null;
+        dwelling: { dwellingName: string } | null;
+        daysOverdue: number;
+      }>;
+      if (!items || items.length === 0) {
+        return "No overdue maintenance requests found. All maintenance is up to date.";
+      }
+      let response = "### Overdue Maintenance\n\n";
+      for (const item of items) {
+        const priorityEmoji = item.request.priority === "urgent" ? "🚨" : item.request.priority === "high" ? "⚠️" : "";
+        response += `${priorityEmoji} **${item.request.title}**\n`;
+        response += `- Location: ${item.dwelling?.dwellingName || "Unknown"} at ${item.property?.propertyName || item.property?.addressLine1 || "Unknown"}\n`;
+        response += `- Priority: ${item.request.priority} | Status: ${item.request.status}\n`;
+        response += `- ${item.daysOverdue} days overdue\n\n`;
+      }
+      return response;
+    }
+
+    case "get_payment_status": {
+      const data = result as { found: boolean; message?: string; results?: Array<{
+        participant: { firstName: string; lastName: string };
+        recentPayments: Array<{ paymentDate: string; actualAmount: number }>;
+        totalPayments: number;
+        totalPaid: number;
+        totalExpected: number;
+        variance: number;
+      }> };
+      if (!data.found) {
+        return data.message || "Participant not found.";
+      }
+      let response = "### Payment Status\n\n";
+      for (const r of data.results || []) {
+        response += `**${r.participant.firstName} ${r.participant.lastName}**\n`;
+        response += `- Total payments: ${r.totalPayments}\n`;
+        response += `- Total paid: $${r.totalPaid.toLocaleString()}\n`;
+        response += `- Total expected: $${r.totalExpected.toLocaleString()}\n`;
+        response += `- Variance: $${r.variance.toLocaleString()}\n\n`;
+        if (r.recentPayments.length > 0) {
+          response += "Recent payments:\n";
+          for (const p of r.recentPayments.slice(0, 3)) {
+            response += `- ${p.paymentDate}: $${p.actualAmount.toLocaleString()}\n`;
+          }
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "get_expiring_documents": {
+      const docs = result as Array<{
+        document: { fileName: string; documentType: string; expiryDate: string };
+        linkedEntity: { propertyName?: string; firstName?: string; lastName?: string } | null;
+        daysUntilExpiry: number;
+      }>;
+      if (!docs || docs.length === 0) {
+        return "No documents expiring in the specified period.";
+      }
+      let response = "### Expiring Documents\n\n";
+      for (const d of docs) {
+        const urgency = d.daysUntilExpiry <= 7 ? "🚨" : d.daysUntilExpiry <= 14 ? "⚠️" : "";
+        response += `${urgency} **${d.document.fileName}**\n`;
+        response += `- Type: ${d.document.documentType}\n`;
+        response += `- Expires: ${d.document.expiryDate} (${d.daysUntilExpiry} days)\n`;
+        if (d.linkedEntity) {
+          const entityName = d.linkedEntity.propertyName || `${d.linkedEntity.firstName || ""} ${d.linkedEntity.lastName || ""}`.trim();
+          response += `- Linked to: ${entityName}\n`;
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "get_property_summary": {
+      const data = result as { found: boolean; message?: string; results?: Array<{
+        property: { propertyName?: string; addressLine1: string; suburb: string };
+        owner: { firstName: string; lastName: string } | null;
+        dwellings: Array<{ dwelling: { dwellingName: string }; participants: Array<{ firstName: string; lastName: string }> }>;
+        totalCapacity: number;
+        totalOccupants: number;
+        vacancies: number;
+      }> };
+      if (!data.found) {
+        return data.message || "Property not found.";
+      }
+      let response = "### Property Summary\n\n";
+      for (const r of data.results || []) {
+        response += `**${r.property.propertyName || r.property.addressLine1}**\n`;
+        response += `${r.property.addressLine1}, ${r.property.suburb}\n\n`;
+        if (r.owner) {
+          response += `Owner: ${r.owner.firstName} ${r.owner.lastName}\n`;
+        }
+        response += `Capacity: ${r.totalOccupants}/${r.totalCapacity} (${r.vacancies} vacant)\n\n`;
+        response += "**Dwellings:**\n";
+        for (const d of r.dwellings) {
+          response += `- ${d.dwelling.dwellingName}: `;
+          if (d.participants.length > 0) {
+            response += d.participants.map((p) => `${p.firstName} ${p.lastName}`).join(", ");
+          } else {
+            response += "Vacant";
+          }
+          response += "\n";
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "get_participant_info": {
+      const data = result as { found: boolean; message?: string; results?: Array<{
+        participant: { firstName: string; lastName: string; ndisNumber?: string; status: string };
+        dwelling: { dwellingName: string } | null;
+        property: { propertyName?: string; addressLine1: string } | null;
+        plan: { planEndDate: string; monthlySdaAmount?: number } | null;
+      }> };
+      if (!data.found) {
+        return data.message || "Participant not found.";
+      }
+      let response = "### Participant Information\n\n";
+      for (const r of data.results || []) {
+        response += `**${r.participant.firstName} ${r.participant.lastName}**\n`;
+        response += `- NDIS: ${r.participant.ndisNumber || "Not recorded"}\n`;
+        response += `- Status: ${r.participant.status}\n`;
+        if (r.property && r.dwelling) {
+          response += `- Location: ${r.dwelling.dwellingName} at ${r.property.propertyName || r.property.addressLine1}\n`;
+        }
+        if (r.plan) {
+          response += `- Plan expires: ${r.plan.planEndDate}\n`;
+          if (r.plan.monthlySdaAmount) {
+            response += `- Monthly SDA: $${r.plan.monthlySdaAmount.toLocaleString()}\n`;
+          }
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "list_all_participants": {
+      const participants = result as Array<{
+        participant: { firstName: string; lastName: string; status: string };
+        dwelling: { dwellingName: string } | null;
+        property: { propertyName?: string; addressLine1: string } | null;
+      }>;
+      if (!participants || participants.length === 0) {
+        return "No active participants found.";
+      }
+      let response = "### All Active Participants\n\n";
+      for (const p of participants) {
+        response += `- **${p.participant.firstName} ${p.participant.lastName}**`;
+        if (p.property && p.dwelling) {
+          response += ` - ${p.dwelling.dwellingName} at ${p.property.propertyName || p.property.addressLine1}`;
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "get_recent_activity": {
+      const activity = result as {
+        payments: Array<{ paymentDate: string; actualAmount: number; participantName: string }>;
+        maintenance: Array<{ title: string; status: string; dwellingName: string }>;
+        incidents: Array<{ incidentDate: string; category: string }>;
+      };
+      let response = "### Recent Activity Summary\n\n";
+
+      if (activity.payments && activity.payments.length > 0) {
+        response += "**Recent Payments:**\n";
+        for (const p of activity.payments.slice(0, 5)) {
+          response += `- ${p.paymentDate}: $${p.actualAmount.toLocaleString()} (${p.participantName})\n`;
+        }
+        response += "\n";
+      }
+
+      if (activity.maintenance && activity.maintenance.length > 0) {
+        response += "**Recent Maintenance:**\n";
+        for (const m of activity.maintenance.slice(0, 5)) {
+          response += `- ${m.title} (${m.status}) - ${m.dwellingName}\n`;
+        }
+        response += "\n";
+      }
+
+      if (activity.incidents && activity.incidents.length > 0) {
+        response += "**Recent Incidents:**\n";
+        for (const i of activity.incidents.slice(0, 5)) {
+          response += `- ${i.incidentDate}: ${i.category}\n`;
+        }
+      }
+
+      return response || "No recent activity found.";
+    }
+
+    default:
+      return JSON.stringify(result, null, 2);
+  }
+}
+
+// Additional internal queries for new tools
+export const getExpiringPlans = internalQuery({
+  args: { daysAhead: v.number() },
+  handler: async (ctx, args) => {
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + args.daysAhead);
+
+    const todayStr = today.toISOString().split("T")[0];
+    const futureStr = futureDate.toISOString().split("T")[0];
+
+    const plans = await ctx.db.query("participantPlans")
+      .filter((q) => q.eq(q.field("planStatus"), "current"))
+      .collect();
+
+    const expiring = plans.filter(
+      (plan) => plan.planEndDate >= todayStr && plan.planEndDate <= futureStr
+    );
+
+    const results = await Promise.all(
+      expiring.map(async (plan) => {
+        const participant = await ctx.db.get(plan.participantId);
+        return {
+          participant,
+          plan,
+          daysUntilExpiry: daysUntil(plan.planEndDate),
+        };
+      })
+    );
+
+    return results.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+  },
+});
+
+export const listAllParticipants = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const participants = await ctx.db.query("participants")
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    const results = await Promise.all(
+      participants.map(async (participant) => {
+        const dwelling = participant.dwellingId
+          ? await ctx.db.get(participant.dwellingId)
+          : null;
+        const property = dwelling
+          ? await ctx.db.get(dwelling.propertyId)
+          : null;
+
+        return { participant, dwelling, property };
+      })
+    );
+
+    return results;
+  },
+});
+
+export const getRecentActivity = internalQuery({
+  args: { daysBack: v.number() },
+  handler: async (ctx, args) => {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - args.daysBack);
+    const cutoffStr = cutoffDate.toISOString().split("T")[0];
+
+    // Recent payments
+    const payments = await ctx.db.query("payments").collect();
+    const recentPayments = payments
+      .filter((p) => p.paymentDate >= cutoffStr)
+      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+      .slice(0, 10);
+
+    const paymentsWithNames = await Promise.all(
+      recentPayments.map(async (p) => {
+        const participant = await ctx.db.get(p.participantId);
+        return {
+          ...p,
+          participantName: participant ? `${participant.firstName} ${participant.lastName}` : "Unknown",
+        };
+      })
+    );
+
+    // Recent maintenance
+    const maintenance = await ctx.db.query("maintenanceRequests").collect();
+    const recentMaintenance = maintenance
+      .filter((m) => m.reportedDate && m.reportedDate >= cutoffStr)
+      .sort((a, b) => (b.reportedDate || "").localeCompare(a.reportedDate || ""))
+      .slice(0, 10);
+
+    const maintenanceWithDwellings = await Promise.all(
+      recentMaintenance.map(async (m) => {
+        const dwelling = await ctx.db.get(m.dwellingId);
+        return {
+          ...m,
+          dwellingName: dwelling?.dwellingName || "Unknown",
+        };
+      })
+    );
+
+    // Recent incidents
+    const incidents = await ctx.db.query("incidents").collect();
+    const recentIncidents = incidents
+      .filter((i) => i.incidentDate >= cutoffStr)
+      .sort((a, b) => b.incidentDate.localeCompare(a.incidentDate))
+      .slice(0, 10);
+
+    return {
+      payments: paymentsWithNames,
+      maintenance: maintenanceWithDwellings,
+      incidents: recentIncidents,
+    };
+  },
+});
+
+// Execute action V2 (handles tool-based actions)
+export const executeActionV2 = action({
+  args: {
+    conversationId: v.optional(v.id("aiConversations")),
+    actionType: v.string(),
+    params: v.any(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; response: string; conversationId: string }> => {
+    let result: { success: boolean; message?: string; error?: string } = { success: false };
+
+    try {
+      switch (args.actionType) {
+        case "move_participant":
+          result = await ctx.runMutation(internal.aiChatbot.moveParticipant, {
+            participantName: args.params.participant_name || args.params.participantName,
+            targetDwellingName: args.params.target_dwelling || args.params.targetDwellingName,
+            targetPropertyName: args.params.target_property || args.params.targetPropertyName,
+          }) as { success: boolean; message?: string; error?: string };
+          break;
+
+        case "create_maintenance_request":
+          result = await ctx.runMutation(internal.aiChatbot.createMaintenanceRequest, {
+            dwellingName: args.params.dwelling_name || args.params.dwellingName,
+            propertyName: args.params.property_name || args.params.propertyName,
+            title: args.params.title,
+            description: args.params.description,
+            category: args.params.category || "general",
+            priority: args.params.priority || "medium",
+            userId: args.userId,
+          }) as { success: boolean; message?: string; error?: string };
+          break;
+
+        case "update_maintenance_status":
+          result = await ctx.runMutation(internal.aiChatbot.updateMaintenanceStatus, {
+            maintenanceTitle: args.params.maintenance_title || args.params.maintenanceTitle,
+            dwellingName: args.params.dwelling_name || args.params.dwellingName,
+            newStatus: args.params.new_status || args.params.newStatus,
+          }) as { success: boolean; message?: string; error?: string };
+          break;
+
+        case "record_payment":
+          result = await ctx.runMutation(internal.aiChatbot.recordPayment, {
+            participantName: args.params.participant_name || args.params.participantName,
+            amount: args.params.amount,
+            paymentDate: args.params.payment_date || args.params.paymentDate,
+            periodStart: args.params.periodStart,
+            periodEnd: args.params.periodEnd,
+            userId: args.userId,
+          }) as { success: boolean; message?: string; error?: string };
+          break;
+
+        case "update_participant_status":
+          result = await ctx.runMutation(internal.aiChatbot.updateParticipantStatus, {
+            participantName: args.params.participant_name || args.params.participantName,
+            newStatus: args.params.new_status || args.params.newStatus,
+          }) as { success: boolean; message?: string; error?: string };
+          break;
+
+        default:
+          result = { success: false, error: "Unknown action type" };
+      }
+    } catch (error) {
+      result = { success: false, error: String(error) };
+    }
+
+    const response = result.success
+      ? `Done! ${result.message || "Action completed successfully."}`
+      : `Sorry, I couldn't complete this action. ${result.error || "Unknown error"}`;
+
+    // Save result to conversation
+    const conversationId = await ctx.runMutation(
+      internal.aiChatbot.saveMessage,
+      {
+        conversationId: args.conversationId,
+        userId: args.userId,
+        userMessage: `[Confirmed action: ${args.actionType}]`,
+        assistantResponse: response,
+      }
+    );
+
+    return { success: result.success, response, conversationId };
+  },
+});

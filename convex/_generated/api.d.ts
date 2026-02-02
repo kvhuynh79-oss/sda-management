@@ -12,6 +12,7 @@ import type * as aiAnalytics from "../aiAnalytics.js";
 import type * as aiChatbot from "../aiChatbot.js";
 import type * as aiDocuments from "../aiDocuments.js";
 import type * as aiParsing from "../aiParsing.js";
+import type * as aiTools from "../aiTools.js";
 import type * as aiUtils from "../aiUtils.js";
 import type * as alerts from "../alerts.js";
 import type * as auth from "../auth.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   aiChatbot: typeof aiChatbot;
   aiDocuments: typeof aiDocuments;
   aiParsing: typeof aiParsing;
+  aiTools: typeof aiTools;
   aiUtils: typeof aiUtils;
   alerts: typeof alerts;
   auth: typeof auth;

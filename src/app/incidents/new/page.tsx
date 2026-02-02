@@ -47,6 +47,16 @@ export default function NewIncidentPage() {
       | "medication"
       | "abuse_neglect"
       | "complaint"
+      // NDIS Reportable types
+      | "death"
+      | "serious_injury"
+      | "unauthorized_restrictive_practice"
+      | "sexual_assault"
+      | "sexual_misconduct"
+      | "staff_assault"
+      | "unlawful_conduct"
+      | "unexplained_injury"
+      | "missing_participant"
       | "other",
     severity: "minor" as "minor" | "moderate" | "major" | "critical",
     title: "",
@@ -322,14 +332,29 @@ export default function NewIncidentPage() {
                   onChange={(e) => setFormData({ ...formData, incidentType: e.target.value as any })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 >
-                  <option value="injury">Injury</option>
-                  <option value="near_miss">Near Miss</option>
-                  <option value="property_damage">Property Damage</option>
-                  <option value="behavioral">Behavioral</option>
-                  <option value="medication">Medication Related</option>
-                  <option value="abuse_neglect">Abuse/Neglect Concern</option>
-                  <option value="complaint">Complaint</option>
-                  <option value="other">Other</option>
+                  <optgroup label="Standard Incidents">
+                    <option value="injury">Injury</option>
+                    <option value="near_miss">Near Miss</option>
+                    <option value="property_damage">Property Damage</option>
+                    <option value="behavioral">Behavioral</option>
+                    <option value="medication">Medication Related</option>
+                    <option value="complaint">Complaint</option>
+                    <option value="other">Other</option>
+                  </optgroup>
+                  <optgroup label="⚠️ NDIS Reportable - 24 Hour Notification">
+                    <option value="death">Death of Participant</option>
+                    <option value="serious_injury">Serious Injury (Emergency Treatment)</option>
+                    <option value="unauthorized_restrictive_practice">Unauthorized Restrictive Practice</option>
+                    <option value="sexual_assault">Sexual Assault</option>
+                    <option value="sexual_misconduct">Sexual Misconduct</option>
+                    <option value="staff_assault">Staff Assault (Physical/Sexual)</option>
+                  </optgroup>
+                  <optgroup label="⚠️ NDIS Reportable - 5 Business Days">
+                    <option value="abuse_neglect">Abuse/Neglect Concern</option>
+                    <option value="unlawful_conduct">Unlawful Conduct</option>
+                    <option value="unexplained_injury">Unexplained Serious Injury</option>
+                    <option value="missing_participant">Missing Participant</option>
+                  </optgroup>
                 </select>
               </div>
               <div>
@@ -360,6 +385,43 @@ export default function NewIncidentPage() {
                 </div>
               </div>
             </div>
+
+            {/* NDIS Reportable Warning */}
+            {["death", "serious_injury", "unauthorized_restrictive_practice", "sexual_assault", "sexual_misconduct", "staff_assault"].includes(formData.incidentType) && (
+              <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🚨</span>
+                  <div>
+                    <h4 className="text-red-200 font-semibold">NDIS Reportable Incident - 24 Hour Notification Required</h4>
+                    <p className="text-red-300 text-sm mt-1">
+                      This incident type requires immediate notification to the NDIS Quality and Safeguards Commission within 24 hours.
+                      After submitting this report, ensure you notify the Commission via the{" "}
+                      <a href="https://www.ndiscommission.gov.au" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
+                        NDIS Commission Portal
+                      </a>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {["abuse_neglect", "unlawful_conduct", "unexplained_injury", "missing_participant"].includes(formData.incidentType) && (
+              <div className="p-4 bg-yellow-900/50 border border-yellow-600 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">⚠️</span>
+                  <div>
+                    <h4 className="text-yellow-200 font-semibold">NDIS Reportable Incident - 5 Business Day Notification Required</h4>
+                    <p className="text-yellow-300 text-sm mt-1">
+                      This incident type requires notification to the NDIS Quality and Safeguards Commission within 5 business days.
+                      After submitting this report, ensure you notify the Commission via the{" "}
+                      <a href="https://www.ndiscommission.gov.au" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
+                        NDIS Commission Portal
+                      </a>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Title */}
             <div>

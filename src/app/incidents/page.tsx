@@ -117,13 +117,30 @@ export default function IncidentsPage() {
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <span className={`px-2 py-1 rounded text-xs text-white ${getSeverityColor(incident.severity)}`}>
                         {incident.severity.toUpperCase()}
                       </span>
                       <span className={`px-2 py-1 rounded text-xs text-white ${getStatusColor(incident.status)}`}>
                         {incident.status.replace(/_/g, " ").toUpperCase()}
                       </span>
+                      {(incident as any).isNdisReportable && (
+                        <>
+                          {(incident as any).ndisNotificationOverdue ? (
+                            <span className="px-2 py-1 rounded text-xs bg-red-600 text-white animate-pulse">
+                              🚨 NDIS OVERDUE
+                            </span>
+                          ) : (incident as any).ndisCommissionNotified ? (
+                            <span className="px-2 py-1 rounded text-xs bg-green-600 text-white">
+                              ✓ NDIS Notified
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 rounded text-xs bg-yellow-600 text-black font-medium">
+                              ⚠️ NDIS Required ({(incident as any).ndisNotificationTimeframe === "24_hours" ? "24hr" : "5 days"})
+                            </span>
+                          )}
+                        </>
+                      )}
                       <span className="text-gray-500 text-sm">
                         {formatIncidentType(incident.incidentType)}
                       </span>

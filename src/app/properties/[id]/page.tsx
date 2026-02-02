@@ -279,6 +279,7 @@ export default function PropertyDetailPage() {
                     <DwellingCard
                       key={dwelling._id}
                       dwelling={dwelling}
+                      property={property}
                       onDelete={(id) => removeDwelling({ dwellingId: id as Id<"dwellings"> })}
                     />
                   ))}
@@ -334,7 +335,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DwellingCard({ dwelling, onDelete }: { dwelling: any; onDelete: (id: string) => void }) {
+function DwellingCard({ dwelling, property, onDelete }: { dwelling: any; property: any; onDelete: (id: string) => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const getOccupancyColor = () => {
@@ -347,12 +348,18 @@ function DwellingCard({ dwelling, onDelete }: { dwelling: any; onDelete: (id: st
     return category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
+  // Build full address: Dwelling Number + Street Name (without number) + Suburb + State + Postcode
+  const streetName = property?.addressLine1?.replace(/^\d+\s*/, "") || property?.addressLine1;
+  const fullAddress = dwelling.dwellingName
+    ? `${dwelling.dwellingName} ${streetName}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`
+    : `${property?.addressLine1 || ""}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
+
   return (
     <div className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors">
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="text-lg font-semibold text-white">{dwelling.dwellingName}</h3>
-          <p className="text-gray-400 text-sm capitalize">{dwelling.dwellingType}</p>
+          <h3 className="text-lg font-semibold text-white bg-blue-900/50 px-2 py-1 rounded">{fullAddress}</h3>
+          <p className="text-gray-400 text-sm capitalize mt-1">{dwelling.dwellingType}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`px-3 py-1 rounded-full text-xs text-white ${getOccupancyColor()}`}>

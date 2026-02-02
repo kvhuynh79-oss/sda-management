@@ -221,16 +221,11 @@ export default function OnboardingPage() {
       doc.setFont("helvetica", "bold");
       doc.text("Address of Accommodation: ", margin, y);
       doc.setFont("helvetica", "normal");
-      // Smart address handling: if dwelling name contains street number, don't duplicate it
-      const quotationStreetNumber = property?.addressLine1?.match(/^(\d+)/)?.[1] || "";
+      // Simple approach: Dwelling Number + Street Name (without number) + Suburb
       const quotationStreetName = property?.addressLine1?.replace(/^\d+\s*/, "") || property?.addressLine1;
       let addressText = "";
       if (dwelling?.dwellingName && property) {
-        if (quotationStreetNumber && dwelling.dwellingName.endsWith(`/${quotationStreetNumber}`)) {
-          addressText = `${dwelling.dwellingName} ${quotationStreetName}, ${property.suburb}`;
-        } else {
-          addressText = `${dwelling.dwellingName}/${property.addressLine1}, ${property.suburb}`;
-        }
+        addressText = `${dwelling.dwellingName} ${quotationStreetName}, ${property.suburb}`;
       } else if (property) {
         addressText = `${property.addressLine1}, ${property.suburb}`;
       }
@@ -510,19 +505,11 @@ export default function OnboardingPage() {
       doc.rect(margin + propCol1, y, propCol2, dataRowHeight);
       doc.text(`${dwelling?.maxParticipants || 3} Resident House`, margin + 3, y + 8);
       doc.text("without OOA", margin + 3, y + 15);
-      // Smart address handling: if dwelling name contains street number, don't duplicate it
-      const streetNumber = property?.addressLine1?.match(/^(\d+)/)?.[1] || "";
+      // Simple approach: Dwelling Number + Street Name (without number) + Suburb + State + Postcode
       const streetName = property?.addressLine1?.replace(/^\d+\s*/, "") || property?.addressLine1;
       let fullAddress = "";
       if (dwelling?.dwellingName) {
-        // Check if dwelling name ends with the street number (e.g., "1/82" ends with "82")
-        if (streetNumber && dwelling.dwellingName.endsWith(`/${streetNumber}`)) {
-          // Dwelling name already contains street number, just add street name
-          fullAddress = `${dwelling.dwellingName} ${streetName}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
-        } else {
-          // Standard format: dwelling/street address
-          fullAddress = `${dwelling.dwellingName}/${property?.addressLine1 || ""}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
-        }
+        fullAddress = `${dwelling.dwellingName} ${streetName}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
       } else {
         fullAddress = `${property?.addressLine1 || ""}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
       }

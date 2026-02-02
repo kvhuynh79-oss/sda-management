@@ -132,6 +132,10 @@ export default defineSchema({
       v.literal("vacant")
     ),
     weeklyRentAmount: v.optional(v.number()),
+    // Vacancy notification tracking (NDIA requires notification within 5 business days)
+    vacancyDate: v.optional(v.string()), // Date dwelling became vacant
+    ndiaVacancyNotified: v.optional(v.boolean()), // Has NDIA been notified of vacancy
+    ndiaVacancyNotificationDate: v.optional(v.string()), // Date NDIA was notified
     notes: v.optional(v.string()),
     isActive: v.boolean(),
     createdAt: v.number(),
@@ -501,7 +505,12 @@ export default defineSchema({
       v.literal("preventative_schedule_due"),
       v.literal("claim_due"), // Reminder to submit SDA claim
       v.literal("owner_payment_due"), // Reminder to pay owners
-      v.literal("payment_overdue") // Expected payment not received
+      v.literal("payment_overdue"), // Expected payment not received
+      // Compliance alerts
+      v.literal("ndis_notification_overdue"), // Reportable incident notification overdue
+      v.literal("vacancy_notification_overdue"), // NDIA vacancy notification overdue (5 business days)
+      v.literal("certification_expiry"), // Compliance certification expiring
+      v.literal("insurance_expiry") // Insurance policy expiring
     ),
     severity: v.union(
       v.literal("critical"),
@@ -541,6 +550,7 @@ export default defineSchema({
     dwellingId: v.optional(v.id("dwellings")),
     participantId: v.optional(v.id("participants")), // Optional - if incident involves specific participant
     incidentType: v.union(
+      // Standard incident types
       v.literal("injury"),
       v.literal("near_miss"),
       v.literal("property_damage"),
@@ -548,6 +558,16 @@ export default defineSchema({
       v.literal("medication"),
       v.literal("abuse_neglect"),
       v.literal("complaint"),
+      // NDIS Reportable incident types (require Commission notification)
+      v.literal("death"), // 24hr notification
+      v.literal("serious_injury"), // 24hr - requiring emergency treatment
+      v.literal("unauthorized_restrictive_practice"), // 24hr
+      v.literal("sexual_assault"), // 24hr
+      v.literal("sexual_misconduct"), // 24hr
+      v.literal("staff_assault"), // 24hr - physical/sexual assault by staff
+      v.literal("unlawful_conduct"), // 5-day
+      v.literal("unexplained_injury"), // 5-day
+      v.literal("missing_participant"), // 5-day
       v.literal("other")
     ),
     severity: v.union(
@@ -556,6 +576,17 @@ export default defineSchema({
       v.literal("major"),
       v.literal("critical")
     ),
+    // NDIS Commission notification tracking
+    isNdisReportable: v.optional(v.boolean()), // Is this a reportable incident?
+    ndisNotificationTimeframe: v.optional(v.union(
+      v.literal("24_hours"), // Immediate notification required
+      v.literal("5_business_days") // Standard notification timeframe
+    )),
+    ndisCommissionNotified: v.optional(v.boolean()), // Has Commission been notified?
+    ndisCommissionNotificationDate: v.optional(v.string()), // Date notified
+    ndisCommissionReferenceNumber: v.optional(v.string()), // Commission reference number
+    ndisNotificationDueDate: v.optional(v.string()), // When notification is due
+    ndisNotificationOverdue: v.optional(v.boolean()), // Is notification overdue?
     title: v.string(),
     description: v.string(),
     incidentDate: v.string(),
@@ -565,8 +596,8 @@ export default defineSchema({
     immediateActionTaken: v.optional(v.string()),
     followUpRequired: v.boolean(),
     followUpNotes: v.optional(v.string()),
-    reportedToNdis: v.optional(v.boolean()),
-    ndisReportDate: v.optional(v.string()),
+    reportedToNdis: v.optional(v.boolean()), // Legacy field - use ndisCommissionNotified
+    ndisReportDate: v.optional(v.string()), // Legacy field - use ndisCommissionNotificationDate
     status: v.union(
       v.literal("reported"),
       v.literal("under_investigation"),
@@ -583,7 +614,8 @@ export default defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_participant", ["participantId"])
     .index("by_status", ["status"])
-    .index("by_severity", ["severity"]),
+    .index("by_severity", ["severity"])
+    .index("by_isNdisReportable", ["isNdisReportable"]),
 
   // Incident Photos table
   incidentPhotos: defineTable({
@@ -1193,4 +1225,199 @@ export default defineSchema({
     .index("by_tenantId", ["tenantId"])
     .index("by_status", ["connectionStatus"])
     .index("by_organizationId", ["organizationId"]),
+
+  // ============================================
+  // COMPLIANCE & CERTIFICATION TABLES
+  // ============================================
+
+  // Compliance Certifications table - track NDIS and SDA certifications
+  complianceCertifications: defineTable({
+    certificationType: v.union(
+      v.literal("ndis_practice_standards"), // NDIS Practice Standards certification (3-year)
+      v.literal("ndis_verification_audit"), // Annual verification audit
+      v.literal("sda_design_standard"), // SDA Design Standard certification
+      v.literal("sda_registration"), // SDA Provider registration
+      v.literal("ndis_worker_screening"), // Worker screening clearances
+      v.literal("fire_safety"), // Fire safety certification
+      v.literal("building_compliance"), // Building compliance certificate
+      v.literal("other")
+    ),
+    certificationName: v.string(), // e.g., "Core Module Certification"
+    // Linked entity (property-specific or organization-wide)
+    propertyId: v.optional(v.id("properties")),
+    dwellingId: v.optional(v.id("dwellings")),
+    isOrganizationWide: v.optional(v.boolean()), // True if applies to whole organization
+    // Certification details
+    certifyingBody: v.optional(v.string()), // e.g., "SAI Global", "BSI"
+    certificateNumber: v.optional(v.string()),
+    issueDate: v.string(),
+    expiryDate: v.string(),
+    // Audit details
+    lastAuditDate: v.optional(v.string()),
+    nextAuditDate: v.optional(v.string()),
+    auditorName: v.optional(v.string()),
+    auditOutcome: v.optional(v.union(
+      v.literal("pass"),
+      v.literal("conditional_pass"),
+      v.literal("fail"),
+      v.literal("pending")
+    )),
+    // Documents
+    certificateStorageId: v.optional(v.id("_storage")), // Uploaded certificate
+    // Status
+    status: v.union(
+      v.literal("current"),
+      v.literal("expiring_soon"), // Within 90 days of expiry
+      v.literal("expired"),
+      v.literal("pending_renewal")
+    ),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_type", ["certificationType"])
+    .index("by_property", ["propertyId"])
+    .index("by_dwelling", ["dwellingId"])
+    .index("by_status", ["status"])
+    .index("by_expiryDate", ["expiryDate"]),
+
+  // Insurance Policies table - track required insurance policies
+  insurancePolicies: defineTable({
+    insuranceType: v.union(
+      v.literal("public_liability"), // Minimum $20M for NDIS
+      v.literal("professional_indemnity"),
+      v.literal("building"), // Building/property insurance
+      v.literal("contents"),
+      v.literal("workers_compensation"),
+      v.literal("cyber"),
+      v.literal("directors_officers"),
+      v.literal("other")
+    ),
+    policyName: v.string(),
+    insurer: v.string(), // Insurance company name
+    policyNumber: v.string(),
+    // Coverage
+    coverageAmount: v.number(), // e.g., 20000000 for $20M
+    excessAmount: v.optional(v.number()), // Policy excess
+    // Linked entity
+    propertyId: v.optional(v.id("properties")), // For building insurance
+    isOrganizationWide: v.optional(v.boolean()),
+    // Dates
+    startDate: v.string(),
+    endDate: v.string(),
+    renewalDate: v.optional(v.string()),
+    // Premium
+    annualPremium: v.optional(v.number()),
+    paymentFrequency: v.optional(v.union(
+      v.literal("annual"),
+      v.literal("monthly"),
+      v.literal("quarterly")
+    )),
+    // Documents
+    policyDocumentStorageId: v.optional(v.id("_storage")),
+    certificateStorageId: v.optional(v.id("_storage")), // Certificate of currency
+    // Status
+    status: v.union(
+      v.literal("current"),
+      v.literal("expiring_soon"),
+      v.literal("expired"),
+      v.literal("pending_renewal")
+    ),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_type", ["insuranceType"])
+    .index("by_property", ["propertyId"])
+    .index("by_status", ["status"])
+    .index("by_endDate", ["endDate"]),
+
+  // Complaints Register table - NDIS requires complaints management system
+  complaints: defineTable({
+    // Complainant details
+    complainantType: v.union(
+      v.literal("participant"),
+      v.literal("family_carer"),
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("staff"),
+      v.literal("anonymous"),
+      v.literal("other")
+    ),
+    complainantName: v.optional(v.string()),
+    complainantContact: v.optional(v.string()),
+    participantId: v.optional(v.id("participants")),
+    propertyId: v.optional(v.id("properties")),
+    // Complaint details
+    complaintDate: v.string(),
+    receivedDate: v.string(), // Date complaint was received
+    receivedBy: v.id("users"),
+    category: v.union(
+      v.literal("service_delivery"),
+      v.literal("staff_conduct"),
+      v.literal("property_condition"),
+      v.literal("communication"),
+      v.literal("billing"),
+      v.literal("privacy"),
+      v.literal("safety"),
+      v.literal("other")
+    ),
+    description: v.string(),
+    severity: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high"),
+      v.literal("critical")
+    ),
+    // Acknowledgment (required within 5 business days)
+    acknowledgedDate: v.optional(v.string()),
+    acknowledgmentMethod: v.optional(v.union(
+      v.literal("email"),
+      v.literal("phone"),
+      v.literal("letter"),
+      v.literal("in_person")
+    )),
+    acknowledgmentOverdue: v.optional(v.boolean()),
+    // Resolution
+    assignedTo: v.optional(v.id("users")),
+    investigationNotes: v.optional(v.string()),
+    resolutionDate: v.optional(v.string()),
+    resolutionDescription: v.optional(v.string()),
+    resolutionOutcome: v.optional(v.union(
+      v.literal("upheld"),
+      v.literal("partially_upheld"),
+      v.literal("not_upheld"),
+      v.literal("withdrawn")
+    )),
+    complainantSatisfied: v.optional(v.boolean()),
+    // Advocacy
+    advocacyOffered: v.optional(v.boolean()),
+    advocacyAccepted: v.optional(v.boolean()),
+    advocacyProvider: v.optional(v.string()), // e.g., "Disability Advocacy NSW"
+    // Escalation
+    escalatedToNdisCommission: v.optional(v.boolean()),
+    escalationDate: v.optional(v.string()),
+    escalationReason: v.optional(v.string()),
+    // Status
+    status: v.union(
+      v.literal("received"),
+      v.literal("acknowledged"),
+      v.literal("under_investigation"),
+      v.literal("resolved"),
+      v.literal("closed"),
+      v.literal("escalated")
+    ),
+    // Learnings
+    systemicIssueIdentified: v.optional(v.boolean()),
+    correctiveActionsTaken: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_participant", ["participantId"])
+    .index("by_property", ["propertyId"])
+    .index("by_status", ["status"])
+    .index("by_category", ["category"])
+    .index("by_severity", ["severity"]),
 });

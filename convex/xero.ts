@@ -3,6 +3,24 @@ import { mutation, query, action, internalMutation, internalAction, internalQuer
 import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
+// Base64 encode helper (pure JS - works in Convex runtime)
+function base64Encode(str: string): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const bytes = new TextEncoder().encode(str);
+  let result = "";
+  let i = 0;
+  while (i < bytes.length) {
+    const a = bytes[i++] || 0;
+    const b = bytes[i++] || 0;
+    const c = bytes[i++] || 0;
+    result += chars[a >> 2];
+    result += chars[((a & 3) << 4) | (b >> 4)];
+    result += i - 2 < bytes.length ? chars[((b & 15) << 2) | (c >> 6)] : "=";
+    result += i - 1 < bytes.length ? chars[c & 63] : "=";
+  }
+  return result;
+}
+
 // ============================================
 // QUERIES
 // ============================================
@@ -493,7 +511,7 @@ export const refreshAccessToken = internalAction({
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+        Authorization: `Basic ${base64Encode(`${clientId}:${clientSecret}`)}`,
       },
       body: new URLSearchParams({
         grant_type: "refresh_token",

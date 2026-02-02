@@ -401,13 +401,21 @@ export default function EditPropertyPage() {
               <p className="text-gray-400">No dwellings found for this property.</p>
             ) : (
               <div className="space-y-6">
-                {dwellings.map((dwelling, index) => (
+                {dwellings.map((dwelling, index) => {
+                  // Build full address for display
+                  const streetNumber = form.addressLine1?.match(/^(\d+)/)?.[1] || "";
+                  const streetName = form.addressLine1?.replace(/^\d+\s*/, "") || form.addressLine1;
+                  const fullDwellingAddress = dwelling.dwellingName
+                    ? `${dwelling.dwellingName}/${streetNumber} ${streetName}, ${form.suburb} ${form.postcode}`
+                    : form.addressLine1;
+
+                  return (
                   <div key={dwelling._id} className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="text-white font-medium mb-4">{dwelling.dwellingName}</h3>
+                    <h3 className="text-white font-medium mb-4 bg-blue-900/50 px-3 py-2 rounded">{fullDwellingAddress}</h3>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
-                        <label className="block text-gray-300 text-sm mb-1">Dwelling Name</label>
+                        <label className="block text-gray-300 text-sm mb-1">Dwelling Number</label>
                         <input
                           type="text"
                           value={dwelling.dwellingName}
@@ -499,7 +507,8 @@ export default function EditPropertyPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

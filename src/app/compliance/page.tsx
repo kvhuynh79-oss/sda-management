@@ -161,7 +161,7 @@ export default function CompliancePage() {
             {/* Certifications Card */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Certifications</h3>
-              {certifications === undefined ? (
+              {!certifications ? (
                 <p className="text-gray-400">Loading...</p>
               ) : (
                 <>
@@ -192,7 +192,7 @@ export default function CompliancePage() {
             {/* Insurance Card */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Insurance Coverage</h3>
-              {insuranceCoverage === undefined ? (
+              {!insuranceCoverage ? (
                 <p className="text-gray-400">Loading...</p>
               ) : (
                 <>
@@ -219,7 +219,7 @@ export default function CompliancePage() {
             {/* Complaints Card */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Complaints</h3>
-              {complaintsStats === undefined ? (
+              {!complaintsStats ? (
                 <p className="text-gray-400">Loading...</p>
               ) : (
                 <>
@@ -252,7 +252,7 @@ export default function CompliancePage() {
             {/* NDIS Incidents Card */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-white mb-4">NDIS Reportable</h3>
-              {incidentStats === undefined ? (
+              {!incidentStats ? (
                 <p className="text-gray-400">Loading...</p>
               ) : (
                 <>
@@ -297,7 +297,7 @@ export default function CompliancePage() {
               </Link>
             </div>
 
-            {certifications === undefined ? (
+            {!certifications ? (
               <p className="text-gray-400">Loading...</p>
             ) : certifications.length === 0 ? (
               <p className="text-gray-400 text-center py-8">No certifications recorded yet</p>
@@ -381,7 +381,7 @@ export default function CompliancePage() {
               </div>
             )}
 
-            {insurancePolicies === undefined ? (
+            {!insurancePolicies ? (
               <p className="text-gray-400">Loading...</p>
             ) : insurancePolicies.length === 0 ? (
               <p className="text-gray-400 text-center py-8">No insurance policies recorded yet</p>
@@ -437,7 +437,7 @@ export default function CompliancePage() {
               </Link>
             </div>
 
-            {complaintsStats === undefined ? (
+            {!complaintsStats ? (
               <p className="text-gray-400">Loading...</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -483,7 +483,7 @@ export default function CompliancePage() {
               </Link>
             </div>
 
-            {incidentStats === undefined ? (
+            {!incidentStats ? (
               <p className="text-gray-400">Loading...</p>
             ) : (
               <>

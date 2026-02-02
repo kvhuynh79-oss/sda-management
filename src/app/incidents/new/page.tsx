@@ -246,6 +246,13 @@ export default function NewIncidentPage() {
           </ol>
         </nav>
 
+        {/* Link to Compliance Guides */}
+        <div className="mb-4">
+          <Link href="/compliance" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2">
+            <span>ℹ️</span> View NDIS Incident Reporting Guide in Compliance Dashboard
+          </Link>
+        </div>
+
         <div className="bg-gray-800 rounded-lg p-6">
           <h1 className="text-2xl font-bold text-white mb-6">Report Incident</h1>
 

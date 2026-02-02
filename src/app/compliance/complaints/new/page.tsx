@@ -13,7 +13,6 @@ export default function NewComplaintPage() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const [showGuidance, setShowGuidance] = useState(true);
 
   const properties = useQuery(api.properties.getAll);
   const participants = useQuery(api.participants.getAll);
@@ -110,29 +109,12 @@ export default function NewComplaintPage() {
           </div>
         </div>
 
-        {/* NDIS Guidance Panel */}
-        {showGuidance && (
-          <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4 mb-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-blue-200 font-semibold mb-2">NDIS Complaint Management Requirements</h3>
-                <ul className="text-blue-300 text-sm space-y-1">
-                  <li><span className="text-yellow-400">!</span> Acknowledge complaints within <strong>5 business days</strong></li>
-                  <li><span className="text-yellow-400">!</span> Resolve complaints within <strong>21 days</strong> where possible</li>
-                  <li><span className="text-yellow-400">!</span> Offer access to an <strong>independent advocate</strong></li>
-                  <li><span className="text-yellow-400">!</span> Record all complaints and outcomes for <strong>7 years</strong></li>
-                  <li><span className="text-yellow-400">!</span> Use complaints to identify <strong>systemic issues</strong> and improvements</li>
-                </ul>
-              </div>
-              <button
-                onClick={() => setShowGuidance(false)}
-                className="text-blue-400 hover:text-blue-300"
-              >
-                Hide
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Link to Compliance Guides */}
+        <div className="mb-4">
+          <Link href="/compliance" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2">
+            <span>ℹ️</span> View Complaints Handling Guide in Compliance Dashboard
+          </Link>
+        </div>
 
         {error && (
           <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded mb-6">

@@ -2,15 +2,32 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
+import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
+import { useAuth } from "@/hooks/useAuth";
 import { Id } from "../../../convex/_generated/dataModel";
+import { formatStatus } from "@/utils/format";
+
+// Severity badge colors
+const SEVERITY_BADGE_COLORS: Record<string, string> = {
+  critical: "bg-red-600",
+  warning: "bg-yellow-600",
+  info: "bg-blue-600",
+};
+
+// Alert status badge colors
+const ALERT_STATUS_COLORS: Record<string, string> = {
+  active: "bg-red-600",
+  acknowledged: "bg-yellow-600",
+  resolved: "bg-green-600",
+  dismissed: "bg-gray-600",
+};
 
 export default function AlertsPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+  const { user } = useAuth();
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("active");
@@ -22,14 +39,21 @@ export default function AlertsPage() {
   const dismissAlert = useMutation(api.alerts.dismiss);
   const generateAlerts = useMutation(api.alerts.generateAlerts);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (!storedUser) {
-      router.push("/login");
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-  }, [router]);
+  // Memoize filtered alerts
+  const filteredAlerts = useMemo(() => {
+    if (!allAlerts) return [];
+
+    return allAlerts.filter((alert) => {
+      const matchesSeverity = filterSeverity === "all" || alert.severity === filterSeverity;
+      const matchesType = filterType === "all" || alert.alertType === filterType;
+      const matchesStatus = filterStatus === "all" || alert.status === filterStatus;
+
+      return matchesSeverity && matchesType && matchesStatus;
+    });
+  }, [allAlerts, filterSeverity, filterType, filterStatus]);
+
+  const hasFilters =
+    filterStatus !== "active" || filterSeverity !== "all" || filterType !== "all";
 
   const handleAcknowledge = async (alertId: Id<"alerts">) => {
     if (!user) return;
@@ -66,150 +90,135 @@ export default function AlertsPage() {
     }
   };
 
-  if (!user) {
-    return <LoadingScreen />;
-  }
-
-  // Filter alerts
-  const filteredAlerts = allAlerts?.filter((alert) => {
-    const matchesSeverity = filterSeverity === "all" || alert.severity === filterSeverity;
-    const matchesType = filterType === "all" || alert.alertType === filterType;
-    const matchesStatus = filterStatus === "all" || alert.status === filterStatus;
-
-    return matchesSeverity && matchesType && matchesStatus;
-  });
-
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header currentPage="alerts" />
+    <RequireAuth>
+      <div className="min-h-screen bg-gray-900">
+        <Header currentPage="dashboard" />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Alerts & Notifications</h2>
-            <p className="text-gray-400 mt-1">Monitor important events and take action</p>
-          </div>
-          <button
-            onClick={handleGenerateAlerts}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            🔄 Generate Alerts
-          </button>
-        </div>
-
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <StatCard label="Active Alerts" value={stats.active.toString()} color="blue" />
-            <StatCard label="Critical" value={stats.critical.toString()} color="red" />
-            <StatCard label="Warnings" value={stats.warning.toString()} color="yellow" />
-            <StatCard label="Info" value={stats.info.toString()} color="green" />
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="bg-gray-800 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Page Header */}
+          <div className="flex justify-between items-center mb-8">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="acknowledged">Acknowledged</option>
-                <option value="resolved">Resolved</option>
-                <option value="dismissed">Dismissed</option>
-              </select>
+              <h1 className="text-2xl font-bold text-white">Alerts & Notifications</h1>
+              <p className="text-gray-400 mt-1">Monitor important events and take action</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Severity</label>
-              <select
-                value={filterSeverity}
-                onChange={(e) => setFilterSeverity(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Severities</option>
-                <option value="critical">Critical</option>
-                <option value="warning">Warning</option>
-                <option value="info">Info</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Type</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Types</option>
-                <option value="claim_due">Claim Due</option>
-                <option value="plan_expiry">Plan Expiry</option>
-                <option value="document_expiry">Document Expiry</option>
-                <option value="maintenance_due">Maintenance Due</option>
-                <option value="vacancy">Vacancy</option>
-                <option value="payment_missing">Payment Missing</option>
-                <option value="low_funding">Low Funding</option>
-                <option value="preventative_schedule_due">Preventative Schedule Due</option>
-              </select>
-            </div>
+            <button
+              onClick={handleGenerateAlerts}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+            >
+              Generate Alerts
+            </button>
           </div>
-        </div>
 
-        {/* Alerts List */}
-        {allAlerts === undefined ? (
-          <div className="text-gray-400 text-center py-12">Loading alerts...</div>
-        ) : filteredAlerts && filteredAlerts.length === 0 ? (
-          <EmptyState hasFilters={filterStatus !== "active" || filterSeverity !== "all" || filterType !== "all"} />
-        ) : (
-          <div className="space-y-4">
-            {filteredAlerts?.map((alert) => (
-              <AlertCard
-                key={alert._id}
-                alert={alert}
-                onAcknowledge={handleAcknowledge}
-                onResolve={handleResolve}
-                onDismiss={handleDismiss}
-              />
-            ))}
-          </div>
-        )}
+          {/* Stats Cards */}
+          {stats && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <StatCard title="Active Alerts" value={stats.active} color="blue" />
+              <StatCard title="Critical" value={stats.critical} color="red" />
+              <StatCard title="Warnings" value={stats.warning} color="yellow" />
+              <StatCard title="Info" value={stats.info} color="green" />
+            </div>
+          )}
 
-        {/* Results count */}
-        {filteredAlerts && filteredAlerts.length > 0 && (
-          <p className="text-gray-400 text-sm text-center mt-6">
-            Showing {filteredAlerts.length} alert{filteredAlerts.length !== 1 ? "s" : ""}
-          </p>
-        )}
-      </main>
-    </div>
-  );
-}
+          {/* Filters */}
+          <fieldset className="bg-gray-800 rounded-lg p-4 mb-6">
+            <legend className="sr-only">Filter alerts</legend>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                  Status
+                </label>
+                <select
+                  id="status-filter"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="acknowledged">Acknowledged</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="dismissed">Dismissed</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="severity-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                  Severity
+                </label>
+                <select
+                  id="severity-filter"
+                  value={filterSeverity}
+                  onChange={(e) => setFilterSeverity(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Severities</option>
+                  <option value="critical">Critical</option>
+                  <option value="warning">Warning</option>
+                  <option value="info">Info</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="type-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                  Type
+                </label>
+                <select
+                  id="type-filter"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Types</option>
+                  <option value="claim_due">Claim Due</option>
+                  <option value="plan_expiry">Plan Expiry</option>
+                  <option value="document_expiry">Document Expiry</option>
+                  <option value="maintenance_due">Maintenance Due</option>
+                  <option value="vacancy">Vacancy</option>
+                  <option value="payment_missing">Payment Missing</option>
+                  <option value="low_funding">Low Funding</option>
+                  <option value="preventative_schedule_due">Preventative Schedule Due</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
 
-function StatCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: "blue" | "green" | "yellow" | "red";
-}) {
-  const colorClasses = {
-    blue: "text-blue-400",
-    green: "text-green-400",
-    yellow: "text-yellow-400",
-    red: "text-red-400",
-  };
+          {/* Results count */}
+          {allAlerts !== undefined && (
+            <p className="text-sm text-gray-400 mb-4" aria-live="polite">
+              Showing {filteredAlerts.length} of {allAlerts.length} alerts
+              {hasFilters && " (filtered)"}
+            </p>
+          )}
 
-  return (
-    <div className="bg-gray-800 rounded-lg p-6">
-      <p className="text-gray-400 text-sm mb-2">{label}</p>
-      <p className={`text-2xl font-bold ${colorClasses[color]}`}>{value}</p>
-    </div>
+          {/* Alerts List */}
+          {allAlerts === undefined ? (
+            <LoadingScreen fullScreen={false} message="Loading alerts..." />
+          ) : filteredAlerts.length === 0 ? (
+            <EmptyState
+              title={hasFilters ? "No alerts found" : "All clear!"}
+              description={
+                hasFilters
+                  ? "Try adjusting your filters to see more results"
+                  : "No active alerts at this time"
+              }
+              icon={<span className="text-6xl">🔔</span>}
+              isFiltered={hasFilters}
+            />
+          ) : (
+            <div className="space-y-4" role="list" aria-label="Alerts list">
+              {filteredAlerts.map((alert) => (
+                <AlertCard
+                  key={alert._id}
+                  alert={alert}
+                  onAcknowledge={handleAcknowledge}
+                  onResolve={handleResolve}
+                  onDismiss={handleDismiss}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </RequireAuth>
   );
 }
 
@@ -224,33 +233,7 @@ function AlertCard({
   onResolve: (id: Id<"alerts">) => void;
   onDismiss: (id: Id<"alerts">) => void;
 }) {
-  const getSeverityColor = (severity: string) => {
-    const colors: Record<string, string> = {
-      critical: "bg-red-600",
-      warning: "bg-yellow-600",
-      info: "bg-blue-600",
-    };
-    return colors[severity] || colors.info;
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: "bg-red-600",
-      acknowledged: "bg-yellow-600",
-      resolved: "bg-green-600",
-      dismissed: "bg-gray-600",
-    };
-    return colors[status] || colors.active;
-  };
-
-  const formatType = (type: string) => {
-    return type
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
-  const getLinkedEntity = () => {
-    // For claim_due alerts, show participant and link to financials
+  const linkedEntity = useMemo(() => {
     if (alert.alertType === "claim_due" && alert.participant) {
       return {
         name: `${alert.participant.firstName} ${alert.participant.lastName}`,
@@ -294,39 +277,43 @@ function AlertCard({
       };
     }
     return null;
-  };
-
-  const linkedEntity = getLinkedEntity();
+  }, [alert]);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors border-l-4 border-l-red-600">
+    <article
+      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors border-l-4 border-l-red-600"
+      role="listitem"
+    >
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <span
-              className={`px-3 py-1 text-white text-xs rounded-full ${getSeverityColor(
-                alert.severity
-              )}`}
+              className={`px-3 py-1 text-white text-xs rounded-full ${
+                SEVERITY_BADGE_COLORS[alert.severity] || "bg-gray-600"
+              }`}
             >
               {alert.severity.toUpperCase()}
             </span>
             <span
-              className={`px-3 py-1 text-white text-xs rounded-full ${getStatusColor(
-                alert.status
-              )}`}
+              className={`px-3 py-1 text-white text-xs rounded-full ${
+                ALERT_STATUS_COLORS[alert.status] || "bg-gray-600"
+              }`}
             >
               {alert.status.toUpperCase()}
             </span>
-            <span className="text-gray-400 text-xs">{formatType(alert.alertType)}</span>
+            <span className="text-gray-400 text-xs">{formatStatus(alert.alertType)}</span>
           </div>
-          <h3 className="text-lg font-semibold text-white mb-1">{alert.title}</h3>
+          <h2 className="text-lg font-semibold text-white mb-1">{alert.title}</h2>
           <p className="text-gray-300 text-sm mb-3">{alert.message}</p>
 
           {linkedEntity && (
             <div className="text-sm text-gray-400">
               <span className="text-gray-500">{linkedEntity.type}: </span>
               {linkedEntity.link ? (
-                <Link href={linkedEntity.link} className="text-blue-400 hover:text-blue-300">
+                <Link
+                  href={linkedEntity.link}
+                  className="text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:underline"
+                >
                   {linkedEntity.name}
                 </Link>
               ) : (
@@ -340,19 +327,19 @@ function AlertCard({
           <div className="flex gap-2">
             <button
               onClick={() => onAcknowledge(alert._id)}
-              className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded transition-colors"
+              className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500"
             >
               Acknowledge
             </button>
             <button
               onClick={() => onResolve(alert._id)}
-              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors"
+              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
             >
               Resolve
             </button>
             <button
               onClick={() => onDismiss(alert._id)}
-              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded transition-colors"
+              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
             >
               Dismiss
             </button>
@@ -372,30 +359,6 @@ function AlertCard({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
-  return (
-    <div className="bg-gray-800 rounded-lg p-12 text-center">
-      <div className="text-gray-500 text-6xl mb-4">🔔</div>
-      <h3 className="text-xl font-semibold text-white mb-2">
-        {hasFilters ? "No alerts found" : "All clear!"}
-      </h3>
-      <p className="text-gray-400 mb-6">
-        {hasFilters
-          ? "Try adjusting your filters to see more results"
-          : "No active alerts at this time"}
-      </p>
-    </div>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-white">Loading...</div>
-    </div>
+    </article>
   );
 }

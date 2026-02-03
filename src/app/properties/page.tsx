@@ -2,109 +2,104 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
+import { LoadingScreen, EmptyState } from "@/components/ui";
+import { OCCUPANCY_COLORS, PROPERTY_STATUS_COLORS } from "@/constants/colors";
 
 export default function PropertiesPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ role: string } | null>(null);
   const properties = useQuery(api.properties.getAll);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (!storedUser) {
-      router.push("/login");
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-  }, [router]);
-
-  if (!user) {
-    return <LoadingScreen />;
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header currentPage="properties" />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Properties</h2>
-            <p className="text-gray-400 mt-1">Manage your SDA properties and dwellings</p>
-          </div>
-          <Link
-            href="/properties/new"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            + Add Property
-          </Link>
-        </div>
+    <RequireAuth>
+      <div className="min-h-screen bg-gray-900">
+        <Header currentPage="properties" />
 
-        {/* Properties List */}
-        {properties === undefined ? (
-          <div className="text-gray-400 text-center py-12">Loading properties...</div>
-        ) : properties.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="grid gap-6">
-            {properties.map((property) => (
-              <PropertyCard key={property._id} property={property} />
-            ))}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Page Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Properties</h1>
+              <p className="text-gray-400 mt-1">Manage your SDA properties and dwellings</p>
+            </div>
+            <Link
+              href="/properties/new"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+            >
+              + Add Property
+            </Link>
           </div>
-        )}
-      </main>
-    </div>
+
+          {/* Properties List */}
+          {properties === undefined ? (
+            <LoadingScreen fullScreen={false} message="Loading properties..." />
+          ) : properties.length === 0 ? (
+            <EmptyState
+              title="No properties yet"
+              description="Get started by adding your first SDA property"
+              icon={<span className="text-6xl">🏠</span>}
+              action={{
+                label: "+ Add Your First Property",
+                href: "/properties/new",
+              }}
+            />
+          ) : (
+            <div className="grid gap-6" role="list" aria-label="Properties list">
+              {properties.map((property) => (
+                <PropertyCard key={property._id} property={property} />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </RequireAuth>
   );
 }
 
 function PropertyCard({ property }: { property: any }) {
-  const getOwnerName = () => {
+  const ownerName = useMemo(() => {
     if (!property.owner) return "Unknown";
     if (property.owner.ownerType === "self") return "Self-owned";
     if (property.owner.companyName) return property.owner.companyName;
     return `${property.owner.firstName} ${property.owner.lastName}`;
-  };
+  }, [property.owner]);
 
-  const getOccupancyColor = () => {
-    if (property.vacancies === 0) return "bg-green-600";
-    if (property.currentOccupancy === 0) return "bg-red-600";
-    return "bg-yellow-600";
-  };
+  const occupancyColor = useMemo(() => {
+    if (property.vacancies === 0) return OCCUPANCY_COLORS.full;
+    if (property.currentOccupancy === 0) return OCCUPANCY_COLORS.empty;
+    return OCCUPANCY_COLORS.partial;
+  }, [property.vacancies, property.currentOccupancy]);
 
-  const getStatusBadge = () => {
+  const statusBadge = useMemo(() => {
     const status = property.propertyStatus;
     if (!status || status === "active") return null;
-    if (status === "under_construction") {
-      return (
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-600 text-white">
-          Under Construction
-        </span>
-      );
-    }
-    if (status === "sil_property") {
-      return (
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-600 text-white">
-          SIL Property
-        </span>
-      );
-    }
-    return null;
-  };
+
+    const config = PROPERTY_STATUS_COLORS[status as keyof typeof PROPERTY_STATUS_COLORS];
+    if (!config) return null;
+
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${config.bg}`}>
+        {config.label}
+      </span>
+    );
+  }, [property.propertyStatus]);
 
   return (
-    <Link href={`/properties/${property._id}`}>
-      <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer border border-gray-700 hover:border-gray-600">
+    <Link
+      href={`/properties/${property._id}`}
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+      role="listitem"
+    >
+      <article className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer border border-gray-700 hover:border-gray-600">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-white">
                 {property.propertyName || property.addressLine1}
-              </h3>
-              {getStatusBadge()}
+              </h2>
+              {statusBadge}
             </div>
             <p className="text-gray-400">
               {property.addressLine1}
@@ -115,7 +110,7 @@ function PropertyCard({ property }: { property: any }) {
             </p>
           </div>
           <div className="text-right">
-            <span className={`inline-block px-3 py-1 rounded-full text-sm text-white ${getOccupancyColor()}`}>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm text-white ${occupancyColor}`}>
               {property.currentOccupancy}/{property.totalCapacity} occupied
             </span>
           </div>
@@ -124,7 +119,7 @@ function PropertyCard({ property }: { property: any }) {
         <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-gray-500 text-sm">Owner</p>
-            <p className="text-white">{getOwnerName()}</p>
+            <p className="text-white">{ownerName}</p>
           </div>
           <div>
             <p className="text-gray-500 text-sm">Dwellings</p>
@@ -137,37 +132,13 @@ function PropertyCard({ property }: { property: any }) {
           <div>
             <p className="text-gray-500 text-sm">Revenue Share</p>
             <p className="text-white">
-              {property.ownershipType === "self_owned" 
-                ? "N/A" 
+              {property.ownershipType === "self_owned"
+                ? "N/A"
                 : `${property.revenueSharePercent || 0}%`}
             </p>
           </div>
         </div>
-      </div>
+      </article>
     </Link>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="bg-gray-800 rounded-lg p-12 text-center">
-      <div className="text-gray-500 text-6xl mb-4">🏠</div>
-      <h3 className="text-xl font-semibold text-white mb-2">No properties yet</h3>
-      <p className="text-gray-400 mb-6">Get started by adding your first SDA property</p>
-      <Link
-        href="/properties/new"
-        className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-      >
-        + Add Your First Property
-      </Link>
-    </div>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-white">Loading...</div>
-    </div>
   );
 }

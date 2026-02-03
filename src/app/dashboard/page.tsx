@@ -2,9 +2,13 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
+import { LoadingScreen } from "@/components/ui";
+import { SEVERITY_COLORS } from "@/constants/colors";
+import { formatCurrency } from "@/utils/format";
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -15,28 +19,38 @@ export default function DashboardPage() {
   const overdueSchedules = useQuery(api.preventativeSchedule.getOverdue);
   const activeAlerts = useQuery(api.alerts.getActive);
 
+  // Memoize property calculations
+  const propertyStats = useMemo(() => {
+    if (!properties) return null;
+
+    const activeProperties = properties.filter(p => !p.propertyStatus || p.propertyStatus === "active");
+
+    return {
+      totalProperties: properties.length,
+      totalDwellings: properties.reduce((sum, p) => sum + p.dwellingCount, 0),
+      totalParticipants: activeProperties.reduce((sum, p) => sum + p.currentOccupancy, 0),
+      totalVacancies: activeProperties.reduce((sum, p) => sum + p.vacancies, 0),
+      activeSdaCount: activeProperties.length,
+      underConstructionCount: properties.filter(p => p.propertyStatus === "under_construction").length,
+      planningCount: properties.filter(p => p.propertyStatus === "planning").length,
+    };
+  }, [properties]);
+
+  // Memoize schedule calculations
+  const scheduleCalcs = useMemo(() => {
+    if (!upcomingSchedules) return { dueWithin7Days: 0, estimatedCost30Days: 0 };
+
+    return {
+      dueWithin7Days: upcomingSchedules.filter(s => s.daysUntilDue >= 0 && s.daysUntilDue <= 7).length,
+      estimatedCost30Days: upcomingSchedules
+        .filter(s => s.daysUntilDue >= 0 && s.daysUntilDue <= 30)
+        .reduce((sum, s) => sum + (s.estimatedCost || 0), 0),
+    };
+  }, [upcomingSchedules]);
+
   if (isLoading || !user) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="Loading dashboard..." />;
   }
-
-  // Calculate stats from properties
-  const totalProperties = properties?.length || 0;
-
-  // Filter active properties for accurate stats
-  const activeProperties = properties?.filter(p => !p.propertyStatus || p.propertyStatus === "active") || [];
-
-  const totalParticipants = activeProperties.reduce((sum, p) => sum + p.currentOccupancy, 0);
-  const totalVacancies = activeProperties.reduce((sum, p) => sum + p.vacancies, 0);
-  const totalDwellings = properties?.reduce((sum, p) => sum + p.dwellingCount, 0) || 0;
-
-  // Property status counts
-  const activeSdaCount = activeProperties.length;
-  const underConstructionCount = properties?.filter(p => p.propertyStatus === "under_construction").length || 0;
-  const planningCount = properties?.filter(p => p.propertyStatus === "planning").length || 0;
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -51,7 +65,7 @@ export default function DashboardPage() {
           <Link href="/properties?status=active">
             <DashboardCard
               title="Active SDA"
-              value={activeSdaCount.toString()}
+              value={(propertyStats?.activeSdaCount ?? 0).toString()}
               subtitle="Operational properties"
               color="green"
             />
@@ -59,7 +73,7 @@ export default function DashboardPage() {
           <Link href="/properties?status=under_construction">
             <DashboardCard
               title="Under Construction"
-              value={underConstructionCount.toString()}
+              value={(propertyStats?.underConstructionCount ?? 0).toString()}
               subtitle="Properties being built"
               color="yellow"
             />
@@ -67,7 +81,7 @@ export default function DashboardPage() {
           <Link href="/properties?status=planning">
             <DashboardCard
               title="Planning Stage"
-              value={planningCount.toString()}
+              value={(propertyStats?.planningCount ?? 0).toString()}
               subtitle="Future developments"
               color="blue"
             />
@@ -79,15 +93,15 @@ export default function DashboardPage() {
           <Link href="/properties">
             <DashboardCard
               title="Total Properties"
-              value={totalProperties.toString()}
-              subtitle={`${totalDwellings} dwellings total`}
+              value={(propertyStats?.totalProperties ?? 0).toString()}
+              subtitle={`${propertyStats?.totalDwellings ?? 0} dwellings total`}
               color="blue"
             />
           </Link>
           <Link href="/participants">
             <DashboardCard
               title="Participants"
-              value={totalParticipants.toString()}
+              value={(propertyStats?.totalParticipants ?? 0).toString()}
               subtitle="Active residents"
               color="green"
             />
@@ -95,7 +109,7 @@ export default function DashboardPage() {
           <Link href="/vacancies">
             <DashboardCard
               title="Vacancies"
-              value={totalVacancies.toString()}
+              value={(propertyStats?.totalVacancies ?? 0).toString()}
               subtitle="Available spaces"
               color="yellow"
             />
@@ -123,7 +137,7 @@ export default function DashboardPage() {
           <Link href="/operations?tab=schedule">
             <DashboardCard
               title="Due Within 7 Days"
-              value={(upcomingSchedules?.filter(s => s.daysUntilDue >= 0 && s.daysUntilDue <= 7).length || 0).toString()}
+              value={scheduleCalcs.dueWithin7Days.toString()}
               subtitle="Upcoming scheduled tasks"
               color="yellow"
             />
@@ -132,11 +146,7 @@ export default function DashboardPage() {
             <DashboardCard
               title="Due Within 30 Days"
               value={(scheduleStats?.dueWithin30Days || 0).toString()}
-              subtitle={`Est. $${
-                upcomingSchedules
-                  ?.filter(s => s.daysUntilDue >= 0 && s.daysUntilDue <= 30)
-                  .reduce((sum, s) => sum + (s.estimatedCost || 0), 0) || 0
-              }`}
+              subtitle={`Est. ${formatCurrency(scheduleCalcs.estimatedCost30Days)}`}
               color="blue"
             />
           </Link>
@@ -208,7 +218,7 @@ export default function DashboardPage() {
                       <div className="text-right">
                         <p className="text-white">{schedule.nextDueDate}</p>
                         {schedule.estimatedCost && (
-                          <p className="text-gray-400 text-sm">${schedule.estimatedCost}</p>
+                          <p className="text-gray-400 text-sm">{formatCurrency(schedule.estimatedCost)}</p>
                         )}
                       </div>
                     </div>
@@ -260,28 +270,21 @@ export default function DashboardPage() {
           </div>
           {activeAlerts && activeAlerts.length > 0 ? (
             <div className="space-y-3">
-              {activeAlerts.slice(0, 5).map((alert) => {
-                const severityColors: Record<string, string> = {
-                  critical: "bg-red-600",
-                  warning: "bg-yellow-600",
-                  info: "bg-blue-600",
-                };
-                return (
-                  <div key={alert._id} className="p-4 bg-gray-700/50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`px-2 py-1 text-white text-xs rounded-full ${
-                          severityColors[alert.severity]
-                        }`}
-                      >
-                        {alert.severity.toUpperCase()}
-                      </span>
-                      <span className="text-white font-medium">{alert.title}</span>
-                    </div>
-                    <p className="text-gray-400 text-sm">{alert.message}</p>
+              {activeAlerts.slice(0, 5).map((alert) => (
+                <div key={alert._id} className="p-4 bg-gray-700/50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className={`px-2 py-1 text-white text-xs rounded-full ${
+                        SEVERITY_COLORS[alert.severity as keyof typeof SEVERITY_COLORS] || "bg-gray-600"
+                      }`}
+                    >
+                      {alert.severity.toUpperCase()}
+                    </span>
+                    <span className="text-white font-medium">{alert.title}</span>
                   </div>
-                );
-              })}
+                  <p className="text-gray-400 text-sm">{alert.message}</p>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-gray-400 text-center py-8">No alerts at this time</div>

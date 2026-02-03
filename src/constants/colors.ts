@@ -101,6 +101,47 @@ export const ALERT_TYPE_COLORS = {
   compliance: "bg-orange-500/20 text-orange-400",
 } as const;
 
+// Occupancy colors (for property cards)
+export const OCCUPANCY_COLORS = {
+  full: "bg-green-600",
+  partial: "bg-yellow-600",
+  empty: "bg-red-600",
+} as const;
+
+// Property status colors with labels
+export const PROPERTY_STATUS_COLORS = {
+  active: { bg: "bg-green-600", label: "Active" },
+  under_construction: { bg: "bg-yellow-600", label: "Under Construction" },
+  planning: { bg: "bg-blue-600", label: "Planning" },
+  sil_property: { bg: "bg-purple-600", label: "SIL Property" },
+  inactive: { bg: "bg-gray-600", label: "Inactive" },
+} as const;
+
+// Inspection status colors
+export const INSPECTION_STATUS_COLORS = {
+  draft: "bg-gray-600",
+  in_progress: "bg-yellow-600",
+  completed: "bg-green-600",
+  cancelled: "bg-red-600",
+} as const;
+
+// Contractor specialty colors
+export const SPECIALTY_COLORS = {
+  plumbing: "bg-blue-600",
+  electrical: "bg-yellow-600",
+  hvac: "bg-cyan-600",
+  general: "bg-gray-600",
+  landscaping: "bg-green-600",
+  cleaning: "bg-purple-600",
+  pest_control: "bg-orange-600",
+  roofing: "bg-red-600",
+  painting: "bg-pink-600",
+  carpentry: "bg-amber-600",
+  appliances: "bg-indigo-600",
+  fire_safety: "bg-red-500",
+  other: "bg-gray-500",
+} as const;
+
 // Helper function to get color class with fallback
 export function getStatusColor(status: string, colorMap: Record<string, string>): string {
   return colorMap[status.toLowerCase()] || "bg-gray-500/20 text-gray-400";

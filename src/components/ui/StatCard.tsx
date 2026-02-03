@@ -2,6 +2,17 @@
 
 import Link from "next/link";
 
+type StatColor = "blue" | "green" | "yellow" | "red" | "purple" | "gray";
+
+const COLOR_MAP: Record<StatColor, string> = {
+  blue: "text-blue-400",
+  green: "text-green-400",
+  yellow: "text-yellow-400",
+  red: "text-red-400",
+  purple: "text-purple-400",
+  gray: "text-gray-400",
+};
+
 interface StatCardProps {
   /** Card title */
   title: string;
@@ -11,9 +22,11 @@ interface StatCardProps {
   subtitle?: string;
   /** Optional link to detail page */
   href?: string;
-  /** Background color class */
+  /** Simple color name for value text */
+  color?: StatColor;
+  /** Background color class (overrides default) */
   bgColor?: string;
-  /** Text color class for the value */
+  /** Text color class for the value (overrides color prop) */
   valueColor?: string;
   /** Icon to display */
   icon?: React.ReactNode;
@@ -29,11 +42,14 @@ export function StatCard({
   value,
   subtitle,
   href,
+  color,
   bgColor = "bg-gray-800",
-  valueColor = "text-white",
+  valueColor,
   icon,
   trend,
 }: StatCardProps) {
+  // Use explicit valueColor if provided, otherwise map from color prop
+  const finalValueColor = valueColor || (color ? COLOR_MAP[color] : "text-white");
   const content = (
     <div
       className={`${bgColor} rounded-lg p-6 ${
@@ -45,7 +61,7 @@ export function StatCard({
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-gray-400">{title}</p>
-          <p className={`text-3xl font-bold ${valueColor} mt-1`}>{value}</p>
+          <p className={`text-3xl font-bold ${finalValueColor} mt-1`}>{value}</p>
           {subtitle && (
             <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
           )}

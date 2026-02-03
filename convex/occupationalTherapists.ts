@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth } from "./authHelpers";
 
 // Predefined Sydney regions (same as support coordinators)
 export const SYDNEY_REGIONS = [

@@ -1,6 +1,7 @@
 import { mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { requireAuth } from "./authHelpers";
 
 // Create a new alert
 export const create = mutation({
@@ -239,6 +240,8 @@ export const acknowledge = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Permission check - any authenticated user can acknowledge alerts
+    await requireAuth(ctx, args.userId);
     await ctx.db.patch(args.alertId, {
       status: "acknowledged",
       acknowledgedBy: args.userId,
@@ -255,6 +258,8 @@ export const resolve = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     await ctx.db.patch(args.alertId, {
       status: "resolved",
       resolvedBy: args.userId,
@@ -267,9 +272,12 @@ export const resolve = mutation({
 // Dismiss an alert
 export const dismiss = mutation({
   args: {
+    userId: v.id("users"),
     alertId: v.id("alerts"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     await ctx.db.patch(args.alertId, {
       status: "dismissed",
     });
@@ -279,8 +287,13 @@ export const dismiss = mutation({
 
 // Delete alert
 export const remove = mutation({
-  args: { alertId: v.id("alerts") },
+  args: {
+    userId: v.id("users"),
+    alertId: v.id("alerts"),
+  },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     await ctx.db.delete(args.alertId);
     return { success: true };
   },

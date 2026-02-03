@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission, getUserFullName } from "./authHelpers";
 
 // Get all claims for a specific period (month)
 export const getByPeriod = query({
@@ -136,6 +138,7 @@ export const getByParticipant = query({
 // Create a new claim
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     participantId: v.id("participants"),
     planId: v.id("participantPlans"),
     claimPeriod: v.string(),
@@ -154,9 +157,10 @@ export const create = mutation({
     ),
     claimDate: v.optional(v.string()),
     notes: v.optional(v.string()),
-    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    // Permission check - payments permission required
+    const user = await requirePermission(ctx, args.userId, "payments", "create");
     const now = Date.now();
 
     // Check if claim already exists for this participant and period
@@ -179,9 +183,21 @@ export const create = mutation({
       status: args.status || "pending",
       claimDate: args.claimDate,
       notes: args.notes,
-      createdBy: args.createdBy,
+      createdBy: args.userId,
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Audit log
+    const participant = await ctx.db.get(args.participantId);
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "create",
+      entityType: "claim",
+      entityId: claimId,
+      entityName: `${participant?.firstName} ${participant?.lastName} - ${args.claimPeriod}`,
     });
 
     return claimId;
@@ -191,6 +207,7 @@ export const create = mutation({
 // Update claim status (mark as submitted, paid, etc.)
 export const updateStatus = mutation({
   args: {
+    userId: v.id("users"),
     claimId: v.id("claims"),
     status: v.union(
       v.literal("pending"),
@@ -207,7 +224,9 @@ export const updateStatus = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { claimId, ...updates } = args;
+    // Permission check
+    await requirePermission(ctx, args.userId, "payments", "update");
+    const { claimId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -224,10 +243,12 @@ export const updateStatus = mutation({
 // Bulk create claims for a period (for all eligible participants)
 export const bulkCreateForPeriod = mutation({
   args: {
+    userId: v.id("users"),
     claimPeriod: v.string(),
-    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requirePermission(ctx, args.userId, "payments", "create");
     const now = Date.now();
 
     // Get all active participants
@@ -272,7 +293,7 @@ export const bulkCreateForPeriod = mutation({
         claimMethod: currentPlan.claimMethod || "agency_managed",
         expectedAmount: currentPlan.monthlySdaAmount || currentPlan.annualSdaBudget / 12,
         status: "pending",
-        createdBy: args.createdBy,
+        createdBy: args.userId,
         createdAt: now,
         updatedAt: now,
       });
@@ -287,12 +308,15 @@ export const bulkCreateForPeriod = mutation({
 // Mark claim as submitted
 export const markSubmitted = mutation({
   args: {
+    userId: v.id("users"),
     claimId: v.id("claims"),
     claimDate: v.string(),
     claimedAmount: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requirePermission(ctx, args.userId, "payments", "update");
     const claim = await ctx.db.get(args.claimId);
     if (!claim) throw new Error("Claim not found");
 
@@ -311,6 +335,7 @@ export const markSubmitted = mutation({
 // Mark claim as paid
 export const markPaid = mutation({
   args: {
+    userId: v.id("users"),
     claimId: v.id("claims"),
     paidDate: v.string(),
     paidAmount: v.number(),
@@ -318,6 +343,8 @@ export const markPaid = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requirePermission(ctx, args.userId, "payments", "update");
     await ctx.db.patch(args.claimId, {
       status: "paid",
       paidDate: args.paidDate,
@@ -334,10 +361,13 @@ export const markPaid = mutation({
 // Mark claim as rejected
 export const markRejected = mutation({
   args: {
+    userId: v.id("users"),
     claimId: v.id("claims"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requirePermission(ctx, args.userId, "payments", "update");
     await ctx.db.patch(args.claimId, {
       status: "rejected",
       notes: args.reason || "Claim rejected",
@@ -351,9 +381,12 @@ export const markRejected = mutation({
 // Revert claim to pending
 export const revertToPending = mutation({
   args: {
+    userId: v.id("users"),
     claimId: v.id("claims"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requirePermission(ctx, args.userId, "payments", "update");
     await ctx.db.patch(args.claimId, {
       status: "pending",
       claimDate: undefined,
@@ -450,8 +483,13 @@ export const getMonthlySummary = query({
 
 // Delete a claim
 export const remove = mutation({
-  args: { claimId: v.id("claims") },
+  args: {
+    userId: v.id("users"),
+    claimId: v.id("claims"),
+  },
   handler: async (ctx, args) => {
+    // Permission check - only admin can delete
+    await requirePermission(ctx, args.userId, "payments", "delete");
     await ctx.db.delete(args.claimId);
     return { success: true };
   },

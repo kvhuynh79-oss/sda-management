@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAuth } from "./authHelpers";
 
 // Get all certifications with optional filters
 export const getAll = query({
@@ -76,6 +77,7 @@ export const getById = query({
 // Create certification
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     certificationType: v.union(
       v.literal("ndis_practice_standards"),
       v.literal("ndis_verification_audit"),
@@ -105,9 +107,11 @@ export const create = mutation({
     )),
     certificateStorageId: v.optional(v.id("_storage")),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { userId, ...certificationData } = args;
     const now = Date.now();
     const expiryDate = new Date(args.expiryDate);
     const today = new Date();
@@ -121,7 +125,8 @@ export const create = mutation({
     }
 
     return await ctx.db.insert("complianceCertifications", {
-      ...args,
+      ...certificationData,
+      createdBy: userId,
       status,
       createdAt: now,
       updatedAt: now,
@@ -132,6 +137,7 @@ export const create = mutation({
 // Update certification
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     certificationId: v.id("complianceCertifications"),
     certificationName: v.optional(v.string()),
     certifyingBody: v.optional(v.string()),
@@ -157,7 +163,9 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { certificationId, ...updates } = args;
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { certificationId, userId, ...updates } = args;
     const cert = await ctx.db.get(certificationId);
     if (!cert) throw new Error("Certification not found");
 
@@ -192,8 +200,13 @@ export const update = mutation({
 
 // Delete certification
 export const remove = mutation({
-  args: { certificationId: v.id("complianceCertifications") },
+  args: {
+    userId: v.id("users"),
+    certificationId: v.id("complianceCertifications"),
+  },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     await ctx.db.delete(args.certificationId);
     return { success: true };
   },

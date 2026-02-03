@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { requireAuth } from "./authHelpers";
 
 // Predefined Sydney regions
 export const SYDNEY_REGIONS = [

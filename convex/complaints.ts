@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { requireAuth, requirePermission, getUserFullName } from "./authHelpers";
 
 // Get all complaints with optional filters
 export const getAll = query({
@@ -94,6 +96,7 @@ export const getById = query({
 // Create complaint
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     complainantType: v.union(
       v.literal("participant"),
       v.literal("family_carer"),
@@ -109,7 +112,6 @@ export const create = mutation({
     propertyId: v.optional(v.id("properties")),
     complaintDate: v.string(),
     receivedDate: v.string(),
-    receivedBy: v.id("users"),
     category: v.union(
       v.literal("service_delivery"),
       v.literal("staff_conduct"),
@@ -131,21 +133,39 @@ export const create = mutation({
     advocacyOffered: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    const user = await requireAuth(ctx, args.userId);
+    const { userId, ...complaintData } = args;
     const now = Date.now();
 
-    return await ctx.db.insert("complaints", {
-      ...args,
+    const complaintId = await ctx.db.insert("complaints", {
+      ...complaintData,
+      receivedBy: userId,
       status: "received",
       acknowledgmentOverdue: false,
       createdAt: now,
       updatedAt: now,
     });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "create",
+      entityType: "complaint",
+      entityId: complaintId,
+      entityName: `${args.category} complaint`,
+    });
+
+    return complaintId;
   },
 });
 
 // Acknowledge complaint
 export const acknowledge = mutation({
   args: {
+    userId: v.id("users"),
     complaintId: v.id("complaints"),
     acknowledgmentMethod: v.union(
       v.literal("email"),
@@ -156,6 +176,8 @@ export const acknowledge = mutation({
     acknowledgedDate: v.string(),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) throw new Error("Complaint not found");
 
@@ -174,6 +196,7 @@ export const acknowledge = mutation({
 // Update complaint
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     complaintId: v.id("complaints"),
     assignedTo: v.optional(v.id("users")),
     investigationNotes: v.optional(v.string()),
@@ -190,7 +213,9 @@ export const update = mutation({
     advocacyProvider: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { complaintId, ...updates } = args;
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { complaintId, userId, ...updates } = args;
     const complaint = await ctx.db.get(complaintId);
     if (!complaint) throw new Error("Complaint not found");
 
@@ -209,6 +234,7 @@ export const update = mutation({
 // Resolve complaint
 export const resolve = mutation({
   args: {
+    userId: v.id("users"),
     complaintId: v.id("complaints"),
     resolutionDate: v.string(),
     resolutionDescription: v.string(),
@@ -223,7 +249,9 @@ export const resolve = mutation({
     correctiveActionsTaken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { complaintId, ...resolution } = args;
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { complaintId, userId, ...resolution } = args;
     const complaint = await ctx.db.get(complaintId);
     if (!complaint) throw new Error("Complaint not found");
 
@@ -240,11 +268,14 @@ export const resolve = mutation({
 // Escalate to NDIS Commission
 export const escalate = mutation({
   args: {
+    userId: v.id("users"),
     complaintId: v.id("complaints"),
     escalationDate: v.string(),
     escalationReason: v.string(),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) throw new Error("Complaint not found");
 
@@ -262,8 +293,13 @@ export const escalate = mutation({
 
 // Close complaint
 export const close = mutation({
-  args: { complaintId: v.id("complaints") },
+  args: {
+    userId: v.id("users"),
+    complaintId: v.id("complaints"),
+  },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) throw new Error("Complaint not found");
 
@@ -278,8 +314,13 @@ export const close = mutation({
 
 // Delete complaint
 export const remove = mutation({
-  args: { complaintId: v.id("complaints") },
+  args: {
+    userId: v.id("users"),
+    complaintId: v.id("complaints"),
+  },
   handler: async (ctx, args) => {
+    // Permission check - admin only
+    await requirePermission(ctx, args.userId, "incidents", "delete");
     await ctx.db.delete(args.complaintId);
     return { success: true };
   },

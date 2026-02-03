@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { useRouter } from "next/navigation";
 
 const SYDNEY_REGIONS = [
   "Northern Sydney",
@@ -36,10 +37,22 @@ const OT_SPECIALIZATIONS = [
 ];
 
 export default function OccupationalTherapistsContent() {
+  const router = useRouter();
+  const [userId, setUserId] = useState<Id<"users"> | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<Id<"occupationalTherapists"> | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (!storedUser) {
+      router.push("/login");
+      return;
+    }
+    const user = JSON.parse(storedUser);
+    setUserId(user.id as Id<"users">);
+  }, [router]);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -83,6 +96,7 @@ export default function OccupationalTherapistsContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) return;
     const allAreas = [...formData.areas];
     if (formData.customArea.trim()) {
       allAreas.push(formData.customArea.trim());
@@ -90,6 +104,7 @@ export default function OccupationalTherapistsContent() {
 
     if (editingId) {
       await updateTherapist({
+        userId,
         otId: editingId,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -105,6 +120,7 @@ export default function OccupationalTherapistsContent() {
       });
     } else {
       await createTherapist({
+        userId,
         firstName: formData.firstName,
         lastName: formData.lastName,
         organization: formData.organization || undefined,
@@ -146,13 +162,16 @@ export default function OccupationalTherapistsContent() {
   };
 
   const handleDelete = async (id: Id<"occupationalTherapists">) => {
+    if (!userId) return;
     if (confirm("Are you sure you want to delete this occupational therapist?")) {
-      await removeTherapist({ otId: id });
+      await removeTherapist({ userId, otId: id });
     }
   };
 
   const handleToggleStatus = async (therapist: NonNullable<typeof therapists>[0]) => {
+    if (!userId) return;
     await updateTherapist({
+      userId,
       otId: therapist._id,
       status: therapist.status === "active" ? "inactive" : "active",
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
@@ -13,10 +13,21 @@ export default function SupportCoordinatorDetailPage() {
   const router = useRouter();
   const coordinatorId = params.id as Id<"supportCoordinators">;
 
+  const [userId, setUserId] = useState<Id<"users"> | null>(null);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState<Id<"participants"> | "">("");
   const [relationshipType, setRelationshipType] = useState<"referred" | "current" | "past" | "inquiry">("current");
   const [linkNotes, setLinkNotes] = useState("");
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (!storedUser) {
+      router.push("/login");
+      return;
+    }
+    const user = JSON.parse(storedUser);
+    setUserId(user.id as Id<"users">);
+  }, [router]);
 
   const coordinator = useQuery(api.supportCoordinators.getById, { coordinatorId });
   const allParticipants = useQuery(api.participants.getAll);
@@ -64,9 +75,10 @@ export default function SupportCoordinatorDetailPage() {
 
   const handleLinkParticipant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedParticipantId) return;
+    if (!selectedParticipantId || !userId) return;
 
     await linkParticipant({
+      userId,
       supportCoordinatorId: coordinatorId,
       participantId: selectedParticipantId as Id<"participants">,
       relationshipType,
@@ -81,14 +93,17 @@ export default function SupportCoordinatorDetailPage() {
   };
 
   const handleUnlink = async (linkId: Id<"supportCoordinatorParticipants">) => {
+    if (!userId) return;
     if (confirm("Remove this participant link? (History will be preserved in notes)")) {
-      await unlinkParticipant({ linkId });
+      await unlinkParticipant({ userId, linkId });
     }
   };
 
   const handleMarkContacted = async () => {
+    if (!userId) return;
     const today = new Date().toISOString().split("T")[0];
     await updateCoordinator({
+      userId,
       coordinatorId,
       lastContactedDate: today,
     });

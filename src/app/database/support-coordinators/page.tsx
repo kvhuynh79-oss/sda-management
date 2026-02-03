@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const SYDNEY_REGIONS = [
   "Northern Sydney",
@@ -25,10 +26,22 @@ const SYDNEY_REGIONS = [
 ];
 
 export default function SupportCoordinatorsPage() {
+  const router = useRouter();
+  const [userId, setUserId] = useState<Id<"users"> | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<Id<"supportCoordinators"> | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (!storedUser) {
+      router.push("/login");
+      return;
+    }
+    const user = JSON.parse(storedUser);
+    setUserId(user.id as Id<"users">);
+  }, [router]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -76,8 +89,11 @@ export default function SupportCoordinatorsPage() {
       allAreas.push(formData.customArea.trim());
     }
 
+    if (!userId) return;
+
     if (editingId) {
       await updateCoordinator({
+        userId,
         coordinatorId: editingId,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -91,6 +107,7 @@ export default function SupportCoordinatorsPage() {
       });
     } else {
       await createCoordinator({
+        userId,
         firstName: formData.firstName,
         lastName: formData.lastName,
         organization: formData.organization || undefined,
@@ -129,13 +146,16 @@ export default function SupportCoordinatorsPage() {
   };
 
   const handleDelete = async (id: Id<"supportCoordinators">) => {
+    if (!userId) return;
     if (confirm("Are you sure you want to delete this support coordinator?")) {
-      await removeCoordinator({ coordinatorId: id });
+      await removeCoordinator({ userId, coordinatorId: id });
     }
   };
 
   const handleToggleStatus = async (coordinator: NonNullable<typeof coordinators>[0]) => {
+    if (!userId) return;
     await updateCoordinator({
+      userId,
       coordinatorId: coordinator._id,
       status: coordinator.status === "active" ? "inactive" : "active",
     });

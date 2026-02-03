@@ -746,7 +746,7 @@ export default function IncidentDetailPage() {
                           <button
                             onClick={async () => {
                               if (confirm("Are you sure you want to cancel this action?")) {
-                                await cancelAction({ actionId: action._id });
+                                await cancelAction({ userId: user!.id as Id<"users">, actionId: action._id });
                               }
                             }}
                             className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded transition-colors"
@@ -789,7 +789,7 @@ export default function IncidentDetailPage() {
                         <button
                           onClick={async () => {
                             if (confirm("Are you sure you want to delete this cancelled action?")) {
-                              await removeAction({ actionId: action._id });
+                              await removeAction({ userId: user!.id as Id<"users">, actionId: action._id });
                             }
                           }}
                           className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
@@ -1177,13 +1177,13 @@ export default function IncidentDetailPage() {
                     setIsSavingAction(true);
                     try {
                       await createAction({
+                        userId: user!.id as Id<"users">,
                         incidentId,
                         title: actionFormData.title.trim(),
                         description: actionFormData.description.trim() || undefined,
                         category: actionFormData.category,
                         priority: actionFormData.priority,
                         estimatedCost: actionFormData.estimatedCost ? parseFloat(actionFormData.estimatedCost) : undefined,
-                        createdBy: user!.id as Id<"users">,
                       });
                       setShowAddActionModal(false);
                     } catch (err: any) {
@@ -1249,6 +1249,7 @@ export default function IncidentDetailPage() {
                     setIsSavingAction(true);
                     try {
                       await markInHouse({
+                        userId: user!.id as Id<"users">,
                         actionId: selectedAction._id,
                         assignedTo: inHouseFormData.assignedTo.trim(),
                         inHouseNotes: inHouseFormData.inHouseNotes.trim() || undefined,
@@ -1323,8 +1324,8 @@ export default function IncidentDetailPage() {
                     setIsSavingAction(true);
                     try {
                       await completeAction({
+                        userId: user!.id as Id<"users">,
                         actionId: selectedAction._id,
-                        completedBy: user!.id as Id<"users">,
                         completedDate: completeFormData.completedDate,
                         actualCost: completeFormData.actualCost ? parseFloat(completeFormData.actualCost) : undefined,
                         completionNotes: completeFormData.completionNotes.trim() || undefined,

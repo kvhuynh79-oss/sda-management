@@ -235,7 +235,7 @@ export default function ClaimsPage() {
     try {
       const result = await bulkCreate({
         claimPeriod: selectedPeriod,
-        createdBy: user.id as Id<"users">,
+        userId: user.id as Id<"users">,
       });
       alert(`Created ${result.created} claims, skipped ${result.skipped}`);
     } catch (err) {
@@ -258,7 +258,7 @@ export default function ClaimsPage() {
           expectedAmount: selectedClaim.expectedAmount,
           status: "submitted",
           claimDate: formData.claimDate,
-          createdBy: user?.id as Id<"users">,
+          userId: user?.id as Id<"users">,
         });
       } else {
         await markSubmitted({
@@ -266,6 +266,7 @@ export default function ClaimsPage() {
           claimDate: formData.claimDate,
           claimedAmount: formData.claimedAmount ? parseFloat(formData.claimedAmount) : undefined,
           notes: formData.notes || undefined,
+          userId: user?.id as Id<"users">,
         });
       }
       setShowMarkSubmittedModal(false);
@@ -282,7 +283,7 @@ export default function ClaimsPage() {
   };
 
   const handleMarkPaid = async () => {
-    if (!selectedClaim?.claimId) return;
+    if (!selectedClaim?.claimId || !user) return;
 
     try {
       await markPaid({
@@ -291,6 +292,7 @@ export default function ClaimsPage() {
         paidAmount: parseFloat(formData.paidAmount) || selectedClaim.expectedAmount,
         paymentReference: formData.paymentReference || undefined,
         notes: formData.notes || undefined,
+        userId: user.id as Id<"users">,
       });
       setShowMarkPaidModal(false);
       setSelectedClaim(null);

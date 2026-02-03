@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { requireAuth } from "./authHelpers";
 
 // Get all actions for an incident
 export const getByIncident = query({
@@ -56,6 +57,7 @@ export const getById = query({
 // Create a new action
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     incidentId: v.id("incidents"),
     title: v.string(),
     description: v.optional(v.string()),
@@ -75,9 +77,10 @@ export const create = mutation({
       v.literal("low")
     ),
     estimatedCost: v.optional(v.number()),
-    createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const now = Date.now();
 
     const actionId = await ctx.db.insert("incidentActions", {
@@ -89,7 +92,7 @@ export const create = mutation({
       status: "pending",
       assignmentType: "pending",
       estimatedCost: args.estimatedCost,
-      createdBy: args.createdBy,
+      createdBy: args.userId,
       createdAt: now,
       updatedAt: now,
     });
@@ -101,6 +104,7 @@ export const create = mutation({
 // Update an action
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     actionId: v.id("incidentActions"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -126,7 +130,9 @@ export const update = mutation({
     estimatedCost: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { actionId, ...updates } = args;
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { actionId, userId, ...updates } = args;
     const action = await ctx.db.get(actionId);
     if (!action) throw new Error("Action not found");
 
@@ -154,11 +160,14 @@ export const update = mutation({
 // Mark action as in-house
 export const markInHouse = mutation({
   args: {
+    userId: v.id("users"),
     actionId: v.id("incidentActions"),
     assignedTo: v.string(),
     inHouseNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
     if (!action) throw new Error("Action not found");
 
@@ -181,13 +190,15 @@ export const markInHouse = mutation({
 // Complete an action (for in-house actions)
 export const complete = mutation({
   args: {
+    userId: v.id("users"),
     actionId: v.id("incidentActions"),
-    completedBy: v.id("users"),
     completionNotes: v.optional(v.string()),
     actualCost: v.optional(v.number()),
     completedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
     if (!action) throw new Error("Action not found");
 
@@ -197,7 +208,7 @@ export const complete = mutation({
 
     await ctx.db.patch(args.actionId, {
       status: "completed",
-      completedBy: args.completedBy,
+      completedBy: args.userId,
       completionNotes: args.completionNotes,
       actualCost: args.actualCost,
       completedDate: args.completedDate || new Date().toISOString().split("T")[0],
@@ -211,9 +222,12 @@ export const complete = mutation({
 // Cancel an action
 export const cancel = mutation({
   args: {
+    userId: v.id("users"),
     actionId: v.id("incidentActions"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
     if (!action) throw new Error("Action not found");
 
@@ -233,10 +247,13 @@ export const cancel = mutation({
 // Link an existing maintenance request to an action
 export const linkMaintenanceRequest = mutation({
   args: {
+    userId: v.id("users"),
     actionId: v.id("incidentActions"),
     maintenanceRequestId: v.id("maintenanceRequests"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
     if (!action) throw new Error("Action not found");
 
@@ -263,9 +280,12 @@ export const linkMaintenanceRequest = mutation({
 // Delete an action (only if pending or cancelled)
 export const remove = mutation({
   args: {
+    userId: v.id("users"),
     actionId: v.id("incidentActions"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
     if (!action) throw new Error("Action not found");
 
@@ -282,10 +302,12 @@ export const remove = mutation({
 // Mark action as completed when its linked maintenance request is completed
 export const completeFromMaintenanceRequest = mutation({
   args: {
+    userId: v.id("users"),
     maintenanceRequestId: v.id("maintenanceRequests"),
-    completedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     // Find the action linked to this maintenance request
     const actions = await ctx.db
       .query("incidentActions")
@@ -303,7 +325,7 @@ export const completeFromMaintenanceRequest = mutation({
 
     await ctx.db.patch(action._id, {
       status: "completed",
-      completedBy: args.completedBy,
+      completedBy: args.userId,
       actualCost: mr?.quotedAmount,
       completedDate: new Date().toISOString().split("T")[0],
       updatedAt: Date.now(),

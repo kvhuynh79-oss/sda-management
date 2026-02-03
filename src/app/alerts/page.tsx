@@ -50,8 +50,9 @@ export default function AlertsPage() {
   };
 
   const handleDismiss = async (alertId: Id<"alerts">) => {
+    if (!user) return;
     try {
-      await dismissAlert({ alertId });
+      await dismissAlert({ alertId, userId: user.id as Id<"users"> });
     } catch (err) {
       console.error("Failed to dismiss alert:", err);
     }

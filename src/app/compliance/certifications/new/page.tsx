@@ -133,7 +133,7 @@ export default function NewCertificationPage() {
         auditorName: formData.auditorName || undefined,
         auditOutcome: formData.auditOutcome || undefined,
         notes: formData.notes || undefined,
-        createdBy: user.id as Id<"users">,
+        userId: user.id as Id<"users">,
       });
 
       router.push("/compliance");

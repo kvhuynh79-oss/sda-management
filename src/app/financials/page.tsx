@@ -427,9 +427,10 @@ function ClaimsTab({ userId }: { userId: string }) {
   };
 
   const handleMarkSubmitted = async (claimId: Id<"claims">, amount: number, notes?: string) => {
+    if (!userId) return;
     const today = new Date().toISOString().split("T")[0];
     try {
-      await markSubmitted({ claimId, claimDate: today, claimedAmount: amount, notes });
+      await markSubmitted({ claimId, claimDate: today, claimedAmount: amount, notes, userId: userId as Id<"users"> });
       setShowMarkSubmittedModal(false);
       setSelectedClaim(null);
     } catch (error) {
@@ -439,9 +440,10 @@ function ClaimsTab({ userId }: { userId: string }) {
   };
 
   const handleMarkPaid = async (claimId: Id<"claims">, paidAmount: number, reference?: string, notes?: string) => {
+    if (!userId) return;
     const today = new Date().toISOString().split("T")[0];
     try {
-      await markPaid({ claimId, paidDate: today, paidAmount, paymentReference: reference, notes });
+      await markPaid({ claimId, paidDate: today, paidAmount, paymentReference: reference, notes, userId: userId as Id<"users"> });
       setShowMarkPaidModal(false);
       setSelectedClaim(null);
     } catch (error) {
@@ -451,8 +453,9 @@ function ClaimsTab({ userId }: { userId: string }) {
   };
 
   const handleReject = async (claimId: Id<"claims">, reason?: string) => {
+    if (!userId) return;
     try {
-      await markRejected({ claimId, reason });
+      await markRejected({ claimId, reason, userId: userId as Id<"users"> });
       setShowRejectModal(false);
       setSelectedClaim(null);
     } catch (error) {
@@ -462,8 +465,9 @@ function ClaimsTab({ userId }: { userId: string }) {
   };
 
   const handleRevertToPending = async (claimId: Id<"claims">) => {
+    if (!userId) return;
     try {
-      await revertToPending({ claimId });
+      await revertToPending({ claimId, userId: userId as Id<"users"> });
     } catch (error) {
       console.error("Error reverting claim:", error);
       alert("Failed to revert claim to pending");
@@ -473,7 +477,8 @@ function ClaimsTab({ userId }: { userId: string }) {
   const handleCreateAndSubmit = async (claim: ClaimItem) => {
     const today = new Date().toISOString().split("T")[0];
     try {
-      const claimId = await createClaim({
+      await createClaim({
+        userId: userId as Id<"users">,
         participantId: claim.participant._id,
         planId: claim.plan._id,
         claimPeriod: selectedPeriod,
@@ -481,7 +486,6 @@ function ClaimsTab({ userId }: { userId: string }) {
         expectedAmount: claim.expectedAmount,
         status: "submitted",
         claimDate: today,
-        createdBy: userId as Id<"users">,
       });
       alert("Claim created and marked as submitted!");
     } catch (error) {

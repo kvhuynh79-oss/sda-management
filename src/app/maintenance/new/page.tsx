@@ -218,6 +218,7 @@ function NewMaintenanceRequestContent() {
       if (incidentActionId) {
         try {
           await linkMaintenanceRequest({
+            userId: user!.id as Id<"users">,
             actionId: incidentActionId as Id<"incidentActions">,
             maintenanceRequestId: requestId,
           });

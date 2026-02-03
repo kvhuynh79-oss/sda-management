@@ -74,7 +74,7 @@ export default function NewComplaintPage() {
         propertyId: formData.propertyId ? formData.propertyId as Id<"properties"> : undefined,
         complaintDate: formData.complaintDate,
         receivedDate: formData.receivedDate,
-        receivedBy: user.id as Id<"users">,
+        userId: user.id as Id<"users">,
         category: formData.category,
         description: formData.description,
         severity: formData.severity,

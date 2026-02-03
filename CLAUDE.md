@@ -157,6 +157,17 @@ src/components/
   - useMemo optimizations on filtered lists
   - WCAG accessibility: aria labels, fieldsets, focus-visible states
   - Refactored pages: dashboard, properties, participants, maintenance, incidents, documents, alerts, contractors
+- **UI Design System (SaaS-Ready)** ✓
+  - MySDAManager branding added to Header (alongside org logo for multi-tenant)
+  - Badge component (src/components/ui/Badge.tsx) with preset status badges
+  - Design tokens file (src/constants/designTokens.ts) - spacing, shadows, typography
+  - Global transitions in globals.css with reduced motion support
+  - Fixed invalid bg-gray-750 hover states across 14 files
+- **Backend Improvements** ✓
+  - Notification helpers (convex/notificationHelpers.ts) with retry logic and exponential backoff
+  - Alert helpers (convex/alertHelpers.ts) with centralized alert generators
+  - TypeScript fixes in auth.ts (explicit return types, circular inference fixes)
+  - Integrated helpers into alerts.ts and notifications.ts (removed ~400 lines duplicated code)
 
 ## Next Session Priorities
 1. **Testing needed:**

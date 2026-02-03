@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 
@@ -17,7 +17,7 @@ export default function SetupPage() {
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const createUser = useMutation(api.auth.createUser);
+  const createUser = useAction(api.auth.createUser);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {

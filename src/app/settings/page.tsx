@@ -48,9 +48,9 @@ export default function SettingsPage() {
 
   // User management queries/mutations
   const allUsers = useQuery(api.auth.getAllUsers);
-  const createUser = useMutation(api.auth.createUser);
+  const createUser = useAction(api.auth.createUser);
   const updateUser = useMutation(api.auth.updateUser);
-  const resetPassword = useMutation(api.auth.resetPassword);
+  const resetPassword = useAction(api.auth.resetPassword);
 
   // Get notification preferences
   const preferences = useQuery(

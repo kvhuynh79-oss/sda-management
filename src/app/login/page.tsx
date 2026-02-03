@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetSubmitted, setResetSubmitted] = useState(false);
 
-  const login = useMutation(api.auth.login);
+  const login = useAction(api.auth.login);
   const router = useRouter();
 
   // Sanitize error messages to be user-friendly

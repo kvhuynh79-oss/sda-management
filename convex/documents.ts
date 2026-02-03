@@ -9,7 +9,8 @@ export const generateUploadUrl = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to create documents
+    await requirePermission(ctx, args.userId, "documents", "create");
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -291,7 +292,8 @@ export const update = mutation({
     expiryDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to update documents
+    await requirePermission(ctx, args.userId, "documents", "update");
     const { documentId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
@@ -313,7 +315,8 @@ export const remove = mutation({
     documentId: v.id("documents"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to delete documents
+    await requirePermission(ctx, args.userId, "documents", "delete");
     const doc = await ctx.db.get(args.documentId);
     if (!doc) throw new Error("Document not found");
 

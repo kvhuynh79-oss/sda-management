@@ -318,7 +318,8 @@ export const update = mutation({
     resolutionNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to update incidents
+    await requirePermission(ctx, args.userId, "incidents", "update");
     const { incidentId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
@@ -347,7 +348,8 @@ export const markNdisNotified = mutation({
     referenceNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to update incidents
+    await requirePermission(ctx, args.userId, "incidents", "update");
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) throw new Error("Incident not found");
 
@@ -476,7 +478,8 @@ export const resolve = mutation({
     resolutionNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.resolvedBy);
+    // Verify user has permission to update incidents
+    await requirePermission(ctx, args.resolvedBy, "incidents", "update");
     await ctx.db.patch(args.incidentId, {
       status: "resolved",
       resolvedBy: args.resolvedBy,
@@ -494,7 +497,8 @@ export const generateUploadUrl = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to create incidents
+    await requirePermission(ctx, args.userId, "incidents", "create");
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -511,7 +515,8 @@ export const addPhoto = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.uploadedBy);
+    // Verify user has permission to update incidents
+    await requirePermission(ctx, args.uploadedBy, "incidents", "update");
     const photoId = await ctx.db.insert("incidentPhotos", {
       ...args,
       createdAt: Date.now(),
@@ -527,7 +532,8 @@ export const deletePhoto = mutation({
     photoId: v.id("incidentPhotos"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to update incidents
+    await requirePermission(ctx, args.userId, "incidents", "update");
     const photo = await ctx.db.get(args.photoId);
     if (photo) {
       await ctx.storage.delete(photo.storageId);

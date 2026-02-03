@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth } from "./authHelpers";
+import { paginationArgs, DEFAULT_PAGE_SIZE } from "./paginationHelpers";
 
 // Create a new property
 export const create = mutation({
@@ -174,8 +175,14 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { propertyId, userId, ...updates } = args;
 
-    // Permission check
-    await requireAuth(ctx, userId);
+    // Verify user has permission to update properties
+    const user = await requirePermission(ctx, userId, "properties", "update");
+
+    // Get property for audit log
+    const property = await ctx.db.get(propertyId);
+    if (!property) {
+      throw new Error("Property not found");
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -185,6 +192,19 @@ export const update = mutation({
     }
 
     await ctx.db.patch(propertyId, filteredUpdates);
+
+    // Audit log the update
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "property",
+      entityId: propertyId,
+      entityName: property.propertyName || property.addressLine1,
+      changes: JSON.stringify(filteredUpdates),
+    });
+
     return { success: true };
   },
 });
@@ -228,5 +248,64 @@ export const remove = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// Get properties with pagination
+export const getAllPaginated = query({
+  args: {
+    ...paginationArgs,
+    status: v.optional(v.string()),
+    state: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db.query("properties").filter((q) => q.eq(q.field("isActive"), true));
+
+    // Apply status filter if provided
+    if (args.status) {
+      query = ctx.db
+        .query("properties")
+        .withIndex("by_propertyStatus", (q) => q.eq("propertyStatus", args.status as any))
+        .filter((q) => q.eq(q.field("isActive"), true));
+    }
+
+    // Apply state filter if provided
+    if (args.state) {
+      query = ctx.db
+        .query("properties")
+        .withIndex("by_state", (q) => q.eq("state", args.state as any))
+        .filter((q) => q.eq(q.field("isActive"), true));
+    }
+
+    const result = await query.paginate(args.paginationOpts);
+
+    // Enrich with owner and dwelling data
+    const enrichedPage = await Promise.all(
+      result.page.map(async (property) => {
+        const owner = await ctx.db.get(property.ownerId);
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .collect();
+
+        const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
+        const currentOccupancy = dwellings.reduce((sum, d) => sum + d.currentOccupancy, 0);
+
+        return {
+          ...property,
+          owner,
+          dwellingCount: dwellings.length,
+          totalCapacity,
+          currentOccupancy,
+          vacancies: totalCapacity - currentOccupancy,
+        };
+      })
+    );
+
+    return {
+      ...result,
+      page: enrichedPage,
+    };
   },
 });

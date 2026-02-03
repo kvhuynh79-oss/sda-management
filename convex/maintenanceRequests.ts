@@ -220,8 +220,8 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { requestId, userId, ...updates } = args;
 
-    // Permission check
-    await requireAuth(ctx, userId);
+    // Verify user has permission to update maintenance requests
+    await requirePermission(ctx, userId, "maintenance", "update");
 
     // Get the request for audit logging
     const request = await ctx.db.get(requestId);
@@ -301,7 +301,8 @@ export const completeRequest = mutation({
     warrantyPeriodMonths: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to update maintenance requests
+    await requirePermission(ctx, args.userId, "maintenance", "update");
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found");
 
@@ -335,7 +336,8 @@ export const remove = mutation({
     requestId: v.id("maintenanceRequests"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    // Verify user has permission to delete maintenance requests
+    await requirePermission(ctx, args.userId, "maintenance", "delete");
     await ctx.db.delete(args.requestId);
     return { success: true };
   },

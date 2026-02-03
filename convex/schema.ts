@@ -135,7 +135,9 @@ export default defineSchema({
   })
     .index("by_owner", ["ownerId"])
     .index("by_state", ["state"])
-    .index("by_propertyStatus", ["propertyStatus"]),
+    .index("by_propertyStatus", ["propertyStatus"])
+    .index("by_owner_status", ["ownerId", "propertyStatus"])
+    .index("by_state_status", ["state", "propertyStatus"]),
 
   // Dwellings table - individual living units within a property
   dwellings: defineTable({
@@ -176,7 +178,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_property", ["propertyId"])
-    .index("by_occupancyStatus", ["occupancyStatus"]),
+    .index("by_occupancyStatus", ["occupancyStatus"])
+    .index("by_property_occupancy", ["propertyId", "occupancyStatus"]),
 
   // Participants table - NDIS participants
   participants: defineTable({
@@ -208,7 +211,8 @@ export default defineSchema({
   })
     .index("by_ndisNumber", ["ndisNumber"])
     .index("by_dwelling", ["dwellingId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_dwelling_status", ["dwellingId", "status"]),
 
   // Participant Plans table - NDIS plan details
   participantPlans: defineTable({
@@ -265,7 +269,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_participant", ["participantId"])
-    .index("by_status", ["planStatus"]),
+    .index("by_status", ["planStatus"])
+    .index("by_participant_status", ["participantId", "planStatus"]),
 
   // Payments table - SDA payments received
   payments: defineTable({
@@ -291,7 +296,8 @@ export default defineSchema({
   })
     .index("by_participant", ["participantId"])
     .index("by_plan", ["planId"])
-    .index("by_date", ["paymentDate"]),
+    .index("by_date", ["paymentDate"])
+    .index("by_participant_date", ["participantId", "paymentDate"]),
 
   // Claims table - SDA funding claims tracking
   claims: defineTable({
@@ -324,7 +330,9 @@ export default defineSchema({
     .index("by_participant", ["participantId"])
     .index("by_plan", ["planId"])
     .index("by_period", ["claimPeriod"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_participant_period", ["participantId", "claimPeriod"])
+    .index("by_participant_status", ["participantId", "status"]),
 
   // Maintenance Requests table
   maintenanceRequests: defineTable({
@@ -382,7 +390,9 @@ export default defineSchema({
     .index("by_priority", ["priority"])
     .index("by_incident", ["incidentId"])
     .index("by_incident_action", ["incidentActionId"])
-    .index("by_contractor", ["assignedContractorId"]),
+    .index("by_contractor", ["assignedContractorId"])
+    .index("by_dwelling_status", ["dwellingId", "status"])
+    .index("by_status_priority", ["status", "priority"]),
 
   // Maintenance Photos table - photos attached to maintenance requests
   maintenancePhotos: defineTable({
@@ -469,7 +479,9 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_property", ["propertyId"])
-    .index("by_nextDueDate", ["nextDueDate"]),
+    .index("by_nextDueDate", ["nextDueDate"])
+    .index("by_property_active", ["propertyId", "isActive"])
+    .index("by_category", ["category"]),
 
   // Documents table - file uploads
   documents: defineTable({
@@ -524,7 +536,12 @@ export default defineSchema({
   })
     .index("by_participant", ["linkedParticipantId"])
     .index("by_property", ["linkedPropertyId"])
-    .index("by_documentType", ["documentType"]),
+    .index("by_dwelling", ["linkedDwellingId"])
+    .index("by_documentType", ["documentType"])
+    .index("by_category", ["documentCategory"])
+    .index("by_expiryDate", ["expiryDate"])
+    .index("by_participant_type", ["linkedParticipantId", "documentType"])
+    .index("by_property_type", ["linkedPropertyId", "documentType"]),
 
   // Provider Settings table - NDIS provider configuration
   providerSettings: defineTable({
@@ -595,7 +612,11 @@ export default defineSchema({
   })
     .index("by_status", ["status"])
     .index("by_alertType", ["alertType"])
-    .index("by_severity", ["severity"]),
+    .index("by_severity", ["severity"])
+    .index("by_status_severity", ["status", "severity"])
+    .index("by_status_alertType", ["status", "alertType"])
+    .index("by_participant", ["linkedParticipantId"])
+    .index("by_property", ["linkedPropertyId"]),
 
   // Incidents table - incident reports for properties/participants
   incidents: defineTable({
@@ -668,7 +689,9 @@ export default defineSchema({
     .index("by_participant", ["participantId"])
     .index("by_status", ["status"])
     .index("by_severity", ["severity"])
-    .index("by_isNdisReportable", ["isNdisReportable"]),
+    .index("by_isNdisReportable", ["isNdisReportable"])
+    .index("by_property_status", ["propertyId", "status"])
+    .index("by_property_severity", ["propertyId", "severity"]),
 
   // Incident Photos table
   incidentPhotos: defineTable({

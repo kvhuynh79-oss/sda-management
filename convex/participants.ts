@@ -233,7 +233,7 @@ export const revertToPending = mutation({
     participantId: v.id("participants"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "participants", "update");
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
 
@@ -262,7 +262,7 @@ export const moveIn = mutation({
     moveInDate: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "participants", "update");
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
 
@@ -291,7 +291,7 @@ export const moveOut = mutation({
     moveOutDate: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "participants", "update");
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
 

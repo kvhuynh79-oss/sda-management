@@ -556,7 +556,7 @@ function DwellingCard({
               <Link
                 key={participant._id}
                 href={`/participants/${participant._id}`}
-                className="flex justify-between items-center p-2 bg-gray-800 rounded hover:bg-gray-750 transition-colors"
+                className="flex justify-between items-center p-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors"
               >
                 <span className="text-white text-sm">
                   {participant.firstName} {participant.lastName}

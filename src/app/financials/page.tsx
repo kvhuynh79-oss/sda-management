@@ -556,7 +556,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                 onClick={() => day && dayData && dayData.length > 0 && setSelectedDay(isSelected ? null : day)}
                 className={`relative min-h-[70px] p-1 rounded-lg border transition-all
                   ${!day ? "bg-transparent border-transparent" : ""}
-                  ${day && (!dayData || dayData.length === 0) ? "bg-gray-750 border-gray-700" : ""}
+                  ${day && (!dayData || dayData.length === 0) ? "bg-gray-700 border-gray-700" : ""}
                   ${day && dayData && dayData.length > 0 ? "bg-gray-700 border-gray-600 cursor-pointer hover:border-gray-500" : ""}
                   ${isSelected ? "ring-2 ring-blue-500 border-blue-500" : ""}
                   ${isToday && day ? "ring-2 ring-yellow-500" : ""}`}
@@ -997,7 +997,7 @@ function PaymentsTab() {
       ) : (
         <div className="bg-gray-800 rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-750">
+            <thead className="bg-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Participant</th>
@@ -1009,7 +1009,7 @@ function PaymentsTab() {
             </thead>
             <tbody className="divide-y divide-gray-700">
               {filteredPayments.map((payment) => (
-                <tr key={payment._id} className="hover:bg-gray-750">
+                <tr key={payment._id} className="hover:bg-gray-700">
                   <td className="px-4 py-3 text-white text-sm">{payment.paymentDate}</td>
                   <td className="px-4 py-3">
                     <p className="text-white text-sm">{payment.participant?.firstName} {payment.participant?.lastName}</p>
@@ -1918,7 +1918,7 @@ function OwnerPaymentsTab() {
                 </div>
                 {isExpanded && (
                   <table className="w-full">
-                    <thead className="bg-gray-750">
+                    <thead className="bg-gray-700">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Type</th>
@@ -1929,7 +1929,7 @@ function OwnerPaymentsTab() {
                     </thead>
                     <tbody className="divide-y divide-gray-700">
                       {payments.map((payment) => (
-                        <tr key={payment._id} className="hover:bg-gray-750">
+                        <tr key={payment._id} className="hover:bg-gray-700">
                           <td className="px-4 py-3 text-white text-sm">{payment.paymentDate}</td>
                           <td className="px-4 py-3">{getPaymentTypeBadge(payment.paymentType)}</td>
                           <td className="px-4 py-3 text-gray-400 text-sm">{payment.description || "-"}</td>
@@ -1994,7 +1994,7 @@ function OwnerPaymentsTab() {
                       </button>
                     </div>
                   </div>
-                  <div className="px-4 py-3 bg-gray-750 text-sm">
+                  <div className="px-4 py-3 bg-gray-700 text-sm">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-300">
                       <div>
                         <span className="text-gray-500">Monthly SDA:</span> {formatCurrency(suggested.sdaAmount)}

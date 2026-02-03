@@ -124,7 +124,7 @@ export default function IncidentsPage() {
 function IncidentCard({ incident }: { incident: any }) {
   return (
     <article
-      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors"
+      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors"
       role="listitem"
     >
       <div className="flex justify-between items-start mb-4">

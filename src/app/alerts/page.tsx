@@ -281,7 +281,7 @@ function AlertCard({
 
   return (
     <article
-      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors border-l-4 border-l-red-600"
+      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors border-l-4 border-l-red-600"
       role="listitem"
     >
       <div className="flex justify-between items-start">

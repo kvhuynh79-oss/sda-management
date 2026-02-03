@@ -191,7 +191,7 @@ function ParticipantCard({ participant }: { participant: any }) {
       className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
       role="listitem"
     >
-      <article className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer border border-gray-700 hover:border-gray-600">
+      <article className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer border border-gray-700 hover:border-gray-600">
         <div className="flex justify-between items-start">
           <div className="flex items-start gap-4">
             {/* Avatar */}

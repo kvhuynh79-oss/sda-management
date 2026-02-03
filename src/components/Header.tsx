@@ -89,7 +89,7 @@ export default function Header({ currentPage }: HeaderProps) {
       {/* Top row - Logo and User info */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 lg:h-16">
-          <Link href="/dashboard" className="flex-shrink-0">
+          <Link href="/dashboard" className="flex-shrink-0 flex items-center gap-3">
             <Image
               src="/Logo.jpg"
               alt="Better Living Solutions"
@@ -98,6 +98,10 @@ export default function Header({ currentPage }: HeaderProps) {
               className="rounded object-contain h-10 lg:h-12 w-auto"
               priority
             />
+            <div className="hidden sm:flex flex-col border-l border-gray-600 pl-3">
+              <span className="text-white font-semibold text-sm tracking-wide">MySDAManager</span>
+              <span className="text-gray-400 text-xs">SDA Property Management</span>
+            </div>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             {user && (

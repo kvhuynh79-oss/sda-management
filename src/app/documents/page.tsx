@@ -219,7 +219,7 @@ function DocumentCard({ document }: { document: any }) {
 
   return (
     <article
-      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors"
+      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors"
       role="listitem"
     >
       <div className="flex justify-between items-start">

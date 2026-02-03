@@ -522,7 +522,7 @@ function TransactionRow({
   };
 
   return (
-    <tr className={`hover:bg-gray-750 ${transaction.matchStatus === "excluded" ? "opacity-50" : ""}`}>
+    <tr className={`hover:bg-gray-700 ${transaction.matchStatus === "excluded" ? "opacity-50" : ""}`}>
       <td className="px-4 py-3">
         <input
           type="checkbox"

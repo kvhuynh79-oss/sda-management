@@ -136,7 +136,7 @@ export default function PaymentsPage() {
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-750">
+                <thead className="bg-gray-700">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                       Date
@@ -220,7 +220,7 @@ function PaymentRow({ payment }: { payment: any }) {
   };
 
   return (
-    <tr className="hover:bg-gray-750 transition-colors">
+    <tr className="hover:bg-gray-700 transition-colors">
       <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
         {payment.paymentDate}
       </td>

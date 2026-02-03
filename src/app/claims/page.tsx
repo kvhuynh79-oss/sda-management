@@ -455,7 +455,7 @@ export default function ClaimsPage() {
                   className={`
                     relative min-h-[70px] p-1 rounded-lg border transition-all
                     ${!day ? "bg-transparent border-transparent" : ""}
-                    ${day && (!dayData || dayData.length === 0) ? "bg-gray-750 border-gray-700 cursor-default" : ""}
+                    ${day && (!dayData || dayData.length === 0) ? "bg-gray-700 border-gray-700 cursor-default" : ""}
                     ${day && dayData && dayData.length > 0 ? "bg-gray-700 border-gray-600 cursor-pointer hover:border-gray-500" : ""}
                     ${isSelected ? "ring-2 ring-blue-500 border-blue-500" : ""}
                     ${isToday && day ? "ring-2 ring-yellow-500" : ""}
@@ -573,7 +573,7 @@ export default function ClaimsPage() {
                 </div>
                 <div className="divide-y divide-gray-700">
                   {claims?.map((claim) => (
-                    <div key={claim.participant._id} className="p-4 hover:bg-gray-750">
+                    <div key={claim.participant._id} className="p-4 hover:bg-gray-700">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-3">

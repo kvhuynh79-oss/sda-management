@@ -314,7 +314,7 @@ function DashboardCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer">
+    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer">
       <div className="flex items-center justify-between mb-4">
         <span className="text-gray-400 text-sm">{title}</span>
         <div className={`w-3 h-3 rounded-full ${colorClasses[color]}`} />

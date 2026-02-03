@@ -249,7 +249,7 @@ export default function InspectionsPage() {
                 <Link
                   key={inspection._id}
                   href={`/inspections/${inspection._id}`}
-                  className="block p-4 hover:bg-gray-750 transition-colors"
+                  className="block p-4 hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex-1">

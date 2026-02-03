@@ -419,7 +419,7 @@ export default function InspectionDetailPage() {
                 {/* Category Header */}
                 <button
                   onClick={() => setExpandedCategory(isExpanded ? null : category)}
-                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-750 transition-colors"
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">

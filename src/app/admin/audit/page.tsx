@@ -299,7 +299,7 @@ export default function AuditLogPage() {
         <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-750">
+              <thead className="bg-gray-700">
                 <tr className="border-b border-gray-700">
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Timestamp
@@ -320,7 +320,7 @@ export default function AuditLogPage() {
               </thead>
               <tbody className="divide-y divide-gray-700">
                 {auditData?.logs.map((log) => (
-                  <tr key={log._id} className="hover:bg-gray-750/50">
+                  <tr key={log._id} className="hover:bg-gray-700/50">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm text-white">{formatTimestamp(log.timestamp)}</div>
                     </td>

@@ -303,7 +303,7 @@ function ScheduleCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
+    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">

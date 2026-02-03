@@ -168,6 +168,18 @@ src/components/
   - Alert helpers (convex/alertHelpers.ts) with centralized alert generators
   - TypeScript fixes in auth.ts (explicit return types, circular inference fixes)
   - Integrated helpers into alerts.ts and notifications.ts (removed ~400 lines duplicated code)
+- **Performance Optimizations (2026-02-03)** ✓
+  - Fixed N+1 queries in alerts.ts (getAll, getActive, getByType) using batch fetching + lookup maps
+  - Fixed N+1 queries in payments.ts (getAll, getByParticipant, getRecent, getPaymentsWithVariance)
+  - Added compound indexes: bankTransactions.by_bankAccount_date, bankTransactions.by_bankAccount_matchStatus, maintenanceQuotes.by_maintenance_status
+  - Added paginated endpoints: alerts.getActivePaginated, payments.getAllPaginated
+- **Security Hardening (2026-02-03)** ✓
+  - Hardened Content Security Policy (CSP) in next.config.ts - removes unsafe-eval in production
+  - Bcrypt password hashing (12 salt rounds) - auth functions (login, createUser, resetPassword) converted to actions for async crypto
+  - Fixed Vercel build errors - changed useMutation to useAction for bcrypt-based auth in login, settings, setup pages
+- **User Management (2026-02-03)** ✓
+  - Added SIL Provider role to user management dropdown + backend validator
+  - SIL Provider users display with orange badge in user list
 
 ## Next Session Priorities
 1. **Testing needed:**

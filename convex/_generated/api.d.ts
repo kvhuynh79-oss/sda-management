@@ -14,6 +14,7 @@ import type * as aiDocuments from "../aiDocuments.js";
 import type * as aiParsing from "../aiParsing.js";
 import type * as aiTools from "../aiTools.js";
 import type * as aiUtils from "../aiUtils.js";
+import type * as alertHelpers from "../alertHelpers.js";
 import type * as alerts from "../alerts.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
@@ -37,11 +38,13 @@ import type * as maintenancePhotos from "../maintenancePhotos.js";
 import type * as maintenanceQuotes from "../maintenanceQuotes.js";
 import type * as maintenanceRequests from "../maintenanceRequests.js";
 import type * as ndisClaimExport from "../ndisClaimExport.js";
+import type * as notificationHelpers from "../notificationHelpers.js";
 import type * as notifications from "../notifications.js";
 import type * as occupationalTherapists from "../occupationalTherapists.js";
 import type * as ownerDistributions from "../ownerDistributions.js";
 import type * as ownerPayments from "../ownerPayments.js";
 import type * as owners from "../owners.js";
+import type * as paginationHelpers from "../paginationHelpers.js";
 import type * as participantPlans from "../participantPlans.js";
 import type * as participants from "../participants.js";
 import type * as payments from "../payments.js";
@@ -63,6 +66,7 @@ import type * as silProviderPortal from "../silProviderPortal.js";
 import type * as silProviders from "../silProviders.js";
 import type * as supportCoordinators from "../supportCoordinators.js";
 import type * as vacancyListings from "../vacancyListings.js";
+import type * as validationHelpers from "../validationHelpers.js";
 import type * as xero from "../xero.js";
 
 import type {
@@ -78,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   aiParsing: typeof aiParsing;
   aiTools: typeof aiTools;
   aiUtils: typeof aiUtils;
+  alertHelpers: typeof alertHelpers;
   alerts: typeof alerts;
   auditLog: typeof auditLog;
   auth: typeof auth;
@@ -101,11 +106,13 @@ declare const fullApi: ApiFromModules<{
   maintenanceQuotes: typeof maintenanceQuotes;
   maintenanceRequests: typeof maintenanceRequests;
   ndisClaimExport: typeof ndisClaimExport;
+  notificationHelpers: typeof notificationHelpers;
   notifications: typeof notifications;
   occupationalTherapists: typeof occupationalTherapists;
   ownerDistributions: typeof ownerDistributions;
   ownerPayments: typeof ownerPayments;
   owners: typeof owners;
+  paginationHelpers: typeof paginationHelpers;
   participantPlans: typeof participantPlans;
   participants: typeof participants;
   payments: typeof payments;
@@ -127,6 +134,7 @@ declare const fullApi: ApiFromModules<{
   silProviders: typeof silProviders;
   supportCoordinators: typeof supportCoordinators;
   vacancyListings: typeof vacancyListings;
+  validationHelpers: typeof validationHelpers;
   xero: typeof xero;
 }>;
 

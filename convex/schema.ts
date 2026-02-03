@@ -444,7 +444,8 @@ export default defineSchema({
   })
     .index("by_maintenance_request", ["maintenanceRequestId"])
     .index("by_contractor", ["contractorId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_maintenance_status", ["maintenanceRequestId", "status"]),
 
   // Preventative Maintenance Schedule table
   preventativeSchedule: defineTable({
@@ -1309,7 +1310,9 @@ export default defineSchema({
     .index("by_matchStatus", ["matchStatus"])
     .index("by_category", ["category"])
     .index("by_importBatch", ["importBatchId"])
-    .index("by_organizationId", ["organizationId"]),
+    .index("by_organizationId", ["organizationId"])
+    .index("by_bankAccount_date", ["bankAccountId", "transactionDate"])
+    .index("by_bankAccount_matchStatus", ["bankAccountId", "matchStatus"]),
 
   // Expected Payments table - scheduled/expected payments for matching
   expectedPayments: defineTable({

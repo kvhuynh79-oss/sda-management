@@ -1,6 +1,12 @@
 import { mutation, query, action, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal, api } from "./_generated/api";
+import {
+  sendEmailWithRetry,
+  sendSmsWithRetry,
+  formatSmsMessage,
+  type NotificationResult,
+} from "./notificationHelpers";
 
 // User notification preferences
 export const getUserPreferences = query({
@@ -113,13 +119,13 @@ export const getAlertData = internalMutation({
   },
 });
 
-// Email notification via Resend
+// Email notification via Resend (with retry logic)
 export const sendEmailNotification = internalAction({
   args: {
     userId: v.id("users"),
     alertId: v.id("alerts")
   },
-  handler: async (ctx, args): Promise<any> => {
+  handler: async (ctx, args): Promise<NotificationResult> => {
     // Get user and alert data
     const user: any = await ctx.runMutation(internal.notifications.getUserData, {
       userId: args.userId
@@ -130,7 +136,7 @@ export const sendEmailNotification = internalAction({
 
     // Check if user has email notifications enabled
     if (!user.preferences.emailEnabled) {
-      return { skipped: true, reason: "Email notifications disabled" };
+      return { success: false, skipped: true, reason: "Email notifications disabled" };
     }
 
     // Check severity-based preferences
@@ -140,108 +146,93 @@ export const sendEmailNotification = internalAction({
       (alert.severity === "info" && user.preferences.infoAlerts);
 
     if (!shouldSend) {
-      return { skipped: true, reason: "Alert severity not enabled in preferences" };
+      return { success: false, skipped: true, reason: "Alert severity not enabled in preferences" };
     }
 
     // Check if RESEND_API_KEY is configured
     if (!process.env.RESEND_API_KEY) {
       console.warn("RESEND_API_KEY not configured. Email notification skipped.");
       return {
+        success: false,
         skipped: true,
         reason: "RESEND_API_KEY not configured. Add it to environment variables."
       };
     }
 
-    try {
-      const response: any = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || "alerts@yourdomain.com",
-          to: user.email,
-          subject: `[${alert.severity.toUpperCase()}] ${alert.title}`,
-          html: `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <meta charset="utf-8">
-                <style>
-                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                  .header { background-color: ${
-                    alert.severity === "critical" ? "#dc2626" :
-                    alert.severity === "warning" ? "#ea580c" :
-                    "#2563eb"
-                  }; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-                  .content { background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
-                  .badge { display: inline-block; padding: 4px 12px; background-color: ${
-                    alert.severity === "critical" ? "#dc2626" :
-                    alert.severity === "warning" ? "#ea580c" :
-                    "#2563eb"
-                  }; color: white; border-radius: 9999px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-                  .message { margin: 20px 0; }
-                  .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <div class="header">
-                    <h1 style="margin: 0;">SDA Management Alert</h1>
-                  </div>
-                  <div class="content">
-                    <div style="margin-bottom: 16px;">
-                      <span class="badge">${alert.severity}</span>
-                    </div>
-                    <h2 style="margin-top: 0; color: #111827;">${alert.title}</h2>
-                    <div class="message">
-                      <p style="margin: 0;">${alert.message}</p>
-                    </div>
-                    ${alert.dueDate ? `
-                      <div style="margin-top: 16px; padding: 12px; background-color: white; border-left: 4px solid ${
-                        alert.severity === "critical" ? "#dc2626" :
-                        alert.severity === "warning" ? "#ea580c" :
-                        "#2563eb"
-                      }; border-radius: 4px;">
-                        <strong>Due Date:</strong> ${alert.dueDate}
-                      </div>
-                    ` : ""}
-                    <div class="footer">
-                      <p>This is an automated alert from your SDA Management System.</p>
-                      <p>To manage your notification preferences, log in to your account.</p>
-                    </div>
-                  </div>
+    // Build email HTML content
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: ${
+              alert.severity === "critical" ? "#dc2626" :
+              alert.severity === "warning" ? "#ea580c" :
+              "#2563eb"
+            }; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+            .badge { display: inline-block; padding: 4px 12px; background-color: ${
+              alert.severity === "critical" ? "#dc2626" :
+              alert.severity === "warning" ? "#ea580c" :
+              "#2563eb"
+            }; color: white; border-radius: 9999px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+            .message { margin: 20px 0; }
+            .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin: 0;">SDA Management Alert</h1>
+            </div>
+            <div class="content">
+              <div style="margin-bottom: 16px;">
+                <span class="badge">${alert.severity}</span>
+              </div>
+              <h2 style="margin-top: 0; color: #111827;">${alert.title}</h2>
+              <div class="message">
+                <p style="margin: 0;">${alert.message}</p>
+              </div>
+              ${alert.dueDate ? `
+                <div style="margin-top: 16px; padding: 12px; background-color: white; border-left: 4px solid ${
+                  alert.severity === "critical" ? "#dc2626" :
+                  alert.severity === "warning" ? "#ea580c" :
+                  "#2563eb"
+                }; border-radius: 4px;">
+                  <strong>Due Date:</strong> ${alert.dueDate}
                 </div>
-              </body>
-            </html>
-          `,
-        }),
-      });
+              ` : ""}
+              <div class="footer">
+                <p>This is an automated alert from your SDA Management System.</p>
+                <p>To manage your notification preferences, log in to your account.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
 
-      const data: any = await response.json();
-
-      if (!response.ok) {
-        console.error("Resend API error:", data);
-        return { success: false, error: data };
-      }
-
-      return { success: true, emailId: data.id };
-    } catch (error) {
-      console.error("Error sending email:", error);
-      return { success: false, error: String(error) };
-    }
+    // Send email with retry logic
+    return await sendEmailWithRetry(
+      process.env.RESEND_API_KEY,
+      process.env.RESEND_FROM_EMAIL || "alerts@yourdomain.com",
+      user.email,
+      `[${alert.severity.toUpperCase()}] ${alert.title}`,
+      htmlContent
+    );
   },
 });
 
-// SMS notification via Twilio
+// SMS notification via Twilio (with retry logic)
 export const sendSMSNotification = internalAction({
   args: {
     userId: v.id("users"),
     alertId: v.id("alerts")
   },
-  handler: async (ctx, args): Promise<any> => {
+  handler: async (ctx, args): Promise<NotificationResult> => {
     // Get user and alert data
     const user: any = await ctx.runMutation(internal.notifications.getUserData, {
       userId: args.userId
@@ -253,6 +244,7 @@ export const sendSMSNotification = internalAction({
     // Check if user has SMS notifications enabled
     if (!user.preferences.smsEnabled || !user.phone) {
       return {
+        success: false,
         skipped: true,
         reason: user.phone ? "SMS notifications disabled" : "No phone number on file"
       };
@@ -264,54 +256,35 @@ export const sendSMSNotification = internalAction({
       (alert.severity === "warning" && user.preferences.warningAlerts);
 
     if (!shouldSend) {
-      return { skipped: true, reason: "Alert severity not enabled for SMS" };
+      return { success: false, skipped: true, reason: "Alert severity not enabled for SMS" };
     }
 
     // Check if Twilio credentials are configured
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
       console.warn("Twilio credentials not configured. SMS notification skipped.");
       return {
+        success: false,
         skipped: true,
         reason: "Twilio credentials not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to environment variables."
       };
     }
 
-    try {
-      const accountSid = process.env.TWILIO_ACCOUNT_SID;
-      const authToken = process.env.TWILIO_AUTH_TOKEN;
-      const fromPhone = process.env.TWILIO_PHONE_NUMBER;
+    // Format SMS message using helper (handles character limits)
+    const smsBody = formatSmsMessage(
+      alert.severity,
+      alert.title,
+      alert.message,
+      alert.dueDate
+    );
 
-      // Create basic auth token
-      const authString = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
-
-      const response: any = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Basic ${authString}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            To: user.phone,
-            From: fromPhone,
-            Body: `[${alert.severity.toUpperCase()}] ${alert.title}\n\n${alert.message}${alert.dueDate ? `\n\nDue: ${alert.dueDate}` : ""}\n\n- SDA Management System`,
-          }).toString(),
-        }
-      );
-
-      const data: any = await response.json();
-
-      if (!response.ok) {
-        console.error("Twilio API error:", data);
-        return { success: false, error: data };
-      }
-
-      return { success: true, messageSid: data.sid };
-    } catch (error) {
-      console.error("Error sending SMS:", error);
-      return { success: false, error: String(error) };
-    }
+    // Send SMS with retry logic
+    return await sendSmsWithRetry(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+      process.env.TWILIO_PHONE_NUMBER,
+      user.phone,
+      smsBody
+    );
   },
 });
 
@@ -334,23 +307,23 @@ export const getActiveAlertsForDigest = internalMutation({
   },
 });
 
-// Daily digest email
+// Daily digest email (with retry logic)
 export const sendDailyDigest = internalAction({
   args: { userId: v.id("users") },
-  handler: async (ctx, args): Promise<any> => {
+  handler: async (ctx, args): Promise<NotificationResult & { alertCount?: number }> => {
     const user: any = await ctx.runMutation(internal.notifications.getUserData, {
       userId: args.userId
     });
 
     // Check if user has daily digest enabled
     if (!user.preferences.emailEnabled || !user.preferences.dailyDigest) {
-      return { skipped: true, reason: "Daily digest not enabled" };
+      return { success: false, skipped: true, reason: "Daily digest not enabled" };
     }
 
     // Check if RESEND_API_KEY is configured
     if (!process.env.RESEND_API_KEY) {
       console.warn("RESEND_API_KEY not configured. Daily digest skipped.");
-      return { skipped: true, reason: "RESEND_API_KEY not configured" };
+      return { success: false, skipped: true, reason: "RESEND_API_KEY not configured" };
     }
 
     // Get active alerts
@@ -360,7 +333,7 @@ export const sendDailyDigest = internalAction({
     );
 
     if (alerts.length === 0) {
-      return { skipped: true, reason: "No active alerts" };
+      return { success: false, skipped: true, reason: "No active alerts" };
     }
 
     // Group alerts by severity
@@ -368,111 +341,97 @@ export const sendDailyDigest = internalAction({
     const warningAlerts = alerts.filter((a: any) => a.severity === "warning");
     const infoAlerts = alerts.filter((a: any) => a.severity === "info");
 
-    try {
-      const response: any = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || "alerts@yourdomain.com",
-          to: user.email,
-          subject: `Daily Digest: ${alerts.length} Active Alert${alerts.length !== 1 ? "s" : ""}`,
-          html: `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <meta charset="utf-8">
-                <style>
-                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                  .header { background-color: #1f2937; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-                  .content { background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
-                  .alert-section { margin-bottom: 24px; }
-                  .alert-item { background-color: white; padding: 16px; margin-bottom: 12px; border-left: 4px solid #e5e7eb; border-radius: 4px; }
-                  .alert-item.critical { border-left-color: #dc2626; }
-                  .alert-item.warning { border-left-color: #ea580c; }
-                  .alert-item.info { border-left-color: #2563eb; }
-                  .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; }
-                  .badge.critical { background-color: #fee2e2; color: #dc2626; }
-                  .badge.warning { background-color: #ffedd5; color: #ea580c; }
-                  .badge.info { background-color: #dbeafe; color: #2563eb; }
-                  .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
-                  h2 { margin-top: 0; color: #111827; font-size: 18px; }
-                  h3 { color: #374151; font-size: 16px; margin-bottom: 12px; }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <div class="header">
-                    <h1 style="margin: 0;">Daily Alert Digest</h1>
-                    <p style="margin: 8px 0 0 0; opacity: 0.9;">Hi ${user.firstName}, here's your summary of active alerts</p>
-                  </div>
-                  <div class="content">
-                    ${criticalAlerts.length > 0 ? `
-                      <div class="alert-section">
-                        <h3 style="color: #dc2626;">🔴 Critical Alerts (${criticalAlerts.length})</h3>
-                        ${criticalAlerts.map((alert: any) => `
-                          <div class="alert-item critical">
-                            <div class="badge critical">CRITICAL</div>
-                            <h4 style="margin: 0 0 8px 0; color: #111827;">${alert.title}</h4>
-                            <p style="margin: 0; color: #6b7280;">${alert.message}</p>
-                            ${alert.dueDate ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;"><strong>Due:</strong> ${alert.dueDate}</p>` : ""}
-                          </div>
-                        `).join("")}
-                      </div>
-                    ` : ""}
-                    ${warningAlerts.length > 0 ? `
-                      <div class="alert-section">
-                        <h3 style="color: #ea580c;">⚠️ Warning Alerts (${warningAlerts.length})</h3>
-                        ${warningAlerts.map((alert: any) => `
-                          <div class="alert-item warning">
-                            <div class="badge warning">WARNING</div>
-                            <h4 style="margin: 0 0 8px 0; color: #111827;">${alert.title}</h4>
-                            <p style="margin: 0; color: #6b7280;">${alert.message}</p>
-                            ${alert.dueDate ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;"><strong>Due:</strong> ${alert.dueDate}</p>` : ""}
-                          </div>
-                        `).join("")}
-                      </div>
-                    ` : ""}
-                    ${infoAlerts.length > 0 ? `
-                      <div class="alert-section">
-                        <h3 style="color: #2563eb;">ℹ️ Info Alerts (${infoAlerts.length})</h3>
-                        ${infoAlerts.map((alert: any) => `
-                          <div class="alert-item info">
-                            <div class="badge info">INFO</div>
-                            <h4 style="margin: 0 0 8px 0; color: #111827;">${alert.title}</h4>
-                            <p style="margin: 0; color: #6b7280;">${alert.message}</p>
-                            ${alert.dueDate ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;"><strong>Due:</strong> ${alert.dueDate}</p>` : ""}
-                          </div>
-                        `).join("")}
-                      </div>
-                    ` : ""}
-                    <div class="footer">
-                      <p>This is your daily digest from the SDA Management System.</p>
-                      <p>To manage your notification preferences, log in to your account.</p>
+    // Build HTML content
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #1f2937; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+            .alert-section { margin-bottom: 24px; }
+            .alert-item { background-color: white; padding: 16px; margin-bottom: 12px; border-left: 4px solid #e5e7eb; border-radius: 4px; }
+            .alert-item.critical { border-left-color: #dc2626; }
+            .alert-item.warning { border-left-color: #ea580c; }
+            .alert-item.info { border-left-color: #2563eb; }
+            .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; }
+            .badge.critical { background-color: #fee2e2; color: #dc2626; }
+            .badge.warning { background-color: #ffedd5; color: #ea580c; }
+            .badge.info { background-color: #dbeafe; color: #2563eb; }
+            .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
+            h2 { margin-top: 0; color: #111827; font-size: 18px; }
+            h3 { color: #374151; font-size: 16px; margin-bottom: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin: 0;">Daily Alert Digest</h1>
+              <p style="margin: 8px 0 0 0; opacity: 0.9;">Hi ${user.firstName}, here's your summary of active alerts</p>
+            </div>
+            <div class="content">
+              ${criticalAlerts.length > 0 ? `
+                <div class="alert-section">
+                  <h3 style="color: #dc2626;">🔴 Critical Alerts (${criticalAlerts.length})</h3>
+                  ${criticalAlerts.map((alert: any) => `
+                    <div class="alert-item critical">
+                      <div class="badge critical">CRITICAL</div>
+                      <h4 style="margin: 0 0 8px 0; color: #111827;">${alert.title}</h4>
+                      <p style="margin: 0; color: #6b7280;">${alert.message}</p>
+                      ${alert.dueDate ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;"><strong>Due:</strong> ${alert.dueDate}</p>` : ""}
                     </div>
-                  </div>
+                  `).join("")}
                 </div>
-              </body>
-            </html>
-          `,
-        }),
-      });
+              ` : ""}
+              ${warningAlerts.length > 0 ? `
+                <div class="alert-section">
+                  <h3 style="color: #ea580c;">⚠️ Warning Alerts (${warningAlerts.length})</h3>
+                  ${warningAlerts.map((alert: any) => `
+                    <div class="alert-item warning">
+                      <div class="badge warning">WARNING</div>
+                      <h4 style="margin: 0 0 8px 0; color: #111827;">${alert.title}</h4>
+                      <p style="margin: 0; color: #6b7280;">${alert.message}</p>
+                      ${alert.dueDate ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;"><strong>Due:</strong> ${alert.dueDate}</p>` : ""}
+                    </div>
+                  `).join("")}
+                </div>
+              ` : ""}
+              ${infoAlerts.length > 0 ? `
+                <div class="alert-section">
+                  <h3 style="color: #2563eb;">ℹ️ Info Alerts (${infoAlerts.length})</h3>
+                  ${infoAlerts.map((alert: any) => `
+                    <div class="alert-item info">
+                      <div class="badge info">INFO</div>
+                      <h4 style="margin: 0 0 8px 0; color: #111827;">${alert.title}</h4>
+                      <p style="margin: 0; color: #6b7280;">${alert.message}</p>
+                      ${alert.dueDate ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;"><strong>Due:</strong> ${alert.dueDate}</p>` : ""}
+                    </div>
+                  `).join("")}
+                </div>
+              ` : ""}
+              <div class="footer">
+                <p>This is your daily digest from the SDA Management System.</p>
+                <p>To manage your notification preferences, log in to your account.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
 
-      const data: any = await response.json();
+    // Send email with retry logic
+    const result = await sendEmailWithRetry(
+      process.env.RESEND_API_KEY,
+      process.env.RESEND_FROM_EMAIL || "alerts@yourdomain.com",
+      user.email,
+      `Daily Digest: ${alerts.length} Active Alert${alerts.length !== 1 ? "s" : ""}`,
+      htmlContent
+    );
 
-      if (!response.ok) {
-        console.error("Resend API error:", data);
-        return { success: false, error: data };
-      }
-
-      return { success: true, emailId: data.id, alertCount: alerts.length };
-    } catch (error) {
-      console.error("Error sending daily digest:", error);
-      return { success: false, error: String(error) };
-    }
+    return { ...result, alertCount: alerts.length };
   },
 });
 
@@ -596,14 +555,14 @@ export const sendDailyDigestForAllUsers = internalAction({
  *    sendNotificationsForRecentAlerts action to be scheduled.
  */
 
-// Internal action to send test email (without requiring alertId)
+// Internal action to send test email (without requiring alertId, with retry)
 export const sendTestEmail = internalAction({
   args: {
     to: v.string(),
     subject: v.string(),
     html: v.string(),
   },
-  handler: async (ctx, args): Promise<any> => {
+  handler: async (ctx, args): Promise<NotificationResult> => {
     if (!process.env.RESEND_API_KEY) {
       return {
         success: false,
@@ -611,43 +570,24 @@ export const sendTestEmail = internalAction({
       };
     }
 
-    try {
-      const response: any = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || "alerts@yourdomain.com",
-          to: args.to,
-          subject: args.subject,
-          html: args.html,
-        }),
-      });
-
-      const data: any = await response.json();
-
-      if (!response.ok) {
-        console.error("Resend API error:", data);
-        return { success: false, error: JSON.stringify(data) };
-      }
-
-      return { success: true, emailId: data.id };
-    } catch (error) {
-      console.error("Error sending test email:", error);
-      return { success: false, error: String(error) };
-    }
+    // Send email with retry logic
+    return await sendEmailWithRetry(
+      process.env.RESEND_API_KEY,
+      process.env.RESEND_FROM_EMAIL || "alerts@yourdomain.com",
+      args.to,
+      args.subject,
+      args.html
+    );
   },
 });
 
-// Internal action to send test SMS (without requiring alertId)
+// Internal action to send test SMS (without requiring alertId, with retry)
 export const sendTestSMS = internalAction({
   args: {
     to: v.string(),
     message: v.string(),
   },
-  handler: async (ctx, args): Promise<any> => {
+  handler: async (ctx, args): Promise<NotificationResult> => {
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
       return {
         success: false,
@@ -655,41 +595,14 @@ export const sendTestSMS = internalAction({
       };
     }
 
-    try {
-      const accountSid = process.env.TWILIO_ACCOUNT_SID;
-      const authToken = process.env.TWILIO_AUTH_TOKEN;
-      const fromPhone = process.env.TWILIO_PHONE_NUMBER;
-
-      const authString = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
-
-      const response: any = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Basic ${authString}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            To: args.to,
-            From: fromPhone,
-            Body: args.message,
-          }).toString(),
-        }
-      );
-
-      const data: any = await response.json();
-
-      if (!response.ok) {
-        console.error("Twilio API error:", data);
-        return { success: false, error: JSON.stringify(data) };
-      }
-
-      return { success: true, messageSid: data.sid };
-    } catch (error) {
-      console.error("Error sending test SMS:", error);
-      return { success: false, error: String(error) };
-    }
+    // Send SMS with retry logic
+    return await sendSmsWithRetry(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+      process.env.TWILIO_PHONE_NUMBER,
+      args.to,
+      args.message
+    );
   },
 });
 

@@ -2,6 +2,7 @@ import { mutation, query, internalMutation, internalAction } from "./_generated/
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requireAuth } from "./authHelpers";
+import { runAllAlertGenerators, createAlertIfNotExists, type CreateAlertArgs } from "./alertHelpers";
 
 // Create a new alert
 export const create = mutation({
@@ -77,44 +78,50 @@ export const create = mutation({
   },
 });
 
-// Get all alerts
+// Get all alerts (optimized batch fetch)
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
     const alerts = await ctx.db.query("alerts").collect();
 
-    const alertsWithDetails = await Promise.all(
-      alerts.map(async (alert) => {
-        const participant = alert.linkedParticipantId
-          ? await ctx.db.get(alert.linkedParticipantId)
-          : null;
-        const property = alert.linkedPropertyId
-          ? await ctx.db.get(alert.linkedPropertyId)
-          : null;
-        const dwelling = alert.linkedDwellingId
-          ? await ctx.db.get(alert.linkedDwellingId)
-          : null;
-        const maintenance = alert.linkedMaintenanceId
-          ? await ctx.db.get(alert.linkedMaintenanceId)
-          : null;
-        const preventativeSchedule = alert.linkedPreventativeScheduleId
-          ? await ctx.db.get(alert.linkedPreventativeScheduleId)
-          : null;
-        const plan = alert.linkedPlanId
-          ? await ctx.db.get(alert.linkedPlanId)
-          : null;
+    if (alerts.length === 0) return [];
 
-        return {
-          ...alert,
-          participant,
-          property,
-          dwelling,
-          maintenance,
-          preventativeSchedule,
-          plan,
-        };
-      })
-    );
+    // Collect all unique IDs for batch fetching
+    const participantIds = [...new Set(alerts.map((a) => a.linkedParticipantId).filter(Boolean))] as string[];
+    const propertyIds = [...new Set(alerts.map((a) => a.linkedPropertyId).filter(Boolean))] as string[];
+    const dwellingIds = [...new Set(alerts.map((a) => a.linkedDwellingId).filter(Boolean))] as string[];
+    const maintenanceIds = [...new Set(alerts.map((a) => a.linkedMaintenanceId).filter(Boolean))] as string[];
+    const preventativeIds = [...new Set(alerts.map((a) => a.linkedPreventativeScheduleId).filter(Boolean))] as string[];
+    const planIds = [...new Set(alerts.map((a) => a.linkedPlanId).filter(Boolean))] as string[];
+
+    // Parallel batch fetch all related records
+    const [participants, properties, dwellings, maintenanceRequests, preventativeSchedules, plans] = await Promise.all([
+      Promise.all(participantIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(propertyIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(dwellingIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(maintenanceIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(preventativeIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(planIds.map((id) => ctx.db.get(id as any))),
+    ]);
+
+    // Create lookup maps for O(1) access
+    const participantMap = new Map(participants.filter(Boolean).map((p) => [p!._id, p]));
+    const propertyMap = new Map(properties.filter(Boolean).map((p) => [p!._id, p]));
+    const dwellingMap = new Map(dwellings.filter(Boolean).map((d) => [d!._id, d]));
+    const maintenanceMap = new Map(maintenanceRequests.filter(Boolean).map((m) => [m!._id, m]));
+    const preventativeMap = new Map(preventativeSchedules.filter(Boolean).map((p) => [p!._id, p]));
+    const planMap = new Map(plans.filter(Boolean).map((p) => [p!._id, p]));
+
+    // Enrich alerts using lookup maps
+    const alertsWithDetails = alerts.map((alert) => ({
+      ...alert,
+      participant: alert.linkedParticipantId ? participantMap.get(alert.linkedParticipantId) || null : null,
+      property: alert.linkedPropertyId ? propertyMap.get(alert.linkedPropertyId) || null : null,
+      dwelling: alert.linkedDwellingId ? dwellingMap.get(alert.linkedDwellingId) || null : null,
+      maintenance: alert.linkedMaintenanceId ? maintenanceMap.get(alert.linkedMaintenanceId) || null : null,
+      preventativeSchedule: alert.linkedPreventativeScheduleId ? preventativeMap.get(alert.linkedPreventativeScheduleId) || null : null,
+      plan: alert.linkedPlanId ? planMap.get(alert.linkedPlanId) || null : null,
+    }));
 
     return alertsWithDetails.sort((a, b) => {
       // Sort by severity first
@@ -130,7 +137,7 @@ export const getAll = query({
   },
 });
 
-// Get active alerts only
+// Get active alerts only (optimized batch fetch)
 export const getActive = query({
   args: {},
   handler: async (ctx) => {
@@ -139,30 +146,36 @@ export const getActive = query({
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
 
-    const alertsWithDetails = await Promise.all(
-      alerts.map(async (alert) => {
-        const participant = alert.linkedParticipantId
-          ? await ctx.db.get(alert.linkedParticipantId)
-          : null;
-        const property = alert.linkedPropertyId
-          ? await ctx.db.get(alert.linkedPropertyId)
-          : null;
-        const dwelling = alert.linkedDwellingId
-          ? await ctx.db.get(alert.linkedDwellingId)
-          : null;
-        const preventativeSchedule = alert.linkedPreventativeScheduleId
-          ? await ctx.db.get(alert.linkedPreventativeScheduleId)
-          : null;
+    if (alerts.length === 0) return [];
 
-        return {
-          ...alert,
-          participant,
-          property,
-          dwelling,
-          preventativeSchedule,
-        };
-      })
-    );
+    // Collect all unique IDs for batch fetching
+    const participantIds = [...new Set(alerts.map((a) => a.linkedParticipantId).filter(Boolean))] as string[];
+    const propertyIds = [...new Set(alerts.map((a) => a.linkedPropertyId).filter(Boolean))] as string[];
+    const dwellingIds = [...new Set(alerts.map((a) => a.linkedDwellingId).filter(Boolean))] as string[];
+    const preventativeIds = [...new Set(alerts.map((a) => a.linkedPreventativeScheduleId).filter(Boolean))] as string[];
+
+    // Parallel batch fetch
+    const [participants, properties, dwellings, preventativeSchedules] = await Promise.all([
+      Promise.all(participantIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(propertyIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(dwellingIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(preventativeIds.map((id) => ctx.db.get(id as any))),
+    ]);
+
+    // Create lookup maps
+    const participantMap = new Map(participants.filter(Boolean).map((p) => [p!._id, p]));
+    const propertyMap = new Map(properties.filter(Boolean).map((p) => [p!._id, p]));
+    const dwellingMap = new Map(dwellings.filter(Boolean).map((d) => [d!._id, d]));
+    const preventativeMap = new Map(preventativeSchedules.filter(Boolean).map((p) => [p!._id, p]));
+
+    // Enrich alerts using lookup maps
+    const alertsWithDetails = alerts.map((alert) => ({
+      ...alert,
+      participant: alert.linkedParticipantId ? participantMap.get(alert.linkedParticipantId) || null : null,
+      property: alert.linkedPropertyId ? propertyMap.get(alert.linkedPropertyId) || null : null,
+      dwelling: alert.linkedDwellingId ? dwellingMap.get(alert.linkedDwellingId) || null : null,
+      preventativeSchedule: alert.linkedPreventativeScheduleId ? preventativeMap.get(alert.linkedPreventativeScheduleId) || null : null,
+    }));
 
     return alertsWithDetails.sort((a, b) => {
       const severityOrder = { critical: 0, warning: 1, info: 2 };
@@ -191,7 +204,7 @@ export const getBySeverity = query({
   },
 });
 
-// Get alerts by type
+// Get alerts by type (optimized batch fetch)
 export const getByType = query({
   args: {
     alertType: v.union(
@@ -212,22 +225,28 @@ export const getByType = query({
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
-    const alertsWithDetails = await Promise.all(
-      alerts.map(async (alert) => {
-        const participant = alert.linkedParticipantId
-          ? await ctx.db.get(alert.linkedParticipantId)
-          : null;
-        const property = alert.linkedPropertyId
-          ? await ctx.db.get(alert.linkedPropertyId)
-          : null;
+    if (alerts.length === 0) return [];
 
-        return {
-          ...alert,
-          participant,
-          property,
-        };
-      })
-    );
+    // Collect unique IDs for batch fetching
+    const participantIds = [...new Set(alerts.map((a) => a.linkedParticipantId).filter(Boolean))] as string[];
+    const propertyIds = [...new Set(alerts.map((a) => a.linkedPropertyId).filter(Boolean))] as string[];
+
+    // Parallel batch fetch
+    const [participants, properties] = await Promise.all([
+      Promise.all(participantIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(propertyIds.map((id) => ctx.db.get(id as any))),
+    ]);
+
+    // Create lookup maps
+    const participantMap = new Map(participants.filter(Boolean).map((p) => [p!._id, p]));
+    const propertyMap = new Map(properties.filter(Boolean).map((p) => [p!._id, p]));
+
+    // Enrich alerts
+    const alertsWithDetails = alerts.map((alert) => ({
+      ...alert,
+      participant: alert.linkedParticipantId ? participantMap.get(alert.linkedParticipantId) || null : null,
+      property: alert.linkedPropertyId ? propertyMap.get(alert.linkedPropertyId) || null : null,
+    }));
 
     return alertsWithDetails.sort((a, b) => b.createdAt - a.createdAt);
   },
@@ -337,288 +356,12 @@ export const getStats = query({
   },
 });
 
-// Helper function to create alert (internal use)
-async function createAlertInternal(
-  ctx: any,
-  args: {
-    alertType:
-      | "plan_expiry"
-      | "low_funding"
-      | "payment_missing"
-      | "maintenance_due"
-      | "document_expiry"
-      | "vacancy"
-      | "preventative_schedule_due"
-      | "claim_due"
-      | "owner_payment_due"
-      | "payment_overdue";
-    severity: "critical" | "warning" | "info";
-    title: string;
-    message: string;
-    linkedParticipantId?: any;
-    linkedPropertyId?: any;
-    linkedDwellingId?: any;
-    linkedMaintenanceId?: any;
-    linkedPreventativeScheduleId?: any;
-    linkedPlanId?: any;
-    linkedOwnerId?: any;
-    triggerDate: string;
-    dueDate?: string;
-  }
-) {
-  // Check if similar alert already exists
-  const existingAlerts = await ctx.db
-    .query("alerts")
-    .withIndex("by_alertType", (q: any) => q.eq("alertType", args.alertType))
-    .filter((q: any) => q.eq(q.field("status"), "active"))
-    .collect();
-
-  const duplicate = existingAlerts.find((alert: any) => {
-    return (
-      alert.linkedParticipantId === args.linkedParticipantId &&
-      alert.linkedPropertyId === args.linkedPropertyId &&
-      alert.linkedDwellingId === args.linkedDwellingId &&
-      alert.linkedMaintenanceId === args.linkedMaintenanceId &&
-      alert.linkedPreventativeScheduleId === args.linkedPreventativeScheduleId &&
-      alert.linkedPlanId === args.linkedPlanId &&
-      alert.linkedOwnerId === args.linkedOwnerId
-    );
-  });
-
-  if (duplicate) {
-    return null; // Don't create duplicate alert
-  }
-
-  const now = Date.now();
-  const alertId = await ctx.db.insert("alerts", {
-    ...args,
-    status: "active",
-    createdAt: now,
-  });
-
-  return alertId;
-}
-
 // Generate alerts based on current data (should be run periodically)
 export const generateAlerts = mutation({
   args: {},
   handler: async (ctx) => {
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    const thirtyDaysFromNow = new Date(today);
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-    let alertsCreated = 0;
-
-    // 1. Check for expiring plans
-    const plans = await ctx.db
-      .query("participantPlans")
-      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
-      .collect();
-
-    for (const plan of plans) {
-      const endDate = new Date(plan.planEndDate);
-      if (endDate <= thirtyDaysFromNow && endDate >= today) {
-        const participant = await ctx.db.get(plan.participantId);
-        const daysUntil = Math.ceil(
-          (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "plan_expiry",
-          severity: daysUntil <= 7 ? "critical" : "warning",
-          title: `NDIS Plan Expiring Soon`,
-          message: `NDIS plan for ${participant?.firstName} ${participant?.lastName} expires in ${daysUntil} days on ${plan.planEndDate}`,
-          linkedParticipantId: plan.participantId,
-          triggerDate: todayStr,
-          dueDate: plan.planEndDate,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 2. Check for expiring documents
-    const documents = await ctx.db.query("documents").collect();
-    const documentsWithExpiry = documents.filter((doc) => doc.expiryDate);
-
-    for (const doc of documentsWithExpiry) {
-      if (!doc.expiryDate) continue;
-      const expiryDate = new Date(doc.expiryDate);
-      if (expiryDate <= thirtyDaysFromNow && expiryDate >= today) {
-        const daysUntil = Math.ceil(
-          (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "document_expiry",
-          severity: daysUntil <= 7 ? "critical" : "warning",
-          title: `Document Expiring Soon`,
-          message: `${doc.fileName} expires in ${daysUntil} days on ${doc.expiryDate}`,
-          linkedParticipantId: doc.linkedParticipantId,
-          linkedPropertyId: doc.linkedPropertyId,
-          triggerDate: todayStr,
-          dueDate: doc.expiryDate,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 3. Check for vacant dwellings
-    const dwellings = await ctx.db.query("dwellings").collect();
-    for (const dwelling of dwellings) {
-      if (dwelling.occupancyStatus === "vacant" && dwelling.isActive) {
-        const property = await ctx.db.get(dwelling.propertyId);
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "vacancy",
-          severity: "info",
-          title: `Vacant Dwelling`,
-          message: `${dwelling.dwellingName} at ${property?.addressLine1} is currently vacant (${dwelling.maxParticipants} capacity)`,
-          linkedDwellingId: dwelling._id,
-          linkedPropertyId: dwelling.propertyId,
-          triggerDate: todayStr,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 4. Check for urgent maintenance
-    const maintenanceRequests = await ctx.db
-      .query("maintenanceRequests")
-      .withIndex("by_priority", (q) => q.eq("priority", "urgent"))
-      .filter((q) => q.neq(q.field("status"), "completed"))
-      .filter((q) => q.neq(q.field("status"), "cancelled"))
-      .collect();
-
-    for (const request of maintenanceRequests) {
-      const dwelling = await ctx.db.get(request.dwellingId);
-      const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
-
-      const alertId = await createAlertInternal(ctx, {
-        alertType: "maintenance_due",
-        severity: "critical",
-        title: `Urgent Maintenance Required`,
-        message: `${request.title} at ${property?.addressLine1} - ${dwelling?.dwellingName}`,
-        linkedMaintenanceId: request._id,
-        linkedDwellingId: request.dwellingId,
-        linkedPropertyId: property?._id,
-        triggerDate: todayStr,
-      });
-
-      if (alertId) alertsCreated++;
-    }
-
-    // 5. Check for overdue/due-soon preventative schedules
-    const preventativeSchedules = await ctx.db
-      .query("preventativeSchedule")
-      .collect();
-    const activeSchedules = preventativeSchedules.filter((s) => s.isActive);
-
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(today.getDate() + 7);
-
-    for (const schedule of activeSchedules) {
-      const dueDate = new Date(schedule.nextDueDate);
-
-      // Calculate days difference (positive = future, negative = overdue)
-      const daysUntil = Math.ceil(
-        (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      const isOverdue = daysUntil < 0;
-      const isDueSoon = daysUntil >= 0 && daysUntil <= 7;
-
-      // Create alerts for overdue schedules or schedules due within 7 days
-      if (isOverdue || isDueSoon) {
-        const property = await ctx.db.get(schedule.propertyId);
-        const dwelling = schedule.dwellingId
-          ? await ctx.db.get(schedule.dwellingId)
-          : null;
-
-        const location = dwelling
-          ? `${dwelling.dwellingName} at ${property?.addressLine1}`
-          : property?.addressLine1;
-
-        let severity: "critical" | "warning" | "info";
-        if (isOverdue) {
-          severity = "critical";
-        } else if (daysUntil <= 3) {
-          severity = "warning";
-        } else {
-          severity = "info";
-        }
-
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "preventative_schedule_due",
-          severity,
-          title: isOverdue
-            ? `Overdue Preventative Maintenance`
-            : `Preventative Maintenance Due Soon`,
-          message: `${schedule.taskName} at ${location} is ${
-            isOverdue
-              ? `overdue by ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? "s" : ""}`
-              : `due in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`
-          }`,
-          linkedPreventativeScheduleId: schedule._id,
-          linkedPropertyId: schedule.propertyId,
-          linkedDwellingId: schedule.dwellingId,
-          triggerDate: todayStr,
-          dueDate: schedule.nextDueDate,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 6. Check for claim due dates - alerts on the day the claim is due
-    const currentPlans = await ctx.db
-      .query("participantPlans")
-      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
-      .collect();
-
-    // Get current day of month
-    const currentDay = today.getDate();
-
-    for (const plan of currentPlans) {
-      const claimDay = plan.claimDay;
-      if (!claimDay) continue; // Skip if no claim day set
-
-      // Only create alert if today IS the claim day
-      if (currentDay === claimDay) {
-        const participant = await ctx.db.get(plan.participantId);
-        if (!participant) continue;
-
-        // Get dwelling and property info
-        const dwelling = participant.dwellingId
-          ? await ctx.db.get(participant.dwellingId)
-          : null;
-        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
-
-        const claimMethod = plan.claimMethod || plan.fundingManagementType;
-        const claimMethodLabel = claimMethod === "pace" ? "PACE" :
-                                  claimMethod === "agency_managed" ? "Agency Managed" :
-                                  claimMethod === "plan_managed" ? "Plan Managed" : "Unknown";
-
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "claim_due",
-          severity: "critical",
-          title: `SDA Claim Due Today`,
-          message: `Submit claim for ${participant.firstName} ${participant.lastName} (${claimMethodLabel}) - $${plan.monthlySdaAmount?.toLocaleString() || "N/A"}/month`,
-          linkedParticipantId: plan.participantId,
-          linkedPlanId: plan._id,
-          linkedDwellingId: dwelling?._id,
-          linkedPropertyId: property?._id,
-          triggerDate: todayStr,
-          dueDate: todayStr,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    return { success: true, alertsCreated };
+    // Use the centralized alert generator from alertHelpers
+    return await runAllAlertGenerators(ctx);
   },
 });
 
@@ -626,222 +369,8 @@ export const generateAlerts = mutation({
 export const generateAlertsInternal = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    const thirtyDaysFromNow = new Date(today);
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-    let alertsCreated = 0;
-
-    // 1. Check for expiring plans
-    const plans = await ctx.db
-      .query("participantPlans")
-      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
-      .collect();
-
-    for (const plan of plans) {
-      const endDate = new Date(plan.planEndDate);
-      if (endDate <= thirtyDaysFromNow && endDate >= today) {
-        const participant = await ctx.db.get(plan.participantId);
-        const daysUntil = Math.ceil(
-          (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "plan_expiry",
-          severity: daysUntil <= 7 ? "critical" : "warning",
-          title: `NDIS Plan Expiring Soon`,
-          message: `NDIS plan for ${participant?.firstName} ${participant?.lastName} expires in ${daysUntil} days on ${plan.planEndDate}`,
-          linkedParticipantId: plan.participantId,
-          triggerDate: todayStr,
-          dueDate: plan.planEndDate,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 2. Check for expiring documents
-    const documents = await ctx.db.query("documents").collect();
-    const documentsWithExpiry = documents.filter((doc) => doc.expiryDate);
-
-    for (const doc of documentsWithExpiry) {
-      if (!doc.expiryDate) continue;
-      const expiryDate = new Date(doc.expiryDate);
-      if (expiryDate <= thirtyDaysFromNow && expiryDate >= today) {
-        const daysUntil = Math.ceil(
-          (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "document_expiry",
-          severity: daysUntil <= 7 ? "critical" : "warning",
-          title: `Document Expiring Soon`,
-          message: `${doc.fileName} expires in ${daysUntil} days on ${doc.expiryDate}`,
-          linkedParticipantId: doc.linkedParticipantId,
-          linkedPropertyId: doc.linkedPropertyId,
-          triggerDate: todayStr,
-          dueDate: doc.expiryDate,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 3. Check for vacant dwellings
-    const dwellings = await ctx.db.query("dwellings").collect();
-    for (const dwelling of dwellings) {
-      if (dwelling.occupancyStatus === "vacant" && dwelling.isActive) {
-        const property = await ctx.db.get(dwelling.propertyId);
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "vacancy",
-          severity: "info",
-          title: `Vacant Dwelling`,
-          message: `${dwelling.dwellingName} at ${property?.addressLine1} is currently vacant (${dwelling.maxParticipants} capacity)`,
-          linkedDwellingId: dwelling._id,
-          linkedPropertyId: dwelling.propertyId,
-          triggerDate: todayStr,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 4. Check for urgent maintenance
-    const maintenanceRequests = await ctx.db
-      .query("maintenanceRequests")
-      .withIndex("by_priority", (q) => q.eq("priority", "urgent"))
-      .filter((q) => q.neq(q.field("status"), "completed"))
-      .filter((q) => q.neq(q.field("status"), "cancelled"))
-      .collect();
-
-    for (const request of maintenanceRequests) {
-      const dwelling = await ctx.db.get(request.dwellingId);
-      const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
-
-      const alertId = await createAlertInternal(ctx, {
-        alertType: "maintenance_due",
-        severity: "critical",
-        title: `Urgent Maintenance Required`,
-        message: `${request.title} at ${property?.addressLine1} - ${dwelling?.dwellingName}`,
-        linkedMaintenanceId: request._id,
-        linkedDwellingId: request.dwellingId,
-        linkedPropertyId: property?._id,
-        triggerDate: todayStr,
-      });
-
-      if (alertId) alertsCreated++;
-    }
-
-    // 5. Check for overdue/due-soon preventative schedules
-    const preventativeSchedules = await ctx.db
-      .query("preventativeSchedule")
-      .collect();
-    const activeSchedules = preventativeSchedules.filter((s) => s.isActive);
-
-    const sevenDaysFromNow = new Date(today);
-    sevenDaysFromNow.setDate(today.getDate() + 7);
-
-    for (const schedule of activeSchedules) {
-      const dueDate = new Date(schedule.nextDueDate);
-
-      // Calculate days difference (positive = future, negative = overdue)
-      const daysUntil = Math.ceil(
-        (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      const isOverdue = daysUntil < 0;
-      const isDueSoon = daysUntil >= 0 && daysUntil <= 7;
-
-      // Create alerts for overdue schedules or schedules due within 7 days
-      if (isOverdue || isDueSoon) {
-        const property = await ctx.db.get(schedule.propertyId);
-        const dwelling = schedule.dwellingId
-          ? await ctx.db.get(schedule.dwellingId)
-          : null;
-
-        const location = dwelling
-          ? `${dwelling.dwellingName} at ${property?.addressLine1}`
-          : property?.addressLine1;
-
-        let severity: "critical" | "warning" | "info";
-        if (isOverdue) {
-          severity = "critical";
-        } else if (daysUntil <= 3) {
-          severity = "warning";
-        } else {
-          severity = "info";
-        }
-
-        const alertId = await createAlertInternal(ctx, {
-          alertType: "preventative_schedule_due",
-          severity,
-          title: isOverdue
-            ? `Overdue Preventative Maintenance`
-            : `Preventative Maintenance Due Soon`,
-          message: `${schedule.taskName} at ${location} is ${
-            isOverdue
-              ? `overdue by ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? "s" : ""}`
-              : `due in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`
-          }`,
-          linkedPreventativeScheduleId: schedule._id,
-          linkedPropertyId: schedule.propertyId,
-          linkedDwellingId: schedule.dwellingId,
-          triggerDate: todayStr,
-          dueDate: schedule.nextDueDate,
-        });
-
-        if (alertId) alertsCreated++;
-      }
-    }
-
-    // 6. Check for claim due dates - alerts on the day the claim is due
-    const currentPlansForClaims = await ctx.db
-      .query("participantPlans")
-      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
-      .collect();
-
-    // Get current day of month
-    const currentDayOfMonth = today.getDate();
-
-    for (const plan of currentPlansForClaims) {
-      const claimDay = plan.claimDay;
-      if (!claimDay) continue; // Skip if no claim day set
-
-      // Only create alert if today IS the claim day
-      if (currentDayOfMonth === claimDay) {
-        const participant = await ctx.db.get(plan.participantId);
-        if (!participant) continue;
-
-        // Get dwelling and property info
-        const dwelling = participant.dwellingId
-          ? await ctx.db.get(participant.dwellingId)
-          : null;
-        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
-
-        const claimMethod = plan.claimMethod || plan.fundingManagementType;
-        const claimMethodLabel = claimMethod === "pace" ? "PACE" :
-                                  claimMethod === "agency_managed" ? "Agency Managed" :
-                                  claimMethod === "plan_managed" ? "Plan Managed" : "Unknown";
-
-        const claimAlertId = await createAlertInternal(ctx, {
-          alertType: "claim_due",
-          severity: "critical",
-          title: `SDA Claim Due Today`,
-          message: `Submit claim for ${participant.firstName} ${participant.lastName} (${claimMethodLabel}) - $${plan.monthlySdaAmount?.toLocaleString() || "N/A"}/month`,
-          linkedParticipantId: plan.participantId,
-          linkedPlanId: plan._id,
-          linkedDwellingId: dwelling?._id,
-          linkedPropertyId: property?._id,
-          triggerDate: todayStr,
-          dueDate: todayStr,
-        });
-
-        if (claimAlertId) alertsCreated++;
-      }
-    }
-
-    return { success: true, alertsCreated };
+    // Use the centralized alert generator from alertHelpers
+    return await runAllAlertGenerators(ctx);
   },
 });
 
@@ -880,29 +409,13 @@ export const createOwnerPaymentReminders = internalMutation({
       const ownerName = owner.companyName || `${owner.firstName} ${owner.lastName}`;
       const propertyName = property.propertyName || property.addressLine1;
 
-      // Check if alert already exists
-      const existingAlert = await ctx.db
-        .query("alerts")
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("alertType"), "owner_payment_due"),
-            q.eq(q.field("linkedPropertyId"), property._id),
-            q.eq(q.field("dueDate"), paymentDueDate),
-            q.neq(q.field("status"), "resolved")
-          )
-        )
-        .first();
-
-      if (existingAlert) continue;
-
-      // Create the alert
-      const alertId = await createAlertInternal(ctx, {
+      // Create the alert using helper (handles duplicate checking)
+      const alertId = await createAlertIfNotExists(ctx, {
         alertType: "owner_payment_due",
         severity: "warning",
         title: `Owner Payment Due in 3 Days`,
         message: `Payment of $${payment.expectedAmount.toLocaleString("en-AU", { minimumFractionDigits: 2 })} due to ${ownerName} for ${propertyName}`,
         linkedPropertyId: property._id,
-        linkedOwnerId: owner._id,
         triggerDate: todayStr,
         dueDate: paymentDueDate,
       });
@@ -911,5 +424,68 @@ export const createOwnerPaymentReminders = internalMutation({
     }
 
     return { success: true, alertsCreated };
+  },
+});
+
+// Paginated version of getActive for large datasets
+export const getActivePaginated = query({
+  args: {
+    cursor: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 25;
+
+    const result = await ctx.db
+      .query("alerts")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .order("desc")
+      .paginate({ numItems: limit, cursor: args.cursor ?? null });
+
+    if (result.page.length === 0) {
+      return {
+        page: [],
+        isDone: result.isDone,
+        continueCursor: result.continueCursor,
+      };
+    }
+
+    // Batch fetch related data
+    const participantIds = [...new Set(result.page.map((a) => a.linkedParticipantId).filter(Boolean))] as string[];
+    const propertyIds = [...new Set(result.page.map((a) => a.linkedPropertyId).filter(Boolean))] as string[];
+    const dwellingIds = [...new Set(result.page.map((a) => a.linkedDwellingId).filter(Boolean))] as string[];
+
+    const [participants, properties, dwellings] = await Promise.all([
+      Promise.all(participantIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(propertyIds.map((id) => ctx.db.get(id as any))),
+      Promise.all(dwellingIds.map((id) => ctx.db.get(id as any))),
+    ]);
+
+    const participantMap = new Map(participants.filter(Boolean).map((p) => [p!._id, p]));
+    const propertyMap = new Map(properties.filter(Boolean).map((p) => [p!._id, p]));
+    const dwellingMap = new Map(dwellings.filter(Boolean).map((d) => [d!._id, d]));
+
+    const alertsWithDetails = result.page.map((alert) => ({
+      ...alert,
+      participant: alert.linkedParticipantId ? participantMap.get(alert.linkedParticipantId) || null : null,
+      property: alert.linkedPropertyId ? propertyMap.get(alert.linkedPropertyId) || null : null,
+      dwelling: alert.linkedDwellingId ? dwellingMap.get(alert.linkedDwellingId) || null : null,
+    }));
+
+    // Sort by severity within the page
+    const severityOrder = { critical: 0, warning: 1, info: 2 };
+    const sortedAlerts = alertsWithDetails.sort((a, b) => {
+      const severityDiff =
+        severityOrder[a.severity as keyof typeof severityOrder] -
+        severityOrder[b.severity as keyof typeof severityOrder];
+      if (severityDiff !== 0) return severityDiff;
+      return b.createdAt - a.createdAt;
+    });
+
+    return {
+      page: sortedAlerts,
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
   },
 });

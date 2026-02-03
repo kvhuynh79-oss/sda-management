@@ -3,6 +3,13 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth } from "./authHelpers";
 import { paginationArgs } from "./paginationHelpers";
+import {
+  validateRequiredString,
+  validateNdisNumber,
+  validateOptionalEmail,
+  validateOptionalPhone,
+  validateOptionalDate,
+} from "./validationHelpers";
 
 // Create a new participant
 export const create = mutation({
@@ -30,10 +37,18 @@ export const create = mutation({
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "participants", "create");
 
+    // Validate inputs
+    const validatedNdis = validateNdisNumber(args.ndisNumber);
+    const validatedFirstName = validateRequiredString(args.firstName, "first name");
+    const validatedLastName = validateRequiredString(args.lastName, "last name");
+    const validatedEmail = validateOptionalEmail(args.email);
+    const validatedPhone = validateOptionalPhone(args.phone);
+    const validatedMoveInDate = validateOptionalDate(args.moveInDate, "move-in date");
+
     // Check if NDIS number already exists
     const existing = await ctx.db
       .query("participants")
-      .withIndex("by_ndisNumber", (q) => q.eq("ndisNumber", args.ndisNumber))
+      .withIndex("by_ndisNumber", (q) => q.eq("ndisNumber", validatedNdis))
       .first();
 
     if (existing) {
@@ -42,12 +57,26 @@ export const create = mutation({
 
     const now = Date.now();
     // Use provided status, or default to active if moveInDate is provided, pending_move_in otherwise
-    const status = args.status || (args.moveInDate ? "active" : "pending_move_in");
+    const status = args.status || (validatedMoveInDate ? "active" : "pending_move_in");
 
-    const { status: _, userId, ...restArgs } = args;
     const participantId = await ctx.db.insert("participants", {
-      ...restArgs,
+      ndisNumber: validatedNdis,
+      firstName: validatedFirstName,
+      lastName: validatedLastName,
+      dateOfBirth: args.dateOfBirth,
+      email: validatedEmail,
+      phone: validatedPhone,
+      emergencyContactName: args.emergencyContactName,
+      emergencyContactPhone: args.emergencyContactPhone,
+      emergencyContactRelation: args.emergencyContactRelation,
+      dwellingId: args.dwellingId,
+      moveInDate: validatedMoveInDate,
       status,
+      silProviderName: args.silProviderName,
+      supportCoordinatorName: args.supportCoordinatorName,
+      supportCoordinatorEmail: args.supportCoordinatorEmail,
+      supportCoordinatorPhone: args.supportCoordinatorPhone,
+      notes: args.notes,
       createdAt: now,
       updatedAt: now,
     });
@@ -109,27 +138,41 @@ export const getAll = query({
       .filter((q) => q.neq(q.field("status"), "moved_out"))
       .collect();
 
-    const participantsWithDetails = await Promise.all(
-      participants.map(async (participant) => {
-        const dwelling = await ctx.db.get(participant.dwellingId);
-        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
-        
-        // Get current plan
-        const plans = await ctx.db
-          .query("participantPlans")
-          .withIndex("by_participant", (q) => q.eq("participantId", participant._id))
-          .collect();
-        
-        const currentPlan = plans.find((p) => p.planStatus === "current");
+    // Batch fetch all dwellings
+    const dwellingIds = [...new Set(participants.map((p) => p.dwellingId))];
+    const dwellings = await Promise.all(dwellingIds.map((id) => ctx.db.get(id)));
+    const dwellingMap = new Map(dwellings.map((d, i) => [dwellingIds[i], d]));
 
-        return {
-          ...participant,
-          dwelling,
-          property,
-          currentPlan,
-        };
-      })
-    );
+    // Batch fetch all properties
+    const propertyIds = [...new Set(dwellings.filter(Boolean).map((d) => d!.propertyId))];
+    const properties = await Promise.all(propertyIds.map((id) => ctx.db.get(id)));
+    const propertyMap = new Map(properties.map((p, i) => [propertyIds[i], p]));
+
+    // Batch fetch all current plans
+    const allPlans = await ctx.db
+      .query("participantPlans")
+      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
+      .collect();
+
+    // Group plans by participant
+    const plansByParticipant = new Map<string, typeof allPlans[0]>();
+    for (const plan of allPlans) {
+      plansByParticipant.set(plan.participantId, plan);
+    }
+
+    // Build result with pre-fetched data
+    const participantsWithDetails = participants.map((participant) => {
+      const dwelling = dwellingMap.get(participant.dwellingId);
+      const property = dwelling ? propertyMap.get(dwelling.propertyId) : null;
+      const currentPlan = plansByParticipant.get(participant._id);
+
+      return {
+        ...participant,
+        dwelling,
+        property,
+        currentPlan,
+      };
+    });
 
     return participantsWithDetails;
   },

@@ -60,26 +60,40 @@ export const create = mutation({
   },
 });
 
-// Get all payments with participant and plan details
+// Get all payments with participant and plan details (optimized batch fetch)
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
     const payments = await ctx.db.query("payments").collect();
 
-    const paymentsWithDetails = await Promise.all(
-      payments.map(async (payment) => {
-        const participant = await ctx.db.get(payment.participantId);
-        const plan = await ctx.db.get(payment.planId);
-        const createdByUser = await ctx.db.get(payment.createdBy);
+    if (payments.length === 0) return [];
 
-        return {
-          ...payment,
-          participant,
-          plan,
-          createdByUser,
-        };
-      })
+    // Batch fetch all unique related IDs to avoid N+1 queries
+    const participantIds = [...new Set(payments.map((p) => p.participantId))];
+    const planIds = [...new Set(payments.map((p) => p.planId))];
+    const userIds = [...new Set(payments.map((p) => p.createdBy))];
+
+    // Parallel batch fetch
+    const [participants, plans, users] = await Promise.all([
+      Promise.all(participantIds.map((id) => ctx.db.get(id))),
+      Promise.all(planIds.map((id) => ctx.db.get(id))),
+      Promise.all(userIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    // Create lookup maps for O(1) access
+    const participantMap = new Map(
+      participants.filter(Boolean).map((p) => [p!._id, p])
     );
+    const planMap = new Map(plans.filter(Boolean).map((p) => [p!._id, p]));
+    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u]));
+
+    // Enrich payments using lookup maps
+    const paymentsWithDetails = payments.map((payment) => ({
+      ...payment,
+      participant: participantMap.get(payment.participantId) || null,
+      plan: planMap.get(payment.planId) || null,
+      createdByUser: userMap.get(payment.createdBy) || null,
+    }));
 
     return paymentsWithDetails.sort(
       (a, b) =>
@@ -88,7 +102,7 @@ export const getAll = query({
   },
 });
 
-// Get payments by participant
+// Get payments by participant (optimized batch fetch)
 export const getByParticipant = query({
   args: { participantId: v.id("participants") },
   handler: async (ctx, args) => {
@@ -97,18 +111,26 @@ export const getByParticipant = query({
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
       .collect();
 
-    const paymentsWithDetails = await Promise.all(
-      payments.map(async (payment) => {
-        const plan = await ctx.db.get(payment.planId);
-        const createdByUser = await ctx.db.get(payment.createdBy);
+    if (payments.length === 0) return [];
 
-        return {
-          ...payment,
-          plan,
-          createdByUser,
-        };
-      })
-    );
+    // Batch fetch unique related IDs
+    const planIds = [...new Set(payments.map((p) => p.planId))];
+    const userIds = [...new Set(payments.map((p) => p.createdBy))];
+
+    const [plans, users] = await Promise.all([
+      Promise.all(planIds.map((id) => ctx.db.get(id))),
+      Promise.all(userIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    // Create lookup maps
+    const planMap = new Map(plans.filter(Boolean).map((p) => [p!._id, p]));
+    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u]));
+
+    const paymentsWithDetails = payments.map((payment) => ({
+      ...payment,
+      plan: planMap.get(payment.planId) || null,
+      createdByUser: userMap.get(payment.createdBy) || null,
+    }));
 
     return paymentsWithDetails.sort(
       (a, b) =>
@@ -280,60 +302,119 @@ export const getParticipantStats = query({
   },
 });
 
-// Get recent payments (for dashboard)
+// Get recent payments (for dashboard) - optimized
 export const getRecent = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const limit = args.limit || 10;
     const payments = await ctx.db.query("payments").collect();
 
-    const paymentsWithDetails = await Promise.all(
-      payments.map(async (payment) => {
-        const participant = await ctx.db.get(payment.participantId);
-        return {
-          ...payment,
-          participant,
-        };
-      })
+    if (payments.length === 0) return [];
+
+    // Sort first, then slice to limit what we need to enrich
+    const sortedPayments = payments.sort(
+      (a, b) =>
+        new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
+    );
+    const recentPayments = sortedPayments.slice(0, limit);
+
+    // Batch fetch only the participants we need
+    const participantIds = [...new Set(recentPayments.map((p) => p.participantId))];
+    const participants = await Promise.all(participantIds.map((id) => ctx.db.get(id)));
+
+    const participantMap = new Map(
+      participants.filter(Boolean).map((p) => [p!._id, p])
     );
 
-    return paymentsWithDetails
-      .sort(
-        (a, b) =>
-          new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
-      )
-      .slice(0, limit);
+    return recentPayments.map((payment) => ({
+      ...payment,
+      participant: participantMap.get(payment.participantId) || null,
+    }));
   },
 });
 
-// Get payments with variances (for alerting)
+// Get payments with variances (for alerting) - optimized
 export const getPaymentsWithVariance = query({
   args: { minVariancePercent: v.number() },
   handler: async (ctx, args) => {
     const payments = await ctx.db.query("payments").collect();
 
-    const paymentsWithSignificantVariance = await Promise.all(
-      payments
-        .filter((payment) => {
-          const variancePercent =
-            (Math.abs(payment.variance) / payment.expectedAmount) * 100;
-          return variancePercent >= args.minVariancePercent;
-        })
-        .map(async (payment) => {
-          const participant = await ctx.db.get(payment.participantId);
-          const variancePercent =
-            (payment.variance / payment.expectedAmount) * 100;
+    // Filter first to reduce the dataset
+    const filteredPayments = payments.filter((payment) => {
+      if (payment.expectedAmount === 0) return false;
+      const variancePercent =
+        (Math.abs(payment.variance) / payment.expectedAmount) * 100;
+      return variancePercent >= args.minVariancePercent;
+    });
 
-          return {
-            ...payment,
-            participant,
-            variancePercent,
-          };
-        })
+    if (filteredPayments.length === 0) return [];
+
+    // Batch fetch participants
+    const participantIds = [...new Set(filteredPayments.map((p) => p.participantId))];
+    const participants = await Promise.all(participantIds.map((id) => ctx.db.get(id)));
+
+    const participantMap = new Map(
+      participants.filter(Boolean).map((p) => [p!._id, p])
     );
+
+    const paymentsWithSignificantVariance = filteredPayments.map((payment) => ({
+      ...payment,
+      participant: participantMap.get(payment.participantId) || null,
+      variancePercent: (payment.variance / payment.expectedAmount) * 100,
+    }));
 
     return paymentsWithSignificantVariance.sort(
       (a, b) => Math.abs(b.variance) - Math.abs(a.variance)
     );
+  },
+});
+
+// Paginated version of getAll for large datasets
+export const getAllPaginated = query({
+  args: {
+    cursor: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 25;
+
+    const result = await ctx.db
+      .query("payments")
+      .order("desc")
+      .paginate({ numItems: limit, cursor: args.cursor ?? null });
+
+    if (result.page.length === 0) {
+      return {
+        page: [],
+        isDone: result.isDone,
+        continueCursor: result.continueCursor,
+      };
+    }
+
+    // Batch fetch related data
+    const participantIds = [...new Set(result.page.map((p) => p.participantId))];
+    const planIds = [...new Set(result.page.map((p) => p.planId))];
+
+    const [participants, plans] = await Promise.all([
+      Promise.all(participantIds.map((id) => ctx.db.get(id))),
+      Promise.all(planIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const participantMap = new Map(
+      participants.filter(Boolean).map((p) => [p!._id, p])
+    );
+    const planMap = new Map(plans.filter(Boolean).map((p) => [p!._id, p]));
+
+    const paymentsWithDetails = result.page.map((payment) => ({
+      ...payment,
+      participant: participantMap.get(payment.participantId) || null,
+      plan: planMap.get(payment.planId) || null,
+    }));
+
+    return {
+      page: paymentsWithDetails,
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
   },
 });

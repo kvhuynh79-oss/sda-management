@@ -1,22 +1,22 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
+import bcrypt from "bcryptjs";
 
-// Simple hash function for password (demo purposes - use proper hashing in production)
-function hashPassword(password: string): string {
-  // Use a simple but Convex-compatible hash
-  let hash = 0;
-  const str = password + "_sda_salt_2025";
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash.toString(36) + str.length.toString(36);
+// Secure password hashing using bcryptjs
+const SALT_ROUNDS = 12;
+
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 // Create a new user (for initial setup or admin creating users)
-export const createUser = mutation({
+export const createUser = action({
   args: {
     email: v.string(),
     password: v.string(),
@@ -32,6 +32,42 @@ export const createUser = mutation({
     phone: v.optional(v.string()),
     silProviderId: v.optional(v.id("silProviders")), // For SIL provider users
   },
+  handler: async (ctx, args): Promise<Id<"users">> => {
+    // Hash password with bcrypt (secure)
+    const passwordHash = await hashPassword(args.password);
+
+    // Call internal mutation to create the user
+    const userId: Id<"users"> = await ctx.runMutation(internal.auth.createUserInternal, {
+      email: args.email,
+      passwordHash,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      role: args.role,
+      phone: args.phone,
+      silProviderId: args.silProviderId,
+    });
+
+    return userId;
+  },
+});
+
+// Internal mutation for creating user (called from action)
+export const createUserInternal = internalMutation({
+  args: {
+    email: v.string(),
+    passwordHash: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    role: v.union(
+      v.literal("admin"),
+      v.literal("property_manager"),
+      v.literal("staff"),
+      v.literal("accountant"),
+      v.literal("sil_provider")
+    ),
+    phone: v.optional(v.string()),
+    silProviderId: v.optional(v.id("silProviders")),
+  },
   handler: async (ctx, args) => {
     // Check if user already exists
     const existingUser = await ctx.db
@@ -43,13 +79,10 @@ export const createUser = mutation({
       throw new Error("User with this email already exists");
     }
 
-    // Simple hash for demo - in production use proper bcrypt on server
-    const passwordHash = hashPassword(args.password);
-
     const now = Date.now();
     const userId = await ctx.db.insert("users", {
       email: args.email.toLowerCase(),
-      passwordHash,
+      passwordHash: args.passwordHash,
       firstName: args.firstName,
       lastName: args.lastName,
       role: args.role,
@@ -64,31 +97,95 @@ export const createUser = mutation({
   },
 });
 
-// Login function
-export const login = mutation({
+// Login result type
+interface LoginResult {
+  _id: Id<"users">;
+  id: Id<"users">;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  silProviderId?: Id<"silProviders">;
+  providerName?: string;
+}
+
+// Login function - uses action for bcrypt password verification
+export const login = action({
   args: {
     email: v.string(),
     password: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<LoginResult> => {
+    // Get user data via internal query
+    const userData = await ctx.runMutation(internal.auth.getUserForLogin, {
+      email: args.email,
+    });
+
+    if (!userData) {
+      throw new Error("Invalid email or password");
+    }
+
+    if (!userData.isActive) {
+      throw new Error("Account is disabled. Contact your administrator.");
+    }
+
+    // Verify password with bcrypt
+    const isValid = await verifyPassword(args.password, userData.passwordHash);
+    if (!isValid) {
+      throw new Error("Invalid email or password");
+    }
+
+    // Update last login and log via internal mutation
+    const result: LoginResult = await ctx.runMutation(internal.auth.processLogin, {
+      userId: userData._id,
+    });
+
+    return result;
+  },
+});
+
+// User data type returned by getUserForLogin
+interface UserForLogin {
+  _id: Id<"users">;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  passwordHash: string;
+  isActive: boolean;
+  silProviderId?: Id<"silProviders">;
+}
+
+// Internal query to get user for login (includes password hash)
+export const getUserForLogin = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args): Promise<UserForLogin | null> => {
     const user = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .first();
 
-    if (!user) {
-      throw new Error("Invalid email or password");
-    }
+    if (!user) return null;
 
-    if (!user.isActive) {
-      throw new Error("Account is disabled. Contact your administrator.");
-    }
+    return {
+      _id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      passwordHash: user.passwordHash,
+      isActive: user.isActive,
+      silProviderId: user.silProviderId,
+    };
+  },
+});
 
-    // Verify password
-    const passwordHash = hashPassword(args.password);
-    if (user.passwordHash !== passwordHash) {
-      throw new Error("Invalid email or password");
-    }
+// Internal mutation to process successful login
+export const processLogin = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args): Promise<LoginResult> => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
 
     // Update last login
     await ctx.db.patch(user._id, {
@@ -107,8 +204,8 @@ export const login = mutation({
     });
 
     // For SIL provider users, get their provider info
-    let silProviderId = user.silProviderId;
-    let providerName = undefined;
+    let silProviderId: Id<"silProviders"> | undefined = user.silProviderId;
+    let providerName: string | undefined = undefined;
     if (user.role === "sil_provider" && user.silProviderId) {
       const provider = await ctx.db.get(user.silProviderId);
       if (provider) {
@@ -203,50 +300,83 @@ export const updateUser = mutation({
   },
 });
 
-// Change password
-export const changePassword = mutation({
+// Change password - uses action for bcrypt
+export const changePassword = action({
   args: {
     userId: v.id("users"),
     currentPassword: v.string(),
     newPassword: v.string(),
   },
-  handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user) {
+  handler: async (ctx, args): Promise<{ success: boolean }> => {
+    // Get current user's password hash
+    const userData = await ctx.runMutation(internal.auth.getUserPasswordHash, {
+      userId: args.userId,
+    });
+
+    if (!userData) {
       throw new Error("User not found");
     }
 
     // Verify current password
-    const currentHash = hashPassword(args.currentPassword);
-    if (user.passwordHash !== currentHash) {
+    const isValid = await verifyPassword(args.currentPassword, userData.passwordHash);
+    if (!isValid) {
       throw new Error("Current password is incorrect");
     }
 
-    // Update password
-    const newHash = hashPassword(args.newPassword);
-    await ctx.db.patch(args.userId, {
+    // Hash new password
+    const newHash = await hashPassword(args.newPassword);
+
+    // Update password via internal mutation
+    await ctx.runMutation(internal.auth.updatePasswordHash, {
+      userId: args.userId,
       passwordHash: newHash,
-      updatedAt: Date.now(),
     });
 
     return { success: true };
   },
 });
 
-// Reset password (admin function)
-export const resetPassword = mutation({
+// Reset password (admin function) - uses action for bcrypt
+export const resetPassword = action({
   args: {
     userId: v.id("users"),
     newPassword: v.string(),
   },
   handler: async (ctx, args) => {
-    const newHash = hashPassword(args.newPassword);
-    await ctx.db.patch(args.userId, {
+    // Hash new password with bcrypt
+    const newHash = await hashPassword(args.newPassword);
+
+    // Update via internal mutation
+    await ctx.runMutation(internal.auth.updatePasswordHash, {
+      userId: args.userId,
       passwordHash: newHash,
-      updatedAt: Date.now(),
     });
 
     return { success: true };
+  },
+});
+
+// Internal query to get user's password hash
+export const getUserPasswordHash = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    return { passwordHash: user.passwordHash };
+  },
+});
+
+// Internal mutation to update password hash
+export const updatePasswordHash = internalMutation({
+  args: {
+    userId: v.id("users"),
+    passwordHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      passwordHash: args.passwordHash,
+      updatedAt: Date.now(),
+    });
   },
 });
 

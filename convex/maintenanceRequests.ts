@@ -74,24 +74,43 @@ export const getAll = query({
   handler: async (ctx) => {
     const requests = await ctx.db.query("maintenanceRequests").collect();
 
-    const requestsWithDetails = await Promise.all(
-      requests.map(async (request) => {
-        const dwelling = await ctx.db.get(request.dwellingId);
-        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
-        const createdByUser = await ctx.db.get(request.createdBy);
-        const assignedContractor = request.assignedContractorId
-          ? await ctx.db.get(request.assignedContractorId)
-          : null;
+    // Batch fetch all dwellings
+    const dwellingIds = [...new Set(requests.map((r) => r.dwellingId))];
+    const dwellings = await Promise.all(dwellingIds.map((id) => ctx.db.get(id)));
+    const dwellingMap = new Map(dwellings.map((d, i) => [dwellingIds[i], d]));
 
-        return {
-          ...request,
-          dwelling,
-          property,
-          createdByUser,
-          assignedContractor,
-        };
-      })
-    );
+    // Batch fetch all properties
+    const propertyIds = [...new Set(dwellings.filter(Boolean).map((d) => d!.propertyId))];
+    const properties = await Promise.all(propertyIds.map((id) => ctx.db.get(id)));
+    const propertyMap = new Map(properties.map((p, i) => [propertyIds[i], p]));
+
+    // Batch fetch all users
+    const userIds = [...new Set(requests.map((r) => r.createdBy))];
+    const users = await Promise.all(userIds.map((id) => ctx.db.get(id)));
+    const userMap = new Map(users.map((u, i) => [userIds[i], u]));
+
+    // Batch fetch all contractors
+    const contractorIds = [...new Set(requests.filter((r) => r.assignedContractorId).map((r) => r.assignedContractorId!))];
+    const contractors = await Promise.all(contractorIds.map((id) => ctx.db.get(id)));
+    const contractorMap = new Map(contractors.map((c, i) => [contractorIds[i], c]));
+
+    // Build result with pre-fetched data
+    const requestsWithDetails = requests.map((request) => {
+      const dwelling = dwellingMap.get(request.dwellingId);
+      const property = dwelling ? propertyMap.get(dwelling.propertyId) : null;
+      const createdByUser = userMap.get(request.createdBy);
+      const assignedContractor = request.assignedContractorId
+        ? contractorMap.get(request.assignedContractorId)
+        : null;
+
+      return {
+        ...request,
+        dwelling,
+        property,
+        createdByUser,
+        assignedContractor,
+      };
+    });
 
     return requestsWithDetails.sort((a, b) => b.createdAt - a.createdAt);
   },

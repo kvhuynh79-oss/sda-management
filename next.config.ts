@@ -77,15 +77,59 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   // Empty turbopack config to allow webpack config from PWA plugin
   turbopack: {},
-  // Security headers
+  // Security headers - hardened CSP
   async headers() {
+    // Production CSP removes unsafe-eval (only needed for dev hot-reload)
+    const isDev = process.env.NODE_ENV === "development";
+
+    // Build CSP directives
+    const cspDirectives = [
+      "default-src 'self'",
+      // Scripts: unsafe-inline needed for Next.js hydration, unsafe-eval only in dev
+      isDev
+        ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+        : "script-src 'self' 'unsafe-inline'",
+      // Styles: inline styles needed for Tailwind/Next.js
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      // Fonts
+      "font-src 'self' https://fonts.gstatic.com",
+      // Images: allow data URIs and blobs for uploads
+      "img-src 'self' data: blob: https:",
+      // API connections to Convex
+      "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud",
+      // Workers for PWA
+      "worker-src 'self'",
+      // Prevent framing (clickjacking protection)
+      "frame-ancestors 'none'",
+      // Restrict base URI
+      "base-uri 'self'",
+      // Restrict form submissions
+      "form-action 'self'",
+    ].join("; ");
+
     return [
       {
         source: "/(.*)",
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "script-src 'self' 'unsafe-eval' 'unsafe-inline'; worker-src 'self';",
+            value: cspDirectives,
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
           },
         ],
       },

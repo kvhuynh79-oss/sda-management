@@ -84,29 +84,44 @@ export const getAll = query({
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // Get owner details and dwelling counts for each property
-    const propertiesWithDetails = await Promise.all(
-      properties.map(async (property) => {
-        const owner = await ctx.db.get(property.ownerId);
-        const dwellings = await ctx.db
-          .query("dwellings")
-          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-          .filter((q) => q.eq(q.field("isActive"), true))
-          .collect();
+    // Batch fetch all owners to avoid N+1 queries
+    const ownerIds = [...new Set(properties.map((p) => p.ownerId))];
+    const owners = await Promise.all(ownerIds.map((id) => ctx.db.get(id)));
+    const ownerMap = new Map(owners.map((o, i) => [ownerIds[i], o]));
 
-        const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
-        const currentOccupancy = dwellings.reduce((sum, d) => sum + d.currentOccupancy, 0);
+    // Batch fetch all active dwellings
+    const allDwellings = await ctx.db
+      .query("dwellings")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
 
-        return {
-          ...property,
-          owner,
-          dwellingCount: dwellings.length,
-          totalCapacity,
-          currentOccupancy,
-          vacancies: totalCapacity - currentOccupancy,
-        };
-      })
-    );
+    // Group dwellings by property
+    const dwellingsByProperty = new Map<string, typeof allDwellings>();
+    for (const dwelling of allDwellings) {
+      const key = dwelling.propertyId;
+      if (!dwellingsByProperty.has(key)) {
+        dwellingsByProperty.set(key, []);
+      }
+      dwellingsByProperty.get(key)!.push(dwelling);
+    }
+
+    // Build result with pre-fetched data
+    const propertiesWithDetails = properties.map((property) => {
+      const owner = ownerMap.get(property.ownerId);
+      const dwellings = dwellingsByProperty.get(property._id) || [];
+
+      const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
+      const currentOccupancy = dwellings.reduce((sum, d) => sum + d.currentOccupancy, 0);
+
+      return {
+        ...property,
+        owner,
+        dwellingCount: dwellings.length,
+        totalCapacity,
+        currentOccupancy,
+        vacancies: totalCapacity - currentOccupancy,
+      };
+    });
 
     return propertiesWithDetails;
   },

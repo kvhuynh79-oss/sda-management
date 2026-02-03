@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth } from "./authHelpers";
+import { paginationArgs } from "./paginationHelpers";
 
 // Create a new participant
 export const create = mutation({
@@ -319,5 +320,67 @@ export const getByDwelling = query({
       .collect();
 
     return participants;
+  },
+});
+
+// Get participants with pagination
+export const getAllPaginated = query({
+  args: {
+    ...paginationArgs,
+    status: v.optional(v.string()),
+    dwellingId: v.optional(v.id("dwellings")),
+  },
+  handler: async (ctx, args) => {
+    // Build query based on filters
+    let result;
+
+    if (args.dwellingId) {
+      // Filter by dwelling
+      let dwellingQuery = ctx.db
+        .query("participants")
+        .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId!));
+      if (!args.status) {
+        dwellingQuery = dwellingQuery.filter((q) => q.neq(q.field("status"), "moved_out"));
+      }
+      result = await dwellingQuery.paginate(args.paginationOpts);
+    } else if (args.status) {
+      // Filter by status
+      const statusQuery = ctx.db
+        .query("participants")
+        .withIndex("by_status", (q) => q.eq("status", args.status as any));
+      result = await statusQuery.paginate(args.paginationOpts);
+    } else {
+      // Default: exclude moved_out
+      const defaultQuery = ctx.db
+        .query("participants")
+        .filter((q) => q.neq(q.field("status"), "moved_out"));
+      result = await defaultQuery.paginate(args.paginationOpts);
+    }
+
+    // Enrich with dwelling, property, and plan data
+    const enrichedPage = await Promise.all(
+      result.page.map(async (participant) => {
+        const dwelling = await ctx.db.get(participant.dwellingId);
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        const plans = await ctx.db
+          .query("participantPlans")
+          .withIndex("by_participant", (q) => q.eq("participantId", participant._id))
+          .collect();
+        const currentPlan = plans.find((p) => p.planStatus === "current");
+
+        return {
+          ...participant,
+          dwelling,
+          property,
+          currentPlan,
+        };
+      })
+    );
+
+    return {
+      ...result,
+      page: enrichedPage,
+    };
   },
 });

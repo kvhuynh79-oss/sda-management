@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth } from "./authHelpers";
+import { paginationArgs } from "./paginationHelpers";
 
 // Create a new maintenance request
 export const create = mutation({
@@ -652,5 +653,68 @@ export const migrateContractorLinks = mutation({
     }
 
     return results;
+  },
+});
+
+// Get maintenance requests with pagination
+export const getAllPaginated = query({
+  args: {
+    ...paginationArgs,
+    status: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    dwellingId: v.optional(v.id("dwellings")),
+  },
+  handler: async (ctx, args) => {
+    // Build query based on filters - prioritize most specific filter
+    let result;
+
+    if (args.dwellingId) {
+      // Filter by dwelling (most specific)
+      const dwellingQuery = ctx.db
+        .query("maintenanceRequests")
+        .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId!));
+      result = await dwellingQuery.order("desc").paginate(args.paginationOpts);
+    } else if (args.status) {
+      // Filter by status
+      const statusQuery = ctx.db
+        .query("maintenanceRequests")
+        .withIndex("by_status", (q) => q.eq("status", args.status as any));
+      result = await statusQuery.order("desc").paginate(args.paginationOpts);
+    } else if (args.priority) {
+      // Filter by priority
+      const priorityQuery = ctx.db
+        .query("maintenanceRequests")
+        .withIndex("by_priority", (q) => q.eq("priority", args.priority as any));
+      result = await priorityQuery.order("desc").paginate(args.paginationOpts);
+    } else {
+      // Default: all requests
+      const defaultQuery = ctx.db.query("maintenanceRequests");
+      result = await defaultQuery.order("desc").paginate(args.paginationOpts);
+    }
+
+    // Enrich with dwelling, property, and contractor data
+    const enrichedPage = await Promise.all(
+      result.page.map(async (request) => {
+        const dwelling = await ctx.db.get(request.dwellingId);
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+        const createdByUser = await ctx.db.get(request.createdBy);
+        const assignedContractor = request.assignedContractorId
+          ? await ctx.db.get(request.assignedContractorId)
+          : null;
+
+        return {
+          ...request,
+          dwelling,
+          property,
+          createdByUser,
+          assignedContractor,
+        };
+      })
+    );
+
+    return {
+      ...result,
+      page: enrichedPage,
+    };
   },
 });

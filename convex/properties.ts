@@ -259,25 +259,30 @@ export const getAllPaginated = query({
     state: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("properties").filter((q) => q.eq(q.field("isActive"), true));
+    // Build query based on filters
+    let result;
 
-    // Apply status filter if provided
     if (args.status) {
-      query = ctx.db
+      // Filter by status
+      const statusQuery = ctx.db
         .query("properties")
         .withIndex("by_propertyStatus", (q) => q.eq("propertyStatus", args.status as any))
         .filter((q) => q.eq(q.field("isActive"), true));
-    }
-
-    // Apply state filter if provided
-    if (args.state) {
-      query = ctx.db
+      result = await statusQuery.paginate(args.paginationOpts);
+    } else if (args.state) {
+      // Filter by state
+      const stateQuery = ctx.db
         .query("properties")
         .withIndex("by_state", (q) => q.eq("state", args.state as any))
         .filter((q) => q.eq(q.field("isActive"), true));
+      result = await stateQuery.paginate(args.paginationOpts);
+    } else {
+      // Default: all active properties
+      const defaultQuery = ctx.db
+        .query("properties")
+        .filter((q) => q.eq(q.field("isActive"), true));
+      result = await defaultQuery.paginate(args.paginationOpts);
     }
-
-    const result = await query.paginate(args.paginationOpts);
 
     // Enrich with owner and dwelling data
     const enrichedPage = await Promise.all(

@@ -294,7 +294,7 @@ export default function PropertyDetailPage() {
                       property={property}
                       allSilProviders={allSilProviders || []}
                       userId={user?.id as Id<"users">}
-                      onDelete={(id) => removeDwelling({ dwellingId: id as Id<"dwellings"> })}
+                      onDelete={(id) => removeDwelling({ dwellingId: id as Id<"dwellings">, userId: user?.id as Id<"users"> })}
                       onLinkProvider={async (dwellingId, providerId, accessLevel, notes) => {
                         await linkDwellingProvider({
                           dwellingId,
@@ -392,7 +392,10 @@ function DwellingCard({
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<Id<"silProviderDwellings"> | null>(null);
 
   // Query allocated providers for this dwelling
-  const allocatedProviders = useQuery(api.silProviders.getProvidersForDwelling, { dwellingId: dwelling._id as Id<"dwellings"> });
+  const allocatedProviders = useQuery(
+    api.silProviders.getProvidersForDwelling,
+    dwelling?._id ? { dwellingId: dwelling._id as Id<"dwellings"> } : "skip"
+  );
 
   const getOccupancyColor = () => {
     if (dwelling.occupancyStatus === "fully_occupied") return "bg-green-600";
@@ -412,7 +415,7 @@ function DwellingCard({
 
   // Filter out already allocated providers
   const allocatedIds = (allocatedProviders || []).map((p) => p.silProviderId);
-  const availableProviders = allSilProviders.filter((p) => !allocatedIds.includes(p._id));
+  const availableProviders = (allSilProviders || []).filter((p) => !allocatedIds.includes(p._id));
 
   const handleAddProvider = async () => {
     if (!selectedProvider) return;

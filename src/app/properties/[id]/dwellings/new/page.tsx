@@ -60,6 +60,7 @@ export default function NewDwellingPage() {
 
     try {
       await createDwelling({
+        userId: user?.id as Id<"users">,
         propertyId,
         dwellingName: formData.dwellingName,
         dwellingType: formData.dwellingType,

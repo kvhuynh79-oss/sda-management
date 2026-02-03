@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -41,6 +41,15 @@ export default function SILProvidersPage() {
   const [editingId, setEditingId] = useState<Id<"silProviders"> | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [searchTerm, setSearchTerm] = useState("");
+  const [userId, setUserId] = useState<Id<"users"> | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserId(user.id as Id<"users">);
+    }
+  }, []);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -100,8 +109,11 @@ export default function SILProvidersPage() {
       allAreas.push(formData.customArea.trim());
     }
 
+    if (!userId) return;
+
     if (editingId) {
       await updateProvider({
+        userId,
         providerId: editingId,
         companyName: formData.companyName,
         contactName: formData.contactName || undefined,
@@ -121,6 +133,7 @@ export default function SILProvidersPage() {
       });
     } else {
       await createProvider({
+        userId,
         companyName: formData.companyName,
         contactName: formData.contactName || undefined,
         email: formData.email,
@@ -171,13 +184,16 @@ export default function SILProvidersPage() {
   };
 
   const handleDelete = async (id: Id<"silProviders">) => {
+    if (!userId) return;
     if (confirm("Are you sure you want to delete this SIL provider?")) {
-      await removeProvider({ providerId: id });
+      await removeProvider({ providerId: id, userId });
     }
   };
 
   const handleToggleStatus = async (provider: NonNullable<typeof providers>[0]) => {
+    if (!userId) return;
     await updateProvider({
+      userId,
       providerId: provider._id,
       status: provider.status === "active" ? "inactive" : "active",
     });

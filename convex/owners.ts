@@ -1,9 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission, getUserFullName } from "./authHelpers";
 
 // Create a new owner
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     ownerType: v.union(
       v.literal("individual"),
       v.literal("company"),
@@ -24,13 +27,28 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check - requires property create permission (admin/property_manager)
+    const user = await requirePermission(ctx, args.userId, "properties", "create");
+    const { userId, ...ownerData } = args;
     const now = Date.now();
     const ownerId = await ctx.db.insert("owners", {
-      ...args,
+      ...ownerData,
       isActive: true,
       createdAt: now,
       updatedAt: now,
     });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "create",
+      entityType: "owner",
+      entityId: ownerId,
+      entityName: args.companyName || `${args.firstName} ${args.lastName}`,
+    });
+
     return ownerId;
   },
 });
@@ -58,6 +76,7 @@ export const getById = query({
 // Update owner
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     ownerId: v.id("owners"),
     ownerType: v.optional(v.union(
       v.literal("individual"),
@@ -79,7 +98,9 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { ownerId, ...updates } = args;
+    // Permission check
+    await requirePermission(ctx, args.userId, "properties", "update");
+    const { ownerId, userId, ...updates } = args;
     
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -95,8 +116,13 @@ export const update = mutation({
 
 // Delete (soft delete) owner
 export const remove = mutation({
-  args: { ownerId: v.id("owners") },
+  args: {
+    userId: v.id("users"),
+    ownerId: v.id("owners"),
+  },
   handler: async (ctx, args) => {
+    // Permission check - only admin can delete
+    await requirePermission(ctx, args.userId, "properties", "delete");
     await ctx.db.patch(args.ownerId, {
       isActive: false,
       updatedAt: Date.now(),

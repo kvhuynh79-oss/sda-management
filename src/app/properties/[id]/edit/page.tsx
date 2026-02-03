@@ -27,7 +27,7 @@ export default function EditPropertyPage() {
   const params = useParams();
   const propertyId = params.id as Id<"properties">;
 
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -145,6 +145,7 @@ export default function EditPropertyPage() {
       // Update owner bank details if owner exists
       if (property?.owner?._id) {
         await updateOwner({
+          userId: user?.id as Id<"users">,
           ownerId: property.owner._id,
           bankAccountName: ownerData.bankAccountName || undefined,
           bankBsb: ownerData.bankBsb || undefined,
@@ -155,6 +156,7 @@ export default function EditPropertyPage() {
       // Update dwellings
       for (const dwelling of dwellings) {
         await updateDwelling({
+          userId: user?.id as Id<"users">,
           dwellingId: dwelling._id,
           dwellingName: dwelling.dwellingName,
           dwellingType: dwelling.dwellingType,

@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
+import { requirePermission, requireAuth, getUserFullName } from "./authHelpers";
 
 // Predefined Sydney regions (same as support coordinators)
 export const SYDNEY_REGIONS = [
@@ -37,6 +39,7 @@ export const SIL_SERVICES = [
 // Create a new SIL provider
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     companyName: v.string(),
     contactName: v.optional(v.string()),
     email: v.string(),
@@ -54,6 +57,8 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Permission check - staff and above can create
+    const user = await requireAuth(ctx, args.userId);
     const now = Date.now();
 
     const providerId = await ctx.db.insert("silProviders", {
@@ -76,6 +81,17 @@ export const create = mutation({
       status: "active",
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "create",
+      entityType: "silProvider",
+      entityId: providerId,
+      entityName: args.companyName,
     });
 
     return providerId;
@@ -182,6 +198,7 @@ export const getByArea = query({
 // Update a SIL provider
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     providerId: v.id("silProviders"),
     companyName: v.optional(v.string()),
     contactName: v.optional(v.string()),
@@ -202,7 +219,9 @@ export const update = mutation({
     lastContactedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { providerId, ...updates } = args;
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { providerId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -218,8 +237,13 @@ export const update = mutation({
 
 // Delete a SIL provider
 export const remove = mutation({
-  args: { providerId: v.id("silProviders") },
+  args: {
+    userId: v.id("users"),
+    providerId: v.id("silProviders"),
+  },
   handler: async (ctx, args) => {
+    // Permission check - admin only
+    await requirePermission(ctx, args.userId, "properties", "delete");
     // Delete participant links first
     const links = await ctx.db
       .query("silProviderParticipants")

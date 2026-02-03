@@ -28,7 +28,8 @@
       "WebFetch(domain:whois.auda.org.au)",
       "WebFetch(domain:mysdamanager.com)",
       "Bash(git pull:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(xargs:*)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -31,6 +31,15 @@ export default function ContractorsContent() {
   const [editingContractor, setEditingContractor] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSpecialty, setFilterSpecialty] = useState<string>("all");
+  const [userId, setUserId] = useState<Id<"users"> | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserId(user.id as Id<"users">);
+    }
+  }, []);
 
   const contractors = useQuery(api.contractors.getAll);
   const properties = useQuery(api.properties.getAll);
@@ -185,8 +194,9 @@ export default function ContractorsContent() {
                 </button>
                 <button
                   onClick={() => {
+                    if (!userId) return;
                     if (confirm("Are you sure you want to remove this contractor?")) {
-                      removeContractor({ contractorId: contractor._id });
+                      removeContractor({ contractorId: contractor._id, userId });
                     }
                   }}
                   className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded transition-colors"

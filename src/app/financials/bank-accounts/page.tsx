@@ -55,7 +55,7 @@ export default function BankAccountsPage() {
       return;
     }
     try {
-      await removeAccount({ id: accountId });
+      await removeAccount({ id: accountId, userId: user.id as Id<"users"> });
     } catch (err) {
       console.error("Failed to delete account:", err);
       alert("Failed to delete account. It may have associated transactions.");
@@ -146,6 +146,7 @@ export default function BankAccountsPage() {
       {(showAddModal || editingAccount) && (
         <AccountModal
           account={editingAccount}
+          userId={user.id as Id<"users">}
           onClose={() => {
             setShowAddModal(false);
             setEditingAccount(null);
@@ -283,13 +284,16 @@ function AccountCard({
 
 function AccountModal({
   account,
+  userId,
   onClose,
   onCreate,
   onUpdate,
 }: {
   account: BankAccountWithStats | null;
+  userId: Id<"users">;
   onClose: () => void;
   onCreate: (args: {
+    userId: Id<"users">;
     accountName: string;
     bankName: string;
     bsb: string;
@@ -297,6 +301,7 @@ function AccountModal({
     accountType: "operating" | "trust";
   }) => Promise<Id<"bankAccounts">>;
   onUpdate: (args: {
+    userId: Id<"users">;
     id: Id<"bankAccounts">;
     accountName?: string;
     bankName?: string;
@@ -323,11 +328,13 @@ function AccountModal({
     try {
       if (account) {
         await onUpdate({
+          userId,
           id: account._id,
           ...formData,
         });
       } else {
         await onCreate({
+          userId,
           accountName: formData.accountName,
           bankName: formData.bankName,
           bsb: formData.bsb,

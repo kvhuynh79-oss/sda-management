@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { requirePermission, getUserFullName } from "./authHelpers";
 
 // Get all contractors
 export const getAll = query({
@@ -105,6 +107,7 @@ export const getByProperty = query({
 // Create a new contractor
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     companyName: v.string(),
     contactName: v.optional(v.string()),
     email: v.string(),
@@ -131,14 +134,28 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    const user = await requirePermission(ctx, args.userId, "contractors", "create");
+    const { userId, ...contractorData } = args;
     const contractorId = await ctx.db.insert("contractors", {
-      ...args,
+      ...contractorData,
       rating: undefined,
       totalJobsCompleted: 0,
       averageResponseTime: undefined,
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "create",
+      entityType: "contractor",
+      entityId: contractorId,
+      entityName: args.companyName,
     });
 
     return contractorId;
@@ -148,6 +165,7 @@ export const create = mutation({
 // Update a contractor
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     contractorId: v.id("contractors"),
     companyName: v.optional(v.string()),
     contactName: v.optional(v.string()),
@@ -178,7 +196,9 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { contractorId, ...updates } = args;
+    // Permission check
+    await requirePermission(ctx, args.userId, "contractors", "update");
+    const { contractorId, userId, ...updates } = args;
 
     const existing = await ctx.db.get(contractorId);
     if (!existing) throw new Error("Contractor not found");
@@ -197,8 +217,13 @@ export const update = mutation({
 
 // Delete (deactivate) a contractor
 export const remove = mutation({
-  args: { contractorId: v.id("contractors") },
+  args: {
+    userId: v.id("users"),
+    contractorId: v.id("contractors"),
+  },
   handler: async (ctx, args) => {
+    // Permission check - only admin can delete
+    await requirePermission(ctx, args.userId, "contractors", "delete");
     await ctx.db.patch(args.contractorId, {
       isActive: false,
       updatedAt: Date.now(),

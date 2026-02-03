@@ -1,9 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { requirePermission, getUserFullName } from "./authHelpers";
 
 // Create a new bank account
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     accountName: v.string(),
     bankName: v.string(),
     bsb: v.string(),
@@ -14,6 +17,8 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check - only admin/accountant can manage bank accounts
+    const user = await requirePermission(ctx, args.userId, "payments", "create");
     const now = Date.now();
 
     const bankAccountId = await ctx.db.insert("bankAccounts", {
@@ -29,6 +34,17 @@ export const create = mutation({
       notes: args.notes,
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "create",
+      entityType: "bankAccount",
+      entityId: bankAccountId,
+      entityName: args.accountName,
     });
 
     return bankAccountId;
@@ -125,6 +141,7 @@ export const getById = query({
 // Update a bank account
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     id: v.id("bankAccounts"),
     accountName: v.optional(v.string()),
     bankName: v.optional(v.string()),
@@ -139,7 +156,9 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
+    // Permission check
+    const user = await requirePermission(ctx, args.userId, "payments", "update");
+    const { id, userId, ...updates } = args;
 
     const existing = await ctx.db.get(id);
     if (!existing) {
@@ -161,8 +180,13 @@ export const update = mutation({
 
 // Soft delete (deactivate) a bank account
 export const remove = mutation({
-  args: { id: v.id("bankAccounts") },
+  args: {
+    userId: v.id("users"),
+    id: v.id("bankAccounts"),
+  },
   handler: async (ctx, args) => {
+    // Permission check - only admin can delete
+    const user = await requirePermission(ctx, args.userId, "payments", "delete");
     const existing = await ctx.db.get(args.id);
     if (!existing) {
       throw new Error("Bank account not found");
@@ -193,11 +217,14 @@ export const remove = mutation({
 // Mark account as reconciled
 export const markReconciled = mutation({
   args: {
+    userId: v.id("users"),
     id: v.id("bankAccounts"),
     reconciledDate: v.string(),
     reconciledBalance: v.number(),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    const user = await requirePermission(ctx, args.userId, "payments", "update");
     await ctx.db.patch(args.id, {
       lastReconciledDate: args.reconciledDate,
       lastReconciledBalance: args.reconciledBalance,

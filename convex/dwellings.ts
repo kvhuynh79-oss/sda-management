@@ -1,9 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission, getUserFullName } from "./authHelpers";
 
 // Create a new dwelling
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     propertyId: v.id("properties"),
     dwellingName: v.string(),
     dwellingType: v.union(
@@ -28,15 +31,30 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    const user = await requirePermission(ctx, args.userId, "properties", "create");
+    const { userId, ...dwellingData } = args;
     const now = Date.now();
     const dwellingId = await ctx.db.insert("dwellings", {
-      ...args,
+      ...dwellingData,
       currentOccupancy: 0,
       occupancyStatus: "vacant",
       isActive: true,
       createdAt: now,
       updatedAt: now,
     });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "create",
+      entityType: "dwelling",
+      entityId: dwellingId,
+      entityName: args.dwellingName,
+    });
+
     return dwellingId;
   },
 });
@@ -96,6 +114,7 @@ export const getById = query({
 // Update dwelling
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     dwellingId: v.id("dwellings"),
     dwellingName: v.optional(v.string()),
     dwellingType: v.optional(v.union(
@@ -120,7 +139,9 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { dwellingId, ...updates } = args;
+    // Permission check
+    await requirePermission(ctx, args.userId, "properties", "update");
+    const { dwellingId, userId, ...updates } = args;
     
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -172,8 +193,13 @@ export const updateOccupancy = mutation({
 
 // Delete (soft delete) dwelling
 export const remove = mutation({
-  args: { dwellingId: v.id("dwellings") },
+  args: {
+    userId: v.id("users"),
+    dwellingId: v.id("dwellings"),
+  },
   handler: async (ctx, args) => {
+    // Permission check - only admin can delete
+    await requirePermission(ctx, args.userId, "properties", "delete");
     await ctx.db.patch(args.dwellingId, {
       isActive: false,
       updatedAt: Date.now(),

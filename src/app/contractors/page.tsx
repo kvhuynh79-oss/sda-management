@@ -234,7 +234,7 @@ export default function ContractorsPage() {
                   <button
                     onClick={() => {
                       if (confirm("Are you sure you want to remove this contractor?")) {
-                        removeContractor({ contractorId: contractor._id });
+                        removeContractor({ contractorId: contractor._id, userId: user?.id as Id<"users"> });
                       }
                     }}
                     className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm rounded transition-colors"

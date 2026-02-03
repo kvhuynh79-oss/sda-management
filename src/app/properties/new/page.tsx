@@ -98,6 +98,7 @@ export default function NewPropertyPage() {
       
       if (createNewOwner) {
         ownerId = await createOwner({
+          userId: user?.id as Id<"users">,
           ownerType,
           firstName: ownerType === "individual" ? ownerData.firstName : undefined,
           lastName: ownerType === "individual" ? ownerData.lastName : undefined,
@@ -142,6 +143,7 @@ export default function NewPropertyPage() {
       // Step 3: Create dwellings
       for (const dwelling of dwellings) {
         await createDwelling({
+          userId: user?.id as Id<"users">,
           propertyId: propertyId as any,
           ...dwelling,
         });

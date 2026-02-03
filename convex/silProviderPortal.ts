@@ -91,12 +91,49 @@ export const getDashboard = query({
         m.status !== "cancelled"
     );
 
+    // Calculate vacancies - dwellings with available spots
+    const vacancies: Array<{
+      propertyId: Id<"properties">;
+      propertyName: string;
+      propertyAddress: string;
+      dwellingId: Id<"dwellings">;
+      dwellingName: string;
+      availableSpots: number;
+      maxParticipants: number;
+      currentOccupancy: number;
+    }> = [];
+
+    for (const prop of properties.filter((p) => p !== null)) {
+      if (!prop) continue;
+      for (const dwelling of prop.dwellings) {
+        const availableSpots = dwelling.maxParticipants - dwelling.currentOccupancy;
+        if (availableSpots > 0) {
+          vacancies.push({
+            propertyId: prop._id,
+            propertyName: prop.propertyName || prop.addressLine1,
+            propertyAddress: `${prop.addressLine1}, ${prop.suburb}`,
+            dwellingId: dwelling._id,
+            dwellingName: dwelling.dwellingName,
+            availableSpots,
+            maxParticipants: dwelling.maxParticipants,
+            currentOccupancy: dwelling.currentOccupancy,
+          });
+        }
+      }
+    }
+
+    // Count total vacant spots
+    const totalVacantSpots = vacancies.reduce((sum, v) => sum + v.availableSpots, 0);
+
     return {
       properties: properties.filter((p) => p !== null),
+      vacancies,
       stats: {
         totalProperties: properties.filter((p) => p !== null).length,
         openIncidents: openIncidents.length,
         openMaintenance: openMaintenance.length,
+        totalVacantSpots,
+        vacantDwellings: vacancies.length,
       },
     };
   },

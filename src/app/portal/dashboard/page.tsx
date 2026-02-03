@@ -59,7 +59,7 @@ export default function SILProviderDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
@@ -149,6 +149,36 @@ export default function SILProviderDashboard() {
               <p className="text-sm text-gray-500 mt-2">Click to view &rarr;</p>
             </div>
           </Link>
+
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Vacant Spots</p>
+                <p className="text-3xl font-bold text-white mt-1">
+                  {dashboard?.stats.totalVacantSpots ?? "-"}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  in {dashboard?.stats.vacantDwellings ?? 0} dwelling
+                  {(dashboard?.stats.vacantDwellings ?? 0) !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="bg-green-600/20 p-3 rounded-lg">
+                <svg
+                  className="w-6 h-6 text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -248,6 +278,66 @@ export default function SILProviderDashboard() {
             </Link>
           </div>
         </div>
+
+        {/* Vacancies Section */}
+        {dashboard?.vacancies && dashboard.vacancies.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Current Vacancies
+            </h2>
+            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-700/50">
+                  <tr>
+                    <th className="text-left text-sm font-medium text-gray-300 px-4 py-3">
+                      Property
+                    </th>
+                    <th className="text-left text-sm font-medium text-gray-300 px-4 py-3">
+                      Dwelling
+                    </th>
+                    <th className="text-center text-sm font-medium text-gray-300 px-4 py-3">
+                      Occupancy
+                    </th>
+                    <th className="text-center text-sm font-medium text-gray-300 px-4 py-3">
+                      Available
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {dashboard.vacancies.map((vacancy) => (
+                    <tr
+                      key={`${vacancy.propertyId}-${vacancy.dwellingId}`}
+                      className="hover:bg-gray-700/30"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="text-white text-sm font-medium">
+                          {vacancy.propertyName}
+                        </div>
+                        <div className="text-gray-500 text-xs">
+                          {vacancy.propertyAddress}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-300 text-sm">
+                        {vacancy.dwellingName}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-gray-300 text-sm">
+                          {vacancy.currentOccupancy} / {vacancy.maxParticipants}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-600/20 text-green-400">
+                          {vacancy.availableSpots} spot
+                          {vacancy.availableSpots !== 1 ? "s" : ""}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Properties List */}
         <div>

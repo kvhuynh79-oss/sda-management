@@ -37,6 +37,7 @@ export const OT_SPECIALIZATIONS = [
 // Create a new OT
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     firstName: v.string(),
     lastName: v.string(),
     organization: v.optional(v.string()),
@@ -55,6 +56,8 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const now = Date.now();
 
     const otId = await ctx.db.insert("occupationalTherapists", {
@@ -164,6 +167,7 @@ export const getById = query({
 // Update an OT
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     otId: v.id("occupationalTherapists"),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
@@ -185,7 +189,9 @@ export const update = mutation({
     lastContactedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { otId, ...updates } = args;
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { otId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -201,8 +207,13 @@ export const update = mutation({
 
 // Delete an OT
 export const remove = mutation({
-  args: { otId: v.id("occupationalTherapists") },
+  args: {
+    userId: v.id("users"),
+    otId: v.id("occupationalTherapists"),
+  },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     // Delete participant links first
     const links = await ctx.db
       .query("otParticipants")
@@ -221,6 +232,7 @@ export const remove = mutation({
 // Link a participant to an OT
 export const linkParticipant = mutation({
   args: {
+    userId: v.id("users"),
     occupationalTherapistId: v.id("occupationalTherapists"),
     participantId: v.id("participants"),
     relationshipType: v.union(
@@ -234,6 +246,8 @@ export const linkParticipant = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     // Check if link already exists
     const existingLinks = await ctx.db
       .query("otParticipants")
@@ -280,9 +294,12 @@ export const linkParticipant = mutation({
 // Unlink a participant from an OT
 export const unlinkParticipant = mutation({
   args: {
+    userId: v.id("users"),
     linkId: v.id("otParticipants"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     await ctx.db.delete(args.linkId);
     return { success: true };
   },

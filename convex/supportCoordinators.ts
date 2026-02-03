@@ -24,6 +24,7 @@ export const SYDNEY_REGIONS = [
 // Create a new support coordinator
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     firstName: v.string(),
     lastName: v.string(),
     organization: v.optional(v.string()),
@@ -35,6 +36,8 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     const now = Date.now();
 
     const coordinatorId = await ctx.db.insert("supportCoordinators", {
@@ -160,6 +163,7 @@ export const getByArea = query({
 // Update a support coordinator
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     coordinatorId: v.id("supportCoordinators"),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
@@ -174,7 +178,9 @@ export const update = mutation({
     lastContactedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { coordinatorId, ...updates } = args;
+    // Permission check
+    await requireAuth(ctx, args.userId);
+    const { coordinatorId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -190,8 +196,13 @@ export const update = mutation({
 
 // Delete a support coordinator
 export const remove = mutation({
-  args: { coordinatorId: v.id("supportCoordinators") },
+  args: {
+    userId: v.id("users"),
+    coordinatorId: v.id("supportCoordinators"),
+  },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     // Delete participant links first
     const links = await ctx.db
       .query("supportCoordinatorParticipants")
@@ -210,6 +221,7 @@ export const remove = mutation({
 // Link a participant to a coordinator
 export const linkParticipant = mutation({
   args: {
+    userId: v.id("users"),
     supportCoordinatorId: v.id("supportCoordinators"),
     participantId: v.id("participants"),
     relationshipType: v.union(
@@ -222,6 +234,8 @@ export const linkParticipant = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     // Check if link already exists
     const existingLinks = await ctx.db
       .query("supportCoordinatorParticipants")
@@ -266,9 +280,12 @@ export const linkParticipant = mutation({
 // Unlink a participant from a coordinator
 export const unlinkParticipant = mutation({
   args: {
+    userId: v.id("users"),
     linkId: v.id("supportCoordinatorParticipants"),
   },
   handler: async (ctx, args) => {
+    // Permission check
+    await requireAuth(ctx, args.userId);
     await ctx.db.delete(args.linkId);
     return { success: true };
   },

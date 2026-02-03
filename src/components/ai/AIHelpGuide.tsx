@@ -14,6 +14,10 @@ import {
   Building2,
   ArrowRightLeft,
   PlusCircle,
+  Shield,
+  HardHat,
+  AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 
 interface AIHelpGuideProps {
@@ -48,6 +52,10 @@ const promptCategories: PromptCategory[] = [
       {
         prompt: "Give me a summary of all properties",
         description: "Overview of all property details",
+      },
+      {
+        prompt: "Find HPS vacancies for a new participant",
+        description: "Match participant to suitable vacancies by SDA category",
       },
     ],
   },
@@ -114,11 +122,42 @@ const promptCategories: PromptCategory[] = [
         prompt: "Record a $5,000 payment for Daniel",
         description: "Add a new payment record",
       },
+      {
+        prompt: "What payments are due this week?",
+        description: "View upcoming expected payments",
+      },
+      {
+        prompt: "Calculate owner payment for Waldron Road",
+        description: "Get detailed owner payment breakdown",
+      },
+      {
+        prompt: "Show me the monthly financial summary",
+        description: "Get complete monthly overview",
+      },
     ],
   },
   {
-    title: "Documents & Compliance",
-    icon: FileText,
+    title: "Property Financials",
+    icon: BarChart3,
+    color: "text-emerald-400",
+    prompts: [
+      {
+        prompt: "How is Waldron Road performing financially?",
+        description: "6-month financial breakdown for a property",
+      },
+      {
+        prompt: "What's the total revenue for January?",
+        description: "Monthly income and expenses summary",
+      },
+      {
+        prompt: "Show property financials for the last 3 months",
+        description: "Recent financial trends",
+      },
+    ],
+  },
+  {
+    title: "Compliance & Documents",
+    icon: Shield,
     color: "text-orange-400",
     prompts: [
       {
@@ -128,6 +167,56 @@ const promptCategories: PromptCategory[] = [
       {
         prompt: "Show documents expiring this week",
         description: "Urgent document renewals needed",
+      },
+      {
+        prompt: "Check compliance status for all properties",
+        description: "Identify compliance issues and gaps",
+      },
+      {
+        prompt: "Are there any compliance issues at Waldron Road?",
+        description: "Property-specific compliance check",
+      },
+      {
+        prompt: "Schedule an inspection for HPS House next Monday",
+        description: "Book a property inspection",
+      },
+    ],
+  },
+  {
+    title: "Contractors",
+    icon: HardHat,
+    color: "text-cyan-400",
+    prompts: [
+      {
+        prompt: "Show me all plumbing contractors",
+        description: "Find contractors by trade",
+      },
+      {
+        prompt: "What's the history for ABC Plumbing?",
+        description: "View contractor performance and jobs",
+      },
+      {
+        prompt: "Who's the best electrician we've used?",
+        description: "Compare contractor metrics",
+      },
+    ],
+  },
+  {
+    title: "Incidents & Safety",
+    icon: AlertTriangle,
+    color: "text-rose-400",
+    prompts: [
+      {
+        prompt: "Show incidents from the last 30 days",
+        description: "Recent incident summary",
+      },
+      {
+        prompt: "Any incidents at HPS House this month?",
+        description: "Property-specific incident report",
+      },
+      {
+        prompt: "Are there any pending NDIS notifications?",
+        description: "Check NDIS reporting compliance",
       },
     ],
   },
@@ -143,6 +232,10 @@ const promptCategories: PromptCategory[] = [
       {
         prompt: "Update Daniel's status to inactive",
         description: "Change participant status",
+      },
+      {
+        prompt: "Schedule inspection for Waldron Road on Friday",
+        description: "Book a property inspection",
       },
     ],
   },

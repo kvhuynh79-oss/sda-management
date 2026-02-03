@@ -330,6 +330,210 @@ export const SDA_ASSISTANT_TOOLS: ClaudeTool[] = [
       required: ["response_type"],
     },
   },
+
+  // New Query Tools
+  {
+    name: "calculate_owner_payment",
+    description:
+      "Calculate the monthly owner payment for a property. Shows SDA income, RRC income, management fees, and net payment. Use when asked about owner payments, landlord payments, or property revenue.",
+    input_schema: {
+      type: "object",
+      properties: {
+        property_name: {
+          type: "string",
+          description: "The property name or address to calculate payment for.",
+        },
+        month: {
+          type: "string",
+          description: "The month to calculate for in YYYY-MM format. Defaults to current month.",
+        },
+      },
+      required: ["property_name"],
+    },
+  },
+  {
+    name: "get_compliance_status",
+    description:
+      "Check compliance status for a property including expiring certificates, overdue inspections, and missing documents. Use when asked about compliance, certifications, or audits.",
+    input_schema: {
+      type: "object",
+      properties: {
+        property_name: {
+          type: "string",
+          description: "The property name or address to check. Leave empty for all properties.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "match_participant_to_vacancy",
+    description:
+      "Find suitable vacancies for a participant based on their SDA design category and needs. Use when asked to find a place for a new participant or match participants to vacancies.",
+    input_schema: {
+      type: "object",
+      properties: {
+        sda_category: {
+          type: "string",
+          enum: ["improved_liveability", "fully_accessible", "robust", "high_physical_support"],
+          description: "The SDA design category the participant is eligible for.",
+        },
+        suburb: {
+          type: "string",
+          description: "Optional preferred suburb.",
+        },
+      },
+      required: ["sda_category"],
+    },
+  },
+  {
+    name: "get_contractor_history",
+    description:
+      "Get a contractor's work history including past jobs, average response time, and quotes. Use when asked about contractor performance or history.",
+    input_schema: {
+      type: "object",
+      properties: {
+        contractor_name: {
+          type: "string",
+          description: "The contractor's name or business name.",
+        },
+        trade: {
+          type: "string",
+          description: "Optional trade type to filter by (e.g., plumbing, electrical).",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_property_financials",
+    description:
+      "Get financial summary for a property including revenue, expenses, and occupancy trends. Use when asked about property performance or financials.",
+    input_schema: {
+      type: "object",
+      properties: {
+        property_name: {
+          type: "string",
+          description: "The property name or address.",
+        },
+        months: {
+          type: "number",
+          description: "Number of months to include. Default is 6.",
+        },
+      },
+      required: ["property_name"],
+    },
+  },
+  {
+    name: "get_incident_summary",
+    description:
+      "Get incident summary for a property or participant. Use when asked about incidents, safety issues, or reportable events.",
+    input_schema: {
+      type: "object",
+      properties: {
+        property_name: {
+          type: "string",
+          description: "Optional property name to filter by.",
+        },
+        participant_name: {
+          type: "string",
+          description: "Optional participant name to filter by.",
+        },
+        days_back: {
+          type: "number",
+          description: "Number of days to look back. Default is 30.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_upcoming_payments",
+    description:
+      "Get upcoming expected payments including SDA claims and RRC due. Use when asked about expected income, upcoming payments, or claims due.",
+    input_schema: {
+      type: "object",
+      properties: {
+        days_ahead: {
+          type: "number",
+          description: "Number of days to look ahead. Default is 14.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_monthly_summary",
+    description:
+      "Get a monthly financial and operational summary. Use when asked for monthly summaries, dashboards, or overall status.",
+    input_schema: {
+      type: "object",
+      properties: {
+        month: {
+          type: "string",
+          description: "The month in YYYY-MM format. Defaults to current month.",
+        },
+      },
+      required: [],
+    },
+  },
+
+  // New Action Tools
+  {
+    name: "schedule_inspection",
+    description:
+      "Schedule a property inspection. Use when asked to schedule, book, or plan an inspection.",
+    input_schema: {
+      type: "object",
+      properties: {
+        property_name: {
+          type: "string",
+          description: "The property to inspect.",
+        },
+        dwelling_name: {
+          type: "string",
+          description: "Optional specific dwelling to inspect.",
+        },
+        scheduled_date: {
+          type: "string",
+          description: "The date to schedule in YYYY-MM-DD format.",
+        },
+        template_name: {
+          type: "string",
+          description: "Optional inspection template name. Default is 'BLS Property Inspection'.",
+        },
+      },
+      required: ["property_name", "scheduled_date"],
+    },
+  },
+  {
+    name: "send_quote_request",
+    description:
+      "Send a quote request to contractors for a maintenance job. Use when asked to get quotes, request quotes, or contact contractors.",
+    input_schema: {
+      type: "object",
+      properties: {
+        maintenance_title: {
+          type: "string",
+          description: "The maintenance request title or description.",
+        },
+        dwelling_name: {
+          type: "string",
+          description: "The dwelling where the work is needed.",
+        },
+        contractor_names: {
+          type: "array",
+          items: { type: "string" },
+          description: "List of contractor names to send quote requests to.",
+        },
+        expiry_days: {
+          type: "number",
+          description: "Number of days until quote expires. Default is 7.",
+        },
+      },
+      required: ["maintenance_title", "dwelling_name"],
+    },
+  },
 ];
 
 // List of action tools that require confirmation
@@ -339,6 +543,8 @@ export const ACTION_TOOLS = [
   "update_maintenance_status",
   "record_payment",
   "update_participant_status",
+  "schedule_inspection",
+  "send_quote_request",
 ];
 
 // Check if a tool requires confirmation
@@ -362,6 +568,10 @@ export function getActionDescription(
       return `Record $${Number(input.amount).toLocaleString()} payment for ${input.participant_name}`;
     case "update_participant_status":
       return `Update ${input.participant_name}'s status to "${input.new_status}"`;
+    case "schedule_inspection":
+      return `Schedule inspection for ${input.property_name}${input.dwelling_name ? ` (${input.dwelling_name})` : ""} on ${input.scheduled_date}`;
+    case "send_quote_request":
+      return `Send quote request for "${input.maintenance_title}" to contractors`;
     default:
       return `Execute ${toolName}`;
   }

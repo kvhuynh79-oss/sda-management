@@ -1565,6 +1565,61 @@ async function handleToolUse(
     case "generate_text_response":
       return { response: generateTextResponse(input.response_type as string, input.context as string) };
 
+    // New query tools
+    case "calculate_owner_payment":
+      queryResult = await ctx.runQuery(internal.aiChatbot.calculateOwnerPayment, {
+        propertyName: input.property_name as string,
+        month: input.month as string | undefined,
+      });
+      break;
+
+    case "get_compliance_status":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getComplianceStatus, {
+        propertyName: input.property_name as string | undefined,
+      });
+      break;
+
+    case "match_participant_to_vacancy":
+      queryResult = await ctx.runQuery(internal.aiChatbot.matchParticipantToVacancy, {
+        sdaCategory: input.sda_category as string,
+        suburb: input.suburb as string | undefined,
+      });
+      break;
+
+    case "get_contractor_history":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getContractorHistory, {
+        contractorName: input.contractor_name as string | undefined,
+        trade: input.trade as string | undefined,
+      });
+      break;
+
+    case "get_property_financials":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getPropertyFinancials, {
+        propertyName: input.property_name as string,
+        months: input.months as number | undefined,
+      });
+      break;
+
+    case "get_incident_summary":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getIncidentSummary, {
+        propertyName: input.property_name as string | undefined,
+        participantName: input.participant_name as string | undefined,
+        daysBack: input.days_back as number | undefined,
+      });
+      break;
+
+    case "get_upcoming_payments":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getUpcomingPayments, {
+        daysAhead: input.days_ahead as number | undefined,
+      });
+      break;
+
+    case "get_monthly_summary":
+      queryResult = await ctx.runQuery(internal.aiChatbot.getMonthlySummary, {
+        month: input.month as string | undefined,
+      });
+      break;
+
     default:
       return { response: `I don't know how to handle the "${name}" tool yet.` };
   }
@@ -1835,6 +1890,373 @@ async function formatToolResult(toolName: string, result: unknown): Promise<stri
       return response || "No recent activity found.";
     }
 
+    // New tool formatters
+    case "calculate_owner_payment": {
+      const data = result as {
+        found: boolean;
+        message?: string;
+        property?: { name: string; address: string };
+        owner?: string;
+        month?: string;
+        dwellings?: Array<{
+          dwelling: string;
+          participants: Array<{ participant: string; monthlySda: number; monthlyRrc: number }>;
+        }>;
+        totals?: {
+          sdaIncome: number;
+          rrcIncome: number;
+          grossIncome: number;
+          managementFeePercent: number;
+          managementFee: number;
+          netOwnerPayment: number;
+        };
+        bankDetails?: { bsb?: string; accountNumber?: string; accountName?: string } | null;
+      };
+      if (!data.found) {
+        return data.message || "Property not found.";
+      }
+      let response = `### Owner Payment Calculator\n\n`;
+      response += `**${data.property?.name}**\n`;
+      response += `${data.property?.address}\n`;
+      response += `Owner: ${data.owner}\n`;
+      response += `Month: ${data.month}\n\n`;
+
+      response += "**Revenue Breakdown:**\n";
+      for (const d of data.dwellings || []) {
+        response += `\n*${d.dwelling}:*\n`;
+        for (const p of d.participants) {
+          response += `- ${p.participant}: SDA $${p.monthlySda.toLocaleString()} + RRC $${p.monthlyRrc.toLocaleString()}\n`;
+        }
+      }
+
+      response += "\n**Totals:**\n";
+      response += `- SDA Income: $${data.totals?.sdaIncome.toLocaleString()}\n`;
+      response += `- RRC Income: $${data.totals?.rrcIncome.toLocaleString()}\n`;
+      response += `- Gross Income: $${data.totals?.grossIncome.toLocaleString()}\n`;
+      response += `- Management Fee (${data.totals?.managementFeePercent}%): -$${data.totals?.managementFee.toLocaleString()}\n`;
+      response += `- **Net Owner Payment: $${data.totals?.netOwnerPayment.toLocaleString()}**\n`;
+
+      if (data.bankDetails) {
+        response += `\n**Bank Details:**\n`;
+        response += `- BSB: ${data.bankDetails.bsb}\n`;
+        response += `- Account: ${data.bankDetails.accountNumber}\n`;
+        response += `- Name: ${data.bankDetails.accountName}\n`;
+      }
+
+      return response;
+    }
+
+    case "get_compliance_status": {
+      const items = result as Array<{
+        property: { name: string; address: string };
+        status: string;
+        issues: string[];
+        expiredDocs: Array<{ fileName: string; type: string; expiryDate?: string }>;
+        expiringDocs: Array<{ fileName: string; type: string; expiryDate?: string; daysUntilExpiry: number }>;
+        overdueInspections: Array<{ scheduledDate: string }>;
+        lastInspection: string | null;
+        missingDocTypes: string[];
+      }>;
+      if (!items || items.length === 0) {
+        return "No properties found.";
+      }
+      let response = "### Compliance Status\n\n";
+      for (const item of items) {
+        const statusEmoji = item.status === "compliant" ? "✅" : item.status === "attention_needed" ? "⚠️" : "🚨";
+        response += `${statusEmoji} **${item.property.name}** - ${item.status.replace("_", " ")}\n`;
+
+        if (item.issues.length > 0) {
+          response += `Issues: ${item.issues.join(", ")}\n`;
+        }
+
+        if (item.expiredDocs.length > 0) {
+          response += `Expired: ${item.expiredDocs.map((d) => d.fileName).join(", ")}\n`;
+        }
+
+        if (item.expiringDocs.length > 0) {
+          response += `Expiring soon: ${item.expiringDocs.map((d) => `${d.fileName} (${d.daysUntilExpiry} days)`).join(", ")}\n`;
+        }
+
+        if (item.lastInspection) {
+          response += `Last inspection: ${item.lastInspection}\n`;
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "match_participant_to_vacancy": {
+      const matches = result as Array<{
+        property: { name: string; address: string };
+        dwellings: Array<{
+          dwelling: string;
+          sdaCategory: string;
+          sdaRegisteredAmount?: number;
+          vacantSpots: number;
+          currentOccupants: string[];
+          features?: string[];
+        }>;
+      }>;
+      if (!matches || matches.length === 0) {
+        return "No matching vacancies found for the specified SDA category.";
+      }
+      let response = "### Matching Vacancies\n\n";
+      for (const m of matches) {
+        response += `**${m.property.name}**\n${m.property.address}\n\n`;
+        for (const d of m.dwellings) {
+          response += `- **${d.dwelling}**\n`;
+          response += `  - ${d.vacantSpots} spot(s) available\n`;
+          if (d.sdaRegisteredAmount) {
+            response += `  - SDA Rate: $${d.sdaRegisteredAmount.toLocaleString()}/month\n`;
+          }
+          if (d.currentOccupants.length > 0) {
+            response += `  - Current occupants: ${d.currentOccupants.join(", ")}\n`;
+          }
+          if (d.features && d.features.length > 0) {
+            response += `  - Features: ${d.features.join(", ")}\n`;
+          }
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "get_contractor_history": {
+      const contractors = result as Array<{
+        contractor: {
+          name: string;
+          trades: string[];
+          phone?: string;
+          email?: string;
+          isActive: boolean;
+        };
+        metrics: {
+          totalJobs: number;
+          completedJobs: number;
+          quotesSubmitted: number;
+          averageQuoteAmount: number;
+          avgResponseDays: number | null;
+        };
+        recentJobs: Array<{ title: string; completedDate?: string; category: string }>;
+      }>;
+      if (!contractors || contractors.length === 0) {
+        return "No contractors found matching the criteria.";
+      }
+      let response = "### Contractor History\n\n";
+      for (const c of contractors) {
+        const statusBadge = c.contractor.isActive ? "🟢" : "🔴";
+        response += `${statusBadge} **${c.contractor.name}**\n`;
+        response += `Trades: ${c.contractor.trades.join(", ")}\n`;
+        if (c.contractor.phone) response += `Phone: ${c.contractor.phone}\n`;
+        if (c.contractor.email) response += `Email: ${c.contractor.email}\n\n`;
+
+        response += `**Performance:**\n`;
+        response += `- Jobs completed: ${c.metrics.completedJobs}/${c.metrics.totalJobs}\n`;
+        response += `- Quotes submitted: ${c.metrics.quotesSubmitted}\n`;
+        if (c.metrics.averageQuoteAmount > 0) {
+          response += `- Average quote: $${c.metrics.averageQuoteAmount.toLocaleString()}\n`;
+        }
+        if (c.metrics.avgResponseDays !== null) {
+          response += `- Avg response time: ${c.metrics.avgResponseDays} days\n`;
+        }
+
+        if (c.recentJobs.length > 0) {
+          response += `\n**Recent Jobs:**\n`;
+          for (const job of c.recentJobs) {
+            response += `- ${job.title} (${job.category})${job.completedDate ? ` - ${job.completedDate}` : ""}\n`;
+          }
+        }
+        response += "\n";
+      }
+      return response;
+    }
+
+    case "get_property_financials": {
+      const data = result as {
+        found: boolean;
+        message?: string;
+        property?: { name: string; address: string };
+        period?: { start: string; end: string; months: number };
+        currentOccupancy?: { occupied: number; capacity: number; percent: number };
+        monthlyBreakdown?: Array<{ month: string; income: number; expenses: number; net: number }>;
+        totals?: {
+          income: number;
+          expenses: number;
+          net: number;
+          avgMonthlyIncome: number;
+          avgMonthlyExpenses: number;
+        };
+      };
+      if (!data.found) {
+        return data.message || "Property not found.";
+      }
+      let response = `### Financial Summary: ${data.property?.name}\n\n`;
+      response += `Period: ${data.period?.start} to ${data.period?.end} (${data.period?.months} months)\n`;
+      response += `Occupancy: ${data.currentOccupancy?.occupied}/${data.currentOccupancy?.capacity} (${data.currentOccupancy?.percent}%)\n\n`;
+
+      response += "**Monthly Breakdown:**\n";
+      response += "| Month | Income | Expenses | Net |\n";
+      response += "|-------|--------|----------|-----|\n";
+      for (const m of data.monthlyBreakdown || []) {
+        response += `| ${m.month} | $${m.income.toLocaleString()} | $${m.expenses.toLocaleString()} | $${m.net.toLocaleString()} |\n`;
+      }
+
+      response += `\n**Totals:**\n`;
+      response += `- Total Income: $${data.totals?.income.toLocaleString()}\n`;
+      response += `- Total Expenses: $${data.totals?.expenses.toLocaleString()}\n`;
+      response += `- Net: $${data.totals?.net.toLocaleString()}\n`;
+      response += `- Avg Monthly Income: $${data.totals?.avgMonthlyIncome.toLocaleString()}\n`;
+      response += `- Avg Monthly Expenses: $${data.totals?.avgMonthlyExpenses.toLocaleString()}\n`;
+
+      return response;
+    }
+
+    case "get_incident_summary": {
+      const data = result as {
+        period: { days: number; start: string; end: string };
+        summary: {
+          total: number;
+          bySeverity: { critical: number; high: number; medium: number; low: number };
+          byStatus: { open: number; resolved: number };
+          ndisReportable: number;
+          ndisNotified: number;
+          pendingNdisNotification: number;
+        };
+        incidents: Array<{
+          date: string;
+          type: string;
+          severity: string;
+          status: string;
+          participant: string;
+          location: string;
+          requiresNdisNotification?: boolean;
+          ndisNotified?: boolean;
+          description?: string;
+        }>;
+      };
+      let response = `### Incident Summary (Last ${data.period.days} days)\n\n`;
+      response += `**Overview:**\n`;
+      response += `- Total incidents: ${data.summary.total}\n`;
+      response += `- Open: ${data.summary.byStatus.open} | Resolved: ${data.summary.byStatus.resolved}\n`;
+      response += `- Critical: ${data.summary.bySeverity.critical} | High: ${data.summary.bySeverity.high} | Medium: ${data.summary.bySeverity.medium} | Low: ${data.summary.bySeverity.low}\n`;
+
+      if (data.summary.ndisReportable > 0) {
+        response += `\n⚠️ **NDIS Commission:**\n`;
+        response += `- Reportable incidents: ${data.summary.ndisReportable}\n`;
+        response += `- Notified: ${data.summary.ndisNotified}\n`;
+        if (data.summary.pendingNdisNotification > 0) {
+          response += `- 🚨 **Pending notification: ${data.summary.pendingNdisNotification}**\n`;
+        }
+      }
+
+      if (data.incidents.length > 0) {
+        response += `\n**Recent Incidents:**\n`;
+        for (const i of data.incidents.slice(0, 10)) {
+          const severityEmoji = i.severity === "critical" ? "🚨" : i.severity === "high" ? "⚠️" : "";
+          response += `${severityEmoji} **${i.date}** - ${i.type.replace("_", " ")}\n`;
+          response += `  - ${i.participant} at ${i.location}\n`;
+          response += `  - Status: ${i.status}\n`;
+        }
+      }
+
+      return response;
+    }
+
+    case "get_upcoming_payments": {
+      const data = result as {
+        period: { days: number; start: string; end: string };
+        totals: {
+          expectedSda: number;
+          expectedRrc: number;
+          totalExpected: number;
+          participantCount: number;
+        };
+        payments: Array<{
+          participant: string;
+          location: string;
+          dwelling: string;
+          expectedSda: number;
+          expectedRrc: number;
+          totalExpected: number;
+          claimDate: string;
+          daysUntil: number;
+          lastPaymentDate: string | null;
+          fundingType?: string;
+        }> | null;
+      };
+      let response = `### Upcoming Payments (Next ${data.period.days} days)\n\n`;
+      response += `**Summary:**\n`;
+      response += `- Expected SDA: $${data.totals.expectedSda.toLocaleString()}\n`;
+      response += `- Expected RRC: $${data.totals.expectedRrc.toLocaleString()}\n`;
+      response += `- **Total Expected: $${data.totals.totalExpected.toLocaleString()}**\n`;
+      response += `- Participants: ${data.totals.participantCount}\n\n`;
+
+      if (data.payments && data.payments.length > 0) {
+        response += "**Upcoming Claims:**\n";
+        for (const p of data.payments) {
+          response += `- **${p.participant}** - ${p.location}\n`;
+          response += `  Due: ${p.claimDate} (${p.daysUntil} days)\n`;
+          response += `  Amount: $${p.totalExpected.toLocaleString()} (SDA: $${p.expectedSda.toLocaleString()} + RRC: $${p.expectedRrc.toLocaleString()})\n`;
+        }
+      }
+
+      return response;
+    }
+
+    case "get_monthly_summary": {
+      const data = result as {
+        month: string;
+        financial: {
+          totalIncome: number;
+          maintenanceCosts: number;
+          netIncome: number;
+          paymentsReceived: number;
+        };
+        operations: {
+          maintenanceCreated: number;
+          maintenanceCompleted: number;
+          maintenanceOpen: number;
+          incidents: number;
+        };
+        occupancy: {
+          activeParticipants: number;
+          totalCapacity: number;
+          occupancyPercent: number;
+          properties: number;
+          dwellings: number;
+        };
+        alerts: {
+          expiringPlans: number;
+          expiringDocuments: number;
+          overdueMaintenance: number;
+        };
+      };
+      let response = `### Monthly Summary: ${data.month}\n\n`;
+
+      response += `**Financial:**\n`;
+      response += `- Total Income: $${data.financial.totalIncome.toLocaleString()}\n`;
+      response += `- Maintenance Costs: $${data.financial.maintenanceCosts.toLocaleString()}\n`;
+      response += `- Net Income: $${data.financial.netIncome.toLocaleString()}\n`;
+      response += `- Payments Received: ${data.financial.paymentsReceived}\n\n`;
+
+      response += `**Operations:**\n`;
+      response += `- Maintenance: ${data.operations.maintenanceCompleted} completed, ${data.operations.maintenanceOpen} open\n`;
+      response += `- Incidents: ${data.operations.incidents}\n\n`;
+
+      response += `**Occupancy:**\n`;
+      response += `- ${data.occupancy.activeParticipants}/${data.occupancy.totalCapacity} participants (${data.occupancy.occupancyPercent}%)\n`;
+      response += `- Properties: ${data.occupancy.properties} | Dwellings: ${data.occupancy.dwellings}\n\n`;
+
+      if (data.alerts.expiringPlans > 0 || data.alerts.expiringDocuments > 0 || data.alerts.overdueMaintenance > 0) {
+        response += `**⚠️ Alerts:**\n`;
+        if (data.alerts.expiringPlans > 0) response += `- ${data.alerts.expiringPlans} plan(s) expiring soon\n`;
+        if (data.alerts.expiringDocuments > 0) response += `- ${data.alerts.expiringDocuments} document(s) expiring soon\n`;
+        if (data.alerts.overdueMaintenance > 0) response += `- ${data.alerts.overdueMaintenance} overdue maintenance\n`;
+      }
+
+      return response;
+    }
+
     default:
       return JSON.stringify(result, null, 2);
   }
@@ -1954,6 +2376,877 @@ export const getRecentActivity = internalQuery({
   },
 });
 
+// ==================== New AI Tools - Internal Queries ====================
+
+// Calculate owner payment for a property
+export const calculateOwnerPayment = internalQuery({
+  args: {
+    propertyName: v.string(),
+    month: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const properties = await ctx.db.query("properties").collect();
+    const property = properties.find(
+      (p) =>
+        (p.propertyName && fuzzyMatch(args.propertyName, p.propertyName)) ||
+        fuzzyMatch(args.propertyName, p.addressLine1)
+    );
+
+    if (!property) {
+      return { found: false, message: `No property found matching "${args.propertyName}"` };
+    }
+
+    const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
+
+    // Get dwellings
+    const dwellings = await ctx.db
+      .query("dwellings")
+      .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+      .collect();
+
+    // Get participants in dwellings
+    const participantDetails = await Promise.all(
+      dwellings.map(async (dwelling) => {
+        const participants = await ctx.db
+          .query("participants")
+          .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        const participantRevenue = await Promise.all(
+          participants.map(async (participant) => {
+            const plan = await ctx.db
+              .query("participantPlans")
+              .withIndex("by_participant", (q) => q.eq("participantId", participant._id))
+              .filter((q) => q.eq(q.field("planStatus"), "current"))
+              .first();
+
+            const monthlySda = plan?.monthlySdaAmount || (plan?.annualSdaBudget ? plan.annualSdaBudget / 12 : 0);
+
+            // Calculate RRC based on frequency
+            let monthlyRrc = plan?.reasonableRentContribution || 0;
+            if (plan?.rentContributionFrequency === "weekly") {
+              monthlyRrc = monthlyRrc * 52 / 12;
+            } else if (plan?.rentContributionFrequency === "fortnightly") {
+              monthlyRrc = monthlyRrc * 26 / 12;
+            }
+
+            return {
+              participant: `${participant.firstName} ${participant.lastName}`,
+              monthlySda,
+              monthlyRrc,
+            };
+          })
+        );
+
+        return {
+          dwelling: dwelling.dwellingName,
+          sdaRegisteredAmount: dwelling.sdaRegisteredAmount || 0,
+          participants: participantRevenue,
+        };
+      })
+    );
+
+    // Calculate totals
+    let totalSdaIncome = 0;
+    let totalRrcIncome = 0;
+
+    for (const d of participantDetails) {
+      for (const p of d.participants) {
+        totalSdaIncome += p.monthlySda;
+        totalRrcIncome += p.monthlyRrc;
+      }
+    }
+
+    const totalIncome = totalSdaIncome + totalRrcIncome;
+    const managementFeePercent = property.managementFeePercent || 15;
+    const managementFee = totalIncome * (managementFeePercent / 100);
+    const netOwnerPayment = totalIncome - managementFee;
+
+    return {
+      found: true,
+      property: {
+        name: property.propertyName || property.addressLine1,
+        address: `${property.addressLine1}, ${property.suburb}`,
+      },
+      owner: owner ? `${owner.firstName} ${owner.lastName}` : "No owner assigned",
+      month: args.month || new Date().toISOString().slice(0, 7),
+      dwellings: participantDetails,
+      totals: {
+        sdaIncome: totalSdaIncome,
+        rrcIncome: totalRrcIncome,
+        grossIncome: totalIncome,
+        managementFeePercent,
+        managementFee,
+        netOwnerPayment,
+      },
+      bankDetails: owner?.bankAccountNumber ? {
+        bsb: owner.bankBsb,
+        accountNumber: owner.bankAccountNumber,
+        accountName: owner.bankAccountName,
+      } : null,
+    };
+  },
+});
+
+// Get compliance status
+export const getComplianceStatus = internalQuery({
+  args: {
+    propertyName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const today = new Date().toISOString().split("T")[0];
+    const thirtyDaysAhead = new Date();
+    thirtyDaysAhead.setDate(thirtyDaysAhead.getDate() + 30);
+    const thirtyDaysStr = thirtyDaysAhead.toISOString().split("T")[0];
+
+    let properties = await ctx.db.query("properties").collect();
+
+    if (args.propertyName) {
+      properties = properties.filter(
+        (p) =>
+          (p.propertyName && fuzzyMatch(args.propertyName!, p.propertyName)) ||
+          fuzzyMatch(args.propertyName!, p.addressLine1)
+      );
+    }
+
+    const complianceResults = await Promise.all(
+      properties.map(async (property) => {
+        // Get documents for this property
+        const documents = await ctx.db
+          .query("documents")
+          .withIndex("by_property", (q) => q.eq("linkedPropertyId", property._id))
+          .collect();
+
+        // Get dwellings for this property
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+          .collect();
+
+        // Get dwelling documents
+        const dwellingDocs = await Promise.all(
+          dwellings.map(async (dwelling) => {
+            const docs = await ctx.db
+              .query("documents")
+              .withIndex("by_dwelling", (q) => q.eq("linkedDwellingId", dwelling._id))
+              .collect();
+            return docs;
+          })
+        );
+        const allDocs = [...documents, ...dwellingDocs.flat()];
+
+        // Check for expiring documents
+        const expiringDocs = allDocs.filter(
+          (doc) => doc.expiryDate && doc.expiryDate >= today && doc.expiryDate <= thirtyDaysStr
+        );
+
+        // Check for expired documents
+        const expiredDocs = allDocs.filter(
+          (doc) => doc.expiryDate && doc.expiryDate < today
+        );
+
+        // Get inspections
+        const inspections = await ctx.db.query("inspections").collect();
+        const propertyInspections = inspections.filter((i) => i.propertyId === property._id);
+
+        const overdueInspections = propertyInspections.filter(
+          (i) => i.status === "scheduled" && i.scheduledDate < today
+        );
+
+        const lastCompleted = propertyInspections
+          .filter((i) => i.status === "completed")
+          .sort((a, b) => (b.completedDate || "").localeCompare(a.completedDate || ""))[0];
+
+        // Check for required document types
+        const complianceDocTypes = ["fire_safety", "electrical", "gas", "pest_control", "insurance"];
+        const missingDocTypes = complianceDocTypes.filter(
+          (docType) => !allDocs.some((doc) => doc.documentType === docType && (!doc.expiryDate || doc.expiryDate >= today))
+        );
+
+        const issues = [];
+        if (expiredDocs.length > 0) issues.push(`${expiredDocs.length} expired document(s)`);
+        if (expiringDocs.length > 0) issues.push(`${expiringDocs.length} document(s) expiring soon`);
+        if (overdueInspections.length > 0) issues.push(`${overdueInspections.length} overdue inspection(s)`);
+        if (missingDocTypes.length > 0) issues.push(`Missing: ${missingDocTypes.join(", ")}`);
+
+        return {
+          property: {
+            name: property.propertyName || property.addressLine1,
+            address: `${property.addressLine1}, ${property.suburb}`,
+          },
+          status: issues.length === 0 ? "compliant" : issues.length <= 2 ? "attention_needed" : "non_compliant",
+          issues,
+          expiredDocs: expiredDocs.map((d) => ({ fileName: d.fileName, type: d.documentType, expiryDate: d.expiryDate })),
+          expiringDocs: expiringDocs.map((d) => ({ fileName: d.fileName, type: d.documentType, expiryDate: d.expiryDate, daysUntilExpiry: daysUntil(d.expiryDate!) })),
+          overdueInspections: overdueInspections.map((i) => ({ scheduledDate: i.scheduledDate })),
+          lastInspection: lastCompleted?.completedDate || null,
+          missingDocTypes,
+        };
+      })
+    );
+
+    return complianceResults;
+  },
+});
+
+// Match participant to vacancy
+export const matchParticipantToVacancy = internalQuery({
+  args: {
+    sdaCategory: v.string(),
+    suburb: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let properties = await ctx.db.query("properties").collect();
+
+    // Filter by suburb if provided
+    if (args.suburb) {
+      properties = properties.filter((p) => fuzzyMatch(args.suburb!, p.suburb));
+    }
+
+    const matches = await Promise.all(
+      properties.map(async (property) => {
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+          .collect();
+
+        // Filter by SDA category and find vacancies
+        const matchingDwellings = await Promise.all(
+          dwellings
+            .filter((d) => d.sdaDesignCategory === args.sdaCategory)
+            .map(async (dwelling) => {
+              const participants = await ctx.db
+                .query("participants")
+                .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
+                .filter((q) => q.eq(q.field("status"), "active"))
+                .collect();
+
+              const vacantSpots = dwelling.maxParticipants - participants.length;
+
+              if (vacantSpots > 0) {
+                return {
+                  dwelling: dwelling.dwellingName,
+                  sdaCategory: dwelling.sdaDesignCategory,
+                  sdaRegisteredAmount: dwelling.sdaRegisteredAmount,
+                  vacantSpots,
+                  currentOccupants: participants.map((p) => `${p.firstName} ${p.lastName}`),
+                  notes: dwelling.notes || "",
+                };
+              }
+              return null;
+            })
+        );
+
+        const available = matchingDwellings.filter((d) => d !== null);
+
+        if (available.length > 0) {
+          return {
+            property: {
+              name: property.propertyName || property.addressLine1,
+              address: `${property.addressLine1}, ${property.suburb}`,
+            },
+            dwellings: available,
+          };
+        }
+        return null;
+      })
+    );
+
+    return matches.filter((m) => m !== null);
+  },
+});
+
+// Get contractor history
+export const getContractorHistory = internalQuery({
+  args: {
+    contractorName: v.optional(v.string()),
+    trade: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let contractors = await ctx.db.query("contractors").collect();
+
+    if (args.contractorName) {
+      contractors = contractors.filter((c) =>
+        fuzzyMatch(args.contractorName!, c.companyName || c.contactName || "")
+      );
+    }
+
+    if (args.trade) {
+      contractors = contractors.filter((c) =>
+        c.specialty.toLowerCase().includes(args.trade!.toLowerCase()) ||
+        c.secondarySpecialties?.some((t: string) => t.toLowerCase().includes(args.trade!.toLowerCase()))
+      );
+    }
+
+    const contractorDetails = await Promise.all(
+      contractors.slice(0, 10).map(async (contractor) => {
+        // Get maintenance requests assigned to this contractor
+        const maintenance = await ctx.db.query("maintenanceRequests").collect();
+        const assignedJobs = maintenance.filter((m) => m.assignedContractorId === contractor._id);
+
+        // Get quotes submitted by this contractor
+        const quotes = await ctx.db.query("maintenanceQuotes").collect();
+        const contractorQuotes = quotes.filter((q) => q.contractorId === contractor._id);
+
+        // Calculate metrics
+        const completedJobs = assignedJobs.filter((j) => j.status === "completed");
+        const totalQuoted = contractorQuotes.reduce((sum, q) => sum + (q.quoteAmount || 0), 0);
+        const avgQuote = contractorQuotes.length > 0 ? totalQuoted / contractorQuotes.length : 0;
+
+        // Calculate average response time (days between quote request sent and quote received)
+        const quoteRequests = await ctx.db.query("quoteRequests").collect();
+        const responseTimes: number[] = [];
+        for (const quote of contractorQuotes) {
+          const request = quoteRequests.find((r) => r.contractorId === contractor._id && r.maintenanceRequestId === quote.maintenanceRequestId);
+          if (request && quote.createdAt && request.emailSentAt) {
+            const days = (quote.createdAt - request.emailSentAt) / (1000 * 60 * 60 * 24);
+            responseTimes.push(days);
+          }
+        }
+        const avgResponseTime = responseTimes.length > 0
+          ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+          : null;
+
+        return {
+          contractor: {
+            name: contractor.companyName || contractor.contactName || "Unknown",
+            specialty: contractor.specialty,
+            secondarySpecialties: contractor.secondarySpecialties || [],
+            phone: contractor.phone,
+            email: contractor.email,
+            isActive: contractor.isActive,
+          },
+          metrics: {
+            totalJobs: assignedJobs.length,
+            completedJobs: completedJobs.length,
+            quotesSubmitted: contractorQuotes.length,
+            averageQuoteAmount: avgQuote,
+            avgResponseDays: avgResponseTime ? Math.round(avgResponseTime * 10) / 10 : null,
+          },
+          recentJobs: completedJobs.slice(0, 5).map((j) => ({
+            title: j.title,
+            completedDate: j.completedDate,
+            category: j.category,
+          })),
+        };
+      })
+    );
+
+    return contractorDetails;
+  },
+});
+
+// Get property financials
+export const getPropertyFinancials = internalQuery({
+  args: {
+    propertyName: v.string(),
+    months: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const properties = await ctx.db.query("properties").collect();
+    const property = properties.find(
+      (p) =>
+        (p.propertyName && fuzzyMatch(args.propertyName, p.propertyName)) ||
+        fuzzyMatch(args.propertyName, p.addressLine1)
+    );
+
+    if (!property) {
+      return { found: false, message: `No property found matching "${args.propertyName}"` };
+    }
+
+    const monthsToShow = args.months || 6;
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth() - monthsToShow + 1, 1);
+    const startStr = startDate.toISOString().split("T")[0];
+
+    // Get dwellings and participants
+    const dwellings = await ctx.db
+      .query("dwellings")
+      .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+      .collect();
+
+    const dwellingIds = dwellings.map((d) => d._id);
+
+    // Get payments for participants in these dwellings
+    const allPayments = await ctx.db.query("payments").collect();
+    const participants = await ctx.db.query("participants").collect();
+    const propertyParticipants = participants.filter((p) => p.dwellingId && dwellingIds.includes(p.dwellingId));
+    const participantIds = propertyParticipants.map((p) => p._id);
+
+    const propertyPayments = allPayments.filter(
+      (p) => participantIds.includes(p.participantId) && p.paymentDate >= startStr
+    );
+
+    // Get maintenance costs
+    const maintenance = await ctx.db.query("maintenanceRequests").collect();
+    const propertyMaintenance = maintenance.filter(
+      (m) => dwellingIds.includes(m.dwellingId) && m.reportedDate && m.reportedDate >= startStr
+    );
+
+    // Group by month
+    const monthlyData: Record<string, { income: number; expenses: number; occupancy: number }> = {};
+
+    for (let i = 0; i < monthsToShow; i++) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - monthsToShow + 1 + i, 1);
+      const monthKey = monthDate.toISOString().slice(0, 7);
+      monthlyData[monthKey] = { income: 0, expenses: 0, occupancy: 0 };
+    }
+
+    // Sum payments by month
+    for (const payment of propertyPayments) {
+      const monthKey = payment.paymentDate.slice(0, 7);
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].income += payment.actualAmount;
+      }
+    }
+
+    // Sum maintenance costs by month
+    for (const m of propertyMaintenance) {
+      if (m.actualCost && m.reportedDate) {
+        const monthKey = m.reportedDate.slice(0, 7);
+        if (monthlyData[monthKey]) {
+          monthlyData[monthKey].expenses += m.actualCost;
+        }
+      }
+    }
+
+    // Calculate current occupancy
+    const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
+    const currentOccupants = propertyParticipants.filter((p) => p.status === "active").length;
+    const occupancyPercent = totalCapacity > 0 ? Math.round((currentOccupants / totalCapacity) * 100) : 0;
+
+    // Calculate totals
+    const totalIncome = Object.values(monthlyData).reduce((sum, m) => sum + m.income, 0);
+    const totalExpenses = Object.values(monthlyData).reduce((sum, m) => sum + m.expenses, 0);
+
+    return {
+      found: true,
+      property: {
+        name: property.propertyName || property.addressLine1,
+        address: `${property.addressLine1}, ${property.suburb}`,
+      },
+      period: {
+        start: startStr,
+        end: now.toISOString().split("T")[0],
+        months: monthsToShow,
+      },
+      currentOccupancy: {
+        occupied: currentOccupants,
+        capacity: totalCapacity,
+        percent: occupancyPercent,
+      },
+      monthlyBreakdown: Object.entries(monthlyData).map(([month, data]) => ({
+        month,
+        income: data.income,
+        expenses: data.expenses,
+        net: data.income - data.expenses,
+      })),
+      totals: {
+        income: totalIncome,
+        expenses: totalExpenses,
+        net: totalIncome - totalExpenses,
+        avgMonthlyIncome: Math.round(totalIncome / monthsToShow),
+        avgMonthlyExpenses: Math.round(totalExpenses / monthsToShow),
+      },
+    };
+  },
+});
+
+// Get incident summary
+export const getIncidentSummary = internalQuery({
+  args: {
+    propertyName: v.optional(v.string()),
+    participantName: v.optional(v.string()),
+    daysBack: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const days = args.daysBack || 30;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffStr = cutoffDate.toISOString().split("T")[0];
+
+    let incidents = await ctx.db.query("incidents").collect();
+
+    // Filter by date
+    incidents = incidents.filter((i) => i.incidentDate >= cutoffStr);
+
+    // Filter by property if provided
+    if (args.propertyName) {
+      const properties = await ctx.db.query("properties").collect();
+      const property = properties.find(
+        (p) =>
+          (p.propertyName && fuzzyMatch(args.propertyName!, p.propertyName)) ||
+          fuzzyMatch(args.propertyName!, p.addressLine1)
+      );
+
+      if (property) {
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+          .collect();
+        const dwellingIds = dwellings.map((d) => d._id);
+        incidents = incidents.filter((i) => i.dwellingId && dwellingIds.includes(i.dwellingId));
+      }
+    }
+
+    // Filter by participant if provided
+    if (args.participantName) {
+      const participants = await ctx.db.query("participants").collect();
+      const participant = participants.find((p) =>
+        fuzzyMatch(args.participantName!, `${p.firstName} ${p.lastName}`)
+      );
+
+      if (participant) {
+        incidents = incidents.filter((i) => i.participantId === participant._id);
+      }
+    }
+
+    // Get details for each incident
+    const incidentDetails = await Promise.all(
+      incidents.map(async (incident) => {
+        const participant = incident.participantId ? await ctx.db.get(incident.participantId) : null;
+        const dwelling = incident.dwellingId ? await ctx.db.get(incident.dwellingId) : null;
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        return {
+          date: incident.incidentDate,
+          type: incident.incidentType,
+          severity: incident.severity,
+          status: incident.status,
+          participant: participant ? `${participant.firstName} ${participant.lastName}` : "N/A",
+          location: dwelling ? `${dwelling.dwellingName} at ${property?.propertyName || property?.addressLine1 || "Unknown"}` : "N/A",
+          isNdisReportable: incident.isNdisReportable,
+          ndisNotified: incident.ndisCommissionNotified,
+          description: incident.description?.slice(0, 100),
+        };
+      })
+    );
+
+    // Summary stats
+    const bySeverity = {
+      critical: incidents.filter((i) => i.severity === "critical").length,
+      major: incidents.filter((i) => i.severity === "major").length,
+      moderate: incidents.filter((i) => i.severity === "moderate").length,
+      minor: incidents.filter((i) => i.severity === "minor").length,
+    };
+
+    const byStatus = {
+      open: incidents.filter((i) => i.status === "reported" || i.status === "under_investigation").length,
+      resolved: incidents.filter((i) => i.status === "resolved" || i.status === "closed").length,
+    };
+
+    const ndisReportable = incidents.filter((i) => i.isNdisReportable).length;
+    const ndisNotified = incidents.filter((i) => i.ndisCommissionNotified).length;
+
+    return {
+      period: {
+        days,
+        start: cutoffStr,
+        end: new Date().toISOString().split("T")[0],
+      },
+      summary: {
+        total: incidents.length,
+        bySeverity,
+        byStatus,
+        ndisReportable,
+        ndisNotified,
+        pendingNdisNotification: ndisReportable - ndisNotified,
+      },
+      incidents: incidentDetails.sort((a, b) => b.date.localeCompare(a.date)),
+    };
+  },
+});
+
+// Get upcoming payments
+export const getUpcomingPayments = internalQuery({
+  args: {
+    daysAhead: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const days = args.daysAhead || 14;
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + days);
+
+    // Get all active participants with their plans
+    const participants = await ctx.db
+      .query("participants")
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    const upcomingPayments = await Promise.all(
+      participants.map(async (participant) => {
+        const plan = await ctx.db
+          .query("participantPlans")
+          .withIndex("by_participant", (q) => q.eq("participantId", participant._id))
+          .filter((q) => q.eq(q.field("planStatus"), "current"))
+          .first();
+
+        if (!plan) return null;
+
+        const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        // Get last payment
+        const payments = await ctx.db
+          .query("payments")
+          .withIndex("by_participant", (q) => q.eq("participantId", participant._id))
+          .collect();
+
+        const lastPayment = payments
+          .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate))[0];
+
+        // Calculate expected monthly SDA
+        const monthlySda = plan.monthlySdaAmount || (plan.annualSdaBudget ? plan.annualSdaBudget / 12 : 0);
+
+        // Calculate monthly RRC
+        let monthlyRrc = plan.reasonableRentContribution || 0;
+        if (plan.rentContributionFrequency === "weekly") {
+          monthlyRrc = monthlyRrc * 52 / 12;
+        } else if (plan.rentContributionFrequency === "fortnightly") {
+          monthlyRrc = monthlyRrc * 26 / 12;
+        }
+
+        // Determine claim day (using default of 15th)
+        const claimDay = 15;
+        let nextClaimDate = new Date(today.getFullYear(), today.getMonth(), claimDay);
+        if (nextClaimDate <= today) {
+          nextClaimDate = new Date(today.getFullYear(), today.getMonth() + 1, claimDay);
+        }
+
+        // Check if within date range
+        if (nextClaimDate > futureDate) return null;
+
+        return {
+          participant: `${participant.firstName} ${participant.lastName}`,
+          location: property ? `${property.propertyName || property.addressLine1}` : "Unassigned",
+          dwelling: dwelling?.dwellingName || "N/A",
+          expectedSda: monthlySda,
+          expectedRrc: monthlyRrc,
+          totalExpected: monthlySda + monthlyRrc,
+          claimDate: nextClaimDate.toISOString().split("T")[0],
+          daysUntil: daysUntil(nextClaimDate.toISOString().split("T")[0]),
+          lastPaymentDate: lastPayment?.paymentDate || null,
+          fundingType: plan.fundingManagementType,
+        };
+      })
+    );
+
+    const filtered = upcomingPayments.filter((p) => p !== null);
+    const sorted = filtered.sort((a, b) => a!.daysUntil - b!.daysUntil);
+
+    // Calculate totals
+    const totalExpectedSda = filtered.reduce((sum, p) => sum + (p?.expectedSda || 0), 0);
+    const totalExpectedRrc = filtered.reduce((sum, p) => sum + (p?.expectedRrc || 0), 0);
+
+    return {
+      period: {
+        days,
+        start: today.toISOString().split("T")[0],
+        end: futureDate.toISOString().split("T")[0],
+      },
+      totals: {
+        expectedSda: totalExpectedSda,
+        expectedRrc: totalExpectedRrc,
+        totalExpected: totalExpectedSda + totalExpectedRrc,
+        participantCount: filtered.length,
+      },
+      payments: sorted,
+    };
+  },
+});
+
+// Get monthly summary
+export const getMonthlySummary = internalQuery({
+  args: {
+    month: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = new Date();
+    const monthStr = args.month || now.toISOString().slice(0, 7);
+    const [year, month] = monthStr.split("-").map(Number);
+
+    const monthStart = new Date(year, month - 1, 1).toISOString().split("T")[0];
+    const monthEnd = new Date(year, month, 0).toISOString().split("T")[0];
+
+    // Get all payments for the month
+    const payments = await ctx.db.query("payments").collect();
+    const monthPayments = payments.filter(
+      (p) => p.paymentDate >= monthStart && p.paymentDate <= monthEnd
+    );
+    const totalIncome = monthPayments.reduce((sum, p) => sum + p.actualAmount, 0);
+
+    // Get maintenance for the month
+    const maintenance = await ctx.db.query("maintenanceRequests").collect();
+    const monthMaintenance = maintenance.filter(
+      (m) => m.reportedDate && m.reportedDate >= monthStart && m.reportedDate <= monthEnd
+    );
+    const maintenanceCosts = monthMaintenance.reduce((sum, m) => sum + (m.actualCost || 0), 0);
+    const completedMaintenance = monthMaintenance.filter((m) => m.status === "completed").length;
+    const openMaintenance = monthMaintenance.filter((m) => m.status !== "completed" && m.status !== "cancelled").length;
+
+    // Get incidents for the month
+    const incidents = await ctx.db.query("incidents").collect();
+    const monthIncidents = incidents.filter(
+      (i) => i.incidentDate >= monthStart && i.incidentDate <= monthEnd
+    );
+
+    // Get occupancy stats
+    const participants = await ctx.db.query("participants").collect();
+    const activeParticipants = participants.filter((p) => p.status === "active").length;
+
+    const dwellings = await ctx.db.query("dwellings").collect();
+    const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
+    const occupancyPercent = totalCapacity > 0 ? Math.round((activeParticipants / totalCapacity) * 100) : 0;
+
+    // Get expiring items
+    const plans = await ctx.db
+      .query("participantPlans")
+      .filter((q) => q.eq(q.field("planStatus"), "current"))
+      .collect();
+    const expiringPlans = plans.filter((p) => {
+      const expiry = daysUntil(p.planEndDate);
+      return expiry >= 0 && expiry <= 30;
+    }).length;
+
+    const documents = await ctx.db.query("documents").collect();
+    const expiringDocs = documents.filter((d) => {
+      if (!d.expiryDate) return false;
+      const expiry = daysUntil(d.expiryDate);
+      return expiry >= 0 && expiry <= 30;
+    }).length;
+
+    // Properties count
+    const properties = await ctx.db.query("properties").collect();
+
+    return {
+      month: monthStr,
+      financial: {
+        totalIncome,
+        maintenanceCosts,
+        netIncome: totalIncome - maintenanceCosts,
+        paymentsReceived: monthPayments.length,
+      },
+      operations: {
+        maintenanceCreated: monthMaintenance.length,
+        maintenanceCompleted: completedMaintenance,
+        maintenanceOpen: openMaintenance,
+        incidents: monthIncidents.length,
+      },
+      occupancy: {
+        activeParticipants,
+        totalCapacity,
+        occupancyPercent,
+        properties: properties.length,
+        dwellings: dwellings.length,
+      },
+      alerts: {
+        expiringPlans,
+        expiringDocuments: expiringDocs,
+        overdueMaintenance: maintenance.filter(
+          (m) => m.scheduledDate && m.scheduledDate < monthStart && m.status !== "completed" && m.status !== "cancelled"
+        ).length,
+      },
+    };
+  },
+});
+
+// Schedule inspection action
+export const scheduleInspection = internalMutation({
+  args: {
+    propertyName: v.string(),
+    dwellingName: v.optional(v.string()),
+    scheduledDate: v.string(),
+    templateName: v.optional(v.string()),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Find property
+    const properties = await ctx.db.query("properties").collect();
+    const property = properties.find(
+      (p) =>
+        (p.propertyName && fuzzyMatch(args.propertyName, p.propertyName)) ||
+        fuzzyMatch(args.propertyName, p.addressLine1)
+    );
+
+    if (!property) {
+      return { success: false, error: `Property "${args.propertyName}" not found` };
+    }
+
+    // Find dwelling if specified
+    let dwelling = null;
+    if (args.dwellingName) {
+      const dwellings = await ctx.db
+        .query("dwellings")
+        .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+        .collect();
+      dwelling = dwellings.find((d) => fuzzyMatch(args.dwellingName!, d.dwellingName));
+    }
+
+    // Find template
+    const templateName = args.templateName || "BLS Property Inspection";
+    const templates = await ctx.db.query("inspectionTemplates").collect();
+    const template = templates.find((t) => fuzzyMatch(templateName, t.name));
+
+    if (!template) {
+      return { success: false, error: `Template "${templateName}" not found` };
+    }
+
+    const now = Date.now();
+
+    // Count total items from template
+    let totalItems = 0;
+    for (const category of template.categories) {
+      totalItems += category.items.length;
+    }
+
+    // Create inspection
+    const inspectionId = await ctx.db.insert("inspections", {
+      templateId: template._id,
+      propertyId: property._id,
+      dwellingId: dwelling?._id,
+      inspectorId: args.userId,
+      scheduledDate: args.scheduledDate,
+      status: "scheduled",
+      totalItems,
+      completedItems: 0,
+      passedItems: 0,
+      failedItems: 0,
+      createdBy: args.userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create inspection items from template
+    let itemOrder = 0;
+    for (const category of template.categories) {
+      for (const item of category.items) {
+        await ctx.db.insert("inspectionItems", {
+          inspectionId,
+          category: category.name,
+          itemName: item.name,
+          itemOrder: itemOrder++,
+          status: "pending",
+          hasIssue: false,
+          updatedAt: now,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Scheduled inspection for ${property.propertyName || property.addressLine1}${dwelling ? ` (${dwelling.dwellingName})` : ""} on ${args.scheduledDate}`,
+      inspectionId,
+      property: property.propertyName || property.addressLine1,
+      dwelling: dwelling?.dwellingName,
+      scheduledDate: args.scheduledDate,
+      template: template.name,
+      totalItems,
+    };
+  },
+});
+
 // Execute action V2 (handles tool-based actions)
 export const executeActionV2 = action({
   args: {
@@ -2010,6 +3303,16 @@ export const executeActionV2 = action({
           result = await ctx.runMutation(internal.aiChatbot.updateParticipantStatus, {
             participantName: args.params.participant_name || args.params.participantName,
             newStatus: args.params.new_status || args.params.newStatus,
+          }) as { success: boolean; message?: string; error?: string };
+          break;
+
+        case "schedule_inspection":
+          result = await ctx.runMutation(internal.aiChatbot.scheduleInspection, {
+            propertyName: args.params.property_name || args.params.propertyName,
+            dwellingName: args.params.dwelling_name || args.params.dwellingName,
+            scheduledDate: args.params.scheduled_date || args.params.scheduledDate,
+            templateName: args.params.template_name || args.params.templateName,
+            userId: args.userId,
           }) as { success: boolean; message?: string; error?: string };
           break;
 

@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireAuth } from "./authHelpers";
 
 // Create a new participant
 export const create = mutation({
@@ -229,9 +229,11 @@ export const update = mutation({
 // Revert participant to pending move-in status (undo move-in)
 export const revertToPending = mutation({
   args: {
+    userId: v.id("users"),
     participantId: v.id("participants"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
 
@@ -255,10 +257,12 @@ export const revertToPending = mutation({
 // Move participant in (change status from pending_move_in to active)
 export const moveIn = mutation({
   args: {
+    userId: v.id("users"),
     participantId: v.id("participants"),
     moveInDate: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
 
@@ -282,10 +286,12 @@ export const moveIn = mutation({
 // Move participant out
 export const moveOut = mutation({
   args: {
+    userId: v.id("users"),
     participantId: v.id("participants"),
     moveOutDate: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
 

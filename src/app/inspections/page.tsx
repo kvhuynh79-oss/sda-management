@@ -63,10 +63,10 @@ export default function InspectionsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteConfirm) return;
+    if (!deleteConfirm || !user) return;
     setIsDeleting(true);
     try {
-      await deleteInspection({ inspectionId: deleteConfirm.id });
+      await deleteInspection({ userId: user.id as Id<"users">, inspectionId: deleteConfirm.id });
       setDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting inspection:", error);

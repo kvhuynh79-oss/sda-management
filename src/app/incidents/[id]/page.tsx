@@ -178,7 +178,7 @@ export default function IncidentDetailPage() {
   const handleDeleteExistingMedia = async (photoId: Id<"incidentPhotos">) => {
     if (!confirm("Are you sure you want to delete this media?")) return;
     try {
-      await deletePhoto({ photoId });
+      await deletePhoto({ userId: user!.id as Id<"users">, photoId });
     } catch (err) {
       setError("Failed to delete media");
     }
@@ -199,6 +199,7 @@ export default function IncidentDetailPage() {
 
     try {
       await updateIncident({
+        userId: currentUserId as Id<"users">,
         incidentId,
         status: formData.status,
         severity: formData.severity,
@@ -223,7 +224,7 @@ export default function IncidentDetailPage() {
 
         for (const media of pendingMedia) {
           try {
-            const uploadUrl = await generateUploadUrl();
+            const uploadUrl = await generateUploadUrl({ userId: currentUserId as Id<"users"> });
             const response = await fetch(uploadUrl, {
               method: "POST",
               headers: { "Content-Type": media.file.type },
@@ -293,6 +294,7 @@ export default function IncidentDetailPage() {
     if (!confirm("Are you sure you want to close this incident?")) return;
     try {
       await updateIncident({
+        userId: user!.id as Id<"users">,
         incidentId,
         status: "closed",
       });
@@ -1392,6 +1394,7 @@ export default function IncidentDetailPage() {
                     }
                     try {
                       await markNdisNotified({
+                        userId: user!.id as Id<"users">,
                         incidentId,
                         notificationDate: ndisNotifyFormData.notificationDate,
                         referenceNumber: ndisNotifyFormData.referenceNumber || undefined,

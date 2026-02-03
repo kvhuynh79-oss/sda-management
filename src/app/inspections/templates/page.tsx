@@ -72,7 +72,9 @@ export default function InspectionTemplatesPage() {
   };
 
   const handleToggleActive = async (templateId: Id<"inspectionTemplates">, currentActive: boolean) => {
+    if (!user) return;
     await updateTemplate({
+      userId: user.id as Id<"users">,
       templateId,
       isActive: !currentActive,
     });

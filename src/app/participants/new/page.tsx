@@ -108,6 +108,7 @@ export default function NewParticipantPage() {
 
       // Create plan
       await createPlan({
+        userId: user!.id as Id<"users">,
         participantId: participantId as any,
         planStartDate: planData.planStartDate,
         planEndDate: planData.planEndDate,

@@ -184,9 +184,10 @@ export default function MaintenanceRequestDetailPage() {
   };
 
   const handleDeleteExistingMedia = async (photoId: Id<"maintenancePhotos">) => {
+    if (!user) return;
     if (!confirm("Are you sure you want to delete this media?")) return;
     try {
-      await deletePhoto({ photoId });
+      await deletePhoto({ userId: user.id as Id<"users">, photoId });
     } catch (err) {
       setError("Failed to delete media");
     }
@@ -199,6 +200,7 @@ export default function MaintenanceRequestDetailPage() {
 
     try {
       await updateRequest({
+        userId: user.id as Id<"users">,
         requestId,
         status: formData.status,
         priority: formData.priority,
@@ -221,7 +223,7 @@ export default function MaintenanceRequestDetailPage() {
         setUploadingMedia(true);
         for (const media of pendingMedia) {
           try {
-            const uploadUrl = await generateUploadUrl();
+            const uploadUrl = await generateUploadUrl({ userId: user.id as Id<"users"> });
             const response = await fetch(uploadUrl, {
               method: "POST",
               headers: { "Content-Type": media.file.type },
@@ -308,6 +310,7 @@ export default function MaintenanceRequestDetailPage() {
   };
 
   const handleComplete = async () => {
+    if (!user) return;
     if (!completeData.completionNotes) {
       setError("Please enter how the completion was confirmed");
       return;
@@ -315,6 +318,7 @@ export default function MaintenanceRequestDetailPage() {
 
     try {
       await completeRequest({
+        userId: user.id as Id<"users">,
         requestId,
         completedDate: completeData.completedDate,
         actualCost: completeData.actualCost ? parseFloat(completeData.actualCost) : undefined,

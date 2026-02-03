@@ -126,6 +126,7 @@ export default function EditPropertyPage() {
     try {
       // Update property
       await updateProperty({
+        userId: user!.id as Id<"users">,
         propertyId,
         propertyName: formData.propertyName || undefined,
         addressLine1: formData.addressLine1,

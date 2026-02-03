@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { requireAuth } from "./authHelpers";
 
 // ============================================
 // INSPECTION TEMPLATES
@@ -48,6 +49,7 @@ export const createTemplate = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.createdBy);
     const now = Date.now();
     return await ctx.db.insert("inspectionTemplates", {
       name: args.name,
@@ -64,6 +66,7 @@ export const createTemplate = mutation({
 // Update an inspection template
 export const updateTemplate = mutation({
   args: {
+    userId: v.id("users"),
     templateId: v.id("inspectionTemplates"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -83,7 +86,8 @@ export const updateTemplate = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { templateId, ...updates } = args;
+    await requireAuth(ctx, args.userId);
+    const { templateId, userId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, v]) => v !== undefined)
     );
@@ -250,6 +254,7 @@ export const createInspection = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.createdBy);
     const template = await ctx.db.get(args.templateId);
     if (!template) {
       throw new Error("Template not found");
@@ -305,6 +310,7 @@ export const createInspection = mutation({
 // Update inspection details
 export const updateInspection = mutation({
   args: {
+    userId: v.id("users"),
     inspectionId: v.id("inspections"),
     scheduledDate: v.optional(v.string()),
     completedDate: v.optional(v.string()),
@@ -322,7 +328,8 @@ export const updateInspection = mutation({
     inspectorId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    const { inspectionId, ...updates } = args;
+    await requireAuth(ctx, args.userId);
+    const { inspectionId, userId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, v]) => v !== undefined)
     );
@@ -335,8 +342,12 @@ export const updateInspection = mutation({
 
 // Start an inspection (change status to in_progress)
 export const startInspection = mutation({
-  args: { inspectionId: v.id("inspections") },
+  args: {
+    userId: v.id("users"),
+    inspectionId: v.id("inspections"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     return await ctx.db.patch(args.inspectionId, {
       status: "in_progress",
       updatedAt: Date.now(),
@@ -347,10 +358,12 @@ export const startInspection = mutation({
 // Complete an inspection
 export const completeInspection = mutation({
   args: {
+    userId: v.id("users"),
     inspectionId: v.id("inspections"),
     additionalComments: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const today = new Date().toISOString().split("T")[0];
     return await ctx.db.patch(args.inspectionId, {
       status: "completed",
@@ -363,8 +376,12 @@ export const completeInspection = mutation({
 
 // Delete an inspection and all its items/photos
 export const deleteInspection = mutation({
-  args: { inspectionId: v.id("inspections") },
+  args: {
+    userId: v.id("users"),
+    inspectionId: v.id("inspections"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     // Delete all photos
     const photos = await ctx.db
       .query("inspectionPhotos")
@@ -442,6 +459,7 @@ export const updateItemStatus = mutation({
     updatedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.updatedBy);
     const item = await ctx.db.get(args.itemId);
     if (!item) throw new Error("Item not found");
 
@@ -513,6 +531,7 @@ export const bulkUpdateItems = mutation({
     updatedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.updatedBy);
     const now = Date.now();
     let inspectionId: any = null;
 
@@ -586,8 +605,11 @@ export const getPhotosByItem = query({
 
 // Generate upload URL for inspection photo
 export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -605,6 +627,7 @@ export const saveInspectionPhoto = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.uploadedBy);
     return await ctx.db.insert("inspectionPhotos", {
       inspectionId: args.inspectionId,
       inspectionItemId: args.inspectionItemId,
@@ -621,8 +644,12 @@ export const saveInspectionPhoto = mutation({
 
 // Delete an inspection photo
 export const deleteInspectionPhoto = mutation({
-  args: { photoId: v.id("inspectionPhotos") },
+  args: {
+    userId: v.id("users"),
+    photoId: v.id("inspectionPhotos"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const photo = await ctx.db.get(args.photoId);
     if (photo) {
       await ctx.storage.delete(photo.storageId);
@@ -643,6 +670,7 @@ export const saveGeneralPhoto = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.uploadedBy);
     return await ctx.db.insert("inspectionPhotos", {
       inspectionId: args.inspectionId,
       inspectionItemId: undefined,
@@ -692,6 +720,7 @@ export const addCustomItem = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.createdBy);
     const inspection = await ctx.db.get(args.inspectionId);
     if (!inspection) {
       throw new Error("Inspection not found");
@@ -743,9 +772,11 @@ export const addCustomItem = mutation({
 // Delete a custom inspection item
 export const deleteCustomItem = mutation({
   args: {
+    userId: v.id("users"),
     itemId: v.id("inspectionItems"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const item = await ctx.db.get(args.itemId);
     if (!item) {
       throw new Error("Item not found");
@@ -795,6 +826,7 @@ export const deleteCustomItem = mutation({
 export const seedBLSTemplate = mutation({
   args: { createdBy: v.id("users") },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.createdBy);
     // Check if BLS template already exists
     const existing = await ctx.db
       .query("inspectionTemplates")

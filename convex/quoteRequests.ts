@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, action, internalAction, internalMutation } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { requireAuth } from "./authHelpers";
 
 // Generate a random token for quote submissions
 function generateToken(): string {
@@ -109,6 +110,7 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.createdBy);
     const token = generateToken();
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + args.expiryDays);

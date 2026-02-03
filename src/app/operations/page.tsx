@@ -367,7 +367,7 @@ function InspectionsTab({ userId }: { userId: string }) {
     if (!deleteConfirm) return;
     setIsDeleting(true);
     try {
-      await deleteInspection({ inspectionId: deleteConfirm.id });
+      await deleteInspection({ userId: userId as Id<"users">, inspectionId: deleteConfirm.id });
       setDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting inspection:", error);

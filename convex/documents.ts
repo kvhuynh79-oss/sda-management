@@ -1,11 +1,17 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireAuth } from "./authHelpers";
 
 // Generate upload URL for file
-export const generateUploadUrl = mutation(async (ctx) => {
-  return await ctx.storage.generateUploadUrl();
+export const generateUploadUrl = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+    return await ctx.storage.generateUploadUrl();
+  },
 });
 
 // Create document record after file is uploaded
@@ -277,6 +283,7 @@ export const getById = query({
 // Update document metadata
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     documentId: v.id("documents"),
     fileName: v.optional(v.string()),
     documentType: v.optional(v.string()), // Accept any string to avoid listing all types
@@ -284,7 +291,8 @@ export const update = mutation({
     expiryDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { documentId, ...updates } = args;
+    await requireAuth(ctx, args.userId);
+    const { documentId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -300,8 +308,12 @@ export const update = mutation({
 
 // Delete document (removes file from storage)
 export const remove = mutation({
-  args: { documentId: v.id("documents") },
+  args: {
+    userId: v.id("users"),
+    documentId: v.id("documents"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const doc = await ctx.db.get(args.documentId);
     if (!doc) throw new Error("Document not found");
 

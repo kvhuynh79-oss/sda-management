@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireAuth } from "./authHelpers";
 
 // Create a new property
 export const create = mutation({
@@ -136,6 +136,7 @@ export const getById = query({
 // Update property
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     propertyId: v.id("properties"),
     propertyName: v.optional(v.string()),
     addressLine1: v.optional(v.string()),
@@ -171,8 +172,11 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { propertyId, ...updates } = args;
-    
+    const { propertyId, userId, ...updates } = args;
+
+    // Permission check
+    await requireAuth(ctx, userId);
+
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {

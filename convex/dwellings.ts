@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, getUserFullName } from "./authHelpers";
+import { requirePermission, requireAuth, getUserFullName } from "./authHelpers";
 
 // Create a new dwelling
 export const create = mutation({
@@ -158,9 +158,11 @@ export const update = mutation({
 // Update occupancy (called when participants move in/out)
 export const updateOccupancy = mutation({
   args: {
+    userId: v.id("users"),
     dwellingId: v.id("dwellings"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const participants = await ctx.db
       .query("participants")
       .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
@@ -243,6 +245,7 @@ export const getAllWithAddresses = query({
 // Bulk update SDA registered amounts
 export const bulkUpdateSdaAmount = mutation({
   args: {
+    userId: v.id("users"),
     updates: v.array(
       v.object({
         dwellingId: v.id("dwellings"),
@@ -251,6 +254,7 @@ export const bulkUpdateSdaAmount = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const now = Date.now();
     let updatedCount = 0;
 

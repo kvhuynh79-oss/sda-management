@@ -106,7 +106,7 @@ export default function InspectionDetailPage() {
 
     // If inspection is scheduled, start it
     if (inspection?.status === "scheduled") {
-      await startInspection({ inspectionId });
+      await startInspection({ userId: user.id as Id<"users">, inspectionId });
     }
 
     await updateItemStatus({
@@ -132,11 +132,14 @@ export default function InspectionDetailPage() {
   };
 
   const handleStartInspection = async () => {
-    await startInspection({ inspectionId });
+    if (!user) return;
+    await startInspection({ userId: user.id as Id<"users">, inspectionId });
   };
 
   const handleCompleteInspection = async () => {
+    if (!user) return;
     await completeInspection({
+      userId: user.id as Id<"users">,
       inspectionId,
       additionalComments: additionalComments || undefined,
     });
@@ -150,7 +153,7 @@ export default function InspectionDetailPage() {
     setUploadingFor(itemId);
 
     try {
-      const uploadUrl = await generateUploadUrl({});
+      const uploadUrl = await generateUploadUrl({ userId: user.id as Id<"users"> });
       const result = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
@@ -179,8 +182,9 @@ export default function InspectionDetailPage() {
   };
 
   const handleDeletePhoto = async (photoId: Id<"inspectionPhotos">) => {
+    if (!user) return;
     if (confirm("Delete this photo?")) {
-      await deletePhoto({ photoId });
+      await deletePhoto({ userId: user.id as Id<"users">, photoId });
     }
   };
 
@@ -191,7 +195,7 @@ export default function InspectionDetailPage() {
     setUploadingGeneral(true);
 
     try {
-      const uploadUrl = await generateUploadUrl({});
+      const uploadUrl = await generateUploadUrl({ userId: user.id as Id<"users"> });
       const result = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
@@ -250,8 +254,9 @@ export default function InspectionDetailPage() {
   };
 
   const handleDeleteItem = async (itemId: Id<"inspectionItems">) => {
+    if (!user) return;
     if (confirm("Delete this inspection item?")) {
-      await deleteCustomItem({ itemId });
+      await deleteCustomItem({ userId: user.id as Id<"users">, itemId });
     }
   };
 

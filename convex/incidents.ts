@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireAuth } from "./authHelpers";
 
 // NDIS Reportable incident types that require Commission notification
 const IMMEDIATE_NOTIFICATION_TYPES = [
@@ -261,6 +261,7 @@ export const getById = query({
 // Update incident
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     incidentId: v.id("incidents"),
     incidentType: v.optional(
       v.union(
@@ -317,7 +318,8 @@ export const update = mutation({
     resolutionNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { incidentId, ...updates } = args;
+    await requireAuth(ctx, args.userId);
+    const { incidentId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -339,11 +341,13 @@ export const update = mutation({
 // Mark incident as notified to NDIS Commission
 export const markNdisNotified = mutation({
   args: {
+    userId: v.id("users"),
     incidentId: v.id("incidents"),
     notificationDate: v.string(),
     referenceNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) throw new Error("Incident not found");
 
@@ -472,6 +476,7 @@ export const resolve = mutation({
     resolutionNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.resolvedBy);
     await ctx.db.patch(args.incidentId, {
       status: "resolved",
       resolvedBy: args.resolvedBy,
@@ -485,8 +490,11 @@ export const resolve = mutation({
 
 // Generate upload URL for incident media
 export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -503,6 +511,7 @@ export const addPhoto = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.uploadedBy);
     const photoId = await ctx.db.insert("incidentPhotos", {
       ...args,
       createdAt: Date.now(),
@@ -513,8 +522,12 @@ export const addPhoto = mutation({
 
 // Delete incident photo
 export const deletePhoto = mutation({
-  args: { photoId: v.id("incidentPhotos") },
+  args: {
+    userId: v.id("users"),
+    photoId: v.id("incidentPhotos"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const photo = await ctx.db.get(args.photoId);
     if (photo) {
       await ctx.storage.delete(photo.storageId);

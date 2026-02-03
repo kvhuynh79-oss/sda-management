@@ -43,7 +43,7 @@ export function useOfflineInspection() {
   ) => {
     if (isOnline) {
       try {
-        const uploadUrl = await generateUploadUrl({});
+        const uploadUrl = await generateUploadUrl({ userId: uploadedBy });
         const result = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": file.type },

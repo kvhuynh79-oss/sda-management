@@ -182,7 +182,7 @@ export default function NewIncidentPage() {
 
       // Upload media (photos/videos)
       for (const item of media) {
-        const uploadUrl = await generateUploadUrl();
+        const uploadUrl = await generateUploadUrl({ userId: user.id as Id<"users"> });
         const response = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": item.file.type },

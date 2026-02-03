@@ -163,6 +163,7 @@ export default function EditParticipantPage() {
 
     try {
       await updatePlan({
+        userId: user!.id as Id<"users">,
         planId: currentPlanId,
         planStartDate: planData.planStartDate,
         planEndDate: planData.planEndDate,

@@ -1,10 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAuth } from "./authHelpers";
 
 // Generate upload URL for file storage
 export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -27,6 +31,7 @@ export const addPhoto = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.uploadedBy);
     const photoId = await ctx.db.insert("maintenancePhotos", {
       ...args,
       createdAt: Date.now(),
@@ -64,10 +69,12 @@ export const getByMaintenanceRequest = query({
 // Update photo description
 export const updateDescription = mutation({
   args: {
+    userId: v.id("users"),
     photoId: v.id("maintenancePhotos"),
     description: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     await ctx.db.patch(args.photoId, {
       description: args.description,
     });
@@ -77,8 +84,12 @@ export const updateDescription = mutation({
 
 // Delete a photo
 export const deletePhoto = mutation({
-  args: { photoId: v.id("maintenancePhotos") },
+  args: {
+    userId: v.id("users"),
+    photoId: v.id("maintenancePhotos"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const photo = await ctx.db.get(args.photoId);
     if (photo) {
       // Delete from storage

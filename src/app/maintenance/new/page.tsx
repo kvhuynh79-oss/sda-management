@@ -232,7 +232,7 @@ function NewMaintenanceRequestContent() {
         setUploadingPhotos(true);
         for (const photo of pendingPhotos) {
           try {
-            const uploadUrl = await generateUploadUrl();
+            const uploadUrl = await generateUploadUrl({ userId: user.id as Id<"users"> });
             const response = await fetch(uploadUrl, {
               method: "POST",
               headers: { "Content-Type": photo.file.type },

@@ -11,7 +11,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 export default function ParticipantDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [showMoveInModal, setShowMoveInModal] = useState(false);
   const [showRevertModal, setShowRevertModal] = useState(false);
   const [moveInDate, setMoveInDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -73,13 +73,14 @@ export default function ParticipantDetailPage() {
   };
 
   const handleMoveIn = async () => {
+    if (!user) return;
     if (!moveInDate) {
       alert("Please select a move-in date");
       return;
     }
     setIsMovingIn(true);
     try {
-      await moveInMutation({ participantId, moveInDate });
+      await moveInMutation({ userId: user.id as Id<"users">, participantId, moveInDate });
       setShowMoveInModal(false);
     } catch (error) {
       console.error("Error moving in participant:", error);
@@ -90,9 +91,10 @@ export default function ParticipantDetailPage() {
   };
 
   const handleRevertToPending = async () => {
+    if (!user) return;
     setIsReverting(true);
     try {
-      await revertToPendingMutation({ participantId });
+      await revertToPendingMutation({ userId: user.id as Id<"users">, participantId });
       setShowRevertModal(false);
     } catch (error) {
       console.error("Error reverting participant:", error);

@@ -1,9 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireAuth } from "./authHelpers";
 
 // Create a new plan
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     participantId: v.id("participants"),
     planStartDate: v.string(),
     planEndDate: v.string(),
@@ -35,6 +37,7 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     // Mark any existing current plans as expired
     const existingPlans = await ctx.db
       .query("participantPlans")
@@ -50,8 +53,9 @@ export const create = mutation({
     }
 
     const now = Date.now();
+    const { userId, ...planData } = args;
     const planId = await ctx.db.insert("participantPlans", {
-      ...args,
+      ...planData,
       planStatus: "current",
       createdAt: now,
       updatedAt: now,
@@ -93,6 +97,7 @@ export const getCurrentPlan = query({
 // Update plan
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     planId: v.id("participantPlans"),
     planStartDate: v.optional(v.string()),
     planEndDate: v.optional(v.string()),
@@ -129,7 +134,8 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { planId, ...updates } = args;
+    await requireAuth(ctx, args.userId);
+    const { planId, userId, ...updates } = args;
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {

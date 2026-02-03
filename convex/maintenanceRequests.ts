@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireAuth } from "./authHelpers";
 
 // Create a new maintenance request
 export const create = mutation({
@@ -181,7 +181,7 @@ export const getById = query({
 // Update maintenance request
 export const update = mutation({
   args: {
-    userId: v.optional(v.id("users")), // Optional for backward compatibility
+    userId: v.id("users"),
     requestId: v.id("maintenanceRequests"),
     status: v.optional(
       v.union(
@@ -219,6 +219,9 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { requestId, userId, ...updates } = args;
+
+    // Permission check
+    await requireAuth(ctx, userId);
 
     // Get the request for audit logging
     const request = await ctx.db.get(requestId);
@@ -289,6 +292,7 @@ export const update = mutation({
 // Complete a maintenance request with confirmation details
 export const completeRequest = mutation({
   args: {
+    userId: v.id("users"),
     requestId: v.id("maintenanceRequests"),
     completedDate: v.string(),
     actualCost: v.optional(v.number()),
@@ -297,6 +301,7 @@ export const completeRequest = mutation({
     warrantyPeriodMonths: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found");
 
@@ -325,8 +330,12 @@ export const completeRequest = mutation({
 
 // Delete maintenance request
 export const remove = mutation({
-  args: { requestId: v.id("maintenanceRequests") },
+  args: {
+    userId: v.id("users"),
+    requestId: v.id("maintenanceRequests"),
+  },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     await ctx.db.delete(args.requestId);
     return { success: true };
   },

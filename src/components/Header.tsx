@@ -38,7 +38,7 @@ export default function Header({ currentPage }: HeaderProps) {
     lastName: string;
     role: string;
   } | null>(null);
-  const navRef = useRef<HTMLElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -50,16 +50,16 @@ export default function Header({ currentPage }: HeaderProps) {
 
   // Scroll active nav item into view on mount/page change
   useEffect(() => {
-    if (activeItemRef.current && navRef.current) {
-      const nav = navRef.current;
+    if (activeItemRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
       const activeItem = activeItemRef.current;
 
       // Calculate scroll position to center the active item
-      const navRect = nav.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
       const itemRect = activeItem.getBoundingClientRect();
-      const scrollLeft = activeItem.offsetLeft - (navRect.width / 2) + (itemRect.width / 2);
+      const scrollLeft = activeItem.offsetLeft - (containerRect.width / 2) + (itemRect.width / 2);
 
-      nav.scrollTo({ left: Math.max(0, scrollLeft), behavior: "instant" });
+      container.scrollTo({ left: Math.max(0, scrollLeft), behavior: "instant" });
     }
   }, [currentPage]);
 
@@ -112,25 +112,31 @@ export default function Header({ currentPage }: HeaderProps) {
             )}
             <button
               onClick={handleLogout}
-              className="text-gray-400 hover:text-white transition-colors text-sm"
+              className="text-gray-400 hover:text-white transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1"
+              aria-label="Logout from account"
             >
               Logout
             </button>
           </div>
         </div>
       </div>
-      {/* Navigation - scrollable on mobile, full width for scroll */}
-      <nav
-        ref={navRef}
-        className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 px-4 sm:px-6 lg:px-8 scrollbar-hide max-w-7xl mx-auto"
+      {/* Navigation - scrollable on mobile */}
+      <div
+        ref={scrollContainerRef}
+        className="w-full overflow-x-auto scrollbar-hide"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
+        <nav
+          className="flex gap-3 sm:gap-4 pb-2 px-4 sm:px-6 lg:px-8 min-w-max"
+          aria-label="Main navigation"
+        >
         {navItems.map((item) => (
           <Link
             key={item.key}
             href={item.href}
             ref={currentPage === item.key ? activeItemRef : null}
-            className={`whitespace-nowrap text-sm flex-shrink-0 py-1 ${
+            aria-current={currentPage === item.key ? "page" : undefined}
+            className={`whitespace-nowrap text-sm flex-shrink-0 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1 ${
               currentPage === item.key
                 ? "text-white font-medium"
                 : "text-gray-400 hover:text-white transition-colors"
@@ -139,9 +145,10 @@ export default function Header({ currentPage }: HeaderProps) {
             {item.label}
           </Link>
         ))}
-        {/* Spacer to ensure last item is scrollable into view */}
-        <div className="flex-shrink-0 w-4" aria-hidden="true" />
-      </nav>
+          {/* Spacer to ensure last item is scrollable into view */}
+          <div className="flex-shrink-0 w-4" aria-hidden="true" />
+        </nav>
+      </div>
     </header>
   );
 }

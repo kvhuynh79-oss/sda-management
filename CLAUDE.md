@@ -148,12 +148,26 @@ src/components/
 - **Database Section** - Expanded with new entity types ✓
   - SIL Providers (Supported Independent Living) with services, areas, participant linking
   - Occupational Therapists with specializations, AHPRA numbers, assessment tracking
+- **Frontend Improvements** ✓
+  - Shared UI components: LoadingScreen, EmptyState, StatCard, Toast
+  - Shared form components: FormInput, FormSelect, FormTextarea, FormCheckbox, Button
+  - RequireAuth wrapper for protected routes
+  - Color constants (src/constants/colors.ts) for consistent styling
+  - Format utilities (src/utils/format.ts) for dates, currency, status
+  - useMemo optimizations on filtered lists
+  - WCAG accessibility: aria labels, fieldsets, focus-visible states
+  - Refactored pages: dashboard, properties, participants, maintenance, incidents, documents, alerts, contractors
 
 ## Next Session Priorities
 1. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
 2. **Bug fixing** - Test all features, fix any issues
 3. **Bulk data entry** - User will upload property/participant data
+4. **Frontend Refactoring (remaining pages):**
+   - `payments/page.tsx` - Apply shared components, useMemo, formatCurrency
+   - `inspections/page.tsx` - Apply shared components, useMemo, color constants
+   - `operations/page.tsx` - Large page with tabs, needs LoadingScreen/EmptyState/useMemo
+   - `compliance/page.tsx` - Large page, needs shared components and accessibility
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:

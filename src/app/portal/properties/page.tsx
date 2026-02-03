@@ -126,7 +126,6 @@ export default function SILProviderProperties() {
                     <h3 className="text-white font-medium">
                       {prop.propertyName || prop.addressLine1}
                     </h3>
-                    {getAccessLevelBadge(prop.accessLevel)}
                   </div>
                   <p className="text-gray-400 text-sm mt-1">
                     {prop.addressLine1}
@@ -154,10 +153,13 @@ export default function SILProviderProperties() {
                             <span className="text-white text-sm font-medium">
                               {dwelling.dwellingName}
                             </span>
-                            <span className="text-xs text-gray-400">
-                              {dwelling.currentOccupancy}/
-                              {dwelling.maxParticipants}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              {getAccessLevelBadge(dwelling.accessLevel)}
+                              <span className="text-xs text-gray-400">
+                                {dwelling.currentOccupancy}/
+                                {dwelling.maxParticipants}
+                              </span>
+                            </div>
                           </div>
                           {dwellingParticipants.length > 0 && (
                             <div className="mt-2 space-y-1">
@@ -183,30 +185,6 @@ export default function SILProviderProperties() {
                   </div>
                 </div>
 
-                {/* Access Info */}
-                <div className="px-4 pb-4">
-                  <div className="bg-gray-700/30 rounded-lg p-3 text-sm">
-                    <p className="text-gray-400">
-                      <span className="text-gray-500">Access: </span>
-                      {prop.accessLevel === "full" && (
-                        <span className="text-green-400">
-                          Incidents + Maintenance
-                        </span>
-                      )}
-                      {prop.accessLevel === "incidents_only" && (
-                        <span className="text-red-400">Incidents Only</span>
-                      )}
-                      {prop.accessLevel === "maintenance_only" && (
-                        <span className="text-yellow-400">
-                          Maintenance Only
-                        </span>
-                      )}
-                      {prop.accessLevel === "view_only" && (
-                        <span className="text-gray-400">View Only</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
               </div>
             ))}
           </div>

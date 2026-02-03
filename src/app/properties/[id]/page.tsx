@@ -52,11 +52,10 @@ export default function PropertyDetailPage() {
   const dwellings = useQuery(api.dwellings.getByProperty, { propertyId });
   const documents = useQuery(api.documents.getByProperty, { propertyId });
   const propertyMedia = useQuery(api.propertyMedia.getByProperty, { propertyId });
-  const allocatedProviders = useQuery(api.silProviders.getProvidersForProperty, { propertyId });
   const allSilProviders = useQuery(api.silProviders.getAll, { status: "active" });
   const removeDwelling = useMutation(api.dwellings.remove);
-  const linkProvider = useMutation(api.silProviders.linkProperty);
-  const unlinkProvider = useMutation(api.silProviders.unlinkProperty);
+  const linkDwellingProvider = useMutation(api.silProviders.linkDwelling);
+  const unlinkDwellingProvider = useMutation(api.silProviders.unlinkDwelling);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -260,24 +259,6 @@ export default function PropertyDetailPage() {
               )}
             </div>
 
-            {/* SIL Provider Allocation */}
-            <SILProviderAllocation
-              propertyId={propertyId}
-              allocatedProviders={allocatedProviders || []}
-              allProviders={allSilProviders || []}
-              onLink={async (providerId, accessLevel, notes) => {
-                await linkProvider({
-                  silProviderId: providerId,
-                  propertyId,
-                  accessLevel,
-                  notes,
-                  userId: user?.id as Id<"users">,
-                });
-              }}
-              onUnlink={async (linkId) => {
-                await unlinkProvider({ linkId });
-              }}
-            />
           </div>
 
           {/* Right Column - Dwellings */}
@@ -311,7 +292,21 @@ export default function PropertyDetailPage() {
                       key={dwelling._id}
                       dwelling={dwelling}
                       property={property}
+                      allSilProviders={allSilProviders || []}
+                      userId={user?.id as Id<"users">}
                       onDelete={(id) => removeDwelling({ dwellingId: id as Id<"dwellings"> })}
+                      onLinkProvider={async (dwellingId, providerId, accessLevel, notes) => {
+                        await linkDwellingProvider({
+                          dwellingId,
+                          silProviderId: providerId,
+                          accessLevel,
+                          notes,
+                          userId: user?.id as Id<"users">,
+                        });
+                      }}
+                      onUnlinkProvider={async (linkId) => {
+                        await unlinkDwellingProvider({ linkId });
+                      }}
                     />
                   ))}
                 </div>
@@ -366,8 +361,38 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DwellingCard({ dwelling, property, onDelete }: { dwelling: any; property: any; onDelete: (id: string) => void }) {
+function DwellingCard({
+  dwelling,
+  property,
+  allSilProviders,
+  userId,
+  onDelete,
+  onLinkProvider,
+  onUnlinkProvider,
+}: {
+  dwelling: any;
+  property: any;
+  allSilProviders: Array<{ _id: Id<"silProviders">; companyName: string; email: string }>;
+  userId: Id<"users">;
+  onDelete: (id: string) => void;
+  onLinkProvider: (
+    dwellingId: Id<"dwellings">,
+    providerId: Id<"silProviders">,
+    accessLevel: "full" | "incidents_only" | "maintenance_only" | "view_only",
+    notes?: string
+  ) => Promise<void>;
+  onUnlinkProvider: (linkId: Id<"silProviderDwellings">) => Promise<void>;
+}) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAddProvider, setShowAddProvider] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<Id<"silProviders"> | "">("");
+  const [accessLevel, setAccessLevel] = useState<"full" | "incidents_only" | "maintenance_only" | "view_only">("full");
+  const [providerNotes, setProviderNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<Id<"silProviderDwellings"> | null>(null);
+
+  // Query allocated providers for this dwelling
+  const allocatedProviders = useQuery(api.silProviders.getProvidersForDwelling, { dwellingId: dwelling._id as Id<"dwellings"> });
 
   const getOccupancyColor = () => {
     if (dwelling.occupancyStatus === "fully_occupied") return "bg-green-600";
@@ -384,6 +409,52 @@ function DwellingCard({ dwelling, property, onDelete }: { dwelling: any; propert
   const fullAddress = dwelling.dwellingName
     ? `${dwelling.dwellingName} ${streetName}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`
     : `${property?.addressLine1 || ""}, ${property?.suburb || ""} ${property?.state || ""} ${property?.postcode || ""}`;
+
+  // Filter out already allocated providers
+  const allocatedIds = (allocatedProviders || []).map((p) => p.silProviderId);
+  const availableProviders = allSilProviders.filter((p) => !allocatedIds.includes(p._id));
+
+  const handleAddProvider = async () => {
+    if (!selectedProvider) return;
+    setIsSubmitting(true);
+    try {
+      await onLinkProvider(dwelling._id as Id<"dwellings">, selectedProvider, accessLevel, providerNotes || undefined);
+      setShowAddProvider(false);
+      setSelectedProvider("");
+      setAccessLevel("full");
+      setProviderNotes("");
+    } catch (error) {
+      console.error("Error allocating SIL provider:", error);
+      alert("Failed to allocate SIL provider");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveProvider = async (linkId: Id<"silProviderDwellings">) => {
+    try {
+      await onUnlinkProvider(linkId);
+      setShowRemoveConfirm(null);
+    } catch (error) {
+      console.error("Error removing allocation:", error);
+      alert("Failed to remove allocation");
+    }
+  };
+
+  const getAccessBadge = (level: string) => {
+    const config = ACCESS_LEVELS.find((a) => a.value === level) || ACCESS_LEVELS[0];
+    const colorMap: Record<string, string> = {
+      green: "bg-green-600/20 text-green-400",
+      red: "bg-red-600/20 text-red-400",
+      yellow: "bg-yellow-600/20 text-yellow-400",
+      gray: "bg-gray-600/20 text-gray-400",
+    };
+    return (
+      <span className={`text-xs px-2 py-0.5 rounded ${colorMap[config.color]}`}>
+        {config.label}
+      </span>
+    );
+  };
 
   return (
     <div className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors">
@@ -435,6 +506,45 @@ function DwellingCard({ dwelling, property, onDelete }: { dwelling: any; propert
         </div>
       </div>
 
+      {/* SIL Provider Allocation Section */}
+      <div className="pt-3 border-t border-gray-600 mb-3">
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-gray-400 text-xs">SIL Provider:</p>
+          <button
+            onClick={() => setShowAddProvider(true)}
+            className="text-xs text-blue-400 hover:text-blue-300"
+          >
+            + Allocate
+          </button>
+        </div>
+        {!allocatedProviders || allocatedProviders.length === 0 ? (
+          <p className="text-gray-500 text-xs italic">No SIL provider allocated</p>
+        ) : (
+          <div className="space-y-1">
+            {allocatedProviders.map((allocation) => (
+              <div
+                key={allocation._id}
+                className="flex items-center justify-between p-2 bg-gray-800 rounded"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-white text-sm">{allocation.provider?.companyName}</span>
+                  {getAccessBadge(allocation.accessLevel)}
+                </div>
+                <button
+                  onClick={() => setShowRemoveConfirm(allocation._id)}
+                  className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                  title="Remove"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {dwelling.participants && dwelling.participants.length > 0 && (
         <div className="pt-3 border-t border-gray-600">
           <p className="text-gray-400 text-xs mb-2">Current Residents:</p>
@@ -483,6 +593,149 @@ function DwellingCard({ dwelling, property, onDelete }: { dwelling: any; propert
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add SIL Provider Modal */}
+      {showAddProvider && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowAddProvider(false)}>
+          <div className="bg-gray-800 rounded-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-white">Allocate SIL Provider</h3>
+              <button
+                onClick={() => setShowAddProvider(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {availableProviders.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-400">No available SIL providers to allocate.</p>
+                  <Link
+                    href="/database/sil-providers"
+                    className="text-blue-400 text-sm hover:text-blue-300 mt-2 inline-block"
+                  >
+                    Add a SIL provider first &rarr;
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Select SIL Provider *
+                    </label>
+                    <select
+                      value={selectedProvider}
+                      onChange={(e) => setSelectedProvider(e.target.value as Id<"silProviders">)}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Choose a provider...</option>
+                      {availableProviders.map((provider) => (
+                        <option key={provider._id} value={provider._id}>
+                          {provider.companyName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Access Level *
+                    </label>
+                    <div className="space-y-2">
+                      {ACCESS_LEVELS.map((level) => (
+                        <label
+                          key={level.value}
+                          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                            accessLevel === level.value
+                              ? "border-blue-500 bg-blue-600/10"
+                              : "border-gray-600 hover:border-gray-500"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="accessLevel"
+                            value={level.value}
+                            checked={accessLevel === level.value}
+                            onChange={(e) => setAccessLevel(e.target.value as typeof accessLevel)}
+                            className="sr-only"
+                          />
+                          <div className="flex-1">
+                            <p className="text-white text-sm font-medium">{level.label}</p>
+                            <p className="text-gray-400 text-xs">{level.description}</p>
+                          </div>
+                          {accessLevel === level.value && (
+                            <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                            </svg>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Notes (optional)
+                    </label>
+                    <textarea
+                      value={providerNotes}
+                      onChange={(e) => setProviderNotes(e.target.value)}
+                      rows={2}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                      placeholder="Any notes about this allocation..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShowAddProvider(false)}
+                      className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddProvider}
+                      disabled={!selectedProvider || isSubmitting}
+                      className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                    >
+                      {isSubmitting ? "Allocating..." : "Allocate"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Provider Confirmation Modal */}
+      {showRemoveConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowRemoveConfirm(null)}>
+          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-2">Remove Allocation?</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              This will remove the SIL provider&apos;s access to this dwelling.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowRemoveConfirm(null)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRemoveProvider(showRemoveConfirm)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Remove
               </button>
             </div>
           </div>
@@ -918,283 +1171,6 @@ function MediaGallery({
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
               >
                 Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SILProviderAllocation({
-  propertyId,
-  allocatedProviders,
-  allProviders,
-  onLink,
-  onUnlink,
-}: {
-  propertyId: Id<"properties">;
-  allocatedProviders: Array<{
-    _id: Id<"silProviderProperties">;
-    silProviderId: Id<"silProviders">;
-    accessLevel: string;
-    startDate?: string;
-    notes?: string;
-    provider: { _id: Id<"silProviders">; companyName: string; email: string } | null;
-  }>;
-  allProviders: Array<{ _id: Id<"silProviders">; companyName: string; email: string }>;
-  onLink: (providerId: Id<"silProviders">, accessLevel: "full" | "incidents_only" | "maintenance_only" | "view_only", notes?: string) => Promise<void>;
-  onUnlink: (linkId: Id<"silProviderProperties">) => Promise<void>;
-}) {
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<Id<"silProviders"> | "">("");
-  const [accessLevel, setAccessLevel] = useState<"full" | "incidents_only" | "maintenance_only" | "view_only">("full");
-  const [notes, setNotes] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showRemoveConfirm, setShowRemoveConfirm] = useState<Id<"silProviderProperties"> | null>(null);
-
-  // Filter out already allocated providers
-  const allocatedIds = allocatedProviders.map((p) => p.silProviderId);
-  const availableProviders = allProviders.filter((p) => !allocatedIds.includes(p._id));
-
-  const handleAdd = async () => {
-    if (!selectedProvider) return;
-    setIsSubmitting(true);
-    try {
-      await onLink(selectedProvider, accessLevel, notes || undefined);
-      setShowAddModal(false);
-      setSelectedProvider("");
-      setAccessLevel("full");
-      setNotes("");
-    } catch (error) {
-      console.error("Error allocating SIL provider:", error);
-      alert("Failed to allocate SIL provider");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRemove = async (linkId: Id<"silProviderProperties">) => {
-    try {
-      await onUnlink(linkId);
-      setShowRemoveConfirm(null);
-    } catch (error) {
-      console.error("Error removing allocation:", error);
-      alert("Failed to remove allocation");
-    }
-  };
-
-  const getAccessBadge = (level: string) => {
-    const config = ACCESS_LEVELS.find((a) => a.value === level) || ACCESS_LEVELS[0];
-    const colorMap = {
-      green: "bg-green-600/20 text-green-400",
-      red: "bg-red-600/20 text-red-400",
-      yellow: "bg-yellow-600/20 text-yellow-400",
-      gray: "bg-gray-600/20 text-gray-400",
-    };
-    return (
-      <span className={`text-xs px-2 py-1 rounded ${colorMap[config.color]}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  return (
-    <div className="bg-gray-800 rounded-lg p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-white">SIL Provider Allocation</h2>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="text-sm text-blue-400 hover:text-blue-300"
-        >
-          + Allocate Provider
-        </button>
-      </div>
-
-      {allocatedProviders.length === 0 ? (
-        <p className="text-gray-500 text-sm">No SIL providers allocated to this property</p>
-      ) : (
-        <div className="space-y-3">
-          {allocatedProviders.map((allocation) => (
-            <div
-              key={allocation._id}
-              className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Link
-                    href={`/database/sil-providers`}
-                    className="text-white text-sm font-medium hover:text-blue-400"
-                  >
-                    {allocation.provider?.companyName || "Unknown Provider"}
-                  </Link>
-                  {getAccessBadge(allocation.accessLevel)}
-                </div>
-                <p className="text-gray-400 text-xs mt-1">
-                  {allocation.provider?.email}
-                  {allocation.startDate && ` | Since ${allocation.startDate}`}
-                </p>
-                {allocation.notes && (
-                  <p className="text-gray-500 text-xs mt-1 truncate">{allocation.notes}</p>
-                )}
-              </div>
-              <button
-                onClick={() => setShowRemoveConfirm(allocation._id)}
-                className="ml-2 p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors"
-                title="Remove allocation"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Add Provider Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-white">Allocate SIL Provider</h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {availableProviders.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-gray-400">No available SIL providers to allocate.</p>
-                  <Link
-                    href="/database/sil-providers"
-                    className="text-blue-400 text-sm hover:text-blue-300 mt-2 inline-block"
-                  >
-                    Add a SIL provider first &rarr;
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  {/* Provider Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Select SIL Provider *
-                    </label>
-                    <select
-                      value={selectedProvider}
-                      onChange={(e) => setSelectedProvider(e.target.value as Id<"silProviders">)}
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Choose a provider...</option>
-                      {availableProviders.map((provider) => (
-                        <option key={provider._id} value={provider._id}>
-                          {provider.companyName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Access Level */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Access Level *
-                    </label>
-                    <div className="space-y-2">
-                      {ACCESS_LEVELS.map((level) => (
-                        <label
-                          key={level.value}
-                          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
-                            accessLevel === level.value
-                              ? "border-blue-500 bg-blue-600/10"
-                              : "border-gray-600 hover:border-gray-500"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="accessLevel"
-                            value={level.value}
-                            checked={accessLevel === level.value}
-                            onChange={(e) => setAccessLevel(e.target.value as typeof accessLevel)}
-                            className="sr-only"
-                          />
-                          <div className="flex-1">
-                            <p className="text-white text-sm font-medium">{level.label}</p>
-                            <p className="text-gray-400 text-xs">{level.description}</p>
-                          </div>
-                          {accessLevel === level.value && (
-                            <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                            </svg>
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Notes (optional)
-                    </label>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows={2}
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
-                      placeholder="Any notes about this allocation..."
-                    />
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => setShowAddModal(false)}
-                      className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAdd}
-                      disabled={!selectedProvider || isSubmitting}
-                      className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
-                    >
-                      {isSubmitting ? "Allocating..." : "Allocate"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Remove Confirmation Modal */}
-      {showRemoveConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-white mb-2">Remove Allocation?</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              This will remove the SIL provider&apos;s access to this property. They will no longer be able to view or report on this property.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowRemoveConfirm(null)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleRemove(showRemoveConfirm)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                Remove
               </button>
             </div>
           </div>

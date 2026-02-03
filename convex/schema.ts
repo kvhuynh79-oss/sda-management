@@ -994,6 +994,7 @@ export default defineSchema({
     .index("by_participant", ["participantId"]),
 
   // SIL Provider Properties - links SIL providers to properties they manage/look after
+  // NOTE: Deprecated - use silProviderDwellings for dwelling-level allocation
   silProviderProperties: defineTable({
     silProviderId: v.id("silProviders"),
     propertyId: v.id("properties"),
@@ -1013,6 +1014,29 @@ export default defineSchema({
   })
     .index("by_provider", ["silProviderId"])
     .index("by_property", ["propertyId"])
+    .index("by_isActive", ["isActive"]),
+
+  // SIL Provider Dwellings - links SIL providers to individual dwellings they manage
+  // This allows different SIL providers for different dwellings within the same property
+  silProviderDwellings: defineTable({
+    silProviderId: v.id("silProviders"),
+    dwellingId: v.id("dwellings"),
+    accessLevel: v.union(
+      v.literal("full"), // Full access to incidents and maintenance
+      v.literal("incidents_only"), // Only incidents
+      v.literal("maintenance_only"), // Only maintenance
+      v.literal("view_only") // Read-only access
+    ),
+    startDate: v.optional(v.string()), // When they started managing this dwelling
+    endDate: v.optional(v.string()), // When they stopped (if no longer active)
+    isActive: v.boolean(),
+    notes: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_provider", ["silProviderId"])
+    .index("by_dwelling", ["dwellingId"])
     .index("by_isActive", ["isActive"]),
 
   // Occupational Therapists table - OTs who work with participants

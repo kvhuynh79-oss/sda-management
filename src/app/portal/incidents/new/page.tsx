@@ -96,15 +96,19 @@ export default function NewIncidentPage() {
     e.preventDefault();
     if (!silProviderId || !userId) return;
 
+    // Dwelling is now required
+    if (!formData.dwellingId) {
+      alert("Please select a dwelling");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await createIncident({
         silProviderId,
         userId,
         propertyId: formData.propertyId as Id<"properties">,
-        dwellingId: formData.dwellingId
-          ? (formData.dwellingId as Id<"dwellings">)
-          : undefined,
+        dwellingId: formData.dwellingId as Id<"dwellings">,
         participantId: formData.participantId
           ? (formData.participantId as Id<"participants">)
           : undefined,
@@ -198,8 +202,12 @@ export default function NewIncidentPage() {
                   {dashboard?.properties
                     ?.filter(
                       (p) =>
-                        p.accessLevel === "full" ||
-                        p.accessLevel === "incidents_only"
+                        // Show properties that have at least one dwelling with incident access
+                        p.dwellings.some(
+                          (d) =>
+                            d.accessLevel === "full" ||
+                            d.accessLevel === "incidents_only"
+                        )
                     )
                     .map((property) => (
                       <option key={property._id} value={property._id}>
@@ -223,15 +231,22 @@ export default function NewIncidentPage() {
                       participantId: "",
                     })
                   }
+                  required
                   disabled={!formData.propertyId}
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white disabled:opacity-50"
                 >
-                  <option value="">Select Dwelling (Optional)</option>
-                  {selectedProperty?.dwellings.map((dwelling) => (
-                    <option key={dwelling._id} value={dwelling._id}>
-                      {dwelling.dwellingName}
-                    </option>
-                  ))}
+                  <option value="">Select Dwelling</option>
+                  {selectedProperty?.dwellings
+                    .filter(
+                      (d) =>
+                        d.accessLevel === "full" ||
+                        d.accessLevel === "incidents_only"
+                    )
+                    .map((dwelling) => (
+                      <option key={dwelling._id} value={dwelling._id}>
+                        {dwelling.dwellingName}
+                      </option>
+                    ))}
                 </select>
               </div>
 

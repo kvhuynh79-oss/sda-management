@@ -4,70 +4,106 @@ import { Id } from "./_generated/dataModel";
 
 // ============================================
 // SIL PROVIDER PORTAL - RESTRICTED ACCESS QUERIES
+// Uses dwelling-level allocations (silProviderDwellings)
 // ============================================
 
 // Get portal dashboard data for a SIL provider
 export const getDashboard = query({
   args: { silProviderId: v.id("silProviders") },
   handler: async (ctx, args) => {
-    // Get active property allocations
-    const propertyLinks = await ctx.db
-      .query("silProviderProperties")
+    // Get active dwelling allocations
+    const dwellingLinks = await ctx.db
+      .query("silProviderDwellings")
       .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    const propertyIds = propertyLinks.map((l) => l.propertyId);
+    // Get dwellings with property info grouped by property
+    const propertyMap = new Map<
+      Id<"properties">,
+      {
+        property: any;
+        dwellings: Array<{
+          _id: Id<"dwellings">;
+          dwellingName: string;
+          currentOccupancy: number;
+          maxParticipants: number;
+          accessLevel: string;
+        }>;
+        participants: Array<{
+          _id: Id<"participants">;
+          firstName: string;
+          lastName: string;
+          dwellingId: Id<"dwellings">;
+        }>;
+      }
+    >();
 
-    // Get properties with basic info only (no owner/financial details)
-    const properties = await Promise.all(
-      propertyLinks.map(async (link) => {
-        const property = await ctx.db.get(link.propertyId);
-        if (!property) return null;
+    for (const link of dwellingLinks) {
+      const dwelling = await ctx.db.get(link.dwellingId);
+      if (!dwelling) continue;
 
-        const dwellings = await ctx.db
-          .query("dwellings")
-          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-          .collect();
+      const property = await ctx.db.get(dwelling.propertyId);
+      if (!property) continue;
 
-        // Get participant names only (no NDIS details)
-        const participants = await Promise.all(
-          dwellings.map(async (dwelling) => {
-            const dwellingParticipants = await ctx.db
-              .query("participants")
-              .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
-              .filter((q) => q.eq(q.field("status"), "active"))
-              .collect();
+      // Get participants for this dwelling
+      const dwellingParticipants = await ctx.db
+        .query("participants")
+        .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
 
-            return dwellingParticipants.map((p) => ({
-              _id: p._id,
-              firstName: p.firstName,
-              lastName: p.lastName,
-              dwellingId: p.dwellingId,
-            }));
-          })
-        );
+      const participants = dwellingParticipants.map((p) => ({
+        _id: p._id,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        dwellingId: p.dwellingId,
+      }));
 
-        return {
-          _id: property._id,
-          propertyName: property.propertyName,
-          addressLine1: property.addressLine1,
-          suburb: property.suburb,
-          state: property.state,
-          postcode: property.postcode,
-          accessLevel: link.accessLevel,
-          dwellings: dwellings.map((d) => ({
-            _id: d._id,
-            dwellingName: d.dwellingName,
-            currentOccupancy: d.currentOccupancy,
-            maxParticipants: d.maxParticipants,
-          })),
-          participants: participants.flat(),
-        };
-      })
-    );
+      if (!propertyMap.has(property._id)) {
+        propertyMap.set(property._id, {
+          property: {
+            _id: property._id,
+            propertyName: property.propertyName,
+            addressLine1: property.addressLine1,
+            suburb: property.suburb,
+            state: property.state,
+            postcode: property.postcode,
+          },
+          dwellings: [],
+          participants: [],
+        });
+      }
 
-    // Get open incidents for these properties
+      const entry = propertyMap.get(property._id)!;
+      entry.dwellings.push({
+        _id: dwelling._id,
+        dwellingName: dwelling.dwellingName,
+        currentOccupancy: dwelling.currentOccupancy,
+        maxParticipants: dwelling.maxParticipants,
+        accessLevel: link.accessLevel,
+      });
+      entry.participants.push(...participants);
+    }
+
+    // Convert map to array format
+    const properties = Array.from(propertyMap.values()).map((entry) => ({
+      _id: entry.property._id,
+      propertyName: entry.property.propertyName,
+      addressLine1: entry.property.addressLine1,
+      suburb: entry.property.suburb,
+      state: entry.property.state,
+      postcode: entry.property.postcode,
+      // Access level is now per-dwelling, not per-property
+      dwellings: entry.dwellings,
+      participants: entry.participants,
+    }));
+
+    // Get property IDs for incident filtering
+    const propertyIds = Array.from(propertyMap.keys());
+    const allDwellingIds = dwellingLinks.map((l) => l.dwellingId);
+
+    // Get open incidents for properties with dwellings we have access to
     const allIncidents = await ctx.db.query("incidents").collect();
     const openIncidents = allIncidents.filter(
       (i) =>
@@ -75,14 +111,7 @@ export const getDashboard = query({
         (i.status === "reported" || i.status === "under_investigation")
     );
 
-    // Get open maintenance requests for dwellings in these properties
-    const allDwellingIds: Id<"dwellings">[] = [];
-    for (const prop of properties.filter((p) => p !== null)) {
-      for (const d of prop!.dwellings) {
-        allDwellingIds.push(d._id);
-      }
-    }
-
+    // Get open maintenance requests for dwellings we have access to
     const allMaintenance = await ctx.db.query("maintenanceRequests").collect();
     const openMaintenance = allMaintenance.filter(
       (m) =>
@@ -91,7 +120,7 @@ export const getDashboard = query({
         m.status !== "cancelled"
     );
 
-    // Calculate vacancies - dwellings with available spots
+    // Calculate vacancies - only for dwellings we have access to
     const vacancies: Array<{
       propertyId: Id<"properties">;
       propertyName: string;
@@ -103,15 +132,14 @@ export const getDashboard = query({
       currentOccupancy: number;
     }> = [];
 
-    for (const prop of properties.filter((p) => p !== null)) {
-      if (!prop) continue;
-      for (const dwelling of prop.dwellings) {
+    for (const entry of propertyMap.values()) {
+      for (const dwelling of entry.dwellings) {
         const availableSpots = dwelling.maxParticipants - dwelling.currentOccupancy;
         if (availableSpots > 0) {
           vacancies.push({
-            propertyId: prop._id,
-            propertyName: prop.propertyName || prop.addressLine1,
-            propertyAddress: `${prop.addressLine1}, ${prop.suburb}`,
+            propertyId: entry.property._id,
+            propertyName: entry.property.propertyName || entry.property.addressLine1,
+            propertyAddress: `${entry.property.addressLine1}, ${entry.property.suburb}`,
             dwellingId: dwelling._id,
             dwellingName: dwelling.dwellingName,
             availableSpots,
@@ -126,10 +154,11 @@ export const getDashboard = query({
     const totalVacantSpots = vacancies.reduce((sum, v) => sum + v.availableSpots, 0);
 
     return {
-      properties: properties.filter((p) => p !== null),
+      properties,
       vacancies,
       stats: {
-        totalProperties: properties.filter((p) => p !== null).length,
+        totalProperties: properties.length,
+        totalDwellings: allDwellingIds.length,
         openIncidents: openIncidents.length,
         openMaintenance: openMaintenance.length,
         totalVacantSpots,
@@ -139,7 +168,7 @@ export const getDashboard = query({
   },
 });
 
-// Get incidents for SIL provider (only their allocated properties)
+// Get incidents for SIL provider (only for dwellings they have access to)
 export const getIncidents = query({
   args: {
     silProviderId: v.id("silProviders"),
@@ -153,26 +182,40 @@ export const getIncidents = query({
     ),
   },
   handler: async (ctx, args) => {
-    // Get property allocations with incidents access
-    const propertyLinks = await ctx.db
-      .query("silProviderProperties")
+    // Get dwelling allocations with incidents access
+    const dwellingLinks = await ctx.db
+      .query("silProviderDwellings")
       .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // Filter to only properties where they have incident access
-    const accessiblePropertyIds = propertyLinks
-      .filter((l) => l.accessLevel === "full" || l.accessLevel === "incidents_only")
-      .map((l) => l.propertyId);
+    // Filter to dwellings where they have incident access
+    const accessibleDwellingLinks = dwellingLinks.filter(
+      (l) => l.accessLevel === "full" || l.accessLevel === "incidents_only"
+    );
 
-    if (accessiblePropertyIds.length === 0) {
+    if (accessibleDwellingLinks.length === 0) {
       return [];
     }
 
-    // Get incidents
+    // Get property IDs for these dwellings
+    const dwellingToPropertyMap = new Map<Id<"dwellings">, Id<"properties">>();
+    const accessiblePropertyIds: Id<"properties">[] = [];
+
+    for (const link of accessibleDwellingLinks) {
+      const dwelling = await ctx.db.get(link.dwellingId);
+      if (dwelling) {
+        dwellingToPropertyMap.set(dwelling._id, dwelling.propertyId);
+        if (!accessiblePropertyIds.includes(dwelling.propertyId)) {
+          accessiblePropertyIds.push(dwelling.propertyId);
+        }
+      }
+    }
+
+    // Get incidents for properties that have accessible dwellings
     let incidents = await ctx.db.query("incidents").collect();
 
-    // Filter by accessible properties
+    // Filter by accessible properties (incidents are at property level)
     incidents = incidents.filter((i) =>
       accessiblePropertyIds.some((pid) => pid === i.propertyId)
     );
@@ -227,13 +270,13 @@ export const getIncidents = query({
   },
 });
 
-// Create incident (SIL provider)
+// Create incident (SIL provider) - requires dwelling to be specified
 export const createIncident = mutation({
   args: {
     silProviderId: v.id("silProviders"),
     userId: v.id("users"),
     propertyId: v.id("properties"),
-    dwellingId: v.optional(v.id("dwellings")),
+    dwellingId: v.id("dwellings"), // Now required - incidents are tied to dwellings
     participantId: v.optional(v.id("participants")),
     incidentType: v.union(
       v.literal("injury"),
@@ -271,25 +314,25 @@ export const createIncident = mutation({
     followUpNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify provider has access to this property
-    const propertyLink = await ctx.db
-      .query("silProviderProperties")
-      .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
+    // Verify provider has access to this dwelling
+    const dwellingLink = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("propertyId"), args.propertyId),
+          q.eq(q.field("silProviderId"), args.silProviderId),
           q.eq(q.field("isActive"), true)
         )
       )
       .first();
 
-    if (!propertyLink) {
-      throw new Error("You do not have access to this property");
+    if (!dwellingLink) {
+      throw new Error("You do not have access to this dwelling");
     }
 
     if (
-      propertyLink.accessLevel !== "full" &&
-      propertyLink.accessLevel !== "incidents_only"
+      dwellingLink.accessLevel !== "full" &&
+      dwellingLink.accessLevel !== "incidents_only"
     ) {
       throw new Error("You do not have permission to create incidents");
     }
@@ -349,7 +392,7 @@ export const createIncident = mutation({
   },
 });
 
-// Get maintenance requests for SIL provider
+// Get maintenance requests for SIL provider (only for dwellings they have access to)
 export const getMaintenanceRequests = query({
   args: {
     silProviderId: v.id("silProviders"),
@@ -367,34 +410,23 @@ export const getMaintenanceRequests = query({
     ),
   },
   handler: async (ctx, args) => {
-    // Get property allocations with maintenance access
-    const propertyLinks = await ctx.db
-      .query("silProviderProperties")
+    // Get dwelling allocations with maintenance access
+    const dwellingLinks = await ctx.db
+      .query("silProviderDwellings")
       .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // Filter to only properties where they have maintenance access
-    const accessiblePropertyIds = propertyLinks
+    // Filter to dwellings where they have maintenance access
+    const accessibleDwellingIds = dwellingLinks
       .filter(
         (l) => l.accessLevel === "full" || l.accessLevel === "maintenance_only"
       )
-      .map((l) => l.propertyId);
+      .map((l) => l.dwellingId);
 
-    if (accessiblePropertyIds.length === 0) {
+    if (accessibleDwellingIds.length === 0) {
       return [];
     }
-
-    // Get dwelling IDs for these properties
-    const dwellings = await Promise.all(
-      accessiblePropertyIds.map(async (propertyId) => {
-        return ctx.db
-          .query("dwellings")
-          .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
-          .collect();
-      })
-    );
-    const accessibleDwellingIds = dwellings.flat().map((d) => d._id);
 
     // Get maintenance requests
     let requests = await ctx.db.query("maintenanceRequests").collect();
@@ -484,31 +516,25 @@ export const createMaintenanceRequest = mutation({
     reportedBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Get dwelling to find property
-    const dwelling = await ctx.db.get(args.dwellingId);
-    if (!dwelling) {
-      throw new Error("Dwelling not found");
-    }
-
-    // Verify provider has access to this property
-    const propertyLink = await ctx.db
-      .query("silProviderProperties")
-      .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
+    // Verify provider has access to this dwelling
+    const dwellingLink = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("propertyId"), dwelling.propertyId),
+          q.eq(q.field("silProviderId"), args.silProviderId),
           q.eq(q.field("isActive"), true)
         )
       )
       .first();
 
-    if (!propertyLink) {
-      throw new Error("You do not have access to this property");
+    if (!dwellingLink) {
+      throw new Error("You do not have access to this dwelling");
     }
 
     if (
-      propertyLink.accessLevel !== "full" &&
-      propertyLink.accessLevel !== "maintenance_only"
+      dwellingLink.accessLevel !== "full" &&
+      dwellingLink.accessLevel !== "maintenance_only"
     ) {
       throw new Error("You do not have permission to create maintenance requests");
     }
@@ -545,30 +571,31 @@ export const getIncidentById = query({
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) return null;
 
-    // Verify provider has access
-    const propertyLink = await ctx.db
-      .query("silProviderProperties")
-      .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
+    // Incident must have a dwelling to verify access
+    if (!incident.dwellingId) return null;
+
+    // Verify provider has access to this dwelling
+    const dwellingLink = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_dwelling", (q) => q.eq("dwellingId", incident.dwellingId!))
       .filter((q) =>
         q.and(
-          q.eq(q.field("propertyId"), incident.propertyId),
+          q.eq(q.field("silProviderId"), args.silProviderId),
           q.eq(q.field("isActive"), true)
         )
       )
       .first();
 
-    if (!propertyLink) return null;
+    if (!dwellingLink) return null;
     if (
-      propertyLink.accessLevel !== "full" &&
-      propertyLink.accessLevel !== "incidents_only"
+      dwellingLink.accessLevel !== "full" &&
+      dwellingLink.accessLevel !== "incidents_only"
     ) {
       return null;
     }
 
     const property = await ctx.db.get(incident.propertyId);
-    const dwelling = incident.dwellingId
-      ? await ctx.db.get(incident.dwellingId)
-      : null;
+    const dwelling = await ctx.db.get(incident.dwellingId);
     const participant = incident.participantId
       ? await ctx.db.get(incident.participantId)
       : null;
@@ -627,22 +654,22 @@ export const getMaintenanceRequestById = query({
     const dwelling = await ctx.db.get(request.dwellingId);
     if (!dwelling) return null;
 
-    // Verify provider has access
-    const propertyLink = await ctx.db
-      .query("silProviderProperties")
-      .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
+    // Verify provider has access to this dwelling
+    const dwellingLink = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_dwelling", (q) => q.eq("dwellingId", request.dwellingId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("propertyId"), dwelling.propertyId),
+          q.eq(q.field("silProviderId"), args.silProviderId),
           q.eq(q.field("isActive"), true)
         )
       )
       .first();
 
-    if (!propertyLink) return null;
+    if (!dwellingLink) return null;
     if (
-      propertyLink.accessLevel !== "full" &&
-      propertyLink.accessLevel !== "maintenance_only"
+      dwellingLink.accessLevel !== "full" &&
+      dwellingLink.accessLevel !== "maintenance_only"
     ) {
       return null;
     }

@@ -156,8 +156,12 @@ export default function NewMaintenancePage() {
                   {dashboard?.properties
                     ?.filter(
                       (p) =>
-                        p.accessLevel === "full" ||
-                        p.accessLevel === "maintenance_only"
+                        // Show properties that have at least one dwelling with maintenance access
+                        p.dwellings.some(
+                          (d) =>
+                            d.accessLevel === "full" ||
+                            d.accessLevel === "maintenance_only"
+                        )
                     )
                     .map((property) => (
                       <option key={property._id} value={property._id}>
@@ -182,11 +186,17 @@ export default function NewMaintenancePage() {
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white disabled:opacity-50"
                 >
                   <option value="">Select Dwelling</option>
-                  {selectedProperty?.dwellings.map((dwelling) => (
-                    <option key={dwelling._id} value={dwelling._id}>
-                      {dwelling.dwellingName}
-                    </option>
-                  ))}
+                  {selectedProperty?.dwellings
+                    .filter(
+                      (d) =>
+                        d.accessLevel === "full" ||
+                        d.accessLevel === "maintenance_only"
+                    )
+                    .map((dwelling) => (
+                      <option key={dwelling._id} value={dwelling._id}>
+                        {dwelling.dwellingName}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>

@@ -613,3 +613,146 @@ export const getProviderUsers = query({
     return users.filter((u) => u.silProviderId === args.silProviderId);
   },
 });
+
+// ============================================
+// DWELLING ALLOCATION FUNCTIONS
+// ============================================
+
+// Link a dwelling to a SIL provider
+export const linkDwelling = mutation({
+  args: {
+    silProviderId: v.id("silProviders"),
+    dwellingId: v.id("dwellings"),
+    accessLevel: v.union(
+      v.literal("full"),
+      v.literal("incidents_only"),
+      v.literal("maintenance_only"),
+      v.literal("view_only")
+    ),
+    startDate: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Check if link already exists
+    const existingLinks = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
+      .collect();
+
+    const existing = existingLinks.find((l) => l.silProviderId === args.silProviderId);
+    if (existing) {
+      // Update existing link
+      await ctx.db.patch(existing._id, {
+        accessLevel: args.accessLevel,
+        startDate: args.startDate,
+        notes: args.notes,
+        isActive: true,
+        updatedAt: now,
+      });
+      return existing._id;
+    }
+
+    // Create new link
+    const linkId = await ctx.db.insert("silProviderDwellings", {
+      silProviderId: args.silProviderId,
+      dwellingId: args.dwellingId,
+      accessLevel: args.accessLevel,
+      startDate: args.startDate || new Date().toISOString().split("T")[0],
+      notes: args.notes,
+      isActive: true,
+      createdBy: args.userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return linkId;
+  },
+});
+
+// Unlink a dwelling from a SIL provider
+export const unlinkDwelling = mutation({
+  args: {
+    linkId: v.id("silProviderDwellings"),
+  },
+  handler: async (ctx, args) => {
+    // Soft delete - mark as inactive with end date
+    await ctx.db.patch(args.linkId, {
+      isActive: false,
+      endDate: new Date().toISOString().split("T")[0],
+      updatedAt: Date.now(),
+    });
+    return { success: true };
+  },
+});
+
+// Get SIL providers for a dwelling
+export const getProvidersForDwelling = query({
+  args: { dwellingId: v.id("dwellings") },
+  handler: async (ctx, args) => {
+    const links = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const providers = await Promise.all(
+      links.map(async (link) => {
+        const provider = await ctx.db.get(link.silProviderId);
+        return {
+          ...link,
+          provider,
+        };
+      })
+    );
+
+    return providers.filter((p) => p.provider !== null);
+  },
+});
+
+// Get dwellings for a SIL provider
+export const getDwellingsForProvider = query({
+  args: {
+    silProviderId: v.id("silProviders"),
+    includeInactive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    let links = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
+      .collect();
+
+    // Filter active only unless includeInactive is true
+    if (!args.includeInactive) {
+      links = links.filter((l) => l.isActive);
+    }
+
+    // Get dwelling and property details
+    const dwellings = await Promise.all(
+      links.map(async (link) => {
+        const dwelling = await ctx.db.get(link.dwellingId);
+        if (!dwelling) return null;
+
+        const property = await ctx.db.get(dwelling.propertyId);
+
+        // Get participants in this dwelling
+        const participants = await ctx.db
+          .query("participants")
+          .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        return {
+          ...link,
+          dwelling,
+          property,
+          participants,
+        };
+      })
+    );
+
+    return dwellings.filter((d) => d !== null);
+  },
+});

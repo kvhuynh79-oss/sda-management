@@ -368,20 +368,26 @@ export default function SILProviderDashboard() {
                       {prop.participants.length !== 1 ? "s" : ""}
                     </span>
                   </div>
-                  <div className="mt-2">
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        prop.accessLevel === "full"
-                          ? "bg-green-600/20 text-green-400"
-                          : prop.accessLevel === "incidents_only"
-                            ? "bg-red-600/20 text-red-400"
-                            : prop.accessLevel === "maintenance_only"
-                              ? "bg-yellow-600/20 text-yellow-400"
-                              : "bg-gray-600/20 text-gray-400"
-                      }`}
-                    >
-                      {prop.accessLevel.replace("_", " ")}
-                    </span>
+                  {/* Show access level per dwelling */}
+                  <div className="mt-3 space-y-1">
+                    {prop.dwellings.map((dwelling) => (
+                      <div key={dwelling._id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300 truncate mr-2">{dwelling.dwellingName}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded ${
+                            dwelling.accessLevel === "full"
+                              ? "bg-green-600/20 text-green-400"
+                              : dwelling.accessLevel === "incidents_only"
+                                ? "bg-red-600/20 text-red-400"
+                                : dwelling.accessLevel === "maintenance_only"
+                                  ? "bg-yellow-600/20 text-yellow-400"
+                                  : "bg-gray-600/20 text-gray-400"
+                          }`}
+                        >
+                          {dwelling.accessLevel.replace("_", " ")}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

@@ -780,3 +780,152 @@ export const getDwellingsForProvider = query({
     return dwellings.filter((d) => d !== null);
   },
 });
+
+// Get comprehensive provider details including dwellings, participants, and users
+export const getFullProviderDetails = query({
+  args: { providerId: v.id("silProviders") },
+  handler: async (ctx, args) => {
+    const provider = await ctx.db.get(args.providerId);
+    if (!provider) return null;
+
+    // Get dwelling allocations
+    const dwellingLinks = await ctx.db
+      .query("silProviderDwellings")
+      .withIndex("by_provider", (q) => q.eq("silProviderId", provider._id))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const allocatedDwellings = await Promise.all(
+      dwellingLinks.map(async (link) => {
+        const dwelling = await ctx.db.get(link.dwellingId);
+        if (!dwelling) return null;
+
+        const property = await ctx.db.get(dwelling.propertyId);
+
+        // Get participants in this dwelling
+        const participants = await ctx.db
+          .query("participants")
+          .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        return {
+          linkId: link._id,
+          accessLevel: link.accessLevel,
+          startDate: link.startDate,
+          notes: link.notes,
+          dwelling,
+          property,
+          participants,
+        };
+      })
+    );
+
+    // Get participant links (from participant detail page)
+    const participantLinks = await ctx.db
+      .query("silProviderParticipants")
+      .withIndex("by_provider", (q) => q.eq("silProviderId", provider._id))
+      .collect();
+
+    const linkedParticipants = await Promise.all(
+      participantLinks.map(async (link) => {
+        const participant = await ctx.db.get(link.participantId);
+        if (!participant) return null;
+
+        const dwelling = participant.dwellingId
+          ? await ctx.db.get(participant.dwellingId)
+          : null;
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        return {
+          linkId: link._id,
+          relationshipType: link.relationshipType,
+          startDate: link.startDate,
+          endDate: link.endDate,
+          notes: link.notes,
+          participant,
+          dwelling,
+          property,
+        };
+      })
+    );
+
+    // Get portal users for this provider
+    const allUsers = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "sil_provider"))
+      .collect();
+
+    const portalUsers = allUsers.filter((u) => u.silProviderId === provider._id);
+
+    return {
+      ...provider,
+      allocatedDwellings: allocatedDwellings.filter((d) => d !== null),
+      linkedParticipants: linkedParticipants.filter((p) => p !== null),
+      portalUsers,
+    };
+  },
+});
+
+// Link an existing user to a SIL provider
+export const linkUserToProvider = mutation({
+  args: {
+    userId: v.id("users"),
+    silProviderId: v.id("silProviders"),
+    adminUserId: v.id("users"), // The admin performing the action
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Update the user to be a SIL provider user
+    await ctx.db.patch(args.userId, {
+      role: "sil_provider",
+      silProviderId: args.silProviderId,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Unlink a user from a SIL provider (reverts to staff role)
+export const unlinkUserFromProvider = mutation({
+  args: {
+    userId: v.id("users"),
+    adminUserId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    await ctx.db.patch(args.userId, {
+      role: "staff",
+      silProviderId: undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Get all users that can be linked to a SIL provider (not already linked)
+export const getAvailableUsersForProvider = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all active users who are not already SIL provider users
+    const users = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    // Return users who are not SIL provider role, or are SIL provider but not linked
+    return users.filter(
+      (u) => u.role !== "sil_provider" || !u.silProviderId
+    );
+  },
+});

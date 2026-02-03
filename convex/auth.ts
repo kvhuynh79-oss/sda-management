@@ -156,8 +156,9 @@ export const getAllUsers = query({
   args: {},
   handler: async (ctx) => {
     const users = await ctx.db.query("users").collect();
-    
+
     return users.map((user) => ({
+      _id: user._id,
       id: user._id,
       email: user.email,
       firstName: user.firstName,
@@ -165,6 +166,7 @@ export const getAllUsers = query({
       role: user.role,
       isActive: user.isActive,
       lastLogin: user.lastLogin,
+      silProviderId: user.silProviderId,
     }));
   },
 });

@@ -138,6 +138,13 @@ src/components/
   - Incident Reporting Guide (24-hour & 5-day notification requirements)
   - Complaints Handling Guide (5-day ack, 21-day resolution, advocacy)
   - Certifications Guide (org-level, property-level, worker requirements)
+- **Security Improvements** ✓
+  - Audit logging system (auditLogs table, tracks all CRUD actions)
+  - Row-level security helpers (authHelpers.ts with role-based permissions)
+  - Login/logout audit trail
+  - Audit logging on: properties, participants, payments, maintenance, incidents, documents
+  - Audit log viewer page at /admin/audit (admin-only with filters/search)
+  - Permission checks using requirePermission() on sensitive mutations
 - **Database Section** - Expanded with new entity types ✓
   - SIL Providers (Supported Independent Living) with services, areas, participant linking
   - Occupational Therapists with specializations, AHPRA numbers, assessment tracking
@@ -157,8 +164,10 @@ src/components/
   - Owner bank details for payment
 
 ## Future Roadmap (Priorities)
-1. Security enhancements (2FA, audit logging)
-2. Inspection PDF reports
+1. Security enhancements - ✅ Audit logging implemented, row-level security helpers created
+2. Proper authentication (Clerk) - Replace localStorage auth with proper auth provider
+3. 2FA - Implement via Clerk when auth migration complete
+4. Inspection PDF reports
 
 ## Phase 2: SaaS Subscription Model (Start: Mid-February 2026)
 **Prerequisite:** Complete 2-3 weeks of testing/debugging current app first.

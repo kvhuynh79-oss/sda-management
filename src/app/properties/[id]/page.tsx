@@ -8,6 +8,14 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
 
+// Access level options for SIL provider allocation
+const ACCESS_LEVELS = [
+  { value: "full", label: "Full Access", description: "Incidents + Maintenance", color: "green" },
+  { value: "incidents_only", label: "Incidents Only", description: "Can only report incidents", color: "red" },
+  { value: "maintenance_only", label: "Maintenance Only", description: "Can only report maintenance", color: "yellow" },
+  { value: "view_only", label: "View Only", description: "Read-only access", color: "gray" },
+] as const;
+
 // Helper component for property status badge
 function PropertyStatusBadge({ status }: { status?: string }) {
   if (!status || status === "active") {
@@ -44,7 +52,11 @@ export default function PropertyDetailPage() {
   const dwellings = useQuery(api.dwellings.getByProperty, { propertyId });
   const documents = useQuery(api.documents.getByProperty, { propertyId });
   const propertyMedia = useQuery(api.propertyMedia.getByProperty, { propertyId });
+  const allocatedProviders = useQuery(api.silProviders.getProvidersForProperty, { propertyId });
+  const allSilProviders = useQuery(api.silProviders.getAll, { status: "active" });
   const removeDwelling = useMutation(api.dwellings.remove);
+  const linkProvider = useMutation(api.silProviders.linkProperty);
+  const unlinkProvider = useMutation(api.silProviders.unlinkProperty);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -247,6 +259,25 @@ export default function PropertyDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* SIL Provider Allocation */}
+            <SILProviderAllocation
+              propertyId={propertyId}
+              allocatedProviders={allocatedProviders || []}
+              allProviders={allSilProviders || []}
+              onLink={async (providerId, accessLevel, notes) => {
+                await linkProvider({
+                  silProviderId: providerId,
+                  propertyId,
+                  accessLevel,
+                  notes,
+                  userId: user?.id as Id<"users">,
+                });
+              }}
+              onUnlink={async (linkId) => {
+                await unlinkProvider({ linkId });
+              }}
+            />
           </div>
 
           {/* Right Column - Dwellings */}

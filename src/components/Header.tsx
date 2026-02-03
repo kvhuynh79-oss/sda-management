@@ -86,8 +86,8 @@ export default function Header({ currentPage }: HeaderProps) {
 
   return (
     <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+      {/* Top row - Logo and User info */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Top row - Logo and User info */}
         <div className="flex justify-between items-center h-14 lg:h-16">
           <Link href="/dashboard" className="flex-shrink-0">
             <Image
@@ -118,24 +118,30 @@ export default function Header({ currentPage }: HeaderProps) {
             </button>
           </div>
         </div>
-        {/* Navigation - scrollable on mobile */}
-        <nav ref={navRef} className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-hide">
-          {navItems.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              ref={currentPage === item.key ? activeItemRef : null}
-              className={`whitespace-nowrap text-sm flex-shrink-0 ${
-                currentPage === item.key
-                  ? "text-white font-medium"
-                  : "text-gray-400 hover:text-white transition-colors"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </div>
+      {/* Navigation - scrollable on mobile, full width for scroll */}
+      <nav
+        ref={navRef}
+        className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 px-4 sm:px-6 lg:px-8 scrollbar-hide max-w-7xl mx-auto"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {navItems.map((item) => (
+          <Link
+            key={item.key}
+            href={item.href}
+            ref={currentPage === item.key ? activeItemRef : null}
+            className={`whitespace-nowrap text-sm flex-shrink-0 py-1 ${
+              currentPage === item.key
+                ? "text-white font-medium"
+                : "text-gray-400 hover:text-white transition-colors"
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+        {/* Spacer to ensure last item is scrollable into view */}
+        <div className="flex-shrink-0 w-4" aria-hidden="true" />
+      </nav>
     </header>
   );
 }

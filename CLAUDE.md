@@ -26,6 +26,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 10. **Reports** - Compliance, financial, and contractor reports
 11. **Incidents** - Record and track incidents with photos, NDIS reporting
 12. **Incident Actions** - Define remediation actions, assign to contractor (via MR) or in-house
+13. **Database Management** - Support Coordinators, Contractors, SIL Providers, OTs
 
 ## Project Structure
 ```
@@ -87,6 +88,12 @@ src/components/
 - `inspections` - Individual inspection records
 - `inspectionItems` - Each checked item in inspection
 - `inspectionPhotos` - Photos for inspection items
+- `supportCoordinators` - NDIS support coordinators
+- `supportCoordinatorParticipants` - SC-participant relationships
+- `silProviders` - SIL (Supported Independent Living) providers
+- `silProviderParticipants` - SIL provider-participant relationships
+- `occupationalTherapists` - OTs for SDA assessments
+- `otParticipants` - OT-participant relationships
 
 ## Important Business Context
 
@@ -131,6 +138,9 @@ src/components/
   - Incident Reporting Guide (24-hour & 5-day notification requirements)
   - Complaints Handling Guide (5-day ack, 21-day resolution, advocacy)
   - Certifications Guide (org-level, property-level, worker requirements)
+- **Database Section** - Expanded with new entity types ✓
+  - SIL Providers (Supported Independent Living) with services, areas, participant linking
+  - Occupational Therapists with specializations, AHPRA numbers, assessment tracking
 
 ## Next Session Priorities
 1. **Testing needed:**
@@ -180,4 +190,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-03

@@ -7,8 +7,10 @@ import Header from "@/components/Header";
 // Import the content from support coordinators and contractors pages
 import SupportCoordinatorsContent from "./support-coordinators/SupportCoordinatorsContent";
 import ContractorsContent from "./ContractorsContent";
+import SILProvidersContent from "./sil-providers/SILProvidersContent";
+import OccupationalTherapistsContent from "./occupational-therapists/OccupationalTherapistsContent";
 
-type TabType = "support-coordinators" | "contractors";
+type TabType = "support-coordinators" | "contractors" | "sil-providers" | "occupational-therapists";
 
 function LoadingScreen() {
   return (
@@ -67,7 +69,7 @@ function DatabaseContent() {
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">Database</h2>
             <p className="text-gray-400 mt-1 text-sm sm:text-base">
-              Manage support coordinators and contractors
+              Manage external contacts and service providers
             </p>
           </div>
         </div>
@@ -86,6 +88,26 @@ function DatabaseContent() {
               Support Coordinators
             </button>
             <button
+              onClick={() => handleTabChange("sil-providers")}
+              className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === "sil-providers"
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              SIL Providers
+            </button>
+            <button
+              onClick={() => handleTabChange("occupational-therapists")}
+              className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === "occupational-therapists"
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              Occupational Therapists
+            </button>
+            <button
               onClick={() => handleTabChange("contractors")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "contractors"
@@ -100,6 +122,8 @@ function DatabaseContent() {
 
         {/* Tab Content */}
         {activeTab === "support-coordinators" && <SupportCoordinatorsContent />}
+        {activeTab === "sil-providers" && <SILProvidersContent />}
+        {activeTab === "occupational-therapists" && <OccupationalTherapistsContent />}
         {activeTab === "contractors" && <ContractorsContent />}
       </main>
     </div>

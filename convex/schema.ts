@@ -34,6 +34,37 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_role", ["role"]),
 
+  // Audit Logs table - track all user actions for security and compliance
+  auditLogs: defineTable({
+    userId: v.id("users"),
+    userEmail: v.string(),
+    userName: v.string(),
+    action: v.union(
+      v.literal("create"),
+      v.literal("update"),
+      v.literal("delete"),
+      v.literal("view"),
+      v.literal("login"),
+      v.literal("logout"),
+      v.literal("export"),
+      v.literal("import")
+    ),
+    entityType: v.string(), // "property", "participant", "payment", etc.
+    entityId: v.optional(v.string()),
+    entityName: v.optional(v.string()),
+    changes: v.optional(v.string()), // JSON string of changed fields
+    previousValues: v.optional(v.string()), // JSON string of previous values
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    metadata: v.optional(v.string()), // Additional context as JSON
+    timestamp: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_action", ["action"])
+    .index("by_entityType", ["entityType"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_entityType_entityId", ["entityType", "entityId"]),
+
   // Owners table - property investors/landlords
   owners: defineTable({
     ownerType: v.union(
@@ -911,6 +942,102 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
+
+  // SIL Providers table - Supported Independent Living providers
+  silProviders: defineTable({
+    companyName: v.string(),
+    contactName: v.optional(v.string()),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    abn: v.optional(v.string()),
+    address: v.optional(v.string()),
+    suburb: v.optional(v.string()),
+    state: v.optional(v.string()),
+    postcode: v.optional(v.string()),
+    // Areas they cover
+    areas: v.array(v.string()),
+    // Services offered
+    services: v.optional(v.array(v.string())), // e.g., ["24/7 Support", "Daily Living", "Community Access"]
+    ndisRegistrationNumber: v.optional(v.string()),
+    // Relationship
+    relationship: v.optional(v.string()), // How we know them
+    notes: v.optional(v.string()),
+    rating: v.optional(v.number()), // 1-5 star rating
+    // Tracking
+    lastContactedDate: v.optional(v.string()),
+    totalParticipants: v.optional(v.number()), // Participants they support in our properties
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_status", ["status"]),
+
+  // SIL Provider Participant History - links SIL providers to participants
+  silProviderParticipants: defineTable({
+    silProviderId: v.id("silProviders"),
+    participantId: v.id("participants"),
+    relationshipType: v.union(
+      v.literal("current"), // Currently providing SIL
+      v.literal("past"), // Previously provided SIL
+      v.literal("inquiry") // Made inquiry about
+    ),
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_provider", ["silProviderId"])
+    .index("by_participant", ["participantId"]),
+
+  // Occupational Therapists table - OTs who work with participants
+  occupationalTherapists: defineTable({
+    firstName: v.string(),
+    lastName: v.string(),
+    organization: v.optional(v.string()), // Practice/company name
+    email: v.string(),
+    phone: v.optional(v.string()),
+    abn: v.optional(v.string()),
+    address: v.optional(v.string()),
+    suburb: v.optional(v.string()),
+    state: v.optional(v.string()),
+    postcode: v.optional(v.string()),
+    // Areas they cover
+    areas: v.array(v.string()),
+    // Specializations
+    specializations: v.optional(v.array(v.string())), // e.g., ["SDA Assessments", "AT Prescription", "Home Modifications"]
+    ahpraNumber: v.optional(v.string()), // AHPRA registration number
+    // Relationship
+    relationship: v.optional(v.string()), // How we know them
+    notes: v.optional(v.string()),
+    rating: v.optional(v.number()), // 1-5 star rating
+    // Tracking
+    lastContactedDate: v.optional(v.string()),
+    totalAssessments: v.optional(v.number()), // SDA assessments completed
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_status", ["status"]),
+
+  // OT Participant History - links OTs to participants
+  otParticipants: defineTable({
+    occupationalTherapistId: v.id("occupationalTherapists"),
+    participantId: v.id("participants"),
+    relationshipType: v.union(
+      v.literal("sda_assessment"), // Completed SDA assessment
+      v.literal("ongoing"), // Ongoing therapy/support
+      v.literal("at_prescription"), // AT prescription
+      v.literal("home_mod"), // Home modifications assessment
+      v.literal("inquiry") // Made inquiry about
+    ),
+    assessmentDate: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_ot", ["occupationalTherapistId"])
+    .index("by_participant", ["participantId"]),
 
   // Support Coordinator Participant History - links coordinators to participants they've worked with
   supportCoordinatorParticipants: defineTable({

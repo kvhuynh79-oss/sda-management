@@ -280,9 +280,11 @@ export const updateUser = mutation({
         v.literal("admin"),
         v.literal("property_manager"),
         v.literal("staff"),
-        v.literal("accountant")
+        v.literal("accountant"),
+        v.literal("sil_provider")
       )
     ),
+    silProviderId: v.optional(v.id("silProviders")),
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {

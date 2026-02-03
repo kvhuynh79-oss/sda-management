@@ -9,7 +9,7 @@ import Header from "@/components/Header";
 import { useTheme } from "@/components/ThemeProvider";
 import Link from "next/link";
 
-type UserRole = "admin" | "property_manager" | "staff" | "accountant";
+type UserRole = "admin" | "property_manager" | "staff" | "accountant" | "sil_provider";
 
 interface UserFormData {
   email: string;
@@ -239,6 +239,7 @@ export default function SettingsPage() {
       property_manager: "Property Manager",
       staff: "Staff",
       accountant: "Accountant",
+      sil_provider: "SIL Provider",
     };
     return roles[role] || role;
   };
@@ -333,6 +334,7 @@ export default function SettingsPage() {
                       u.role === "admin" ? "bg-purple-600 text-white" :
                       u.role === "property_manager" ? "bg-blue-600 text-white" :
                       u.role === "accountant" ? "bg-green-600 text-white" :
+                      u.role === "sil_provider" ? "bg-orange-600 text-white" :
                       "bg-gray-600 text-white"
                     }`}>
                       {formatRole(u.role)}
@@ -723,6 +725,7 @@ export default function SettingsPage() {
                   <option value="staff">Staff</option>
                   <option value="property_manager">Property Manager</option>
                   <option value="accountant">Accountant</option>
+                  <option value="sil_provider">SIL Provider</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>

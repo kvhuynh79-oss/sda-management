@@ -341,3 +341,275 @@ export const search = query({
     );
   },
 });
+
+// ============================================
+// PROPERTY ALLOCATION FUNCTIONS
+// ============================================
+
+// Link a property to a SIL provider
+export const linkProperty = mutation({
+  args: {
+    silProviderId: v.id("silProviders"),
+    propertyId: v.id("properties"),
+    accessLevel: v.union(
+      v.literal("full"),
+      v.literal("incidents_only"),
+      v.literal("maintenance_only"),
+      v.literal("view_only")
+    ),
+    startDate: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Check if link already exists
+    const existingLinks = await ctx.db
+      .query("silProviderProperties")
+      .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
+      .collect();
+
+    const existing = existingLinks.find((l) => l.propertyId === args.propertyId);
+    if (existing) {
+      // Update existing link
+      await ctx.db.patch(existing._id, {
+        accessLevel: args.accessLevel,
+        startDate: args.startDate,
+        notes: args.notes,
+        isActive: true,
+        updatedAt: now,
+      });
+      return existing._id;
+    }
+
+    // Create new link
+    const linkId = await ctx.db.insert("silProviderProperties", {
+      silProviderId: args.silProviderId,
+      propertyId: args.propertyId,
+      accessLevel: args.accessLevel,
+      startDate: args.startDate || new Date().toISOString().split("T")[0],
+      notes: args.notes,
+      isActive: true,
+      createdBy: args.userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return linkId;
+  },
+});
+
+// Unlink a property from a SIL provider
+export const unlinkProperty = mutation({
+  args: {
+    linkId: v.id("silProviderProperties"),
+  },
+  handler: async (ctx, args) => {
+    // Soft delete - mark as inactive with end date
+    await ctx.db.patch(args.linkId, {
+      isActive: false,
+      endDate: new Date().toISOString().split("T")[0],
+      updatedAt: Date.now(),
+    });
+    return { success: true };
+  },
+});
+
+// Get properties for a SIL provider
+export const getPropertiesForProvider = query({
+  args: {
+    silProviderId: v.id("silProviders"),
+    includeInactive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    let links = await ctx.db
+      .query("silProviderProperties")
+      .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
+      .collect();
+
+    // Filter active only unless includeInactive is true
+    if (!args.includeInactive) {
+      links = links.filter((l) => l.isActive);
+    }
+
+    // Get property details
+    const properties = await Promise.all(
+      links.map(async (link) => {
+        const property = await ctx.db.get(link.propertyId);
+        if (!property) return null;
+
+        // Get dwellings for this property
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+          .collect();
+
+        // Get participants in these dwellings
+        const participants = await Promise.all(
+          dwellings.map(async (dwelling) => {
+            return ctx.db
+              .query("participants")
+              .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
+              .filter((q) => q.eq(q.field("status"), "active"))
+              .collect();
+          })
+        );
+
+        return {
+          ...link,
+          property,
+          dwellings,
+          participants: participants.flat(),
+        };
+      })
+    );
+
+    return properties.filter((p) => p !== null);
+  },
+});
+
+// Get SIL providers for a property
+export const getProvidersForProperty = query({
+  args: { propertyId: v.id("properties") },
+  handler: async (ctx, args) => {
+    const links = await ctx.db
+      .query("silProviderProperties")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const providers = await Promise.all(
+      links.map(async (link) => {
+        const provider = await ctx.db.get(link.silProviderId);
+        return {
+          ...link,
+          provider,
+        };
+      })
+    );
+
+    return providers.filter((p) => p.provider !== null);
+  },
+});
+
+// Get provider with all their properties (for detail view)
+export const getByIdWithProperties = query({
+  args: { providerId: v.id("silProviders") },
+  handler: async (ctx, args) => {
+    const provider = await ctx.db.get(args.providerId);
+    if (!provider) return null;
+
+    // Get linked participants
+    const participantLinks = await ctx.db
+      .query("silProviderParticipants")
+      .withIndex("by_provider", (q) => q.eq("silProviderId", provider._id))
+      .collect();
+
+    // Get participant details
+    const participants = await Promise.all(
+      participantLinks.map(async (link) => {
+        const participant = await ctx.db.get(link.participantId);
+        if (!participant) return null;
+
+        const dwelling = participant.dwellingId
+          ? await ctx.db.get(participant.dwellingId)
+          : null;
+        const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
+
+        return {
+          ...link,
+          participant,
+          dwelling,
+          property,
+        };
+      })
+    );
+
+    // Get linked properties
+    const propertyLinks = await ctx.db
+      .query("silProviderProperties")
+      .withIndex("by_provider", (q) => q.eq("silProviderId", provider._id))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const properties = await Promise.all(
+      propertyLinks.map(async (link) => {
+        const property = await ctx.db.get(link.propertyId);
+        if (!property) return null;
+
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+          .collect();
+
+        return {
+          ...link,
+          property,
+          dwellings,
+        };
+      })
+    );
+
+    return {
+      ...provider,
+      participantHistory: participants.filter((p) => p !== null),
+      allocatedProperties: properties.filter((p) => p !== null),
+    };
+  },
+});
+
+// Create a user account for SIL provider staff
+export const createProviderUser = mutation({
+  args: {
+    silProviderId: v.id("silProviders"),
+    email: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    passwordHash: v.string(),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Check if user already exists
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (existing) {
+      throw new Error("A user with this email already exists");
+    }
+
+    // Create the user with sil_provider role
+    const userId = await ctx.db.insert("users", {
+      email: args.email,
+      passwordHash: args.passwordHash,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      role: "sil_provider",
+      phone: args.phone,
+      silProviderId: args.silProviderId,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return userId;
+  },
+});
+
+// Get users for a SIL provider
+export const getProviderUsers = query({
+  args: { silProviderId: v.id("silProviders") },
+  handler: async (ctx, args) => {
+    // Get all users with sil_provider role and matching silProviderId
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "sil_provider"))
+      .collect();
+
+    return users.filter((u) => u.silProviderId === args.silProviderId);
+  },
+});

@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 // Simple hash function for password (demo purposes - use proper hashing in production)
 function hashPassword(password: string): string {
@@ -25,9 +26,11 @@ export const createUser = mutation({
       v.literal("admin"),
       v.literal("property_manager"),
       v.literal("staff"),
-      v.literal("accountant")
+      v.literal("accountant"),
+      v.literal("sil_provider")
     ),
     phone: v.optional(v.string()),
+    silProviderId: v.optional(v.id("silProviders")), // For SIL provider users
   },
   handler: async (ctx, args) => {
     // Check if user already exists
@@ -51,6 +54,7 @@ export const createUser = mutation({
       lastName: args.lastName,
       role: args.role,
       phone: args.phone,
+      silProviderId: args.silProviderId,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -91,13 +95,37 @@ export const login = mutation({
       lastLogin: Date.now(),
     });
 
+    // Audit log the login
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "login",
+      entityType: "user",
+      entityId: user._id,
+      entityName: user.email,
+    });
+
+    // For SIL provider users, get their provider info
+    let silProviderId = user.silProviderId;
+    let providerName = undefined;
+    if (user.role === "sil_provider" && user.silProviderId) {
+      const provider = await ctx.db.get(user.silProviderId);
+      if (provider) {
+        providerName = provider.companyName;
+      }
+    }
+
     // Return user info (without password)
     return {
+      _id: user._id,
       id: user._id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      silProviderId,
+      providerName,
     };
   },
 });
@@ -230,6 +258,32 @@ export const updateUserEmail = mutation({
     await ctx.db.patch(args.userId, {
       email: args.newEmail.toLowerCase(),
       updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Logout function - logs the logout action
+export const logout = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      return { success: true }; // User already gone, just return
+    }
+
+    // Audit log the logout
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "logout",
+      entityType: "user",
+      entityId: user._id,
+      entityName: user.email,
     });
 
     return { success: true };

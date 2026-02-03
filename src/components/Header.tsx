@@ -20,6 +20,7 @@ interface HeaderProps {
     | "reports"
     | "ai"
     | "settings"
+    | "admin"
     // Legacy - kept for backwards compatibility during transition
     | "payments"
     | "claims"

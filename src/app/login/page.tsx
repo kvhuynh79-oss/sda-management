@@ -47,8 +47,12 @@ export default function LoginPage() {
       };
       localStorage.setItem("sda_user", JSON.stringify(sessionData));
 
-      // Redirect to dashboard
-      router.push("/dashboard");
+      // Redirect based on role - SIL providers go to their restricted portal
+      if (user.role === "sil_provider") {
+        router.push("/portal/dashboard");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

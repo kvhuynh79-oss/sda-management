@@ -1,9 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission } from "./authHelpers";
 
 // Create a new participant
 export const create = mutation({
   args: {
+    userId: v.id("users"), // Required for audit logging
     ndisNumber: v.string(),
     firstName: v.string(),
     lastName: v.string(),
@@ -23,6 +26,9 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.userId, "participants", "create");
+
     // Check if NDIS number already exists
     const existing = await ctx.db
       .query("participants")
@@ -37,7 +43,7 @@ export const create = mutation({
     // Use provided status, or default to active if moveInDate is provided, pending_move_in otherwise
     const status = args.status || (args.moveInDate ? "active" : "pending_move_in");
 
-    const { status: _, ...restArgs } = args;
+    const { status: _, userId, ...restArgs } = args;
     const participantId = await ctx.db.insert("participants", {
       ...restArgs,
       status,
@@ -47,6 +53,18 @@ export const create = mutation({
 
     // Update dwelling occupancy (only counts active participants)
     await updateDwellingOccupancy(ctx, args.dwellingId);
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "participant",
+      entityId: participantId,
+      entityName: `${args.firstName} ${args.lastName}`,
+      metadata: JSON.stringify({ ndisNumber: args.ndisNumber, status }),
+    });
 
     return participantId;
   },
@@ -149,6 +167,7 @@ export const getById = query({
 // Update participant
 export const update = mutation({
   args: {
+    userId: v.id("users"), // Required for audit logging
     participantId: v.id("participants"),
     ndisNumber: v.optional(v.string()),
     firstName: v.optional(v.string()),
@@ -167,7 +186,10 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { participantId, ...updates } = args;
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.userId, "participants", "update");
+
+    const { participantId, userId, ...updates } = args;
     const participant = await ctx.db.get(participantId);
     if (!participant) throw new Error("Participant not found");
 
@@ -187,6 +209,18 @@ export const update = mutation({
       await updateDwellingOccupancy(ctx, oldDwellingId);
       await updateDwellingOccupancy(ctx, updates.dwellingId);
     }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "participant",
+      entityId: participantId,
+      entityName: `${participant.firstName} ${participant.lastName}`,
+      changes: JSON.stringify(filteredUpdates),
+    });
 
     return { success: true };
   },

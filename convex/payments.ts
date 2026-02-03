@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission } from "./authHelpers";
 
 // Create a new payment record
 export const create = mutation({
@@ -22,6 +24,9 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.createdBy, "payments", "create");
+
     const variance = args.actualAmount - args.expectedAmount;
     const now = Date.now();
 
@@ -30,6 +35,25 @@ export const create = mutation({
       variance,
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Get participant name for audit log
+    const participant = await ctx.db.get(args.participantId);
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "payment",
+      entityId: paymentId,
+      entityName: participant ? `${participant.firstName} ${participant.lastName} - ${args.paymentDate}` : args.paymentDate,
+      metadata: JSON.stringify({
+        amount: args.actualAmount,
+        paymentSource: args.paymentSource,
+        paymentDate: args.paymentDate,
+      }),
     });
 
     return paymentId;
@@ -132,6 +156,7 @@ export const getById = query({
 // Update payment
 export const update = mutation({
   args: {
+    userId: v.id("users"), // Required for audit logging
     paymentId: v.id("payments"),
     paymentDate: v.optional(v.string()),
     paymentPeriodStart: v.optional(v.string()),
@@ -150,7 +175,10 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { paymentId, ...updates } = args;
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.userId, "payments", "update");
+
+    const { paymentId, userId, ...updates } = args;
     const payment = await ctx.db.get(paymentId);
     if (!payment) throw new Error("Payment not found");
 
@@ -167,15 +195,52 @@ export const update = mutation({
     filteredUpdates.variance = actualAmount - expectedAmount;
 
     await ctx.db.patch(paymentId, filteredUpdates);
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "payment",
+      entityId: paymentId,
+      entityName: payment.paymentDate,
+      changes: JSON.stringify(filteredUpdates),
+    });
+
     return { success: true };
   },
 });
 
 // Delete payment
 export const remove = mutation({
-  args: { paymentId: v.id("payments") },
+  args: {
+    userId: v.id("users"), // Required for audit logging
+    paymentId: v.id("payments"),
+  },
   handler: async (ctx, args) => {
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.userId, "payments", "delete");
+
+    const payment = await ctx.db.get(args.paymentId);
+
     await ctx.db.delete(args.paymentId);
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "delete",
+      entityType: "payment",
+      entityId: args.paymentId,
+      entityName: payment?.paymentDate || "Unknown",
+      previousValues: payment ? JSON.stringify({
+        actualAmount: payment.actualAmount,
+        paymentDate: payment.paymentDate,
+      }) : undefined,
+    });
+
     return { success: true };
   },
 });

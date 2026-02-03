@@ -6,6 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
 
@@ -14,6 +15,7 @@ export default function NewPropertyPage() {
   const [step, setStep] = useState(1); // 1: Owner, 2: Property, 3: Dwelling
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
 
   // Owner form state
   const [ownerType, setOwnerType] = useState<"self" | "individual" | "company" | "trust">("self");
@@ -81,7 +83,9 @@ export default function NewPropertyPage() {
     const storedUser = localStorage.getItem("sda_user");
     if (!storedUser) {
       router.push("/login");
+      return;
     }
+    setUser(JSON.parse(storedUser));
   }, [router]);
 
   const handleSubmit = async () => {
@@ -114,6 +118,7 @@ export default function NewPropertyPage() {
 
       // Step 2: Create property
       const propertyId = await createProperty({
+        userId: user?.id as Id<"users">,
         propertyName: propertyData.propertyName || undefined,
         addressLine1: propertyData.addressLine1,
         addressLine2: propertyData.addressLine2 || undefined,
@@ -123,7 +128,7 @@ export default function NewPropertyPage() {
         propertyStatus: propertyData.propertyStatus,
         expectedCompletionDate: propertyData.expectedCompletionDate || undefined,
         silProviderName: propertyData.silProviderName || undefined,
-        ownerId: ownerId as any,
+        ownerId: ownerId as Id<"owners">,
         ownershipType: ownerType === "self" ? "self_owned" : "investor",
         revenueSharePercent: propertyData.revenueSharePercent
           ? parseFloat(propertyData.revenueSharePercent)

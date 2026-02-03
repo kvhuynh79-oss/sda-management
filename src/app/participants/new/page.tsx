@@ -6,12 +6,14 @@ import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NewParticipantPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
 
   // Participant data
   const [participantData, setParticipantData] = useState({
@@ -69,7 +71,9 @@ export default function NewParticipantPage() {
     const storedUser = localStorage.getItem("sda_user");
     if (!storedUser) {
       router.push("/login");
+      return;
     }
+    setUser(JSON.parse(storedUser));
   }, [router]);
 
   const handleSubmit = async () => {
@@ -83,6 +87,7 @@ export default function NewParticipantPage() {
 
       // Create participant
       const participantId = await createParticipant({
+        userId: user?.id as Id<"users">,
         ndisNumber: participantData.ndisNumber,
         firstName: participantData.firstName,
         lastName: participantData.lastName,
@@ -92,7 +97,7 @@ export default function NewParticipantPage() {
         emergencyContactName: participantData.emergencyContactName || undefined,
         emergencyContactPhone: participantData.emergencyContactPhone || undefined,
         emergencyContactRelation: participantData.emergencyContactRelation || undefined,
-        dwellingId: selectedDwellingId as any,
+        dwellingId: selectedDwellingId as Id<"dwellings">,
         moveInDate,
         silProviderName: participantData.silProviderName || undefined,
         supportCoordinatorName: participantData.supportCoordinatorName || undefined,

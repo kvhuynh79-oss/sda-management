@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission } from "./authHelpers";
 
 // Generate upload URL for file
 export const generateUploadUrl = mutation(async (ctx) => {
@@ -57,11 +59,30 @@ export const create = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.uploadedBy, "documents", "create");
+
     const now = Date.now();
     const documentId = await ctx.db.insert("documents", {
       ...args,
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "document",
+      entityId: documentId,
+      entityName: args.fileName,
+      metadata: JSON.stringify({
+        documentType: args.documentType,
+        documentCategory: args.documentCategory,
+        expiryDate: args.expiryDate,
+      }),
     });
 
     return documentId;

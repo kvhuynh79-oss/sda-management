@@ -1,9 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission } from "./authHelpers";
 
 // Create a new property
 export const create = mutation({
   args: {
+    userId: v.id("users"), // Required for audit logging
     propertyName: v.optional(v.string()),
     addressLine1: v.string(),
     addressLine2: v.optional(v.string()),
@@ -38,13 +41,35 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Verify user has permission to create properties
+    const user = await requirePermission(ctx, args.userId, "properties", "create");
+
+    const { userId, ...propertyData } = args;
     const now = Date.now();
     const propertyId = await ctx.db.insert("properties", {
-      ...args,
+      ...propertyData,
       isActive: true,
       createdAt: now,
       updatedAt: now,
     });
+
+    // Audit log the creation
+    const propertyName = args.propertyName || args.addressLine1;
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "property",
+      entityId: propertyId,
+      entityName: propertyName,
+      metadata: JSON.stringify({
+        suburb: args.suburb,
+        state: args.state,
+        postcode: args.postcode,
+      }),
+    });
+
     return propertyId;
   },
 });
@@ -162,12 +187,42 @@ export const update = mutation({
 
 // Delete (soft delete) property
 export const remove = mutation({
-  args: { propertyId: v.id("properties") },
+  args: {
+    propertyId: v.id("properties"),
+    userId: v.id("users"), // Required for audit logging
+  },
   handler: async (ctx, args) => {
+    // Verify user has permission to delete properties
+    const user = await requirePermission(ctx, args.userId, "properties", "delete");
+
+    // Get property details for audit log before deletion
+    const property = await ctx.db.get(args.propertyId);
+    if (!property) {
+      throw new Error("Property not found");
+    }
+
     await ctx.db.patch(args.propertyId, {
       isActive: false,
       updatedAt: Date.now(),
     });
+
+    // Audit log the deletion
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "delete",
+      entityType: "property",
+      entityId: args.propertyId,
+      entityName: property.propertyName || property.addressLine1,
+      previousValues: JSON.stringify({
+        propertyName: property.propertyName,
+        addressLine1: property.addressLine1,
+        suburb: property.suburb,
+        state: property.state,
+      }),
+    });
+
     return { success: true };
   },
 });

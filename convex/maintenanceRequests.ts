@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission } from "./authHelpers";
 
 // Create a new maintenance request
 export const create = mutation({
@@ -34,12 +36,31 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.createdBy, "maintenance", "create");
+
     const now = Date.now();
     const requestId = await ctx.db.insert("maintenanceRequests", {
       ...args,
       status: "reported",
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "maintenanceRequest",
+      entityId: requestId,
+      entityName: args.title,
+      metadata: JSON.stringify({
+        category: args.category,
+        priority: args.priority,
+        requestType: args.requestType,
+      }),
     });
 
     return requestId;
@@ -160,6 +181,7 @@ export const getById = query({
 // Update maintenance request
 export const update = mutation({
   args: {
+    userId: v.optional(v.id("users")), // Optional for backward compatibility
     requestId: v.id("maintenanceRequests"),
     status: v.optional(
       v.union(
@@ -196,7 +218,11 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { requestId, ...updates } = args;
+    const { requestId, userId, ...updates } = args;
+
+    // Get the request for audit logging
+    const request = await ctx.db.get(requestId);
+    if (!request) throw new Error("Maintenance request not found");
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -238,6 +264,24 @@ export const update = mutation({
     }
 
     await ctx.db.patch(requestId, filteredUpdates);
+
+    // Audit log if userId provided
+    if (userId) {
+      const user = await ctx.db.get(userId);
+      if (user) {
+        await ctx.runMutation(internal.auditLog.log, {
+          userId: user._id,
+          userEmail: user.email,
+          userName: `${user.firstName} ${user.lastName}`,
+          action: "update",
+          entityType: "maintenanceRequest",
+          entityId: requestId,
+          entityName: request.title,
+          changes: JSON.stringify(filteredUpdates),
+        });
+      }
+    }
+
     return { success: true };
   },
 });

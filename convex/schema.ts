@@ -12,9 +12,12 @@ export default defineSchema({
       v.literal("admin"),
       v.literal("property_manager"),
       v.literal("staff"),
-      v.literal("accountant")
+      v.literal("accountant"),
+      v.literal("sil_provider") // External SIL provider with restricted access
     ),
     phone: v.optional(v.string()),
+    // For SIL provider users - links to their provider record
+    silProviderId: v.optional(v.id("silProviders")),
     isActive: v.boolean(),
     lastLogin: v.optional(v.number()),
     notificationPreferences: v.optional(
@@ -989,6 +992,28 @@ export default defineSchema({
   })
     .index("by_provider", ["silProviderId"])
     .index("by_participant", ["participantId"]),
+
+  // SIL Provider Properties - links SIL providers to properties they manage/look after
+  silProviderProperties: defineTable({
+    silProviderId: v.id("silProviders"),
+    propertyId: v.id("properties"),
+    accessLevel: v.union(
+      v.literal("full"), // Full access to incidents and maintenance
+      v.literal("incidents_only"), // Only incidents
+      v.literal("maintenance_only"), // Only maintenance
+      v.literal("view_only") // Read-only access
+    ),
+    startDate: v.optional(v.string()), // When they started managing this property
+    endDate: v.optional(v.string()), // When they stopped (if no longer active)
+    isActive: v.boolean(),
+    notes: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_provider", ["silProviderId"])
+    .index("by_property", ["propertyId"])
+    .index("by_isActive", ["isActive"]),
 
   // Occupational Therapists table - OTs who work with participants
   occupationalTherapists: defineTable({

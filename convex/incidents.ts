@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { requirePermission } from "./authHelpers";
 
 // NDIS Reportable incident types that require Commission notification
 const IMMEDIATE_NOTIFICATION_TYPES = [
@@ -88,6 +90,9 @@ export const create = mutation({
     reportedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.reportedBy, "incidents", "create");
+
     const now = Date.now();
 
     // Determine if this is an NDIS reportable incident
@@ -102,19 +107,38 @@ export const create = mutation({
       updatedAt: now,
     };
 
+    let incidentId;
+
     // Add NDIS notification tracking if reportable
     if (isReportable && timeframe) {
-      const incidentId = await ctx.db.insert("incidents", {
+      incidentId = await ctx.db.insert("incidents", {
         ...baseData,
         ndisNotificationTimeframe: timeframe,
         ndisNotificationDueDate: calculateDueDate(args.incidentDate, timeframe),
         ndisCommissionNotified: false,
         ndisNotificationOverdue: false,
       });
-      return incidentId;
+    } else {
+      incidentId = await ctx.db.insert("incidents", baseData);
     }
 
-    const incidentId = await ctx.db.insert("incidents", baseData);
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "incident",
+      entityId: incidentId,
+      entityName: args.title,
+      metadata: JSON.stringify({
+        incidentType: args.incidentType,
+        severity: args.severity,
+        isNdisReportable: isReportable,
+        incidentDate: args.incidentDate,
+      }),
+    });
+
     return incidentId;
   },
 });

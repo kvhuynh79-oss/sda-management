@@ -125,6 +125,7 @@ export default function EditParticipantPage() {
 
     try {
       await updateParticipant({
+        userId: user?.id as Id<"users">,
         participantId,
         firstName: participantData.firstName,
         lastName: participantData.lastName,

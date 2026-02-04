@@ -180,6 +180,15 @@ src/components/
 - **User Management (2026-02-03)** ✓
   - Added SIL Provider role to user management dropdown + backend validator
   - SIL Provider users display with orange badge in user list
+- **SIL Property Management (2026-02-04)** ✓
+  - Added SIL Properties count to dashboard with orange indicator
+  - Made ownerId optional in schema for SIL properties
+  - SIL Provider dropdown linked to database (not free text)
+  - Hidden SDA-specific fields (Design Category, Building Type, Registration Date) for SIL properties
+  - Optional owner details section for SIL properties (collapsible)
+  - Fixed form duplication - removed duplicate SIL Provider field from Step 1
+  - Property status types: "active", "under_construction", "planning", "sil_property"
+  - Ownership types: "investor", "self_owned", "sil_managed"
 
 ## Next Session Priorities
 1. **Testing needed:**

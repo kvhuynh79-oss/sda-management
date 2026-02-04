@@ -332,7 +332,7 @@ export default function EditPropertyPage() {
                     <option value="">Select SIL Provider...</option>
                     {silProviders?.map((provider) => (
                       <option key={provider._id} value={provider._id}>
-                        {provider.name}
+                        {provider.companyName}
                       </option>
                     ))}
                   </select>

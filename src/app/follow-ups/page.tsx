@@ -155,7 +155,7 @@ export default function FollowUpsPage() {
               <StatCard
                 title="Urgent"
                 value={taskStats.byPriority.urgent}
-                color={taskStats.byPriority.urgent > 0 ? "orange" : "gray"}
+                color={taskStats.byPriority.urgent > 0 ? "yellow" : "gray"}
               />
             </div>
           )}

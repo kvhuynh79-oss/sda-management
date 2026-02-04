@@ -27,6 +27,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 11. **Incidents** - Record and track incidents with photos, NDIS reporting
 12. **Incident Actions** - Define remediation actions, assign to contractor (via MR) or in-house
 13. **Database Management** - Support Coordinators, Contractors, SIL Providers, OTs
+14. **Follow-ups & Tasks** - Track communications (email, SMS, calls) and follow-up tasks for funding, plan approvals
 
 ## Project Structure
 ```
@@ -43,6 +44,7 @@ src/app/                    # Next.js pages
 ├── documents/              # Document management
 ├── alerts/                 # Alert management
 ├── preventative-schedule/  # Scheduled maintenance
+├── follow-ups/             # Tasks and communication tracking
 ├── reports/                # Reports & analytics
 └── settings/               # User preferences
 
@@ -58,6 +60,8 @@ convex/                     # Backend functions
 ├── alerts.ts               # Alert generation
 ├── notifications.ts        # Email/SMS sending
 ├── crons.ts                # Scheduled jobs
+├── communications.ts       # Communication log tracking
+├── tasks.ts                # Follow-up task management
 └── ...
 
 src/components/
@@ -94,6 +98,8 @@ src/components/
 - `silProviderParticipants` - SIL provider-participant relationships
 - `occupationalTherapists` - OTs for SDA assessments
 - `otParticipants` - OT-participant relationships
+- `communications` - Communication logs (emails, calls, SMS, meetings)
+- `tasks` - Follow-up tasks linked to participants/communications
 
 ## Important Business Context
 
@@ -189,6 +195,16 @@ src/components/
   - Fixed form duplication - removed duplicate SIL Provider field from Step 1
   - Property status types: "active", "under_construction", "planning", "sil_property"
   - Ownership types: "investor", "self_owned", "sil_managed"
+- **Follow-ups & Tasks Feature (2026-02-04)** ✓
+  - New `communications` table - log emails, SMS, phone calls, meetings
+  - New `tasks` table - follow-up tasks with priority, category, due dates
+  - `/follow-ups` page with task-focused view and collapsible communications
+  - Communication logging: type, direction, contact details, attachments, participant linking
+  - Task management: create, update status, complete with notes, assign to users
+  - Categories: funding, plan_approval, documentation, follow_up, general
+  - Dashboard integration: task stats, overdue counts, upcoming tasks widget
+  - Badge presets: TaskStatusBadge, TaskCategoryBadge, CommunicationTypeBadge, ContactTypeBadge
+  - Color constants for all new entity types
 
 ## Next Session Priorities
 1. **Testing needed:**

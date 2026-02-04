@@ -18,6 +18,8 @@ export default function DashboardPage() {
   const upcomingSchedules = useQuery(api.preventativeSchedule.getUpcoming, { limit: 5 });
   const overdueSchedules = useQuery(api.preventativeSchedule.getOverdue);
   const activeAlerts = useQuery(api.alerts.getActive);
+  const taskStats = useQuery(api.tasks.getStats);
+  const upcomingTasks = useQuery(api.tasks.getUpcoming, { days: 7 });
 
   // Memoize property calculations
   const propertyStats = useMemo(() => {
@@ -133,6 +135,42 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Task Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Link href="/follow-ups">
+            <DashboardCard
+              title="Open Tasks"
+              value={(taskStats?.open || 0).toString()}
+              subtitle="Pending follow-ups"
+              color="blue"
+            />
+          </Link>
+          <Link href="/follow-ups?status=pending">
+            <DashboardCard
+              title="Overdue Tasks"
+              value={(taskStats?.overdue || 0).toString()}
+              subtitle="Need attention"
+              color={taskStats?.overdue && taskStats.overdue > 0 ? "red" : "green"}
+            />
+          </Link>
+          <Link href="/follow-ups?priority=urgent">
+            <DashboardCard
+              title="Urgent Tasks"
+              value={(taskStats?.byPriority?.urgent || 0).toString()}
+              subtitle="High priority items"
+              color={taskStats?.byPriority?.urgent && taskStats.byPriority.urgent > 0 ? "orange" : "green"}
+            />
+          </Link>
+          <Link href="/follow-ups?category=funding">
+            <DashboardCard
+              title="Funding Tasks"
+              value={(taskStats?.byCategory?.funding || 0).toString()}
+              subtitle="Funding follow-ups"
+              color="yellow"
+            />
+          </Link>
+        </div>
+
         {/* Preventative Maintenance Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Link href="/operations?tab=schedule">
@@ -183,8 +221,70 @@ export default function DashboardPage() {
             <Link href="/operations?tab=schedule">
               <QuickActionButton label="View Schedule" />
             </Link>
+            <Link href="/follow-ups/tasks/new">
+              <QuickActionButton label="New Task" />
+            </Link>
+            <Link href="/follow-ups/communications/new">
+              <QuickActionButton label="Log Communication" />
+            </Link>
           </div>
         </div>
+
+        {/* Upcoming Tasks */}
+        {upcomingTasks && upcomingTasks.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">Upcoming Tasks</h3>
+              <Link href="/follow-ups" className="text-blue-400 hover:text-blue-300 text-sm">
+                View all →
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {upcomingTasks.slice(0, 5).map((task) => {
+                const priorityColors: Record<string, string> = {
+                  urgent: "bg-red-600",
+                  high: "bg-orange-600",
+                  medium: "bg-yellow-600",
+                  low: "bg-gray-600",
+                };
+                const categoryLabels: Record<string, string> = {
+                  funding: "Funding",
+                  plan_approval: "Plan Approval",
+                  documentation: "Documentation",
+                  follow_up: "Follow-up",
+                  general: "General",
+                };
+
+                return (
+                  <Link key={task._id} href={`/follow-ups/tasks/${task._id}`}>
+                    <div className="flex justify-between items-center p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-white font-medium">{task.title}</p>
+                          <span className={`px-2 py-1 text-white text-xs rounded-full ${priorityColors[task.priority]}`}>
+                            {task.priority.toUpperCase()}
+                          </span>
+                          {task.isOverdue && (
+                            <span className="px-2 py-1 text-white text-xs rounded-full bg-red-600 animate-pulse">
+                              OVERDUE
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-400 text-sm">
+                          {categoryLabels[task.category]}
+                          {task.participant && ` • ${task.participant.firstName} ${task.participant.lastName}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`${task.isOverdue ? "text-red-400" : "text-white"}`}>{task.dueDate}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Upcoming Preventative Maintenance */}
         {upcomingSchedules && upcomingSchedules.length > 0 && (

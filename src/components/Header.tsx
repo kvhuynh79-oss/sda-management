@@ -12,6 +12,7 @@ interface HeaderProps {
     | "participants"
     | "financials"
     | "operations"
+    | "follow-ups"
     | "database"
     | "incidents"
     | "compliance"
@@ -74,6 +75,7 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/participants", label: "Participants", key: "participants" },
     { href: "/financials", label: "Financials", key: "financials" },
     { href: "/operations", label: "Maintenance", key: "operations" },
+    { href: "/follow-ups", label: "Follow-ups", key: "follow-ups" },
     { href: "/database", label: "Database", key: "database" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/compliance", label: "Compliance", key: "compliance" },

@@ -24,6 +24,8 @@ export type AuditEntityType =
   | "alert"
   | "claim"
   | "ownerPayment"
+  | "communication"
+  | "task"
   | "system";
 
 // Internal mutation for logging - used by other mutations

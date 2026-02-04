@@ -26,6 +26,8 @@ export const rolePermissions: Record<UserRole, {
   incidents: { view: boolean; create: boolean; update: boolean; delete: boolean };
   contractors: { view: boolean; create: boolean; update: boolean; delete: boolean };
   auditLogs: { view: boolean };
+  communications: { view: boolean; create: boolean; update: boolean; delete: boolean };
+  tasks: { view: boolean; create: boolean; update: boolean; delete: boolean };
 }> = {
   admin: {
     properties: { view: true, create: true, update: true, delete: true },
@@ -38,6 +40,8 @@ export const rolePermissions: Record<UserRole, {
     incidents: { view: true, create: true, update: true, delete: true },
     contractors: { view: true, create: true, update: true, delete: true },
     auditLogs: { view: true },
+    communications: { view: true, create: true, update: true, delete: true },
+    tasks: { view: true, create: true, update: true, delete: true },
   },
   property_manager: {
     properties: { view: true, create: true, update: true, delete: false },
@@ -50,6 +54,8 @@ export const rolePermissions: Record<UserRole, {
     incidents: { view: true, create: true, update: true, delete: false },
     contractors: { view: true, create: true, update: true, delete: false },
     auditLogs: { view: false },
+    communications: { view: true, create: true, update: true, delete: true },
+    tasks: { view: true, create: true, update: true, delete: true },
   },
   staff: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -62,6 +68,8 @@ export const rolePermissions: Record<UserRole, {
     incidents: { view: true, create: true, update: true, delete: false },
     contractors: { view: true, create: false, update: false, delete: false },
     auditLogs: { view: false },
+    communications: { view: true, create: true, update: true, delete: false },
+    tasks: { view: true, create: true, update: true, delete: false },
   },
   accountant: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -74,6 +82,8 @@ export const rolePermissions: Record<UserRole, {
     incidents: { view: true, create: false, update: false, delete: false },
     contractors: { view: true, create: false, update: false, delete: false },
     auditLogs: { view: false },
+    communications: { view: true, create: true, update: false, delete: false },
+    tasks: { view: true, create: true, update: false, delete: false },
   },
 };
 

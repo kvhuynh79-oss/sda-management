@@ -22,6 +22,7 @@ import type * as authHelpers from "../authHelpers.js";
 import type * as bankAccounts from "../bankAccounts.js";
 import type * as bankTransactions from "../bankTransactions.js";
 import type * as claims from "../claims.js";
+import type * as communications from "../communications.js";
 import type * as complaints from "../complaints.js";
 import type * as complianceCertifications from "../complianceCertifications.js";
 import type * as contractors from "../contractors.js";
@@ -65,6 +66,7 @@ import type * as seedPaulMortensenPayments from "../seedPaulMortensenPayments.js
 import type * as silProviderPortal from "../silProviderPortal.js";
 import type * as silProviders from "../silProviders.js";
 import type * as supportCoordinators from "../supportCoordinators.js";
+import type * as tasks from "../tasks.js";
 import type * as vacancyListings from "../vacancyListings.js";
 import type * as validationHelpers from "../validationHelpers.js";
 import type * as xero from "../xero.js";
@@ -90,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   bankAccounts: typeof bankAccounts;
   bankTransactions: typeof bankTransactions;
   claims: typeof claims;
+  communications: typeof communications;
   complaints: typeof complaints;
   complianceCertifications: typeof complianceCertifications;
   contractors: typeof contractors;
@@ -133,6 +136,7 @@ declare const fullApi: ApiFromModules<{
   silProviderPortal: typeof silProviderPortal;
   silProviders: typeof silProviders;
   supportCoordinators: typeof supportCoordinators;
+  tasks: typeof tasks;
   vacancyListings: typeof vacancyListings;
   validationHelpers: typeof validationHelpers;
   xero: typeof xero;

@@ -1659,4 +1659,126 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_category", ["category"])
     .index("by_severity", ["severity"]),
+
+  // ============================================
+  // COMMUNICATIONS & TASKS TABLES
+  // ============================================
+
+  // Communications table - log of all external communications for follow-up tracking
+  communications: defineTable({
+    // Communication details
+    communicationType: v.union(
+      v.literal("email"),
+      v.literal("sms"),
+      v.literal("phone_call"),
+      v.literal("meeting"),
+      v.literal("other")
+    ),
+    direction: v.union(
+      v.literal("sent"),
+      v.literal("received")
+    ),
+    communicationDate: v.string(), // YYYY-MM-DD
+    communicationTime: v.optional(v.string()), // HH:MM
+
+    // Contact details
+    contactType: v.union(
+      v.literal("ndia"),
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("participant"),
+      v.literal("family"),
+      v.literal("plan_manager"),
+      v.literal("ot"),
+      v.literal("contractor"),
+      v.literal("other")
+    ),
+    contactName: v.string(),
+    contactEmail: v.optional(v.string()),
+    contactPhone: v.optional(v.string()),
+
+    // Content
+    subject: v.optional(v.string()), // Subject line for emails
+    summary: v.string(), // Main notes/summary
+
+    // Linking
+    linkedParticipantId: v.optional(v.id("participants")),
+    linkedPropertyId: v.optional(v.id("properties")),
+
+    // Optional attachment
+    attachmentStorageId: v.optional(v.id("_storage")),
+    attachmentFileName: v.optional(v.string()),
+    attachmentFileType: v.optional(v.string()),
+
+    // Metadata
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_participant", ["linkedParticipantId"])
+    .index("by_property", ["linkedPropertyId"])
+    .index("by_date", ["communicationDate"])
+    .index("by_contactType", ["contactType"])
+    .index("by_type", ["communicationType"])
+    .index("by_createdBy", ["createdBy"]),
+
+  // Tasks table - follow-up tasks and action items
+  tasks: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+
+    // Scheduling
+    dueDate: v.string(), // YYYY-MM-DD
+    reminderDate: v.optional(v.string()), // YYYY-MM-DD
+
+    // Classification
+    priority: v.union(
+      v.literal("urgent"),
+      v.literal("high"),
+      v.literal("medium"),
+      v.literal("low")
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("cancelled")
+    ),
+    category: v.union(
+      v.literal("funding"),
+      v.literal("plan_approval"),
+      v.literal("documentation"),
+      v.literal("follow_up"),
+      v.literal("general")
+    ),
+
+    // Linking
+    linkedParticipantId: v.optional(v.id("participants")),
+    linkedPropertyId: v.optional(v.id("properties")),
+    linkedCommunicationId: v.optional(v.id("communications")), // Created from a communication
+
+    // Assignment
+    assignedToUserId: v.optional(v.id("users")),
+
+    // Completion tracking
+    completedDate: v.optional(v.string()),
+    completedBy: v.optional(v.id("users")),
+    completionNotes: v.optional(v.string()),
+
+    // Metadata
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_participant", ["linkedParticipantId"])
+    .index("by_property", ["linkedPropertyId"])
+    .index("by_communication", ["linkedCommunicationId"])
+    .index("by_status", ["status"])
+    .index("by_priority", ["priority"])
+    .index("by_dueDate", ["dueDate"])
+    .index("by_assignedTo", ["assignedToUserId"])
+    .index("by_category", ["category"])
+    .index("by_status_dueDate", ["status", "dueDate"])
+    .index("by_status_priority", ["status", "priority"])
+    .index("by_createdBy", ["createdBy"]),
 });

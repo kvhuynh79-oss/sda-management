@@ -189,3 +189,118 @@ export function SeverityBadge({
     </Badge>
   );
 }
+
+export function TaskStatusBadge({
+  status,
+  size = "sm",
+}: {
+  status: "pending" | "in_progress" | "completed" | "cancelled";
+  size?: BadgeSize;
+}) {
+  const statusConfig: Record<string, { variant: BadgeVariant; label: string }> = {
+    pending: { variant: "warning", label: "Pending" },
+    in_progress: { variant: "info", label: "In Progress" },
+    completed: { variant: "success", label: "Completed" },
+    cancelled: { variant: "neutral", label: "Cancelled" },
+  };
+
+  const config = statusConfig[status] || statusConfig.pending;
+  return (
+    <Badge variant={config.variant} size={size} dot>
+      {config.label}
+    </Badge>
+  );
+}
+
+export function TaskCategoryBadge({
+  category,
+  size = "sm",
+}: {
+  category: "funding" | "plan_approval" | "documentation" | "follow_up" | "general";
+  size?: BadgeSize;
+}) {
+  const categoryConfig: Record<string, { variant: BadgeVariant; label: string }> = {
+    funding: { variant: "purple", label: "Funding" },
+    plan_approval: { variant: "cyan", label: "Plan Approval" },
+    documentation: { variant: "orange", label: "Documentation" },
+    follow_up: { variant: "info", label: "Follow-up" },
+    general: { variant: "neutral", label: "General" },
+  };
+
+  const config = categoryConfig[category] || categoryConfig.general;
+  return (
+    <Badge variant={config.variant} size={size}>
+      {config.label}
+    </Badge>
+  );
+}
+
+export function CommunicationTypeBadge({
+  type,
+  size = "sm",
+}: {
+  type: "email" | "sms" | "phone_call" | "meeting" | "other";
+  size?: BadgeSize;
+}) {
+  const typeConfig: Record<string, { variant: BadgeVariant; label: string }> = {
+    email: { variant: "info", label: "Email" },
+    sms: { variant: "success", label: "SMS" },
+    phone_call: { variant: "purple", label: "Phone" },
+    meeting: { variant: "orange", label: "Meeting" },
+    other: { variant: "neutral", label: "Other" },
+  };
+
+  const config = typeConfig[type] || typeConfig.other;
+  return (
+    <Badge variant={config.variant} size={size}>
+      {config.label}
+    </Badge>
+  );
+}
+
+export function ContactTypeBadge({
+  contactType,
+  size = "sm",
+}: {
+  contactType: "ndia" | "support_coordinator" | "sil_provider" | "participant" | "family" | "plan_manager" | "ot" | "contractor" | "other";
+  size?: BadgeSize;
+}) {
+  const typeConfig: Record<string, { variant: BadgeVariant; label: string }> = {
+    ndia: { variant: "purple", label: "NDIA" },
+    support_coordinator: { variant: "info", label: "Support Coordinator" },
+    sil_provider: { variant: "orange", label: "SIL Provider" },
+    participant: { variant: "success", label: "Participant" },
+    family: { variant: "cyan", label: "Family" },
+    plan_manager: { variant: "purple", label: "Plan Manager" },
+    ot: { variant: "pink", label: "OT" },
+    contractor: { variant: "warning", label: "Contractor" },
+    other: { variant: "neutral", label: "Other" },
+  };
+
+  const config = typeConfig[contactType] || typeConfig.other;
+  return (
+    <Badge variant={config.variant} size={size}>
+      {config.label}
+    </Badge>
+  );
+}
+
+export function DirectionBadge({
+  direction,
+  size = "xs",
+}: {
+  direction: "sent" | "received";
+  size?: BadgeSize;
+}) {
+  const directionConfig: Record<string, { variant: BadgeVariant; label: string }> = {
+    sent: { variant: "info-solid", label: "Sent" },
+    received: { variant: "success-solid", label: "Received" },
+  };
+
+  const config = directionConfig[direction] || directionConfig.sent;
+  return (
+    <Badge variant={config.variant} size={size}>
+      {config.label}
+    </Badge>
+  );
+}

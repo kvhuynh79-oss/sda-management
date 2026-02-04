@@ -155,3 +155,55 @@ export type SeverityType = keyof typeof SEVERITY_COLORS;
 export type IncidentType = keyof typeof INCIDENT_TYPE_COLORS;
 export type PaymentStatusType = keyof typeof PAYMENT_STATUS_COLORS;
 export type RelationshipType = keyof typeof RELATIONSHIP_TYPE_COLORS;
+
+// Communication type colors
+export const COMMUNICATION_TYPE_COLORS = {
+  email: "bg-blue-500/20 text-blue-400",
+  sms: "bg-green-500/20 text-green-400",
+  phone_call: "bg-purple-500/20 text-purple-400",
+  meeting: "bg-orange-500/20 text-orange-400",
+  other: "bg-gray-500/20 text-gray-400",
+} as const;
+
+// Communication direction colors
+export const DIRECTION_COLORS = {
+  sent: "bg-blue-600",
+  received: "bg-green-600",
+} as const;
+
+// Contact type colors (for communications)
+export const CONTACT_TYPE_COLORS = {
+  ndia: "bg-purple-500/20 text-purple-400",
+  support_coordinator: "bg-blue-500/20 text-blue-400",
+  sil_provider: "bg-orange-500/20 text-orange-400",
+  participant: "bg-green-500/20 text-green-400",
+  family: "bg-cyan-500/20 text-cyan-400",
+  plan_manager: "bg-indigo-500/20 text-indigo-400",
+  ot: "bg-pink-500/20 text-pink-400",
+  contractor: "bg-yellow-500/20 text-yellow-400",
+  other: "bg-gray-500/20 text-gray-400",
+} as const;
+
+// Task status colors
+export const TASK_STATUS_COLORS = {
+  pending: "bg-yellow-500/20 text-yellow-400",
+  in_progress: "bg-blue-500/20 text-blue-400",
+  completed: "bg-green-500/20 text-green-400",
+  cancelled: "bg-gray-500/20 text-gray-400",
+} as const;
+
+// Task category colors
+export const TASK_CATEGORY_COLORS = {
+  funding: "bg-purple-500/20 text-purple-400",
+  plan_approval: "bg-cyan-500/20 text-cyan-400",
+  documentation: "bg-orange-500/20 text-orange-400",
+  follow_up: "bg-blue-500/20 text-blue-400",
+  general: "bg-gray-500/20 text-gray-400",
+} as const;
+
+// Type exports for new colors
+export type CommunicationType = keyof typeof COMMUNICATION_TYPE_COLORS;
+export type DirectionType = keyof typeof DIRECTION_COLORS;
+export type ContactType = keyof typeof CONTACT_TYPE_COLORS;
+export type TaskStatusType = keyof typeof TASK_STATUS_COLORS;
+export type TaskCategoryType = keyof typeof TASK_CATEGORY_COLORS;

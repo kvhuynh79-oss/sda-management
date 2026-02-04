@@ -5,6 +5,8 @@ import { forwardRef, TextareaHTMLAttributes, useId } from "react";
 interface FormTextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> {
   /** Textarea label */
   label: string;
+  /** Hide label visually but keep for screen readers */
+  hideLabel?: boolean;
   /** Error message to display */
   error?: string;
   /** Helper text below textarea */
@@ -14,7 +16,7 @@ interface FormTextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElem
 }
 
 export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
-  ({ label, error, helperText, required, id: propId, rows = 3, ...props }, ref) => {
+  ({ label, hideLabel, error, helperText, required, id: propId, rows = 3, ...props }, ref) => {
     const generatedId = useId();
     const id = propId || generatedId;
     const errorId = `${id}-error`;
@@ -31,7 +33,7 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       <div>
         <label
           htmlFor={id}
-          className="block text-sm font-medium text-gray-300 mb-1"
+          className={`block text-sm font-medium text-gray-300 mb-1 ${hideLabel ? "sr-only" : ""}`}
         >
           {label}
           {required && (

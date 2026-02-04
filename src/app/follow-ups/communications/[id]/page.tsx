@@ -210,6 +210,8 @@ export default function CommunicationDetailPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Summary</h2>
               {isEditing ? (
                 <FormTextarea
+                  label="Summary"
+                  hideLabel
                   value={formData.summary}
                   onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                   rows={5}

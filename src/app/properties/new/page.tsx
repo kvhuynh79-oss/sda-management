@@ -109,11 +109,18 @@ export default function NewPropertyPage() {
     setIsLoading(true);
 
     try {
-      // Step 1: Create or select owner (skip for SIL properties)
+      // Step 1: Create or select owner
       let ownerId: string | undefined;
 
+      // Check if owner data was provided (for both SIL and regular properties)
+      const hasOwnerData = !createNewOwner
+        ? selectedOwnerId
+        : (ownerType === "individual"
+            ? (ownerData.firstName || ownerData.lastName || ownerData.email)
+            : (ownerData.companyName || ownerData.email));
+
       if (!isSilProperty) {
-        // Regular properties need an owner
+        // Regular properties require an owner
         if (createNewOwner) {
           ownerId = await createOwner({
             userId: user?.id as Id<"users">,
@@ -133,6 +140,25 @@ export default function NewPropertyPage() {
             throw new Error("Please select an owner");
           }
           ownerId = selectedOwnerId;
+        }
+      } else if (hasOwnerData) {
+        // SIL property with optional owner data provided
+        if (!createNewOwner && selectedOwnerId) {
+          ownerId = selectedOwnerId;
+        } else if (createNewOwner && hasOwnerData) {
+          ownerId = await createOwner({
+            userId: user?.id as Id<"users">,
+            ownerType,
+            firstName: ownerType === "individual" ? ownerData.firstName : undefined,
+            lastName: ownerType === "individual" ? ownerData.lastName : undefined,
+            companyName: ownerType === "company" || ownerType === "trust" ? ownerData.companyName : undefined,
+            email: ownerData.email || `owner-${Date.now()}@unknown.com`,
+            phone: ownerData.phone || undefined,
+            abn: ownerData.abn || undefined,
+            bankBsb: ownerData.bankBsb || undefined,
+            bankAccountNumber: ownerData.bankAccountNumber || undefined,
+            bankAccountName: ownerData.bankAccountName || undefined,
+          });
         }
       }
 
@@ -270,6 +296,15 @@ export default function NewPropertyPage() {
               propertyData={propertyData}
               setPropertyData={setPropertyData}
               silProviders={silProviders || []}
+              owners={owners || []}
+              ownerType={ownerType}
+              setOwnerType={setOwnerType}
+              ownerData={ownerData}
+              setOwnerData={setOwnerData}
+              createNewOwner={createNewOwner}
+              setCreateNewOwner={setCreateNewOwner}
+              selectedOwnerId={selectedOwnerId}
+              setSelectedOwnerId={setSelectedOwnerId}
               onBack={() => setStep(1)}
               onNext={() => setStep(3)}
             />
@@ -630,19 +665,6 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
           </div>
         )}
 
-        {propertyData.propertyStatus === "sil_property" && (
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">SIL Provider Name</label>
-            <input
-              type="text"
-              value={propertyData.silProviderName}
-              onChange={(e) => setPropertyData({ ...propertyData, silProviderName: e.target.value })}
-              placeholder="e.g., Care Provider ABC"
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
-            />
-            <p className="text-gray-500 text-xs mt-1">The SIL provider you are managing this property for</p>
-          </div>
-        )}
 
         {ownerType !== "self" && (
           <div>
@@ -701,7 +723,14 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
 }
 
 // SIL Provider Step - for properties managed on behalf of SIL providers
-function SilProviderStep({ propertyData, setPropertyData, silProviders, onBack, onNext }: any) {
+function SilProviderStep({
+  propertyData, setPropertyData, silProviders,
+  owners, ownerType, setOwnerType, ownerData, setOwnerData,
+  createNewOwner, setCreateNewOwner, selectedOwnerId, setSelectedOwnerId,
+  onBack, onNext
+}: any) {
+  const [showOwnerSection, setShowOwnerSection] = useState(false);
+
   return (
     <div>
       <h3 className="text-xl font-semibold text-white mb-2">SIL Provider Details</h3>
@@ -832,6 +861,154 @@ function SilProviderStep({ propertyData, setPropertyData, silProviders, onBack, 
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Optional Owner Details Section */}
+        <div className="border-t border-gray-600 pt-4 mt-4">
+          <button
+            type="button"
+            onClick={() => setShowOwnerSection(!showOwnerSection)}
+            className="flex items-center gap-2 text-sm font-medium text-gray-200 hover:text-white"
+          >
+            <span className={`transform transition-transform ${showOwnerSection ? "rotate-90" : ""}`}>▶</span>
+            Property Owner Details (Optional)
+          </button>
+          <p className="text-gray-500 text-xs mt-1 mb-4">
+            Add owner details if known - you can skip this if you don't have the information
+          </p>
+
+          {showOwnerSection && (
+            <div className="bg-gray-700/30 rounded-lg p-4 space-y-4">
+              {owners.length > 0 && (
+                <div className="mb-4">
+                  <label className="flex items-center gap-3 mb-3">
+                    <input
+                      type="radio"
+                      checked={createNewOwner}
+                      onChange={() => setCreateNewOwner(true)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-white text-sm">Create new owner</span>
+                  </label>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      checked={!createNewOwner}
+                      onChange={() => setCreateNewOwner(false)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-white text-sm">Select existing owner</span>
+                  </label>
+                </div>
+              )}
+
+              {!createNewOwner && owners.length > 0 ? (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {owners.map((owner: any) => (
+                    <label
+                      key={owner._id}
+                      className={`block p-3 rounded-lg border cursor-pointer transition-colors text-sm
+                        ${selectedOwnerId === owner._id
+                          ? "border-blue-500 bg-blue-500/10"
+                          : "border-gray-600 hover:border-gray-500"}`}
+                    >
+                      <input
+                        type="radio"
+                        checked={selectedOwnerId === owner._id}
+                        onChange={() => setSelectedOwnerId(owner._id)}
+                        className="hidden"
+                      />
+                      <p className="text-white font-medium">
+                        {owner.companyName || `${owner.firstName} ${owner.lastName}`}
+                      </p>
+                      <p className="text-gray-400 text-xs">{owner.email}</p>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Owner Type</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { value: "individual", label: "Individual" },
+                        { value: "company", label: "Company" },
+                        { value: "trust", label: "Trust" },
+                      ].map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => setOwnerType(type.value)}
+                          className={`px-3 py-2 rounded-lg border text-xs transition-colors
+                            ${ownerType === type.value
+                              ? "border-blue-500 bg-blue-500/10 text-white"
+                              : "border-gray-600 text-gray-300 hover:border-gray-500"}`}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {ownerType === "individual" ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">First Name</label>
+                        <input
+                          type="text"
+                          value={ownerData.firstName}
+                          onChange={(e) => setOwnerData({ ...ownerData, firstName: e.target.value })}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">Last Name</label>
+                        <input
+                          type="text"
+                          value={ownerData.lastName}
+                          onChange={(e) => setOwnerData({ ...ownerData, lastName: e.target.value })}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        {ownerType === "company" ? "Company Name" : "Trust Name"}
+                      </label>
+                      <input
+                        type="text"
+                        value={ownerData.companyName}
+                        onChange={(e) => setOwnerData({ ...ownerData, companyName: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={ownerData.email}
+                        onChange={(e) => setOwnerData({ ...ownerData, email: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
+                      <input
+                        type="tel"
+                        value={ownerData.phone}
+                        onChange={(e) => setOwnerData({ ...ownerData, phone: e.target.value })}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

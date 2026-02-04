@@ -285,6 +285,7 @@ export default function NewPropertyPage() {
               onBack={() => setStep(2)}
               onSubmit={handleSubmit}
               isLoading={isLoading}
+              isSilProperty={isSilProperty}
             />
           )}
         </div>
@@ -852,11 +853,16 @@ function SilProviderStep({ propertyData, setPropertyData, silProviders, onBack, 
   );
 }
 
-function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling, onBack, onSubmit, isLoading }: any) {
+function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling, onBack, onSubmit, isLoading, isSilProperty }: any) {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-semibold text-white">Dwellings</h3>
+        <div>
+          <h3 className="text-xl font-semibold text-white">Dwellings</h3>
+          {isSilProperty && (
+            <p className="text-gray-400 text-sm mt-1">Basic dwelling info for the SIL property you manage</p>
+          )}
+        </div>
         <button
           onClick={addDwelling}
           className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg text-sm"
@@ -913,49 +919,55 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Max Participants</label>
-                <input
-                  type="number"
-                  value={dwelling.maxParticipants}
-                  onChange={(e) => updateDwelling(index, "maxParticipants", parseInt(e.target.value))}
-                  min="1"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">SDA Design Category</label>
-                <select
-                  value={dwelling.sdaDesignCategory}
-                  onChange={(e) => updateDwelling(index, "sdaDesignCategory", e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
-                >
-                  <option value="improved_liveability">Improved Liveability</option>
-                  <option value="fully_accessible">Fully Accessible</option>
-                  <option value="robust">Robust</option>
-                  <option value="high_physical_support">High Physical Support</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Building Type</label>
-                <select
-                  value={dwelling.sdaBuildingType}
-                  onChange={(e) => updateDwelling(index, "sdaBuildingType", e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
-                >
-                  <option value="new_build">New Build</option>
-                  <option value="existing">Existing</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Registration Date</label>
-                <input
-                  type="date"
-                  value={dwelling.registrationDate}
-                  onChange={(e) => updateDwelling(index, "registrationDate", e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
-                />
-              </div>
+              {!isSilProperty && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Max Participants</label>
+                  <input
+                    type="number"
+                    value={dwelling.maxParticipants}
+                    onChange={(e) => updateDwelling(index, "maxParticipants", parseInt(e.target.value))}
+                    min="1"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                  />
+                </div>
+              )}
+              {!isSilProperty && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">SDA Design Category</label>
+                    <select
+                      value={dwelling.sdaDesignCategory}
+                      onChange={(e) => updateDwelling(index, "sdaDesignCategory", e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                    >
+                      <option value="improved_liveability">Improved Liveability</option>
+                      <option value="fully_accessible">Fully Accessible</option>
+                      <option value="robust">Robust</option>
+                      <option value="high_physical_support">High Physical Support</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Building Type</label>
+                    <select
+                      value={dwelling.sdaBuildingType}
+                      onChange={(e) => updateDwelling(index, "sdaBuildingType", e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                    >
+                      <option value="new_build">New Build</option>
+                      <option value="existing">Existing</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Registration Date</label>
+                    <input
+                      type="date"
+                      value={dwelling.registrationDate}
+                      onChange={(e) => updateDwelling(index, "registrationDate", e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ))}

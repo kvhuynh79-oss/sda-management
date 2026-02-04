@@ -32,6 +32,7 @@ export default function EditPropertyPage() {
   const [error, setError] = useState("");
 
   const property = useQuery(api.properties.getById, { propertyId });
+  const silProviders = useQuery(api.silProviders.getAll, { status: "active" });
   const updateProperty = useMutation(api.properties.update);
   const updateDwelling = useMutation(api.dwellings.update);
   const updateOwner = useMutation(api.owners.update);
@@ -45,7 +46,8 @@ export default function EditPropertyPage() {
     postcode: "",
     propertyStatus: "active" as "active" | "under_construction" | "sil_property",
     expectedCompletionDate: "",
-    silProviderName: "",
+    silProviderId: "" as string,
+    silProviderName: "", // Legacy field
     managementFeePercent: "",
     notes: "",
   });
@@ -79,7 +81,8 @@ export default function EditPropertyPage() {
         postcode: property.postcode || "",
         propertyStatus: (property as any).propertyStatus || "active",
         expectedCompletionDate: (property as any).expectedCompletionDate || "",
-        silProviderName: (property as any).silProviderName || "",
+        silProviderId: (property as any).silProviderId || "",
+        silProviderName: (property as any).silProviderName || "", // Legacy
         managementFeePercent: property.managementFeePercent?.toString() || "",
         notes: property.notes || "",
       });
@@ -136,7 +139,8 @@ export default function EditPropertyPage() {
         postcode: formData.postcode,
         propertyStatus: formData.propertyStatus,
         expectedCompletionDate: formData.expectedCompletionDate || undefined,
-        silProviderName: formData.silProviderName || undefined,
+        silProviderId: formData.silProviderId ? formData.silProviderId as Id<"silProviders"> : undefined,
+        silProviderName: formData.silProviderName || undefined, // Legacy
         managementFeePercent: formData.managementFeePercent
           ? parseFloat(formData.managementFeePercent)
           : undefined,
@@ -318,15 +322,26 @@ export default function EditPropertyPage() {
 
               {formData.propertyStatus === "sil_property" && (
                 <div>
-                  <label className="block text-gray-300 text-sm mb-1">SIL Provider Name</label>
-                  <input
-                    type="text"
-                    value={formData.silProviderName}
-                    onChange={(e) => setFormData({ ...formData, silProviderName: e.target.value })}
-                    placeholder="e.g., Care Provider ABC"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
-                  />
-                  <p className="text-gray-500 text-xs mt-1">The SIL provider you are managing this property for</p>
+                  <label className="block text-gray-300 text-sm mb-1">SIL Provider *</label>
+                  <select
+                    value={formData.silProviderId}
+                    onChange={(e) => setFormData({ ...formData, silProviderId: e.target.value })}
+                    required
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  >
+                    <option value="">Select SIL Provider...</option>
+                    {silProviders?.map((provider) => (
+                      <option key={provider._id} value={provider._id}>
+                        {provider.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-gray-500 text-xs mt-1">
+                    The SIL provider you are managing this property for.{" "}
+                    <Link href="/database/sil-providers/new" className="text-blue-400 hover:underline">
+                      Add new provider
+                    </Link>
+                  </p>
                 </div>
               )}
             </div>
@@ -440,7 +455,7 @@ export default function EditPropertyPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className={`grid ${formData.propertyStatus === "sil_property" ? "grid-cols-3" : "grid-cols-2 md:grid-cols-4"} gap-4 mb-4`}>
                       <div>
                         <label className="block text-gray-300 text-sm mb-1">Bedrooms</label>
                         <input
@@ -471,43 +486,48 @@ export default function EditPropertyPage() {
                           className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
                         />
                       </div>
-                      <div>
-                        <label className="block text-gray-300 text-sm mb-1">Registration Date</label>
-                        <input
-                          type="date"
-                          value={dwelling.registrationDate}
-                          onChange={(e) => updateDwellingField(index, "registrationDate", e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
-                        />
-                      </div>
+                      {formData.propertyStatus !== "sil_property" && (
+                        <div>
+                          <label className="block text-gray-300 text-sm mb-1">Registration Date</label>
+                          <input
+                            type="date"
+                            value={dwelling.registrationDate}
+                            onChange={(e) => updateDwellingField(index, "registrationDate", e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-gray-300 text-sm mb-1">SDA Design Category</label>
-                        <select
-                          value={dwelling.sdaDesignCategory}
-                          onChange={(e) => updateDwellingField(index, "sdaDesignCategory", e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
-                        >
-                          <option value="improved_liveability">Improved Liveability</option>
-                          <option value="fully_accessible">Fully Accessible</option>
-                          <option value="robust">Robust</option>
-                          <option value="high_physical_support">High Physical Support</option>
-                        </select>
+                    {/* SDA-specific fields - only show for non-SIL properties */}
+                    {formData.propertyStatus !== "sil_property" && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-gray-300 text-sm mb-1">SDA Design Category</label>
+                          <select
+                            value={dwelling.sdaDesignCategory}
+                            onChange={(e) => updateDwellingField(index, "sdaDesignCategory", e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                          >
+                            <option value="improved_liveability">Improved Liveability</option>
+                            <option value="fully_accessible">Fully Accessible</option>
+                            <option value="robust">Robust</option>
+                            <option value="high_physical_support">High Physical Support</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-gray-300 text-sm mb-1">SDA Building Type</label>
+                          <select
+                            value={dwelling.sdaBuildingType}
+                            onChange={(e) => updateDwellingField(index, "sdaBuildingType", e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
+                          >
+                            <option value="new_build">New Build</option>
+                            <option value="existing">Existing</option>
+                          </select>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-gray-300 text-sm mb-1">SDA Building Type</label>
-                        <select
-                          value={dwelling.sdaBuildingType}
-                          onChange={(e) => updateDwellingField(index, "sdaBuildingType", e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm"
-                        >
-                          <option value="new_build">New Build</option>
-                          <option value="existing">Existing</option>
-                        </select>
-                      </div>
-                    </div>
+                    )}
                   </div>
                   );
                 })}

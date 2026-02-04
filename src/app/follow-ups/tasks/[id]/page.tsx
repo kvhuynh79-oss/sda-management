@@ -263,6 +263,8 @@ export default function TaskDetailPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Description</h2>
               {isEditing ? (
                 <FormTextarea
+                  label="Description"
+                  hideLabel
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}

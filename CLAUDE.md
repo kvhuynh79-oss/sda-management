@@ -236,4 +236,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-03
+**Last Updated**: 2026-02-04

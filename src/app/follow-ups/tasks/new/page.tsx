@@ -46,7 +46,7 @@ export default function NewTaskPage() {
 
   const participants = useQuery(api.participants.getAll);
   const properties = useQuery(api.properties.getAll);
-  const users = useQuery(api.users.getAll);
+  const users = useQuery(api.auth.getAllUsers);
 
   const createTask = useMutation(api.tasks.create);
 

@@ -45,7 +45,7 @@ export default function TaskDetailPage() {
   const task = useQuery(api.tasks.getById, { id: taskId as Id<"tasks"> });
   const participants = useQuery(api.participants.getAll);
   const properties = useQuery(api.properties.getAll);
-  const users = useQuery(api.users.getAll);
+  const users = useQuery(api.auth.getAllUsers);
 
   const updateTask = useMutation(api.tasks.update);
   const updateStatus = useMutation(api.tasks.updateStatus);

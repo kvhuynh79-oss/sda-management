@@ -33,6 +33,7 @@ export default function DashboardPage() {
       activeSdaCount: activeProperties.length,
       underConstructionCount: properties.filter(p => p.propertyStatus === "under_construction").length,
       planningCount: properties.filter(p => p.propertyStatus === "planning").length,
+      silPropertyCount: properties.filter(p => p.propertyStatus === "sil_property").length,
     };
   }, [properties]);
 
@@ -61,13 +62,21 @@ export default function DashboardPage() {
         <h2 className="text-2xl font-bold text-white mb-8">Dashboard</h2>
 
         {/* Property Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Link href="/properties?status=active">
             <DashboardCard
               title="Active SDA"
               value={(propertyStats?.activeSdaCount ?? 0).toString()}
               subtitle="Operational properties"
               color="green"
+            />
+          </Link>
+          <Link href="/properties?status=sil_property">
+            <DashboardCard
+              title="SIL Properties"
+              value={(propertyStats?.silPropertyCount ?? 0).toString()}
+              subtitle="SIL managed properties"
+              color="orange"
             />
           </Link>
           <Link href="/properties?status=under_construction">
@@ -304,13 +313,14 @@ function DashboardCard({
   title: string;
   value: string;
   subtitle: string;
-  color: "blue" | "green" | "yellow" | "red";
+  color: "blue" | "green" | "yellow" | "red" | "orange";
 }) {
   const colorClasses = {
     blue: "bg-blue-600",
     green: "bg-green-600",
     yellow: "bg-yellow-600",
     red: "bg-red-600",
+    orange: "bg-orange-600",
   };
 
   return (

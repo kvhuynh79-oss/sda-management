@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
+
+type PropertyStatusType = "active" | "under_construction" | "sil_property";
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
 
@@ -41,8 +43,18 @@ export default function NewPropertyPage() {
     suburb: "",
     state: "NSW" as typeof STATES[number],
     postcode: "",
-    propertyStatus: "active" as "active" | "under_construction" | "sil_property",
+    propertyStatus: "active" as PropertyStatusType,
     expectedCompletionDate: "",
+    // SIL property fields
+    silProviderId: "" as string,
+    silServiceScope: "maintenance_and_incidents" as "full_management" | "maintenance_only" | "incidents_only" | "maintenance_and_incidents",
+    silContractStartDate: "",
+    silContractEndDate: "",
+    silMonthlyFee: "",
+    silContactName: "",
+    silContactPhone: "",
+    silContactEmail: "",
+    // Legacy/other fields
     silProviderName: "",
     revenueSharePercent: "",
     managementFeePercent: "",
@@ -75,9 +87,13 @@ export default function NewPropertyPage() {
   ]);
 
   const owners = useQuery(api.owners.getAll);
+  const silProviders = useQuery(api.silProviders.getAll, { status: "active" });
   const createOwner = useMutation(api.owners.create);
   const createProperty = useMutation(api.properties.create);
   const createDwelling = useMutation(api.dwellings.create);
+
+  // Check if this is a SIL property (skips owner requirement)
+  const isSilProperty = propertyData.propertyStatus === "sil_property";
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -93,28 +109,31 @@ export default function NewPropertyPage() {
     setIsLoading(true);
 
     try {
-      // Step 1: Create or select owner
-      let ownerId: string;
-      
-      if (createNewOwner) {
-        ownerId = await createOwner({
-          userId: user?.id as Id<"users">,
-          ownerType,
-          firstName: ownerType === "individual" ? ownerData.firstName : undefined,
-          lastName: ownerType === "individual" ? ownerData.lastName : undefined,
-          companyName: ownerType === "company" || ownerType === "trust" ? ownerData.companyName : undefined,
-          email: ownerData.email || "self@example.com",
-          phone: ownerData.phone || undefined,
-          abn: ownerData.abn || undefined,
-          bankBsb: ownerData.bankBsb || undefined,
-          bankAccountNumber: ownerData.bankAccountNumber || undefined,
-          bankAccountName: ownerData.bankAccountName || undefined,
-        });
-      } else {
-        if (!selectedOwnerId) {
-          throw new Error("Please select an owner");
+      // Step 1: Create or select owner (skip for SIL properties)
+      let ownerId: string | undefined;
+
+      if (!isSilProperty) {
+        // Regular properties need an owner
+        if (createNewOwner) {
+          ownerId = await createOwner({
+            userId: user?.id as Id<"users">,
+            ownerType,
+            firstName: ownerType === "individual" ? ownerData.firstName : undefined,
+            lastName: ownerType === "individual" ? ownerData.lastName : undefined,
+            companyName: ownerType === "company" || ownerType === "trust" ? ownerData.companyName : undefined,
+            email: ownerData.email || "self@example.com",
+            phone: ownerData.phone || undefined,
+            abn: ownerData.abn || undefined,
+            bankBsb: ownerData.bankBsb || undefined,
+            bankAccountNumber: ownerData.bankAccountNumber || undefined,
+            bankAccountName: ownerData.bankAccountName || undefined,
+          });
+        } else {
+          if (!selectedOwnerId) {
+            throw new Error("Please select an owner");
+          }
+          ownerId = selectedOwnerId;
         }
-        ownerId = selectedOwnerId;
       }
 
       // Step 2: Create property
@@ -128,9 +147,19 @@ export default function NewPropertyPage() {
         postcode: propertyData.postcode,
         propertyStatus: propertyData.propertyStatus,
         expectedCompletionDate: propertyData.expectedCompletionDate || undefined,
+        // SIL property fields
+        silProviderId: propertyData.silProviderId ? propertyData.silProviderId as Id<"silProviders"> : undefined,
+        silServiceScope: isSilProperty ? propertyData.silServiceScope : undefined,
+        silContractStartDate: propertyData.silContractStartDate || undefined,
+        silContractEndDate: propertyData.silContractEndDate || undefined,
+        silMonthlyFee: propertyData.silMonthlyFee ? parseFloat(propertyData.silMonthlyFee) : undefined,
+        silContactName: propertyData.silContactName || undefined,
+        silContactPhone: propertyData.silContactPhone || undefined,
+        silContactEmail: propertyData.silContactEmail || undefined,
         silProviderName: propertyData.silProviderName || undefined,
-        ownerId: ownerId as Id<"owners">,
-        ownershipType: ownerType === "self" ? "self_owned" : "investor",
+        // Owner fields
+        ownerId: ownerId ? ownerId as Id<"owners"> : undefined,
+        ownershipType: isSilProperty ? "sil_managed" : (ownerType === "self" ? "self_owned" : "investor"),
         revenueSharePercent: propertyData.revenueSharePercent
           ? parseFloat(propertyData.revenueSharePercent)
           : undefined,
@@ -192,9 +221,9 @@ export default function NewPropertyPage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
-          <Step number={1} label="Owner" active={step === 1} completed={step > 1} />
+          <Step number={1} label="Property" active={step === 1} completed={step > 1} />
           <div className="w-16 h-1 bg-gray-700 mx-2" />
-          <Step number={2} label="Property" active={step === 2} completed={step > 2} />
+          <Step number={2} label={isSilProperty ? "SIL Provider" : "Owner"} active={step === 2} completed={step > 2} />
           <div className="w-16 h-1 bg-gray-700 mx-2" />
           <Step number={3} label="Dwellings" active={step === 3} completed={step > 3} />
         </div>
@@ -206,8 +235,20 @@ export default function NewPropertyPage() {
             </div>
           )}
 
-          {/* Step 1: Owner */}
+          {/* Step 1: Property */}
           {step === 1 && (
+            <PropertyStep
+              propertyData={propertyData}
+              setPropertyData={setPropertyData}
+              ownerType={ownerType}
+              silProviders={silProviders || []}
+              onBack={null}
+              onNext={() => setStep(2)}
+            />
+          )}
+
+          {/* Step 2: Owner (for regular) or SIL Provider Details (for SIL) */}
+          {step === 2 && !isSilProperty && (
             <OwnerStep
               ownerType={ownerType}
               setOwnerType={setOwnerType}
@@ -218,16 +259,17 @@ export default function NewPropertyPage() {
               selectedOwnerId={selectedOwnerId}
               setSelectedOwnerId={setSelectedOwnerId}
               owners={owners || []}
-              onNext={() => setStep(2)}
+              onBack={() => setStep(1)}
+              onNext={() => setStep(3)}
             />
           )}
 
-          {/* Step 2: Property */}
-          {step === 2 && (
-            <PropertyStep
+          {/* Step 2: SIL Provider Details (for SIL properties) */}
+          {step === 2 && isSilProperty && (
+            <SilProviderStep
               propertyData={propertyData}
               setPropertyData={setPropertyData}
-              ownerType={ownerType}
+              silProviders={silProviders || []}
               onBack={() => setStep(1)}
               onNext={() => setStep(3)}
             />
@@ -268,10 +310,10 @@ function Step({ number, label, active, completed }: {
   );
 }
 
-function OwnerStep({ 
-  ownerType, setOwnerType, ownerData, setOwnerData, 
+function OwnerStep({
+  ownerType, setOwnerType, ownerData, setOwnerData,
   createNewOwner, setCreateNewOwner, selectedOwnerId, setSelectedOwnerId,
-  owners, onNext 
+  owners, onBack, onNext
 }: any) {
   return (
     <div>
@@ -461,19 +503,27 @@ function OwnerStep({
         </>
       )}
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex justify-between">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+          >
+            Back
+          </button>
+        )}
         <button
           onClick={onNext}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors ml-auto"
         >
-          Next: Property Details
+          Next: Add Dwellings
         </button>
       </div>
     </div>
   );
 }
 
-function PropertyStep({ propertyData, setPropertyData, ownerType, onBack, onNext }: any) {
+function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, onBack, onNext }: any) {
   return (
     <div>
       <h3 className="text-xl font-semibold text-white mb-6">Property Details</h3>
@@ -634,6 +684,153 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, onBack, onNext
             rows={3}
             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
           />
+        </div>
+      </div>
+
+      <div className="mt-8 flex justify-end">
+        <button
+          onClick={onNext}
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          {propertyData.propertyStatus === "sil_property" ? "Next: SIL Provider Details" : "Next: Owner Details"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// SIL Provider Step - for properties managed on behalf of SIL providers
+function SilProviderStep({ propertyData, setPropertyData, silProviders, onBack, onNext }: any) {
+  return (
+    <div>
+      <h3 className="text-xl font-semibold text-white mb-2">SIL Provider Details</h3>
+      <p className="text-gray-400 text-sm mb-6">
+        Enter the details of the SIL provider you are managing this property for.
+      </p>
+
+      <div className="space-y-4">
+        {/* SIL Provider Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">SIL Provider *</label>
+          <select
+            value={propertyData.silProviderId}
+            onChange={(e) => {
+              const provider = silProviders.find((p: any) => p._id === e.target.value);
+              setPropertyData({
+                ...propertyData,
+                silProviderId: e.target.value,
+                // Auto-fill contact details from provider if available
+                silContactName: provider?.contactName || propertyData.silContactName,
+                silContactPhone: provider?.phone || propertyData.silContactPhone,
+                silContactEmail: provider?.email || propertyData.silContactEmail,
+              });
+            }}
+            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+          >
+            <option value="">Select a SIL Provider...</option>
+            {silProviders.map((provider: any) => (
+              <option key={provider._id} value={provider._id}>
+                {provider.companyName}
+              </option>
+            ))}
+          </select>
+          {silProviders.length === 0 && (
+            <p className="text-yellow-400 text-xs mt-1">
+              No SIL providers found. Add providers in Database → SIL Providers first.
+            </p>
+          )}
+        </div>
+
+        {/* Service Scope */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Service Scope *</label>
+          <select
+            value={propertyData.silServiceScope}
+            onChange={(e) => setPropertyData({ ...propertyData, silServiceScope: e.target.value })}
+            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+          >
+            <option value="maintenance_and_incidents">Maintenance & Incidents</option>
+            <option value="maintenance_only">Maintenance Only</option>
+            <option value="incidents_only">Incidents Only</option>
+            <option value="full_management">Full Property Management</option>
+          </select>
+          <p className="text-gray-500 text-xs mt-1">What services you provide for this property</p>
+        </div>
+
+        {/* Contract Dates */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Contract Start Date</label>
+            <input
+              type="date"
+              value={propertyData.silContractStartDate}
+              onChange={(e) => setPropertyData({ ...propertyData, silContractStartDate: e.target.value })}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Contract End Date</label>
+            <input
+              type="date"
+              value={propertyData.silContractEndDate}
+              onChange={(e) => setPropertyData({ ...propertyData, silContractEndDate: e.target.value })}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            />
+            <p className="text-gray-500 text-xs mt-1">Leave blank if ongoing</p>
+          </div>
+        </div>
+
+        {/* Monthly Fee */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Monthly Management Fee ($)</label>
+          <input
+            type="number"
+            value={propertyData.silMonthlyFee}
+            onChange={(e) => setPropertyData({ ...propertyData, silMonthlyFee: e.target.value })}
+            placeholder="e.g., 500"
+            min="0"
+            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+          />
+          <p className="text-gray-500 text-xs mt-1">Fee charged to SIL provider for managing this property</p>
+        </div>
+
+        {/* Contact Details */}
+        <div className="border-t border-gray-600 pt-4 mt-4">
+          <h4 className="text-sm font-medium text-gray-200 mb-4">Property Contact at SIL Provider</h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Contact Name</label>
+              <input
+                type="text"
+                value={propertyData.silContactName}
+                onChange={(e) => setPropertyData({ ...propertyData, silContactName: e.target.value })}
+                placeholder="Primary contact for this property"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+                <input
+                  type="tel"
+                  value={propertyData.silContactPhone}
+                  onChange={(e) => setPropertyData({ ...propertyData, silContactPhone: e.target.value })}
+                  placeholder="e.g., 0400 000 000"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={propertyData.silContactEmail}
+                  onChange={(e) => setPropertyData({ ...propertyData, silContactEmail: e.target.value })}
+                  placeholder="contact@provider.com"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

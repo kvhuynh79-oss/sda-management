@@ -266,7 +266,7 @@ export const getOwnerStatement = query({
       properties.map(async (property) => {
         if (!property) return null;
 
-        const owner = await ctx.db.get(property.ownerId);
+        const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
         const dwellings = await ctx.db
           .query("dwellings")
           .withIndex("by_property", (q) => q.eq("propertyId", property._id))
@@ -322,17 +322,23 @@ export const getOwnerStatement = query({
           })
         );
 
-        return {
-          propertyId: property._id,
-          propertyName: property.propertyName || property.addressLine1,
-          address: `${property.addressLine1}, ${property.suburb} ${property.state} ${property.postcode}`,
-          owner: owner ? {
-            name: owner.ownerType === "company" ? owner.companyName : `${owner.firstName} ${owner.lastName}`,
+        // Build owner info if owner exists
+        let ownerInfo = null;
+        if (owner && "ownerType" in owner) {
+          ownerInfo = {
+            name: owner.ownerType === "company" ? owner.companyName || "" : `${owner.firstName || ""} ${owner.lastName || ""}`,
             email: owner.email,
             bankBsb: owner.bankBsb,
             bankAccountNumber: owner.bankAccountNumber,
             bankAccountName: owner.bankAccountName,
-          } : null,
+          };
+        }
+
+        return {
+          propertyId: property._id,
+          propertyName: property.propertyName || property.addressLine1,
+          address: `${property.addressLine1}, ${property.suburb} ${property.state} ${property.postcode}`,
+          owner: ownerInfo,
           dwellings: dwellingRevenue,
           totalMonthlyRevenue: dwellingRevenue.reduce((sum, d) => sum + d.totalRevenue, 0),
           totalMonthlyNetToOwner: dwellingRevenue.reduce((sum, d) => sum + d.totalNetToOwner, 0),

@@ -32,9 +32,26 @@ export const create = mutation({
       )
     ),
     expectedCompletionDate: v.optional(v.string()),
-    silProviderName: v.optional(v.string()),
-    ownerId: v.id("owners"),
-    ownershipType: v.union(v.literal("investor"), v.literal("self_owned")),
+    // SIL Property fields
+    silProviderName: v.optional(v.string()), // Legacy free text
+    silProviderId: v.optional(v.id("silProviders")), // Link to SIL provider
+    silServiceScope: v.optional(
+      v.union(
+        v.literal("full_management"),
+        v.literal("maintenance_only"),
+        v.literal("incidents_only"),
+        v.literal("maintenance_and_incidents")
+      )
+    ),
+    silContractStartDate: v.optional(v.string()),
+    silContractEndDate: v.optional(v.string()),
+    silMonthlyFee: v.optional(v.number()),
+    silContactName: v.optional(v.string()),
+    silContactPhone: v.optional(v.string()),
+    silContactEmail: v.optional(v.string()),
+    // Owner fields - optional for SIL properties
+    ownerId: v.optional(v.id("owners")),
+    ownershipType: v.optional(v.union(v.literal("investor"), v.literal("self_owned"), v.literal("sil_managed"))),
     revenueSharePercent: v.optional(v.number()),
     managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     sdaRegistrationNumber: v.optional(v.string()),
@@ -84,8 +101,8 @@ export const getAll = query({
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // Batch fetch all owners to avoid N+1 queries
-    const ownerIds = [...new Set(properties.map((p) => p.ownerId))];
+    // Batch fetch all owners to avoid N+1 queries (filter out undefined for SIL properties)
+    const ownerIds = [...new Set(properties.map((p) => p.ownerId).filter((id): id is NonNullable<typeof id> => id !== undefined))];
     const owners = await Promise.all(ownerIds.map((id) => ctx.db.get(id)));
     const ownerMap = new Map(owners.map((o, i) => [ownerIds[i], o]));
 
@@ -107,7 +124,7 @@ export const getAll = query({
 
     // Build result with pre-fetched data
     const propertiesWithDetails = properties.map((property) => {
-      const owner = ownerMap.get(property.ownerId);
+      const owner = property.ownerId ? ownerMap.get(property.ownerId) : null;
       const dwellings = dwellingsByProperty.get(property._id) || [];
 
       const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
@@ -134,7 +151,7 @@ export const getById = query({
     const property = await ctx.db.get(args.propertyId);
     if (!property) return null;
 
-    const owner = await ctx.db.get(property.ownerId);
+    const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
     const dwellings = await ctx.db
       .query("dwellings")
       .withIndex("by_property", (q) => q.eq("propertyId", property._id))
@@ -178,9 +195,26 @@ export const update = mutation({
       )
     ),
     expectedCompletionDate: v.optional(v.string()),
+    // SIL Property fields
     silProviderName: v.optional(v.string()),
+    silProviderId: v.optional(v.id("silProviders")),
+    silServiceScope: v.optional(
+      v.union(
+        v.literal("full_management"),
+        v.literal("maintenance_only"),
+        v.literal("incidents_only"),
+        v.literal("maintenance_and_incidents")
+      )
+    ),
+    silContractStartDate: v.optional(v.string()),
+    silContractEndDate: v.optional(v.string()),
+    silMonthlyFee: v.optional(v.number()),
+    silContactName: v.optional(v.string()),
+    silContactPhone: v.optional(v.string()),
+    silContactEmail: v.optional(v.string()),
+    // Owner fields
     ownerId: v.optional(v.id("owners")),
-    ownershipType: v.optional(v.union(v.literal("investor"), v.literal("self_owned"))),
+    ownershipType: v.optional(v.union(v.literal("investor"), v.literal("self_owned"), v.literal("sil_managed"))),
     revenueSharePercent: v.optional(v.number()),
     managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     sdaRegistrationNumber: v.optional(v.string()),
@@ -302,7 +336,7 @@ export const getAllPaginated = query({
     // Enrich with owner and dwelling data
     const enrichedPage = await Promise.all(
       result.page.map(async (property) => {
-        const owner = await ctx.db.get(property.ownerId);
+        const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
         const dwellings = await ctx.db
           .query("dwellings")
           .withIndex("by_property", (q) => q.eq("propertyId", property._id))

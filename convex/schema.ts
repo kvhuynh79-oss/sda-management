@@ -121,9 +121,26 @@ export default defineSchema({
       )
     ),
     expectedCompletionDate: v.optional(v.string()), // For under_construction properties
-    silProviderName: v.optional(v.string()), // For SIL properties - the provider we manage for
-    ownerId: v.id("owners"),
-    ownershipType: v.union(v.literal("investor"), v.literal("self_owned")),
+    // SIL Property fields - for properties managed on behalf of SIL providers
+    silProviderName: v.optional(v.string()), // Legacy: free text provider name
+    silProviderId: v.optional(v.id("silProviders")), // Link to SIL provider from database
+    silServiceScope: v.optional(
+      v.union(
+        v.literal("full_management"), // Full property management
+        v.literal("maintenance_only"), // Only maintenance/repairs
+        v.literal("incidents_only"), // Only incident management
+        v.literal("maintenance_and_incidents") // Both maintenance and incidents
+      )
+    ),
+    silContractStartDate: v.optional(v.string()), // When we started managing for them
+    silContractEndDate: v.optional(v.string()), // Contract end date if applicable
+    silMonthlyFee: v.optional(v.number()), // Monthly management fee charged to SIL provider
+    silContactName: v.optional(v.string()), // Primary contact at SIL provider for this property
+    silContactPhone: v.optional(v.string()),
+    silContactEmail: v.optional(v.string()),
+    // Owner fields - optional for SIL properties where owner is unknown
+    ownerId: v.optional(v.id("owners")), // Made optional for SIL properties
+    ownershipType: v.optional(v.union(v.literal("investor"), v.literal("self_owned"), v.literal("sil_managed"))),
     revenueSharePercent: v.optional(v.number()),
     managementFeePercent: v.optional(v.number()), // % of revenue kept as management fee (0-100)
     sdaRegistrationNumber: v.optional(v.string()),
@@ -137,7 +154,8 @@ export default defineSchema({
     .index("by_state", ["state"])
     .index("by_propertyStatus", ["propertyStatus"])
     .index("by_owner_status", ["ownerId", "propertyStatus"])
-    .index("by_state_status", ["state", "propertyStatus"]),
+    .index("by_state_status", ["state", "propertyStatus"])
+    .index("by_silProvider", ["silProviderId"]),
 
   // Dwellings table - individual living units within a property
   dwellings: defineTable({

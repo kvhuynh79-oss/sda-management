@@ -205,6 +205,18 @@ src/components/
   - Dashboard integration: task stats, overdue counts, upcoming tasks widget
   - Badge presets: TaskStatusBadge, TaskCategoryBadge, CommunicationTypeBadge, ContactTypeBadge
   - Color constants for all new entity types
+- **Follow-ups Build Fixes (2026-02-05)** ✓
+  - Fixed FormTextarea missing `label` prop - added `hideLabel` option for accessibility
+  - Fixed StatCard invalid color "orange" - changed to "yellow" (valid: blue, green, yellow, red, purple, gray)
+  - Fixed `api.users.getAll` → `api.auth.getAllUsers` (users API is in auth.ts)
+  - Added communications and tasks permissions to authHelpers.ts rolePermissions
+  - Added "communication" and "task" to AuditEntityType union
+- **Drag & Drop Attachment Upload (2026-02-05)** ✓
+  - Added drag-drop support in communications/new page
+  - Visual feedback: blue highlight border when dragging over drop zone
+  - File type validation: images, PDF, Word documents
+  - Preserves click-to-upload functionality
+  - Accessible: keyboard navigation, ARIA labels, focus states
 
 ## Next Session Priorities
 1. **Testing needed:**
@@ -261,4 +273,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-04
+**Last Updated**: 2026-02-05

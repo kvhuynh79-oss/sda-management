@@ -192,7 +192,7 @@ export default function PropertyDetailPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Owner Information</h2>
               <div className="space-y-3">
                 <DetailRow label="Owner" value={getOwnerName()} />
-                <DetailRow label="Ownership Type" value={property.ownershipType.replace("_", " ")} />
+                <DetailRow label="Ownership Type" value={property.ownershipType?.replace("_", " ") || "N/A"} />
                 <DetailRow
                   label="Management Fee %"
                   value={`${property.managementFeePercent || 0}%`}

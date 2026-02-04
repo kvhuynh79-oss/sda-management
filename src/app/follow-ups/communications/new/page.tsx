@@ -33,6 +33,7 @@ export default function NewCommunicationPage() {
   });
 
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [createFollowUpTask, setCreateFollowUpTask] = useState(false);
   const [followUpTaskTitle, setFollowUpTaskTitle] = useState("");
   const [followUpTaskDueDate, setFollowUpTaskDueDate] = useState("");
@@ -50,6 +51,52 @@ export default function NewCommunicationPage() {
   const createCommunication = useMutation(api.communications.create);
   const generateUploadUrl = useMutation(api.communications.generateUploadUrl);
   const createTask = useMutation(api.tasks.create);
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if we're leaving the drop zone entirely
+    // Check if the related target is outside the drop zone
+    const relatedTarget = e.relatedTarget as Node | null;
+    const currentTarget = e.currentTarget;
+    if (!currentTarget.contains(relatedTarget)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Validate file type matches accepted types
+      const acceptedTypes = ["image/", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+      const isAccepted = acceptedTypes.some((type) =>
+        type.endsWith("/") ? file.type.startsWith(type) : file.type === type
+      );
+
+      if (isAccepted) {
+        setAttachmentFile(file);
+      } else {
+        setError("Please upload an image, PDF, or Word document.");
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -358,13 +405,56 @@ export default function NewCommunicationPage() {
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
+                <div
+                  onDragOver={handleDragOver}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-4 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-gray-500 hover:text-gray-300 transition-colors"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  aria-label="Upload attachment. Click or drag and drop a file."
+                  className={`w-full p-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
+                    isDragOver
+                      ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                      : "border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300"
+                  }`}
                 >
-                  Click to attach a file (screenshot, document, etc.)
-                </button>
+                  <div className="flex flex-col items-center gap-2">
+                    <svg
+                      className={`w-8 h-8 ${isDragOver ? "text-blue-400" : "text-gray-500"}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    <p className="text-center">
+                      {isDragOver ? (
+                        <span className="font-medium">Drop file here</span>
+                      ) : (
+                        <>
+                          <span className="font-medium">Click to upload</span> or drag and drop
+                        </>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Images, PDF, or Word documents
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
 

@@ -304,6 +304,31 @@ src/components/
     - Audit trail shows creation time vs sync time
   - **Testing Guide**: See OFFLINE_TESTING_GUIDE.md for comprehensive test scenarios
   - **Status**: Ready for production testing
+- **MFA Implementation (2026-02-06)** ✓ **SECURITY MILESTONE**
+  - **TOTP-Based Authentication**: Google Authenticator / Authy compatible
+    - `convex/mfa.ts` - Full MFA module with setup, verify, disable functions
+    - QR code generation for easy enrollment
+    - 10 backup codes per user (SHA-256 hashed)
+    - 30-second TOTP window with 1-step tolerance for clock skew
+  - **Admin-Only Feature**: MFA restricted to admin accounts for now
+  - **Login Flow Integration**:
+    - `loginWithSession` returns `requiresMfa: true` + `userId` if MFA enabled
+    - `completeMfaLogin` verifies TOTP code and issues session tokens
+    - Backup code support with automatic consumption
+  - **Settings Page**: `/settings/security` for MFA management
+    - Enable/disable MFA
+    - View remaining backup codes
+    - Regenerate backup codes (requires TOTP verification)
+  - **Query Permission Fixes**: 15+ pages updated with required `userId` parameter
+    - participants.getAll, payments.getAll, auth.getAllUsers now require auth
+    - Prevents unauthorized data access
+  - **Files Modified**:
+    - `convex/mfa.ts` (NEW) - MFA backend module
+    - `convex/schema.ts` - Added mfaSecret, mfaEnabled, mfaBackupCodes to users
+    - `src/app/login/page.tsx` - MFA login flow with code input
+    - `src/app/settings/security/page.tsx` - MFA management UI
+    - 15+ pages - Query permission fixes
+  - **Status**: Build passes, ready for deployment and testing
 
 ## Next Session Priorities
 1. **Testing needed:**
@@ -326,8 +351,8 @@ src/components/
 
 ## Future Roadmap (Priorities)
 1. Security enhancements - ✅ **COMPLETE** (RBAC, audit logging, sessions, validation)
-2. Field-level encryption - Encrypt NDIS numbers, DOB, incident descriptions at rest
-3. MFA for admin accounts - TOTP-based multi-factor authentication
+2. MFA for admin accounts - ✅ **COMPLETE** (TOTP-based, backup codes, Settings UI)
+3. Field-level encryption - Encrypt NDIS numbers, DOB, incident descriptions at rest
 4. Proper authentication (Clerk) - Optional migration from current session system
 5. Inspection PDF reports
 

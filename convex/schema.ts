@@ -178,7 +178,8 @@ export default defineSchema({
     .index("by_propertyStatus", ["propertyStatus"])
     .index("by_owner_status", ["ownerId", "propertyStatus"])
     .index("by_state_status", ["state", "propertyStatus"])
-    .index("by_silProvider", ["silProviderId"]),
+    .index("by_silProvider", ["silProviderId"])
+    .index("by_isActive", ["isActive"]),
 
   // Dwellings table - individual living units within a property
   dwellings: defineTable({

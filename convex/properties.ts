@@ -98,7 +98,7 @@ export const getAll = query({
   handler: async (ctx) => {
     const properties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
 
     // Batch fetch all owners to avoid N+1 queries (filter out undefined for SIL properties)

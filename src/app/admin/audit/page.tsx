@@ -5,6 +5,8 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
+import { RequireAuth } from "../../../components/RequireAuth";
+import { useSession } from "../../../hooks/useSession";
 import {
   Shield,
   Search,
@@ -65,8 +67,15 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function AuditLogPage() {
-  const [userId, setUserId] = useState<Id<"users"> | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  return (
+    <RequireAuth allowedRoles={["admin"]}>
+      <AuditLogContent />
+    </RequireAuth>
+  );
+}
+
+function AuditLogContent() {
+  const { user } = useSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAction, setSelectedAction] = useState<string>("");
   const [selectedEntityType, setSelectedEntityType] = useState<string>("");
@@ -74,15 +83,6 @@ export default function AuditLogPage() {
   const [endDate, setEndDate] = useState<string>("");
   const [page, setPage] = useState(0);
   const limit = 25;
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setUserId((user.id || user._id) as Id<"users">);
-      setUserRole(user.role);
-    }
-  }, []);
 
   const auditData = useQuery(api.auditLog.getAuditLogs, {
     limit,
@@ -98,30 +98,6 @@ export default function AuditLogPage() {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate).getTime() + 86400000 : undefined,
   });
-
-  if (!userId) {
-    return (
-      <div className="min-h-screen bg-gray-900">
-        <Header currentPage="admin" />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <p className="text-gray-400">Please log in to view audit logs.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (userRole !== "admin") {
-    return (
-      <div className="min-h-screen bg-gray-900">
-        <Header currentPage="admin" />
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] gap-4">
-          <AlertTriangle className="w-16 h-16 text-yellow-500" />
-          <h2 className="text-xl font-semibold text-white">Access Denied</h2>
-          <p className="text-gray-400">Only administrators can view audit logs.</p>
-        </div>
-      </div>
-    );
-  }
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -150,8 +126,9 @@ export default function AuditLogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header currentPage="admin" />
+    <RequireAuth allowedRoles={["admin"]}>
+      <div className="min-h-screen bg-gray-900">
+        <Header currentPage="admin" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
@@ -431,6 +408,7 @@ export default function AuditLogPage() {
           )}
         </div>
       </main>
-    </div>
+      </div>
+    </RequireAuth>
   );
 }

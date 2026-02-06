@@ -5,6 +5,8 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
+import { RequireAuth } from "../../../components/RequireAuth";
+import { useSession } from "../../../hooks/useSession";
 import ChatInterface from "../../../components/ai/ChatInterface";
 import ConversationsList from "../../../components/ai/ConversationsList";
 import AIHelpGuide from "../../../components/ai/AIHelpGuide";
@@ -32,7 +34,16 @@ interface PendingFiling {
 }
 
 export default function AIAssistantPage() {
-  const [userId, setUserId] = useState<Id<"users"> | null>(null);
+  return (
+    <RequireAuth allowedRoles={["admin"]}>
+      <AIAssistantContent />
+    </RequireAuth>
+  );
+}
+
+function AIAssistantContent() {
+  const { user } = useSession();
+  const userId = user?.id || null;
   const [activeConversationId, setActiveConversationId] = useState<
     Id<"aiConversations"> | undefined
   >(undefined);
@@ -48,16 +59,6 @@ export default function AIAssistantPage() {
     expiryDate?: string;
   } | null>(null);
   const [pendingFiling, setPendingFiling] = useState<PendingFiling | null>(null);
-
-  // Get user from localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      // Login returns "id", not "_id"
-      setUserId((user.id || user._id) as Id<"users">);
-    }
-  }, []);
 
   // Fetch conversations
   const conversations = useQuery(
@@ -528,17 +529,6 @@ export default function AIAssistantPage() {
       setIsLoading(false);
     }
   };
-
-  if (!userId) {
-    return (
-      <div className="min-h-screen bg-gray-900">
-        <Header currentPage="ai" />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <p className="text-gray-400">Please log in to use the AI Assistant.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-900">

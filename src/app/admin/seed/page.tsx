@@ -4,12 +4,21 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import Link from "next/link";
 
 // Create a function reference for the seed mutation
 const seedAnneMarieMutation = makeFunctionReference<"mutation">("seedAnneMarie:seedAnneMarie");
 
 export default function SeedPage() {
+  return (
+    <RequireAuth allowedRoles={["admin"]}>
+      <SeedPageContent />
+    </RequireAuth>
+  );
+}
+
+function SeedPageContent() {
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const seedAnneMarie = useMutation(seedAnneMarieMutation);

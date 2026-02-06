@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "../hooks/useSession";
+import { useAuth } from "../hooks/useAuth";
 import { LoadingScreen } from "./ui/LoadingScreen";
 
 interface RequireAuthProps {
@@ -45,18 +45,19 @@ export function RequireAuth({
   allowedRoles,
   loadingMessage = "Loading...",
 }: RequireAuthProps) {
-  const { user, loading, error } = useSession();
+  // Use useAuth to match Dashboard's auth mechanism (uses sda_user localStorage key)
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isLoading && !user) {
       router.push("/login");
     }
-  }, [loading, user, router]);
+  }, [isLoading, user, router]);
 
   // Show loading state while checking auth
-  if (loading) {
+  if (isLoading) {
     return <LoadingScreen message={loadingMessage} />;
   }
 

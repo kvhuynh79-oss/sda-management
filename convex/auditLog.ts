@@ -222,16 +222,26 @@ export const createLog = mutation({
 // Query audit logs with filters (admin only)
 export const getAuditLogs = query({
   args: {
+    requestingUserId: v.id("users"), // Required for permission check
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
     entityType: v.optional(v.string()),
-    userId: v.optional(v.id("users")),
+    userId: v.optional(v.id("users")), // Optional filter by user
     action: v.optional(v.string()),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     searchTerm: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Admin-only permission check
+    const requestingUser = await ctx.db.get(args.requestingUserId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin") {
+      throw new Error("Access denied: Admin permission required to view audit logs");
+    }
+
     const limit = args.limit || 50;
     const offset = args.offset || 0;
 
@@ -296,10 +306,20 @@ export const getAuditLogs = query({
 // Get audit log statistics
 export const getAuditStats = query({
   args: {
+    requestingUserId: v.id("users"), // Required for permission check
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Admin-only permission check
+    const requestingUser = await ctx.db.get(args.requestingUserId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin") {
+      throw new Error("Access denied: Admin permission required to view audit statistics");
+    }
+
     const logs = await ctx.db.query("auditLogs").collect();
 
     // Filter by date if provided
@@ -341,11 +361,21 @@ export const getAuditStats = query({
 // Get recent activity for a specific entity
 export const getEntityHistory = query({
   args: {
+    requestingUserId: v.id("users"), // Required for permission check
     entityType: v.string(),
     entityId: v.string(),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Admin-only permission check
+    const requestingUser = await ctx.db.get(args.requestingUserId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin") {
+      throw new Error("Access denied: Admin permission required to view entity history");
+    }
+
     const logs = await ctx.db
       .query("auditLogs")
       .withIndex("by_entityType_entityId", (q) =>
@@ -361,10 +391,20 @@ export const getEntityHistory = query({
 // Get user's recent activity
 export const getUserActivity = query({
   args: {
-    userId: v.id("users"),
+    requestingUserId: v.id("users"), // Required for permission check
+    userId: v.id("users"), // User whose activity to retrieve
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Admin-only permission check
+    const requestingUser = await ctx.db.get(args.requestingUserId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin") {
+      throw new Error("Access denied: Admin permission required to view user activity");
+    }
+
     const logs = await ctx.db
       .query("auditLogs")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
@@ -527,10 +567,21 @@ export const verifyHashChainIntegrity = internalMutation({
   },
 });
 
-// Public query to check integrity status
+// Public query to check integrity status (admin only)
 export const getIntegrityStatus = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    requestingUserId: v.id("users"), // Required for permission check
+  },
+  handler: async (ctx, args) => {
+    // Admin-only permission check
+    const requestingUser = await ctx.db.get(args.requestingUserId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin") {
+      throw new Error("Access denied: Admin permission required to view integrity status");
+    }
+
     const totalLogs = await ctx.db.query("auditLogs").collect();
     const verifiedLogs = totalLogs.filter(log => log.isIntegrityVerified === true);
     const unverifiedLogs = totalLogs.filter(log => !log.isIntegrityVerified);

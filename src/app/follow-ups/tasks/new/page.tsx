@@ -44,9 +44,15 @@ export default function NewTaskPage() {
     }
   }, []);
 
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const properties = useQuery(api.properties.getAll);
-  const users = useQuery(api.auth.getAllUsers);
+  const users = useQuery(
+    api.auth.getAllUsers,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
 
   const createTask = useMutation(api.tasks.create);
 

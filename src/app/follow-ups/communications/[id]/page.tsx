@@ -45,7 +45,10 @@ export default function CommunicationDetailPage() {
 
   const communication = useQuery(api.communications.getById, { id: communicationId as Id<"communications"> });
   const relatedTasks = useQuery(api.tasks.getByCommunication, { communicationId: communicationId as Id<"communications"> });
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const properties = useQuery(api.properties.getAll);
 
   const updateCommunication = useMutation(api.communications.update);

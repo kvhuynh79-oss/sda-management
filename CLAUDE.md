@@ -11,7 +11,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **Email**: Resend API
 - **SMS**: Twilio API
 
-## Current Version: v1.3.1
+## Current Version: v1.3.2
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -282,6 +282,28 @@ src/components/
   - **Security Grade After Fix: C → A+ (Production Ready)**
   - **Test Report**: See BACKEND_SECURITY_TEST_REPORT.md for full details
   - **Recommendation**: Safe for production deployment after this fix
+- **Offline Incident Forms (2026-02-06)** ✓ **NDIS COMPLIANCE FEATURE**
+  - **Problem**: Field staff need to report incidents immediately, even in areas with poor connectivity
+  - **Solution**: IndexedDB-based offline queue with automatic sync
+  - **Implementation**:
+    - `src/lib/offlineQueue.ts` - IndexedDB wrapper for pending incidents
+    - `src/hooks/useOfflineSync.ts` - Auto-sync hook with retry logic
+    - `src/components/OfflineIndicator.tsx` - Status banners (offline, syncing, pending, success)
+    - `src/app/incidents/new/page.tsx` - Offline detection and local storage
+  - **Features**:
+    - Detects offline state using `navigator.onLine`
+    - Saves incident data + photos/videos as base64 to IndexedDB
+    - Auto-syncs when connection restored (with 1-second delay)
+    - Manual "Sync Now" button for pending incidents
+    - Retry logic with exponential backoff
+    - Photo upload during sync (base64 → File → Convex storage)
+  - **NDIS Compliance**:
+    - Zero data loss - incidents never lost even if device dies
+    - Immediate reporting capability for critical 24-hour incidents
+    - Photo evidence preserved in offline queue
+    - Audit trail shows creation time vs sync time
+  - **Testing Guide**: See OFFLINE_TESTING_GUIDE.md for comprehensive test scenarios
+  - **Status**: Ready for production testing
 
 ## Next Session Priorities
 1. **Testing needed:**

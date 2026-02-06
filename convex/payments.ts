@@ -144,8 +144,19 @@ export const create = mutation({
 
 // Get all payments with participant and plan details (optimized batch fetch)
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"), // Required for permission check
+  },
+  handler: async (ctx, args) => {
+    // Admin or accountant permission check
+    const requestingUser = await ctx.db.get(args.userId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin" && requestingUser.role !== "accountant") {
+      throw new Error("Access denied: Admin or accountant permission required to view all payments");
+    }
+
     const payments = await ctx.db.query("payments").collect();
 
     if (payments.length === 0) return [];
@@ -454,10 +465,20 @@ export const getPaymentsWithVariance = query({
 // Paginated version of getAll for large datasets
 export const getAllPaginated = query({
   args: {
+    userId: v.id("users"), // Required for permission check
     cursor: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Admin or accountant permission check
+    const requestingUser = await ctx.db.get(args.userId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin" && requestingUser.role !== "accountant") {
+      throw new Error("Access denied: Admin or accountant permission required to view all payments");
+    }
+
     const limit = args.limit || 25;
 
     const result = await ctx.db

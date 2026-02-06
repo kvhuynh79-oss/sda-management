@@ -74,7 +74,10 @@ export default function OnboardingPage() {
   const parseNdisPlanWithVision = useAction(api.aiParsing.parseNdisPlanWithVision);
   const createFromExtracted = useMutation(api.aiParsing.createFromExtracted);
 
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const allDwellings = useQuery(api.dwellings.getAllWithAddresses);
   const providerSettings = useQuery(api.providerSettings.get);
   const rrcCalculation = useQuery(api.providerSettings.calculateRrc);

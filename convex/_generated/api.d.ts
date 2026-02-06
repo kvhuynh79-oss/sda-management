@@ -38,6 +38,7 @@ import type * as insurancePolicies from "../insurancePolicies.js";
 import type * as maintenancePhotos from "../maintenancePhotos.js";
 import type * as maintenanceQuotes from "../maintenanceQuotes.js";
 import type * as maintenanceRequests from "../maintenanceRequests.js";
+import type * as mfa from "../mfa.js";
 import type * as ndisClaimExport from "../ndisClaimExport.js";
 import type * as notificationHelpers from "../notificationHelpers.js";
 import type * as notifications from "../notifications.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   maintenancePhotos: typeof maintenancePhotos;
   maintenanceQuotes: typeof maintenanceQuotes;
   maintenanceRequests: typeof maintenanceRequests;
+  mfa: typeof mfa;
   ndisClaimExport: typeof ndisClaimExport;
   notificationHelpers: typeof notificationHelpers;
   notifications: typeof notifications;

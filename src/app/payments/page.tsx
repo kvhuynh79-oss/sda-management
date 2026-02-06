@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,11 +10,14 @@ import Header from "@/components/Header";
 
 export default function PaymentsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [filterSource, setFilterSource] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const payments = useQuery(api.payments.getAll);
+  const payments = useQuery(
+    api.payments.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");

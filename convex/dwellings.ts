@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth, getUserFullName } from "./authHelpers";
+import { formatChanges } from "./auditLog";
 
 // Create a new dwelling
 export const create = mutation({
@@ -140,9 +141,15 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requirePermission(ctx, args.userId, "properties", "update");
+    const user = await requirePermission(ctx, args.userId, "properties", "update");
     const { dwellingId, userId, ...updates } = args;
-    
+
+    // Get current dwelling data for audit log
+    const dwelling = await ctx.db.get(dwellingId);
+    if (!dwelling) {
+      throw new Error("Dwelling not found");
+    }
+
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
@@ -151,6 +158,28 @@ export const update = mutation({
     }
 
     await ctx.db.patch(dwellingId, filteredUpdates);
+
+    // Audit log with previousValues
+    const { changes, previousValues } = formatChanges(
+      dwelling as Record<string, unknown>,
+      { ...dwelling, ...filteredUpdates } as Record<string, unknown>
+    );
+
+    if (changes !== "{}") {
+      // Only log if there are actual changes
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: user._id,
+        userEmail: user.email,
+        userName: getUserFullName(user),
+        action: "update",
+        entityType: "dwelling",
+        entityId: dwellingId,
+        entityName: dwelling.dwellingName,
+        changes,
+        previousValues,
+      });
+    }
+
     return { success: true };
   },
 });
@@ -162,7 +191,7 @@ export const updateOccupancy = mutation({
     dwellingId: v.id("dwellings"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const user = await requireAuth(ctx, args.userId);
     const participants = await ctx.db
       .query("participants")
       .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
@@ -172,9 +201,13 @@ export const updateOccupancy = mutation({
     const dwelling = await ctx.db.get(args.dwellingId);
     if (!dwelling) throw new Error("Dwelling not found");
 
+    // Store previous occupancy for comparison
+    const previousOccupancy = dwelling.currentOccupancy;
+    const previousStatus = dwelling.occupancyStatus;
+
     const currentOccupancy = participants.length;
     let occupancyStatus: "vacant" | "partially_occupied" | "fully_occupied";
-    
+
     if (currentOccupancy === 0) {
       occupancyStatus = "vacant";
     } else if (currentOccupancy >= dwelling.maxParticipants) {
@@ -189,6 +222,34 @@ export const updateOccupancy = mutation({
       updatedAt: Date.now(),
     });
 
+    // Audit log occupancy changes (triggers NDIA notifications)
+    // This is critical for compliance - NDIA must be notified of vacancy/occupancy changes
+    if (previousOccupancy !== currentOccupancy || previousStatus !== occupancyStatus) {
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: user._id,
+        userEmail: user.email,
+        userName: getUserFullName(user),
+        action: "update",
+        entityType: "dwelling",
+        entityId: args.dwellingId,
+        entityName: dwelling.dwellingName,
+        changes: JSON.stringify({
+          currentOccupancy,
+          occupancyStatus,
+        }),
+        previousValues: JSON.stringify({
+          currentOccupancy: previousOccupancy,
+          occupancyStatus: previousStatus,
+        }),
+        metadata: JSON.stringify({
+          occupancyChange: true,
+          ndiaNotificationRequired: occupancyStatus === "vacant" || previousStatus === "vacant",
+          participantCount: participants.length,
+          maxParticipants: dwelling.maxParticipants,
+        }),
+      });
+    }
+
     return { currentOccupancy, occupancyStatus };
   },
 });
@@ -201,11 +262,35 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check - only admin can delete
-    await requirePermission(ctx, args.userId, "properties", "delete");
+    const user = await requirePermission(ctx, args.userId, "properties", "delete");
+
+    // Get dwelling data before deletion for audit log
+    const dwelling = await ctx.db.get(args.dwellingId);
+    if (!dwelling) {
+      throw new Error("Dwelling not found");
+    }
+
     await ctx.db.patch(args.dwellingId, {
       isActive: false,
       updatedAt: Date.now(),
     });
+
+    // Audit log the deletion
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "delete",
+      entityType: "dwelling",
+      entityId: args.dwellingId,
+      entityName: dwelling.dwellingName,
+      metadata: JSON.stringify({
+        softDelete: true,
+        propertyId: dwelling.propertyId,
+        sdaDesignCategory: dwelling.sdaDesignCategory,
+      }),
+    });
+
     return { success: true };
   },
 });

@@ -15,7 +15,10 @@ export default function NewComplaintPage() {
   const [error, setError] = useState("");
 
   const properties = useQuery(api.properties.getAll);
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const createComplaint = useMutation(api.complaints.create);
 
   const [formData, setFormData] = useState({

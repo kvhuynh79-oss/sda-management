@@ -84,20 +84,32 @@ function AuditLogContent() {
   const [page, setPage] = useState(0);
   const limit = 25;
 
-  const auditData = useQuery(api.auditLog.getAuditLogs, {
-    limit,
-    offset: page * limit,
-    searchTerm: searchTerm || undefined,
-    action: selectedAction || undefined,
-    entityType: selectedEntityType || undefined,
-    startDate: startDate ? new Date(startDate).getTime() : undefined,
-    endDate: endDate ? new Date(endDate).getTime() + 86400000 : undefined, // End of day
-  });
+  const auditData = useQuery(
+    api.auditLog.getAuditLogs,
+    user
+      ? {
+          requestingUserId: user.id,
+          limit,
+          offset: page * limit,
+          searchTerm: searchTerm || undefined,
+          action: selectedAction || undefined,
+          entityType: selectedEntityType || undefined,
+          startDate: startDate ? new Date(startDate).getTime() : undefined,
+          endDate: endDate ? new Date(endDate).getTime() + 86400000 : undefined, // End of day
+        }
+      : "skip"
+  );
 
-  const stats = useQuery(api.auditLog.getAuditStats, {
-    startDate: startDate ? new Date(startDate).getTime() : undefined,
-    endDate: endDate ? new Date(endDate).getTime() + 86400000 : undefined,
-  });
+  const stats = useQuery(
+    api.auditLog.getAuditStats,
+    user
+      ? {
+          requestingUserId: user.id,
+          startDate: startDate ? new Date(startDate).getTime() : undefined,
+          endDate: endDate ? new Date(endDate).getTime() + 86400000 : undefined,
+        }
+      : "skip"
+  );
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);

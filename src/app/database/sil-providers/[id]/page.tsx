@@ -39,7 +39,10 @@ export default function SILProviderDetailPage() {
     api.silProviders.getFullProviderDetails,
     providerId ? { providerId } : "skip"
   );
-  const allUsers = useQuery(api.auth.getAllUsers);
+  const allUsers = useQuery(
+    api.auth.getAllUsers,
+    userId ? { userId } : "skip"
+  );
   const linkUserToProvider = useMutation(api.silProviders.linkUserToProvider);
   const unlinkUserFromProvider = useMutation(api.silProviders.unlinkUserFromProvider);
 

@@ -229,6 +229,9 @@ interface UserForLogin {
   passwordHash: string;
   isActive: boolean;
   silProviderId?: Id<"silProviders">;
+  // MFA fields
+  mfaEnabled?: boolean;
+  mfaSecret?: string;
 }
 
 // Internal query to get user for login (includes password hash)
@@ -323,10 +326,21 @@ export const getUser = query({
   },
 });
 
-// Get all users (admin only in UI)
+// Get all users (admin only)
 export const getAllUsers = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"), // Required for permission check
+  },
+  handler: async (ctx, args) => {
+    // Admin-only permission check
+    const requestingUser = await ctx.db.get(args.userId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+    if (requestingUser.role !== "admin") {
+      throw new Error("Access denied: Admin permission required to view all users");
+    }
+
     const users = await ctx.db.query("users").collect();
 
     return users.map((user) => ({
@@ -598,7 +612,12 @@ export const logout = mutation({
 
 // Login result with session tokens
 interface SessionLoginResult {
-  user: {
+  // MFA flow fields
+  requiresMfa?: boolean; // If true, client must call completeMfaLogin
+  userId?: Id<"users">; // Provided when requiresMfa is true
+
+  // Regular login fields (when MFA not required or after MFA verification)
+  user?: {
     _id: Id<"users">;
     id: Id<"users">;
     email: string;
@@ -608,9 +627,9 @@ interface SessionLoginResult {
     silProviderId?: Id<"silProviders">;
     providerName?: string;
   };
-  token: string;
-  refreshToken: string;
-  expiresAt: number;
+  token?: string;
+  refreshToken?: string;
+  expiresAt?: number;
 }
 
 // Login with session - creates server-side session tokens
@@ -641,6 +660,16 @@ export const loginWithSession = action({
       throw new Error("Invalid email or password");
     }
 
+    // Check if MFA is enabled for this user
+    if (userData.mfaEnabled) {
+      // Return MFA required response (don't create session yet)
+      return {
+        requiresMfa: true,
+        userId: userData._id,
+      };
+    }
+
+    // MFA not enabled - proceed with normal login
     // Generate tokens using crypto.randomUUID (secure random)
     const token = crypto.randomUUID();
     const refreshToken = crypto.randomUUID();
@@ -653,6 +682,50 @@ export const loginWithSession = action({
     // Create session and process login via internal mutation
     const result = await ctx.runMutation(internal.auth.createSessionAndProcessLogin, {
       userId: userData._id,
+      token,
+      refreshToken,
+      expiresAt,
+      refreshTokenExpiresAt,
+      userAgent: args.userAgent,
+      ipAddress: args.ipAddress,
+    });
+
+    return result;
+  },
+});
+
+// Complete MFA login - verify MFA code and create session
+export const completeMfaLogin = action({
+  args: {
+    userId: v.id("users"),
+    mfaCode: v.string(),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<SessionLoginResult> => {
+    // Verify MFA code via mfa module
+    const verification = await ctx.runMutation(internal.mfa.verifyMfaLogin, {
+      userId: args.userId,
+      code: args.mfaCode,
+    });
+
+    if (!verification.success) {
+      throw new Error("Invalid MFA code");
+    }
+
+    // MFA verified - now create session
+    // Generate tokens
+    const token = crypto.randomUUID();
+    const refreshToken = crypto.randomUUID();
+
+    // Calculate expiration times
+    const now = Date.now();
+    const expiresAt = now + (24 * 60 * 60 * 1000); // 24 hours
+    const refreshTokenExpiresAt = now + (30 * 24 * 60 * 60 * 1000); // 30 days
+
+    // Create session and process login via internal mutation
+    const result = await ctx.runMutation(internal.auth.createSessionAndProcessLogin, {
+      userId: args.userId,
       token,
       refreshToken,
       expiresAt,

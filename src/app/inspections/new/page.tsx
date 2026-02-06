@@ -24,8 +24,11 @@ export default function NewInspectionPage() {
   });
 
   const templates = useQuery(api.inspections.getTemplates, {});
-  const properties = useQuery(api.properties.getAll, {});
-  const users = useQuery(api.auth.getAllUsers, {});
+  const properties = useQuery(api.properties.getAll);
+  const users = useQuery(
+    api.auth.getAllUsers,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const dwellings = useQuery(
     api.dwellings.getByProperty,
     formData.propertyId

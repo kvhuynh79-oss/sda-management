@@ -2,18 +2,32 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { LoadingScreen, EmptyState } from "@/components/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { STATUS_COLORS, getStatusColor } from "@/constants/colors";
 import { formatCurrency, formatDate, formatStatus } from "@/utils/format";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function ParticipantsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const participants = useQuery(api.participants.getAll);
+  const [userId, setUserId] = useState<Id<"users"> | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserId(user.id as Id<"users">);
+    }
+  }, []);
+
+  const participants = useQuery(
+    api.participants.getAll,
+    userId ? { userId } : "skip"
+  );
 
   // Memoize filtered participants to avoid recalculating on every render
   const filteredParticipants = useMemo(() => {

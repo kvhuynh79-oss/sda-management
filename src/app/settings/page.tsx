@@ -47,7 +47,10 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
 
   // User management queries/mutations
-  const allUsers = useQuery(api.auth.getAllUsers);
+  const allUsers = useQuery(
+    api.auth.getAllUsers,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const createUser = useAction(api.auth.createUser);
   const updateUser = useMutation(api.auth.updateUser);
   const resetPassword = useAction(api.auth.resetPassword);

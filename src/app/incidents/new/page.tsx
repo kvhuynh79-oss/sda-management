@@ -6,6 +6,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import OfflineIndicator from "@/components/OfflineIndicator";
+import { addToQueue } from "@/lib/offlineQueue";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 type MediaUpload = {
@@ -22,6 +24,7 @@ export default function NewIncidentPage() {
   const [error, setError] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [media, setMedia] = useState<MediaUpload[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const properties = useQuery(api.properties.getAll);
@@ -29,7 +32,10 @@ export default function NewIncidentPage() {
     api.dwellings.getByProperty,
     selectedPropertyId ? { propertyId: selectedPropertyId as Id<"properties"> } : "skip"
   );
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
 
   const createIncident = useMutation(api.incidents.create);
   const addPhoto = useMutation(api.incidents.addPhoto);
@@ -94,6 +100,22 @@ export default function NewIncidentPage() {
     });
   }, [router]);
 
+  // Track online/offline status
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   // Filter participants by selected property
   const filteredParticipants = participants?.filter((p) => {
     if (!selectedPropertyId || !dwellings) return false;
@@ -135,6 +157,16 @@ export default function NewIncidentPage() {
     setMedia(newMedia);
   };
 
+  // Helper function to convert File to base64 for offline storage
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -157,7 +189,52 @@ export default function NewIncidentPage() {
     setIsSubmitting(true);
 
     try {
-      // Create the incident
+      // Check if offline - save to IndexedDB
+      if (!isOnline) {
+        // Prepare incident data for offline queue
+        const incidentData = {
+          propertyId: formData.propertyId,
+          dwellingId: formData.dwellingId || undefined,
+          participantId: formData.participantId || undefined,
+          incidentType: formData.incidentType,
+          severity: formData.severity,
+          title: formData.title,
+          description: formData.description,
+          incidentDate: formData.incidentDate,
+          incidentTime: formData.incidentTime || undefined,
+          location: formData.location || undefined,
+          witnessNames: formData.witnessNames || undefined,
+          immediateActionTaken: formData.immediateActionTaken || undefined,
+          followUpRequired: formData.followUpRequired,
+          followUpNotes: formData.followUpNotes || undefined,
+          reportedToNdis: formData.reportedToNdis,
+          ndisReportDate: formData.ndisReportDate || undefined,
+          reportedBy: user.id,
+          // Store media as base64 for offline support
+          media: await Promise.all(
+            media.map(async (item) => ({
+              file: await fileToBase64(item.file),
+              fileName: item.file.name,
+              fileSize: item.file.size,
+              fileType: item.file.type,
+              description: item.description || undefined,
+              isVideo: item.isVideo,
+            }))
+          ),
+        };
+
+        // Save to offline queue
+        await addToQueue(incidentData);
+
+        // Show success message
+        alert("✓ Incident saved locally. It will sync when you're back online.");
+
+        // Redirect to incidents page
+        router.push("/incidents");
+        return;
+      }
+
+      // Online flow - submit normally via Convex
       const incidentId = await createIncident({
         propertyId: formData.propertyId as Id<"properties">,
         dwellingId: formData.dwellingId ? (formData.dwellingId as Id<"dwellings">) : undefined,
@@ -224,6 +301,7 @@ export default function NewIncidentPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
+      <OfflineIndicator />
       <Header currentPage="incidents" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

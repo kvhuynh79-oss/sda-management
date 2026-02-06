@@ -143,8 +143,8 @@ function FinancialsContent() {
 
         {/* Tab Content */}
         {activeTab === "claims" && <ClaimsTab userId={user.id} />}
-        {activeTab === "payments" && <PaymentsTab />}
-        {activeTab === "owner_payments" && <OwnerPaymentsTab />}
+        {activeTab === "payments" && <PaymentsTab userId={user.id} />}
+        {activeTab === "owner_payments" && <OwnerPaymentsTab userId={user.id} />}
       </main>
     </div>
   );
@@ -931,11 +931,11 @@ function RejectModal({
 // ============================================
 // PAYMENTS TAB
 // ============================================
-function PaymentsTab() {
+function PaymentsTab({ userId }: { userId: string }) {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const payments = useQuery(api.payments.getAll);
+  const payments = useQuery(api.payments.getAll, { userId: userId as Id<"users"> });
 
   const filteredPayments = payments?.filter((payment) => {
     const matchesSource = filterSource === "all" || payment.paymentSource === filterSource;
@@ -1034,7 +1034,7 @@ function PaymentsTab() {
 // ============================================
 // OWNER PAYMENTS TAB
 // ============================================
-function OwnerPaymentsTab() {
+function OwnerPaymentsTab({ userId }: { userId: string }) {
   const [filterProperty, setFilterProperty] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -1044,7 +1044,10 @@ function OwnerPaymentsTab() {
 
   const ownerPayments = useQuery(api.ownerPayments.getAll, {});
   const properties = useQuery(api.properties.getAll);
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    { userId: userId as Id<"users"> }
+  );
   const createOwnerPayment = useMutation(api.ownerPayments.create);
 
   const togglePropertyExpanded = (propertyName: string) => {

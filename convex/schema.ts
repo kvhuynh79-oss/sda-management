@@ -31,6 +31,10 @@ export default defineSchema({
         weeklyDigest: v.boolean(),
       })
     ),
+    // MFA (Multi-Factor Authentication) fields
+    mfaSecret: v.optional(v.string()), // TOTP secret key (encrypted)
+    mfaEnabled: v.optional(v.boolean()), // Whether MFA is enabled for this user
+    mfaBackupCodes: v.optional(v.array(v.string())), // Hashed backup codes
     createdAt: v.number(),
     updatedAt: v.number(),
   })

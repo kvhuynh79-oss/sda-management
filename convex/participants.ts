@@ -131,11 +131,35 @@ async function updateDwellingOccupancy(ctx: any, dwellingId: any) {
 
 // Get all participants with dwelling and property info
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"), // Required for role-based filtering
+  },
+  handler: async (ctx, args) => {
+    // Get requesting user for role-based access control
+    const requestingUser = await ctx.db.get(args.userId);
+    if (!requestingUser) {
+      throw new Error("User not found");
+    }
+
     // Fetch all participants and filter in memory (faster than DB filter with negation)
     const allParticipants = await ctx.db.query("participants").collect();
-    const participants = allParticipants.filter((p) => p.status !== "moved_out");
+    let participants = allParticipants.filter((p) => p.status !== "moved_out");
+
+    // Role-based filtering for SIL provider users
+    if (requestingUser.role === "sil_provider" && requestingUser.silProviderId) {
+      // Get all dwelling IDs this SIL provider has access to
+      const silProviderDwellings = await ctx.db
+        .query("silProviderDwellings")
+        .withIndex("by_provider", (q) => q.eq("silProviderId", requestingUser.silProviderId!))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .collect();
+
+      const allowedDwellingIds = new Set(silProviderDwellings.map((spd) => spd.dwellingId));
+
+      // Filter participants to only those in allowed dwellings
+      participants = participants.filter((p) => allowedDwellingIds.has(p.dwellingId));
+    }
+    // Admin, property_manager, staff, accountant see all participants (no filtering)
 
     // Batch fetch all dwellings
     const dwellingIds = [...new Set(participants.map((p) => p.dwellingId))];

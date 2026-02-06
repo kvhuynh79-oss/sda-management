@@ -45,7 +45,10 @@ export default function NewCommunicationPage() {
     }
   }, []);
 
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const properties = useQuery(api.properties.getAll);
 
   const createCommunication = useMutation(api.communications.create);

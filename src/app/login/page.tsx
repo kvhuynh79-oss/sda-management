@@ -17,7 +17,14 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetSubmitted, setResetSubmitted] = useState(false);
 
+  // MFA state
+  const [requiresMfa, setRequiresMfa] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [pendingUserId, setPendingUserId] = useState("");
+  const [useBackupCode, setUseBackupCode] = useState(false);
+
   const loginWithSession = useAction(api.auth.loginWithSession);
+  const completeMfaLogin = useAction(api.auth.completeMfaLogin);
   const router = useRouter();
 
   // Sanitize error messages to be user-friendly
@@ -42,11 +49,66 @@ export default function LoginPage() {
     try {
       const result = await loginWithSession({ email, password });
 
+      // Check if MFA is required
+      if (result.requiresMfa && result.userId) {
+        setRequiresMfa(true);
+        setPendingUserId(result.userId);
+        setIsLoading(false);
+        return;
+      }
+
       // Store session tokens (new JWT-based auth)
-      storeTokens(result.token, result.refreshToken);
+      if (result.token && result.refreshToken) {
+        storeTokens(result.token, result.refreshToken);
+      }
 
       // BACKWARD COMPATIBILITY: Also store user data in old format
       // TODO: Remove this once all pages are migrated to useSession
+      if (result.user) {
+        localStorage.setItem("sda_user", JSON.stringify({
+          id: result.user._id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          role: result.user.role,
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+        }));
+      }
+
+      // Redirect based on role - SIL providers go to their restricted portal
+      if (result.user?.role === "sil_provider") {
+        router.push("/portal/dashboard");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const result = await completeMfaLogin({
+        userId: pendingUserId as any, // Cast to Id<"users">
+        mfaCode: mfaCode,
+      });
+
+      if (!result.token || !result.user) {
+        setError("Invalid code. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Store session tokens
+      storeTokens(result.token, result.refreshToken || "");
+
+      // BACKWARD COMPATIBILITY: Also store user data in old format
       localStorage.setItem("sda_user", JSON.stringify({
         id: result.user._id,
         email: result.user.email,
@@ -56,7 +118,7 @@ export default function LoginPage() {
         expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
       }));
 
-      // Redirect based on role - SIL providers go to their restricted portal
+      // Redirect based on role
       if (result.user.role === "sil_provider") {
         router.push("/portal/dashboard");
       } else {
@@ -92,75 +154,161 @@ export default function LoginPage() {
         {/* Login Form */}
         <div className="bg-gray-800 rounded-lg shadow-xl p-8">
           <h1 className="text-xl font-semibold text-white mb-6">
-            Sign in to your account
+            {requiresMfa ? "Two-Factor Authentication" : "Sign in to your account"}
           </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+          {!requiresMfa ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
 
-            {/* Email Field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-300 mb-2"
-              >
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
+              {/* Email Field */}
+              <div>
                 <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-300"
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-300 mb-2"
                 >
-                  Password
+                  Email address
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  Forgot password?
-                </button>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="you@example.com"
+                />
               </div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your password"
-              />
-            </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-            >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </button>
-          </form>
+              {/* Password Field */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-300"
+                  >
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleMfaSubmit} className="space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Info Message */}
+              <div className="bg-blue-500/10 border border-blue-500 text-blue-400 px-4 py-3 rounded-lg text-sm">
+                <p>Enter the {useBackupCode ? "backup code" : "verification code"} from your authenticator app to continue.</p>
+              </div>
+
+              {/* MFA Code Field */}
+              <div>
+                <label
+                  htmlFor="mfaCode"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  {useBackupCode ? "Backup Code" : "Verification Code"}
+                </label>
+                <input
+                  id="mfaCode"
+                  type="text"
+                  value={mfaCode}
+                  onChange={(e) => {
+                    // Only allow digits for regular codes, alphanumeric for backup codes
+                    const value = useBackupCode
+                      ? e.target.value.replace(/[^a-zA-Z0-9]/g, "")
+                      : e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setMfaCode(value);
+                    setError("");
+                  }}
+                  required
+                  autoComplete="one-time-code"
+                  inputMode={useBackupCode ? "text" : "numeric"}
+                  maxLength={useBackupCode ? 12 : 6}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-wider font-mono"
+                  placeholder={useBackupCode ? "xxxx-xxxx-xxxx" : "000000"}
+                  autoFocus
+                />
+                <p className="text-gray-400 text-xs mt-2">
+                  {useBackupCode ? "Enter one of your backup codes" : "Enter the 6-digit code from your authenticator app"}
+                </p>
+              </div>
+
+              {/* Toggle Backup Code */}
+              <button
+                type="button"
+                onClick={() => {
+                  setUseBackupCode(!useBackupCode);
+                  setMfaCode("");
+                  setError("");
+                }}
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1"
+              >
+                {useBackupCode ? "Use authenticator code instead" : "Use backup code instead"}
+              </button>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading || (useBackupCode ? mfaCode.length < 8 : mfaCode.length !== 6)}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+              >
+                {isLoading ? "Verifying..." : "Verify"}
+              </button>
+
+              {/* Back Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setRequiresMfa(false);
+                  setMfaCode("");
+                  setPendingUserId("");
+                  setUseBackupCode(false);
+                  setError("");
+                }}
+                className="w-full py-2 px-4 text-gray-400 hover:text-white transition-colors text-sm"
+              >
+                ← Back to login
+              </button>
+            </form>
+          )}
         </div>
 
         {/* Footer */}

@@ -14,7 +14,10 @@ export default function NewPaymentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const createPayment = useMutation(api.payments.create);
 
   const [formData, setFormData] = useState({

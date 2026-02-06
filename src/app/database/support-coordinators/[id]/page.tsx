@@ -30,7 +30,10 @@ export default function SupportCoordinatorDetailPage() {
   }, [router]);
 
   const coordinator = useQuery(api.supportCoordinators.getById, { coordinatorId });
-  const allParticipants = useQuery(api.participants.getAll);
+  const allParticipants = useQuery(
+    api.participants.getAll,
+    userId ? { userId } : "skip"
+  );
   const linkParticipant = useMutation(api.supportCoordinators.linkParticipant);
   const unlinkParticipant = useMutation(api.supportCoordinators.unlinkParticipant);
   const updateCoordinator = useMutation(api.supportCoordinators.update);

@@ -50,7 +50,10 @@ export default function NewDocumentPage() {
   const [isDragActive, setIsDragActive] = useState(false);
   const dragCounterRef = useRef(0);
 
-  const participants = useQuery(api.participants.getAll);
+  const participants = useQuery(
+    api.participants.getAll,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
   const properties = useQuery(api.properties.getAll);
   const owners = useQuery(api.owners.getAll);
 

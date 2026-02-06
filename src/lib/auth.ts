@@ -12,8 +12,8 @@ export function storeTokens(token: string, refreshToken: string) {
   localStorage.setItem(SESSION_STORAGE_KEY, token);
   localStorage.setItem(REFRESH_STORAGE_KEY, refreshToken);
 
-  // Remove old localStorage key if it exists
-  localStorage.removeItem("sda_user");
+  // NOTE: We no longer remove "sda_user" here because some pages still use useAuth hook
+  // It will be removed during the logout process
 }
 
 // Token expiry time (23 hours - refresh before 24h expiry)

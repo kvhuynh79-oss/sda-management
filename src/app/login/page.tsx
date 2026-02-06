@@ -42,8 +42,19 @@ export default function LoginPage() {
     try {
       const result = await loginWithSession({ email, password });
 
-      // Store session tokens (replaces old localStorage approach)
+      // Store session tokens (new JWT-based auth)
       storeTokens(result.token, result.refreshToken);
+
+      // BACKWARD COMPATIBILITY: Also store user data in old format
+      // TODO: Remove this once all pages are migrated to useSession
+      localStorage.setItem("sda_user", JSON.stringify({
+        id: result.user._id,
+        email: result.user.email,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
+        role: result.user.role,
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+      }));
 
       // Redirect based on role - SIL providers go to their restricted portal
       if (result.user.role === "sil_provider") {

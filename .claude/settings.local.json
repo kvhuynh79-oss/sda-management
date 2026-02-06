@@ -31,7 +31,10 @@
       "Bash(npx eslint:*)",
       "Bash(xargs:*)",
       "Bash(git clone:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash($env:CONVEX_DEPLOYMENT = \"dev:original-turtle-8\")",
+      "Bash(node -e:*)",
+      "Bash(CONVEX_DEPLOYMENT=\"dev:original-turtle-8\" npx convex deploy:*)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

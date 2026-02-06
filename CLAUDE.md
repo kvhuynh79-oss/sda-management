@@ -128,7 +128,11 @@ src/components/
 - Forms use controlled components with useState
 - Convex queries use `useQuery(api.module.function)`
 - Convex mutations use `useMutation(api.module.function)`
-- User stored in localStorage as `sda_user` (temporary auth)
+- **Authentication**: Dual system (migration in progress)
+  - `useAuth` hook reads from `localStorage.getItem("sda_user")`
+  - `useSession` hook reads from `sda_session_token` + `sda_refresh_token`
+  - **CRITICAL**: `RequireAuth` must use `useAuth` to match Dashboard
+  - Login stores BOTH formats for backward compatibility
 - All dates stored as ISO strings (YYYY-MM-DD)
 
 ## Completed Features
@@ -217,6 +221,15 @@ src/components/
   - File type validation: images, PDF, Word documents
   - Preserves click-to-upload functionality
   - Accessible: keyboard navigation, ARIA labels, focus states
+- **Production Auth & Performance Fix (2026-02-06)** ✓ **CRITICAL FIX**
+  - **Root Cause**: `RequireAuth` used `useSession` (looks for `sda_session_token`) while Dashboard used `useAuth` (looks for `sda_user`)
+  - **Symptom**: Properties, Participants, Follow-ups pages hung indefinitely; Dashboard worked fine
+  - **Fix**: Changed `RequireAuth.tsx` to use `useAuth` instead of `useSession`
+  - **Query Optimizations**:
+    - `properties.getAll`: Changed from `.filter()` to `.withIndex("by_isActive")`
+    - `participants.getAll`: Changed from DB negation filter to in-memory filter
+    - Added `dwellings.by_isActive` index for performance
+  - **Debugging Method**: Used Backend Architect AI agent to identify auth mismatch in one pass
 - **Security Hardening (2026-02-06)** ✓ **MAJOR UPDATE**
   - **RBAC Security**: Fixed privilege escalation vulnerabilities
     - Added admin checks to createUser, updateUser, resetPassword

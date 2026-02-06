@@ -11,130 +11,354 @@
 
 | Team | Phase | Tasks Assigned | Completed | In Progress | Status |
 |------|-------|----------------|-----------|-------------|--------|
-| **Backend** | Phase 1: Schema | 5 tasks | 0 | 0 | ⏳ READY TO START |
+| **Backend** | Phase 1: Schema | 5 tasks | 5 | 0 | ✅ **COMPLETE** |
+| **Backend** | Phase 2 & 3: Threading + Gate | 13 tasks | 0 | 0 | 🔄 **ACTIVE** |
 | **Frontend** | Phase 1: Planning | 0 tasks | 0 | 0 | ⏳ STANDBY |
 
 **Total Estimated Time:** 120 hours over 6 weeks
-**Current Phase:** Phase 1 - Database Schema & Migration
+**Current Phase:** Phase 2 & 3 - Threading Engine + Consultation Gate (Week 2)
 
-## 🎯 CURRENT MILESTONE: Deploy Schema Changes to Dev Environment
+## 🎯 CURRENT MILESTONE: Implement Smart Threading & Consultation Gate Workflow
 
 ---
 
 ## 📋 CURRENT PROJECT TASKS - CommunicationsLog Refactor
 
-### 🔴 BACKEND TEAM - Phase 1: Database Schema & Migration (Week 1)
+### ✅ BACKEND TEAM - Phase 1: Database Schema & Migration (Week 1) - COMPLETE
 
-#### Task 1.1: Update Communications Schema [⏳ READY TO START] - 3 hours
-**Files:** `convex/schema.ts` (lines 1697-1813)
+**All Phase 1 tasks completed by W2:**
+- ✅ Task 1.1: Update Communications Schema
+- ✅ Task 1.2: Create threadSummaries Table
+- ✅ Task 1.3: Create Migration Script
+- ✅ Task 1.4: Backup Communications Data
+- ✅ Task 1.5: Test Migration & Rollback
+
+---
+
+### 🔴 BACKEND TEAM - Phase 2: Smart Threading Engine (Week 2)
+
+#### Task 2.1: Implement Fuzzy Matching Helpers [⏳ READY TO START] - 2 hours
+**Files:** `convex/lib/threadingEngine.ts` (NEW)
 **Assigned To:** Backend Window 2
 **Instructions:**
-1. Add new fields to communications table:
-   - complianceCategory (9 options: routine, incident_related, complaint, safeguarding, plan_review, access_request, quality_audit, advocacy, none)
-   - complianceFlags (array: requires_documentation, time_sensitive, escalation_required, ndia_reportable, legal_hold)
-   - Threading fields: threadId, parentCommunicationId, isThreadStarter, threadParticipants
-   - Stakeholder linking: stakeholderEntityType, stakeholderEntityId
-   - Consultation Gate: requiresFollowUp, followUpDueDate, followUpStatus, consultationOutcome
-   - Participant involvement: isParticipantInvolved, participantConsentGiven
-   - Multiple attachments: attachmentStorageIds (array), attachmentMetadata (array of objects)
-2. Add new indexes:
-   - by_thread: [threadId, timestamp]
-   - by_participant_compliance: [participantId, complianceCategory, timestamp]
-   - by_stakeholder: [stakeholderEntityType, stakeholderEntityId, timestamp]
-   - by_follow_up: [requiresFollowUp, followUpDueDate]
-3. Rename linkedParticipantId → participantId (make required)
-4. Add linkedParticipantIds (optional array) for multi-participant communications
-5. Deploy schema to dev environment using `npx convex dev`
+1. Create new file `convex/lib/threadingEngine.ts`
+2. Implement Levenshtein distance function (threshold: 0.85 for contact name matching)
+3. Implement Jaccard similarity function (threshold: 0.7 for subject matching)
+4. Create normalization helpers:
+   - Remove "Re:", "Fwd:", "RE:", etc. from subjects
+   - Remove common words ("the", "a", "an", "meeting", "call")
+   - Convert to lowercase, trim whitespace
+5. Export all helpers with TypeScript types
 
 **Deliverables:**
-- [ ] Modified `convex/schema.ts` with all new fields
-- [ ] All new indexes added
-- [ ] Schema deployed to dev (not production yet!)
-- [ ] Test: Create sample communication with new fields
+- [ ] New file `convex/lib/threadingEngine.ts` created
+- [ ] Levenshtein distance function working
+- [ ] Jaccard similarity function working
+- [ ] Subject normalization helpers working
+- [ ] Test: "John Smith" matches "Jon Smith" (score > 0.85)
+- [ ] Test: "NDIS Plan Review" matches "Re: NDIS Plan Review" (score > 0.7)
 
 **Report back when:** COMPLETED
 
 ---
 
-#### Task 1.2: Create threadSummaries Table [⏳ READY TO START] - 1 hour
-**Files:** `convex/schema.ts`
+#### Task 2.2: Create findOrCreateThread Function [⏳ READY TO START] - 3 hours
+**Files:** `convex/lib/threadingEngine.ts`
 **Assigned To:** Backend Window 2
+**Dependencies:** ⚠️ WAIT for Task 2.1 to complete
 **Instructions:**
-1. Create new table `threadSummaries` with fields:
-   - threadId, participantId, startedAt, lastActivityAt
-   - messageCount, participantNames, subject, previewText
-   - hasUnread, complianceCategories, requiresAction
-2. Add indexes:
-   - by_participant_activity: [participantId, lastActivityAt]
-   - by_thread: [threadId]
-3. Deploy schema change
+1. Implement `findOrCreateThread` internal query with:
+   - **12-hour window**: Only check communications from last 12 hours
+   - **Contact matching**: Use Levenshtein distance (40% of score)
+   - **Subject matching**: Use Jaccard similarity (30% of score)
+   - **Time proximity**: Recent = higher score (20% of score)
+   - **Same type**: Email-to-email, call-to-call (10% of score)
+   - **Threshold**: If total score > 0.6, add to existing thread
+   - **New thread**: If no match, create new threadId (use crypto.randomUUID())
+2. Return: `{ threadId: string, isNewThread: boolean, matchScore: number }`
+3. Add detailed comments explaining scoring algorithm
 
 **Deliverables:**
-- [ ] New `threadSummaries` table in schema
-- [ ] Indexes added
-- [ ] Schema deployed to dev
+- [ ] `findOrCreateThread` function implemented
+- [ ] Scoring algorithm matches spec (40/30/20/10 weights)
+- [ ] Test: Similar communications grouped (score > 0.6)
+- [ ] Test: Dissimilar communications create new threads (score < 0.6)
+- [ ] Test: 13-hour old communication does NOT match (outside window)
 
 **Report back when:** COMPLETED
 
 ---
 
-#### Task 1.3: Create Migration Script [⏳ READY TO START] - 4 hours
-**Files:** `convex/migrations/communications_v2.ts` (NEW)
+#### Task 2.3: Integrate Threading into Create Mutation [⏳ READY TO START] - 2 hours
+**Files:** `convex/communications.ts`
 **Assigned To:** Backend Window 2
+**Dependencies:** ⚠️ WAIT for Task 2.2 to complete
 **Instructions:**
-1. Create new file `convex/migrations/communications_v2.ts`
-2. Implement `migrateToV2` internal mutation with:
-   - Batch processing (100 records at a time)
-   - Field mapping: linkedParticipantId → participantId
-   - Infer complianceCategory from keywords in subject/summary
-   - Infer stakeholderEntityType from existing contactType
-   - Set defaults: isParticipantInvolved: true, requiresFollowUp: false, threadId: comm._id
-   - Convert single attachmentStorageId to array attachmentStorageIds
-   - Add migrated_v2 flag for tracking
-3. Include helper functions: inferComplianceCategory, inferStakeholderType
-4. Add audit logging for migration
+1. Import `findOrCreateThread` from threadingEngine
+2. Update `create` mutation to:
+   - Call `findOrCreateThread` before creating communication
+   - Set `threadId` field to returned threadId
+   - Set `isThreadStarter` = isNewThread
+   - If existing thread found, update `threadSummaries` table (increment messageCount, update lastActivityAt)
+   - If new thread, create new `threadSummaries` record
+3. Preserve all existing audit logging
+4. Test: Create 2 similar communications → Should share threadId
 
 **Deliverables:**
-- [ ] New migration file created
-- [ ] Migration logic implemented with rollback support
-- [ ] Test migration on 10 sample records in dev
+- [ ] Modified `convex/communications.ts` with threading integration
+- [ ] `threadSummaries` table updated on every communication
+- [ ] Test: Auto-threading works for similar communications
+- [ ] Test: Audit log shows thread assignment
 
 **Report back when:** COMPLETED
 
 ---
 
-#### Task 1.4: Backup Communications Data [⏳ READY TO START] - 30 minutes
-**Files:** Command line / Convex dashboard
+#### Task 2.4: Manual Thread Management Mutations [⏳ READY TO START] - 2 hours
+**Files:** `convex/communications.ts`
 **Assigned To:** Backend Window 2
 **Instructions:**
-1. Export existing communications table from dev environment
-2. Save backup JSON file to project root: `communications_backup_2026-02-07.json`
-3. Document backup location in migration script comments
+1. Create `mergeThreads` mutation:
+   - Parameters: `sourceThreadId`, `targetThreadId`, `actingUserId`
+   - Move all communications from source thread to target thread
+   - Update threadId for all affected communications
+   - Regenerate threadSummaries for target thread
+   - Delete source threadSummaries record
+   - Add audit logging: "Thread merged: [source] → [target]"
+   - Permission check: requirePermission("admin" or "property_manager")
+2. Create `splitThread` mutation:
+   - Parameters: `communicationId`, `actingUserId`
+   - Create new threadId for this communication
+   - Set isThreadStarter = true
+   - Create new threadSummaries record
+   - Add audit logging: "Thread split from [oldThreadId] to [newThreadId]"
+   - Permission check: requirePermission("admin" or "property_manager")
+3. Add error handling for invalid thread operations
 
 **Deliverables:**
-- [ ] Backup file created
-- [ ] Backup location documented
+- [ ] `mergeThreads` mutation implemented with permissions
+- [ ] `splitThread` mutation implemented with permissions
+- [ ] Audit logging for thread operations
+- [ ] Test: Merge two threads → All communications updated
+- [ ] Test: Split thread → New thread created
+- [ ] Test: Non-admin cannot merge/split threads (permission denied)
 
 **Report back when:** COMPLETED
 
 ---
 
-#### Task 1.5: Test Migration & Rollback [⏳ READY TO START] - 2 hours
-**Files:** `convex/migrations/communications_v2.ts`
+#### Task 2.5: Thread Suggestion Query [⏳ READY TO START] - 1.5 hours
+**Files:** `convex/communications.ts`
 **Assigned To:** Backend Window 2
-**Dependencies:** ⚠️ WAIT for Tasks 1.1, 1.2, 1.3, 1.4 to complete
 **Instructions:**
-1. Run migration on dev environment (100 records max)
-2. Verify all fields populated correctly
-3. Check audit log for migration entries
-4. Test rollback: restore from backup if needed
-5. Document migration results
+1. Create `suggestThreadMerges` query:
+   - Parameters: `participantId`, `userId` (for permissions)
+   - Find all threads for participant from last 7 days
+   - Compare each pair of threads for similarity (reuse fuzzy matching)
+   - Return suggestions where score > 0.5 (lower threshold for manual review)
+   - Each suggestion includes: `{ sourceThreadId, targetThreadId, matchScore, reason }`
+   - Permission check: requirePermission to view communications
+2. Limit to top 10 suggestions (highest scores first)
 
 **Deliverables:**
-- [ ] Migration tested successfully
-- [ ] All data preserved with new fields
-- [ ] Rollback procedure tested
-- [ ] Migration report written
+- [ ] `suggestThreadMerges` query implemented
+- [ ] Test: Returns thread merge suggestions
+- [ ] Test: Scores are reasonable (> 0.5 for similar, < 0.5 for different)
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 2.6: Regenerate Thread Summary Helper [⏳ READY TO START] - 1 hour
+**Files:** `convex/lib/threadingEngine.ts`
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Create `regenerateThreadSummary` internal mutation:
+   - Parameters: `threadId`
+   - Fetch all communications in thread (ordered by timestamp)
+   - Calculate:
+     - `startedAt`: First communication timestamp
+     - `lastActivityAt`: Last communication timestamp
+     - `messageCount`: Total communications in thread
+     - `participantNames`: Unique contact names
+     - `subject`: First communication subject
+     - `previewText`: First 100 chars of first communication summary
+     - `hasUnread`: Any communication with readAt = null
+     - `complianceCategories`: Unique categories in thread
+     - `requiresAction`: Any communication with requiresFollowUp = true
+   - Update or create threadSummaries record
+2. Export for use in merge/split operations
+
+**Deliverables:**
+- [ ] `regenerateThreadSummary` function implemented
+- [ ] Test: Correctly calculates all summary fields
+- [ ] Test: Can be called from mergeThreads/splitThread
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 2.7: Thread Operation Audit Logging [⏳ READY TO START] - 30 minutes
+**Files:** `convex/auditLog.ts`
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Add "thread_merge" to AuditActionType union in `convex/auditLog.ts`
+2. Add "thread_split" to AuditActionType union
+3. Verify audit logging in mergeThreads and splitThread mutations
+4. Test: Thread operations create audit log entries
+
+**Deliverables:**
+- [ ] Modified `convex/auditLog.ts` with new action types
+- [ ] Test: Thread merge creates audit log entry
+- [ ] Test: Thread split creates audit log entry
+
+**Report back when:** COMPLETED
+
+---
+
+### 🔴 BACKEND TEAM - Phase 3: Consultation Gate Workflow (Week 2)
+
+#### Task 3.1: Create checkConsultationGate Helper [⏳ READY TO START] - 2 hours
+**Files:** `convex/lib/consultationGate.ts` (NEW)
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Create new file `convex/lib/consultationGate.ts`
+2. Implement `checkConsultationGate` function with trigger conditions:
+   ```typescript
+   function checkConsultationGate(comm: any): boolean {
+     // Trigger if ANY of these conditions met:
+     // 1. Communication involves 3+ unique stakeholder types
+     // 2. complianceCategory !== "routine"
+     // 3. complianceFlags includes "requires_documentation" or "time_sensitive"
+     // 4. isParticipantInvolved + contactType in ["ndia", "advocate", "guardian"]
+
+     // Count unique stakeholder types in thread
+     // Check compliance category and flags
+     // Return true if gate should trigger
+   }
+   ```
+3. Export function with detailed JSDoc comments explaining trigger logic
+4. Add helper to count stakeholder types in thread
+
+**Deliverables:**
+- [ ] New file `convex/lib/consultationGate.ts` created
+- [ ] `checkConsultationGate` function implemented with all 4 trigger conditions
+- [ ] Test: Returns true for incident_related communication
+- [ ] Test: Returns true for 3+ stakeholder types
+- [ ] Test: Returns false for routine single-stakeholder communication
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 3.2: Integrate Consultation Gate into Create Mutation [⏳ READY TO START] - 1.5 hours
+**Files:** `convex/communications.ts`
+**Assigned To:** Backend Window 2
+**Dependencies:** ⚠️ WAIT for Task 3.1 to complete
+**Instructions:**
+1. Import `checkConsultationGate` from consultationGate module
+2. In `create` mutation, after creating communication:
+   - Call `checkConsultationGate(newCommunication)`
+   - If returns true, set `requiresFollowUp = true`
+   - Return flag: `{ ...result, consultationGateTriggered: boolean }`
+3. Frontend can use this flag to show ConsultationGateModal
+4. Add audit logging: "Consultation Gate triggered" (action type: "consultation_gate")
+
+**Deliverables:**
+- [ ] Modified `convex/communications.ts` with gate integration
+- [ ] Returns `consultationGateTriggered` flag
+- [ ] Test: incident_related communication triggers gate
+- [ ] Test: routine communication does not trigger gate
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 3.3: Auto-Create Follow-Up Task [⏳ READY TO START] - 2 hours
+**Files:** `convex/communications.ts`, `convex/tasks.ts`
+**Assigned To:** Backend Window 2
+**Dependencies:** ⚠️ WAIT for Task 3.2 to complete
+**Instructions:**
+1. Create `createFollowUpTask` internal mutation in `convex/tasks.ts`:
+   - Parameters: `communicationId`, `category`, `priority`, `dueDate`, `assignedTo`
+   - Create task linked to communication
+   - Set appropriate defaults based on complianceCategory
+2. Update `communications.create` to call `createFollowUpTask` when gate triggers:
+   - **Priority calculation**:
+     - incident_related → "high"
+     - complaint, safeguarding → "medium"
+     - Others → "normal"
+   - **Due date calculation**:
+     - incident_related → 24 hours from now
+     - complaint → 5 business days
+     - safeguarding → 48 hours
+     - Others → 7 days
+   - **Assigned to**: Communication creator (createdBy field)
+   - **Task title**: "Follow up: [communication subject]"
+   - **Task notes**: "Auto-generated from Consultation Gate. See communication [id] for details."
+3. Return task ID in response: `{ ...result, taskId: string }`
+
+**Deliverables:**
+- [ ] `createFollowUpTask` internal mutation implemented
+- [ ] Auto-task creation integrated into create mutation
+- [ ] Priority and due date calculated correctly
+- [ ] Test: incident_related creates task with 24hr due date and high priority
+- [ ] Test: complaint creates task with 5-day due date and medium priority
+- [ ] Test: Task appears in tasks table linked to communication
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 3.4: Add Consultation Gate Audit Types [⏳ READY TO START] - 15 minutes
+**Files:** `convex/auditLog.ts`
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Add "consultation_gate" to AuditActionType union
+2. Add "communication" to AuditEntityType union (if not already present)
+3. Verify audit logging in consultationGate integration
+
+**Deliverables:**
+- [ ] Modified `convex/auditLog.ts` with new types
+- [ ] Test: Consultation Gate triggers create audit log entries
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 3.5: Skip Gate Option [⏳ READY TO START] - 1 hour
+**Files:** `convex/communications.ts`
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Add optional parameter to `create` mutation: `skipConsultationGate?: boolean`
+2. If `skipConsultationGate = true`, bypass checkConsultationGate
+3. Add audit logging when gate is manually skipped: "Consultation Gate skipped by user"
+4. Permission check: Only admin/property_manager can skip gate
+
+**Deliverables:**
+- [ ] `skipConsultationGate` parameter added
+- [ ] Gate bypass logic implemented with permission check
+- [ ] Audit logging for gate skips
+- [ ] Test: Admin can skip gate, staff cannot
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 3.6: Log Gate Triggers in Audit Trail [⏳ READY TO START] - 30 minutes
+**Files:** `convex/communications.ts`
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. In `create` mutation, when gate triggers:
+   - Log to audit trail with:
+     - Action: "consultation_gate"
+     - Entity: communication ID
+     - Details: Trigger reason (which condition(s) met)
+2. Include details like: "3 stakeholder types detected" or "Compliance category: incident_related"
+
+**Deliverables:**
+- [ ] Audit logging for gate triggers with detailed reason
+- [ ] Test: Audit log shows why gate triggered
 
 **Report back when:** COMPLETED
 
@@ -184,6 +408,20 @@
 ---
 
 ## 📝 Completion Log
+
+### 2026-02-07 Session 1 - CommunicationsLog Refactor Phase 1
+
+| Time | Task | Status | Notes |
+|------|------|--------|-------|
+| ✅ | Task 1.1: Update Communications Schema | COMPLETED | Added 20+ fields, 4 indexes to communications table (W2) |
+| ✅ | Task 1.2: Create threadSummaries Table | COMPLETED | Performance cache table created (W2) |
+| ✅ | Task 1.3: Create Migration Script | COMPLETED | Batch migration with rollback support (W2) |
+| ✅ | Task 1.4: Backup Communications Data | COMPLETED | Backup file created (W2) |
+| ✅ | Task 1.5: Test Migration & Rollback | COMPLETED | Migration tested on dev environment (W2) |
+
+### 🎉 PHASE 1 COMPLETE - Database Schema Ready!
+
+---
 
 ### 2026-02-06 Session 1
 
@@ -254,8 +492,8 @@
 | Window | Current Task | Status |
 |--------|-------------|--------|
 | W1 | Architect/Coordinator | Active |
-| W2 | Available - Ready for Deployment | Standby |
-| W3 | Available - Ready for Testing | Standby |
+| W2 | Phase 2 & 3: Threading Engine + Consultation Gate | Ready to Start |
+| W3 | Available - Standby until Week 3 | Standby |
 
 ---
 

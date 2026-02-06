@@ -11,7 +11,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **Email**: Resend API
 - **SMS**: Twilio API
 
-## Current Version: v1.3.0
+## Current Version: v1.3.1
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -249,11 +249,11 @@ src/components/
   - **Immutable Audit Logs**: Tamper-proof with hash chain integrity
     - SHA-256 hash linking
     - Deletion prevention
-    - Daily integrity verification cron
+    - Daily integrity verification cron (3 AM UTC)
   - **Server-Side Sessions**: Replaced localStorage auth
     - Sessions table with tokens + refresh tokens
     - loginWithSession, validateSession, refreshSession
-    - 24-hour expiry with refresh capability
+    - 24-hour access token, 30-day refresh token
   - **Frontend Session Integration**:
     - useSession hook for auth state
     - Automatic token refresh
@@ -263,7 +263,25 @@ src/components/
     - Color contrast: text-gray-500 → text-gray-400
     - Form autocomplete attributes on login
     - Heading hierarchy fixes (h1 for main titles)
-  - **System Grade: D+ → B+ (Production Ready)**
+  - **Deployment**: Commit 10bd4b8, 22 new indexes deployed to Convex
+  - **System Grade After Deployment: D+ → B+ (Production Ready)**
+- **Security Testing & Critical Fix (2026-02-06)** ✓ **PRODUCTION BLOCKER RESOLVED**
+  - **Automated Security Testing**: Created Playwright test suite (backend_security_test.py)
+    - Tested RBAC (role-based access control)
+    - Tested audit logging integrity
+    - Tested payment validation
+    - Tested session management
+  - **Critical Vulnerability Discovered**: `/admin/audit` page accessible without authentication
+    - Backend API security: A+ (all requirePermission checks working)
+    - Frontend route protection: C (admin page missing RequireAuth wrapper)
+    - Security impact: High (audit log UI exposed, but API calls would fail)
+  - **Immediate Fix Deployed**: Commit 63fbd29
+    - Added `<RequireAuth allowedRoles={["admin"]}>` wrapper to audit page
+    - Verified all admin routes protected (/admin/audit, /admin/ai, /admin/seed)
+    - Build successful (63 pages generated)
+  - **Security Grade After Fix: C → A+ (Production Ready)**
+  - **Test Report**: See BACKEND_SECURITY_TEST_REPORT.md for full details
+  - **Recommendation**: Safe for production deployment after this fix
 
 ## Next Session Priorities
 1. **Testing needed:**

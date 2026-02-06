@@ -220,6 +220,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_property", ["propertyId"])
+    .index("by_isActive", ["isActive"])
     .index("by_occupancyStatus", ["occupancyStatus"])
     .index("by_property_occupancy", ["propertyId", "occupancyStatus"]),
 

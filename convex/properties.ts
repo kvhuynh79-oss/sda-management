@@ -106,10 +106,10 @@ export const getAll = query({
     const owners = await Promise.all(ownerIds.map((id) => ctx.db.get(id)));
     const ownerMap = new Map(owners.map((o, i) => [ownerIds[i], o]));
 
-    // Batch fetch all active dwellings
+    // Batch fetch all active dwellings using index for performance
     const allDwellings = await ctx.db
       .query("dwellings")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
 
     // Group dwellings by property

@@ -133,10 +133,9 @@ async function updateDwellingOccupancy(ctx: any, dwellingId: any) {
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
-    const participants = await ctx.db
-      .query("participants")
-      .filter((q) => q.neq(q.field("status"), "moved_out"))
-      .collect();
+    // Fetch all participants and filter in memory (faster than DB filter with negation)
+    const allParticipants = await ctx.db.query("participants").collect();
+    const participants = allParticipants.filter((p) => p.status !== "moved_out");
 
     // Batch fetch all dwellings
     const dwellingIds = [...new Set(participants.map((p) => p.dwellingId))];

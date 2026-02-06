@@ -381,7 +381,7 @@ export default function NewDocumentPage() {
                         <p className="mb-2 text-sm text-gray-400">
                           <span className="font-semibold">Click to upload</span> or drag and drop
                         </p>
-                        <p className="text-xs text-gray-500">PDF, DOC, DOCX, XLS, XLSX, PNG, JPG (MAX. 10MB)</p>
+                        <p className="text-xs text-gray-400">PDF, DOC, DOCX, XLS, XLSX, PNG, JPG (MAX. 10MB)</p>
                       </>
                     )}
                   </div>
@@ -422,7 +422,7 @@ export default function NewDocumentPage() {
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Category *
-                <span className="text-gray-500 font-normal ml-2">(auto-selected based on document type)</span>
+                <span className="text-gray-400 font-normal ml-2">(auto-selected based on document type)</span>
               </label>
               <select
                 required

@@ -322,7 +322,7 @@ export default function SupportCoordinatorDetailPage() {
                       </p>
                     )}
                     {history.startDate && (
-                      <p className="text-gray-500 text-sm">Since: {history.startDate}</p>
+                      <p className="text-gray-400 text-sm">Since: {history.startDate}</p>
                     )}
                     {history.notes && (
                       <p className="text-gray-400 text-sm mt-1 italic">{history.notes}</p>

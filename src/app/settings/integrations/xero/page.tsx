@@ -433,7 +433,7 @@ export default function XeroSettingsPage() {
                       </button>
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-400 text-sm">
                       Fetch Xero accounts first to enable syncing
                     </p>
                   )}

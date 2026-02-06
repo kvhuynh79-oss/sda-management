@@ -90,7 +90,7 @@ export default function CommunicationCard({ communication, compact = false }: Co
 
             {/* Attachment indicator */}
             {communication.attachmentFileName && (
-              <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+              <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
                 <span aria-hidden="true">📎</span>
                 <span>{communication.attachmentFileName}</span>
               </div>
@@ -112,13 +112,13 @@ export default function CommunicationCard({ communication, compact = false }: Co
       {/* Meta info */}
       <div className="flex flex-wrap gap-4 sm:gap-6 text-sm text-gray-400 mt-3 pt-3 border-t border-gray-700">
         <div>
-          <span className="text-gray-500">Date:</span>{" "}
+          <span className="text-gray-400">Date:</span>{" "}
           {communication.communicationDate}
           {communication.communicationTime && ` at ${communication.communicationTime}`}
         </div>
         {communication.participant && (
           <div>
-            <span className="text-gray-500">Participant:</span>{" "}
+            <span className="text-gray-400">Participant:</span>{" "}
             {communication.participant.firstName} {communication.participant.lastName}
           </div>
         )}

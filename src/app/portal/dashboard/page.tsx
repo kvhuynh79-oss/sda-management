@@ -111,7 +111,7 @@ export default function SILProviderDashboard() {
                   </svg>
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mt-2">Click to view &rarr;</p>
+              <p className="text-sm text-gray-400 mt-2">Click to view &rarr;</p>
             </div>
           </Link>
 
@@ -146,7 +146,7 @@ export default function SILProviderDashboard() {
                   </svg>
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mt-2">Click to view &rarr;</p>
+              <p className="text-sm text-gray-400 mt-2">Click to view &rarr;</p>
             </div>
           </Link>
 
@@ -157,7 +157,7 @@ export default function SILProviderDashboard() {
                 <p className="text-3xl font-bold text-white mt-1">
                   {dashboard?.stats.totalVacantSpots ?? "-"}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   in {dashboard?.stats.vacantDwellings ?? 0} dwelling
                   {(dashboard?.stats.vacantDwellings ?? 0) !== 1 ? "s" : ""}
                 </p>
@@ -313,7 +313,7 @@ export default function SILProviderDashboard() {
                         <div className="text-white text-sm font-medium">
                           {vacancy.propertyName}
                         </div>
-                        <div className="text-gray-500 text-xs">
+                        <div className="text-gray-400 text-xs">
                           {vacancy.propertyAddress}
                         </div>
                       </td>
@@ -395,7 +395,7 @@ export default function SILProviderDashboard() {
           ) : (
             <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 text-center">
               <p className="text-gray-400">No properties allocated yet.</p>
-              <p className="text-gray-500 text-sm mt-1">
+              <p className="text-gray-400 text-sm mt-1">
                 Contact your administrator to get property access.
               </p>
             </div>

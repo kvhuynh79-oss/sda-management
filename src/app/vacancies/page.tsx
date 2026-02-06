@@ -113,7 +113,7 @@ export default function VacanciesPage() {
         ) : vacancySummary.vacancies.length === 0 ? (
           <div className="text-center py-12 bg-gray-800 rounded-lg">
             <p className="text-gray-400">No vacancies found</p>
-            <p className="text-gray-500 text-sm mt-2">
+            <p className="text-gray-400 text-sm mt-2">
               All dwellings are fully occupied
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function VacanciesPage() {
                     <p className="text-gray-400 mt-1">
                       {vacancy.dwelling.dwellingName} - {vacancy.dwelling.bedrooms} bed
                     </p>
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-400 text-sm">
                       {vacancy.property?.suburb}, {vacancy.property?.state}
                     </p>
                     <div className="mt-2">
@@ -176,7 +176,7 @@ export default function VacanciesPage() {
                         />
                         <span className="text-white">Go Nest</span>
                         {vacancy.listing?.goNestListedDate && (
-                          <span className="text-gray-500 text-sm">
+                          <span className="text-gray-400 text-sm">
                             {vacancy.listing.goNestListedDate}
                           </span>
                         )}
@@ -198,7 +198,7 @@ export default function VacanciesPage() {
                         />
                         <span className="text-white">Housing Hub</span>
                         {vacancy.listing?.housingHubListedDate && (
-                          <span className="text-gray-500 text-sm">
+                          <span className="text-gray-400 text-sm">
                             {vacancy.listing.housingHubListedDate}
                           </span>
                         )}
@@ -220,7 +220,7 @@ export default function VacanciesPage() {
                         />
                         <span className="text-white">NDIS Vacancy Notified</span>
                         {vacancy.listing?.ndisNotifiedDate && (
-                          <span className="text-gray-500 text-sm">
+                          <span className="text-gray-400 text-sm">
                             {vacancy.listing.ndisNotifiedDate}
                           </span>
                         )}
@@ -243,14 +243,14 @@ export default function VacanciesPage() {
                       </div>
                       {vacancy.listing?.coordinatorsNotified &&
                       vacancy.listing.coordinatorsNotified.length > 0 ? (
-                        <p className="text-gray-500 text-sm mt-1">
+                        <p className="text-gray-400 text-sm mt-1">
                           {vacancy.listing.coordinatorsNotified.length} notified
                           {vacancy.listing.lastNotificationDate && (
                             <> on {vacancy.listing.lastNotificationDate}</>
                           )}
                         </p>
                       ) : (
-                        <p className="text-gray-500 text-sm mt-1">No coordinators notified yet</p>
+                        <p className="text-gray-400 text-sm mt-1">No coordinators notified yet</p>
                       )}
                     </div>
                   </div>
@@ -363,7 +363,7 @@ function NotifyCoordinatorsModal({
 
         <div className="flex-1 overflow-y-auto space-y-2 mb-4">
           {displayCoordinators.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
+            <p className="text-gray-400 text-center py-4">
               No coordinators found for this area
             </p>
           ) : (
@@ -409,7 +409,7 @@ function NotifyCoordinatorsModal({
                         </span>
                       ))}
                       {coordinator.areas.length > 3 && (
-                        <span className="text-gray-500 text-xs">
+                        <span className="text-gray-400 text-xs">
                           +{coordinator.areas.length - 3} more
                         </span>
                       )}

@@ -13,6 +13,7 @@ export type AlertType =
   | "claim_due"
   | "owner_payment_due"
   | "payment_overdue"
+  | "payment_variance"
   | "ndis_notification_overdue"
   | "vacancy_notification_overdue"
   | "certification_expiry"

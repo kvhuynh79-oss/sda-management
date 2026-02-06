@@ -65,4 +65,17 @@ crons.monthly(
 //   internal.notifications.sendNotificationsForRecentAlerts
 // );
 
+// ============================================
+// SECURITY & COMPLIANCE CRON JOBS
+// ============================================
+
+// Verify audit log hash chain integrity daily at 3 AM UTC
+// This ensures immutability of audit records for NDIS 7-year retention compliance
+// Any tampering with audit logs will be detected and reported
+crons.daily(
+  "verify-audit-log-integrity",
+  { hourUTC: 3, minuteUTC: 0 },
+  internal.auditLog.verifyHashChainIntegrity
+);
+
 export default crons;

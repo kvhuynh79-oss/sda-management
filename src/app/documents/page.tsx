@@ -260,7 +260,7 @@ function DocumentCard({ document }: { document: any }) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700 text-sm">
         <div>
-          <p className="text-gray-500 text-xs">Linked To</p>
+          <p className="text-gray-400 text-xs">Linked To</p>
           {linkedEntity ? (
             linkedEntity.link ? (
               <Link
@@ -277,15 +277,15 @@ function DocumentCard({ document }: { document: any }) {
           )}
         </div>
         <div>
-          <p className="text-gray-500 text-xs">File Size</p>
+          <p className="text-gray-400 text-xs">File Size</p>
           <p className="text-white">{formatFileSize(document.fileSize)}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Uploaded</p>
+          <p className="text-gray-400 text-xs">Uploaded</p>
           <p className="text-white">{formatDate(document.createdAt)}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Expiry Date</p>
+          <p className="text-gray-400 text-xs">Expiry Date</p>
           <p className={expiryStatus.isExpired ? "text-red-400" : "text-white"}>
             {document.expiryDate || "-"}
           </p>

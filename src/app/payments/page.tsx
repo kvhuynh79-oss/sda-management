@@ -233,7 +233,7 @@ function PaymentRow({ payment }: { payment: any }) {
             {payment.participant.firstName} {payment.participant.lastName}
           </Link>
         ) : (
-          <span className="text-gray-500 text-sm">Unknown</span>
+          <span className="text-gray-400 text-sm">Unknown</span>
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
@@ -264,7 +264,7 @@ function PaymentRow({ payment }: { payment: any }) {
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="bg-gray-800 rounded-lg p-12 text-center">
-      <div className="text-gray-500 text-6xl mb-4">💰</div>
+      <div className="text-gray-400 text-6xl mb-4">💰</div>
       <h3 className="text-xl font-semibold text-white mb-2">
         {hasFilters ? "No payments found" : "No payments recorded yet"}
       </h3>

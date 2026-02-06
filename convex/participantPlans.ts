@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuth } from "./authHelpers";
+import { internal } from "./_generated/api";
 
 // Create a new plan
 export const create = mutation({
@@ -38,6 +39,19 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx, args.userId);
+
+    // Get user details for audit logging
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Get participant details for audit logging
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) {
+      throw new Error("Participant not found");
+    }
+
     // Mark any existing current plans as expired
     const existingPlans = await ctx.db
       .query("participantPlans")
@@ -59,6 +73,25 @@ export const create = mutation({
       planStatus: "current",
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Audit log: Plan created
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "participantPlan",
+      entityId: planId,
+      entityName: `Plan for ${participant.firstName} ${participant.lastName}`,
+      metadata: JSON.stringify({
+        participantId: args.participantId,
+        annualSdaBudget: args.annualSdaBudget,
+        monthlySdaAmount: args.monthlySdaAmount,
+        planStartDate: args.planStartDate,
+        planEndDate: args.planEndDate,
+        sdaDesignCategory: args.sdaDesignCategory,
+      }),
     });
 
     return planId;
@@ -137,6 +170,42 @@ export const update = mutation({
     await requireAuth(ctx, args.userId);
     const { planId, userId, ...updates } = args;
 
+    // Get user details for audit logging
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Get current plan for audit logging (BEFORE update)
+    const plan = await ctx.db.get(planId);
+    if (!plan) {
+      throw new Error("Plan not found");
+    }
+
+    // Get participant details for audit logging
+    const participant = await ctx.db.get(plan.participantId);
+
+    // Capture previous values for NDIS compliance audit trail
+    const previousValues: Record<string, unknown> = {
+      annualSdaBudget: plan.annualSdaBudget,
+      monthlySdaAmount: plan.monthlySdaAmount,
+      planStartDate: plan.planStartDate,
+      planEndDate: plan.planEndDate,
+      sdaDesignCategory: plan.sdaDesignCategory,
+      sdaEligibilityType: plan.sdaEligibilityType,
+      sdaBuildingType: plan.sdaBuildingType,
+      fundingManagementType: plan.fundingManagementType,
+      planManagerName: plan.planManagerName,
+      planManagerEmail: plan.planManagerEmail,
+      planManagerPhone: plan.planManagerPhone,
+      claimDay: plan.claimDay,
+      managementFeePercent: plan.managementFeePercent,
+      reasonableRentContribution: plan.reasonableRentContribution,
+      rentContributionFrequency: plan.rentContributionFrequency,
+      planStatus: plan.planStatus,
+      notes: plan.notes,
+    };
+
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
@@ -145,6 +214,36 @@ export const update = mutation({
     }
 
     await ctx.db.patch(planId, filteredUpdates);
+
+    // Build changes object (only include what actually changed)
+    const changes: Record<string, unknown> = {};
+    const prevValuesFiltered: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(filteredUpdates)) {
+      if (key !== "updatedAt" && previousValues[key] !== value) {
+        changes[key] = value;
+        prevValuesFiltered[key] = previousValues[key];
+      }
+    }
+
+    // Audit log: Plan updated (only if there are actual changes)
+    if (Object.keys(changes).length > 0) {
+      const participantName = participant
+        ? `${participant.firstName} ${participant.lastName}`
+        : "Unknown Participant";
+
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: userId,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        action: "update",
+        entityType: "participantPlan",
+        entityId: planId,
+        entityName: `Plan for ${participantName}`,
+        changes: JSON.stringify(changes),
+        previousValues: JSON.stringify(prevValuesFiltered),
+      });
+    }
+
     return { success: true };
   },
 });

@@ -309,7 +309,7 @@ export default function AIHelpGuide({ onTryPrompt, disabled }: AIHelpGuideProps)
                       <div className="flex items-center gap-3">
                         <category.icon className={`w-5 h-5 ${category.color}`} />
                         <span className="text-white font-medium">{category.title}</span>
-                        <span className="text-gray-500 text-sm">
+                        <span className="text-gray-400 text-sm">
                           ({category.prompts.length} prompts)
                         </span>
                       </div>
@@ -342,7 +342,7 @@ export default function AIHelpGuide({ onTryPrompt, disabled }: AIHelpGuideProps)
                             <p className="text-white text-sm group-hover:text-blue-300 transition-colors">
                               "{item.prompt}"
                             </p>
-                            <p className="text-gray-500 text-xs mt-1">{item.description}</p>
+                            <p className="text-gray-400 text-xs mt-1">{item.description}</p>
                           </button>
                         ))}
                       </div>

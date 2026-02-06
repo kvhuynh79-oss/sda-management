@@ -260,7 +260,7 @@ export default function InspectionsPage() {
                             "Unknown Property"}
                         </h3>
                         {inspection.dwelling && (
-                          <span className="text-gray-500 text-sm">
+                          <span className="text-gray-400 text-sm">
                             - {inspection.dwelling.dwellingName}
                           </span>
                         )}
@@ -327,7 +327,7 @@ export default function InspectionsPage() {
             </div>
           ) : (
             <div className="p-8 text-center">
-              <div className="text-gray-500 text-5xl mb-4">📋</div>
+              <div className="text-gray-400 text-5xl mb-4">📋</div>
               <p className="text-gray-400 mb-4">No inspections found</p>
               <Link
                 href="/inspections/new"
@@ -391,7 +391,7 @@ function StatCard({
 
   return (
     <div className="bg-gray-800 rounded-lg p-4">
-      <p className="text-gray-500 text-sm">{label}</p>
+      <p className="text-gray-400 text-sm">{label}</p>
       <p className={`text-2xl font-bold ${colorClasses[color]}`}>{value}</p>
     </div>
   );

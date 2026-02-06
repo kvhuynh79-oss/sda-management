@@ -1,7 +1,8 @@
 "use client";
 
-import { ReactNode } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { ReactNode, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "../hooks/useSession";
 import { LoadingScreen } from "./ui/LoadingScreen";
 
 interface RequireAuthProps {
@@ -44,15 +45,23 @@ export function RequireAuth({
   allowedRoles,
   loadingMessage = "Loading...",
 }: RequireAuthProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, loading, error } = useSession();
+  const router = useRouter();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [loading, user, router]);
 
   // Show loading state while checking auth
-  if (isLoading) {
+  if (loading) {
     return <LoadingScreen message={loadingMessage} />;
   }
 
-  // If not authenticated, useAuth hook handles redirect to login
-  if (!isAuthenticated || !user) {
+  // If not authenticated, show loading while redirecting
+  if (!user) {
     return <LoadingScreen message="Redirecting to login..." />;
   }
 

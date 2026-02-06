@@ -2,7 +2,7 @@ import { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
 
 // User roles
-export type UserRole = "admin" | "property_manager" | "staff" | "accountant";
+export type UserRole = "admin" | "property_manager" | "staff" | "accountant" | "sil_provider";
 
 // Authenticated user type
 export interface AuthenticatedUser {
@@ -84,6 +84,20 @@ export const rolePermissions: Record<UserRole, {
     auditLogs: { view: false },
     communications: { view: true, create: true, update: false, delete: false },
     tasks: { view: true, create: true, update: false, delete: false },
+  },
+  sil_provider: {
+    properties: { view: true, create: false, update: false, delete: false },
+    participants: { view: true, create: false, update: false, delete: false },
+    payments: { view: false, create: false, update: false, delete: false },
+    maintenance: { view: true, create: true, update: true, delete: false },
+    documents: { view: true, create: true, update: false, delete: false },
+    reports: { view: false, export: false },
+    users: { view: false, create: false, update: false, delete: false },
+    incidents: { view: true, create: true, update: true, delete: false },
+    contractors: { view: true, create: false, update: false, delete: false },
+    auditLogs: { view: false },
+    communications: { view: true, create: true, update: true, delete: false },
+    tasks: { view: true, create: true, update: true, delete: false },
   },
 };
 

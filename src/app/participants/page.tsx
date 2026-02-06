@@ -211,7 +211,7 @@ function ParticipantCard({ participant }: { participant: any }) {
                 NDIS: {participant.ndisNumber}
               </p>
               {participant.property && (
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-gray-400 text-sm mt-1">
                   {participant.dwelling?.dwellingName} at{" "}
                   {participant.property.propertyName ||
                     participant.property.addressLine1}
@@ -235,25 +235,25 @@ function ParticipantCard({ participant }: { participant: any }) {
         {participant.currentPlan && (
           <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-gray-500 text-sm">Funding Type</p>
+              <p className="text-gray-400 text-sm">Funding Type</p>
               <p className="text-white text-sm">
                 {formatFundingType(participant.currentPlan.fundingManagementType)}
               </p>
             </div>
             <div>
-              <p className="text-gray-500 text-sm">Monthly Amount</p>
+              <p className="text-gray-400 text-sm">Monthly Amount</p>
               <p className="text-white text-sm">
                 {formatCurrency(participant.currentPlan.monthlySdaAmount || 0)}
               </p>
             </div>
             <div>
-              <p className="text-gray-500 text-sm">Annual Budget</p>
+              <p className="text-gray-400 text-sm">Annual Budget</p>
               <p className="text-white text-sm">
                 {formatCurrency(participant.currentPlan.annualSdaBudget)}
               </p>
             </div>
             <div>
-              <p className="text-gray-500 text-sm">Plan End</p>
+              <p className="text-gray-400 text-sm">Plan End</p>
               <p className="text-white text-sm">
                 {formatDate(participant.currentPlan.planEndDate)}
               </p>

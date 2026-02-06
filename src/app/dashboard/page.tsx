@@ -430,7 +430,7 @@ function DashboardCard({
         <div className={`w-3 h-3 rounded-full ${colorClasses[color]}`} />
       </div>
       <div className="text-3xl font-bold text-white mb-1">{value}</div>
-      <div className="text-gray-500 text-sm">{subtitle}</div>
+      <div className="text-gray-400 text-sm">{subtitle}</div>
     </div>
   );
 }

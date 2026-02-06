@@ -259,21 +259,21 @@ function RequestCard({ request }: { request: any }) {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700 text-sm">
           <div>
-            <p className="text-gray-500 text-xs">Property</p>
+            <p className="text-gray-400 text-xs">Property</p>
             <p className="text-white">
               {request.property?.propertyName || request.property?.addressLine1 || "Unknown"}
             </p>
           </div>
           <div>
-            <p className="text-gray-500 text-xs">Dwelling</p>
+            <p className="text-gray-400 text-xs">Dwelling</p>
             <p className="text-white">{request.dwelling?.dwellingName || "Unknown"}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-xs">Reported Date</p>
+            <p className="text-gray-400 text-xs">Reported Date</p>
             <p className="text-white">{request.reportedDate}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-xs">
+            <p className="text-gray-400 text-xs">
               {request.requestType === "reactive" ? "Reported By" : "Type"}
             </p>
             <p className="text-white capitalize">
@@ -286,19 +286,19 @@ function RequestCard({ request }: { request: any }) {
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
             {request.contractorName && (
               <div>
-                <p className="text-gray-500 text-xs">Contractor</p>
+                <p className="text-gray-400 text-xs">Contractor</p>
                 <p className="text-white">{request.contractorName}</p>
               </div>
             )}
             {request.quotedAmount && (
               <div>
-                <p className="text-gray-500 text-xs">Quoted</p>
+                <p className="text-gray-400 text-xs">Quoted</p>
                 <p className="text-white">{formatCurrency(request.quotedAmount)}</p>
               </div>
             )}
             {request.actualCost && (
               <div>
-                <p className="text-gray-500 text-xs">Actual Cost</p>
+                <p className="text-gray-400 text-xs">Actual Cost</p>
                 <p className="text-white">{formatCurrency(request.actualCost)}</p>
               </div>
             )}

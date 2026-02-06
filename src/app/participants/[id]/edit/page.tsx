@@ -342,7 +342,7 @@ export default function EditParticipantPage() {
                     </option>
                   ))}
                 </select>
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-gray-400 text-xs mt-1">
                   Select the dwelling where this participant resides
                 </p>
               </div>
@@ -652,7 +652,7 @@ export default function EditParticipantPage() {
                         required
                         className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                       />
-                      <p className="text-gray-500 text-xs mt-1">From NDIS plan funding schedule</p>
+                      <p className="text-gray-400 text-xs mt-1">From NDIS plan funding schedule</p>
                     </div>
                     <div>
                       <label className="block text-gray-300 text-sm mb-1">
@@ -679,7 +679,7 @@ export default function EditParticipantPage() {
                         onChange={(e) => setPlanData({ ...planData, claimDay: e.target.value })}
                         className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                       />
-                      <p className="text-gray-500 text-xs mt-1">Day when claims are due (1-31)</p>
+                      <p className="text-gray-400 text-xs mt-1">Day when claims are due (1-31)</p>
                     </div>
                     <div>
                       <label className="block text-gray-300 text-sm mb-1">

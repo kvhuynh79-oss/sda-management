@@ -101,20 +101,20 @@ export default function TaskCard({ task, onStatusChange, showQuickActions = true
       {/* Meta info */}
       <div className="flex flex-wrap gap-4 sm:gap-6 text-sm text-gray-400 mt-3 pt-3 border-t border-gray-700">
         <div>
-          <span className="text-gray-500">Due:</span>{" "}
+          <span className="text-gray-400">Due:</span>{" "}
           <span className={task.isOverdue ? "text-red-400 font-medium" : ""}>
             {task.dueDate}
           </span>
         </div>
         {task.participant && (
           <div>
-            <span className="text-gray-500">Participant:</span>{" "}
+            <span className="text-gray-400">Participant:</span>{" "}
             {task.participant.firstName} {task.participant.lastName}
           </div>
         )}
         {task.assignedToUser && (
           <div>
-            <span className="text-gray-500">Assigned to:</span>{" "}
+            <span className="text-gray-400">Assigned to:</span>{" "}
             {task.assignedToUser.firstName} {task.assignedToUser.lastName}
           </div>
         )}

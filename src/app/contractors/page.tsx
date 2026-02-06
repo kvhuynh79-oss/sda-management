@@ -300,7 +300,7 @@ function ContractorCard({
 
       {contractor.properties && contractor.properties.length > 0 && (
         <div className="mt-3 pt-3 border-t border-gray-700">
-          <p className="text-gray-500 text-xs mb-1">Preferred Properties:</p>
+          <p className="text-gray-400 text-xs mb-1">Preferred Properties:</p>
           <div className="flex flex-wrap gap-1">
             {contractor.properties.slice(0, 3).map((prop: any) => (
               <span key={prop._id} className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">
@@ -308,7 +308,7 @@ function ContractorCard({
               </span>
             ))}
             {contractor.properties.length > 3 && (
-              <span className="px-2 py-0.5 text-gray-500 text-xs">
+              <span className="px-2 py-0.5 text-gray-400 text-xs">
                 +{contractor.properties.length - 3} more
               </span>
             )}
@@ -559,7 +559,7 @@ function ContractorModal({
             <label className="block text-sm text-gray-300 mb-2">Preferred Properties</label>
             <div className="bg-gray-700 rounded-lg p-3 max-h-32 overflow-y-auto">
               {properties.length === 0 ? (
-                <p className="text-gray-500 text-sm">No properties available</p>
+                <p className="text-gray-400 text-sm">No properties available</p>
               ) : (
                 <div className="space-y-2">
                   {properties.map((prop) => (
@@ -578,7 +578,7 @@ function ContractorModal({
                 </div>
               )}
             </div>
-            <p className="text-gray-500 text-xs mt-1">
+            <p className="text-gray-400 text-xs mt-1">
               Select properties this contractor regularly works on
             </p>
           </div>

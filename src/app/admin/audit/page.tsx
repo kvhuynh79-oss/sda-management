@@ -140,7 +140,7 @@ export default function AuditLogPage() {
       const obj = JSON.parse(jsonString);
       return Object.entries(obj).map(([key, value]) => (
         <div key={key} className="text-xs">
-          <span className="text-gray-500">{key}:</span>{" "}
+          <span className="text-gray-400">{key}:</span>{" "}
           <span className="text-gray-300">{String(value)}</span>
         </div>
       ));

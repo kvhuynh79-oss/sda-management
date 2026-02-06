@@ -446,7 +446,7 @@ function DwellingSelectionStep({
                       </div>
                     </div>
                     {dwelling.participants?.length > 0 && (
-                      <div className="mt-2 text-sm text-gray-500">
+                      <div className="mt-2 text-sm text-gray-400">
                         Current: {dwelling.participants.map((p: any) => `${p.firstName} ${p.lastName}`).join(", ")}
                       </div>
                     )}
@@ -618,7 +618,7 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 required
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
-              <p className="text-xs text-gray-500 mt-1">From NDIS plan funding schedule</p>
+              <p className="text-xs text-gray-400 mt-1">From NDIS plan funding schedule</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Annual Budget ($) *</label>
@@ -642,7 +642,7 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 placeholder="e.g., 19"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
-              <p className="text-xs text-gray-500 mt-1">Day when claims are due (1-31)</p>
+              <p className="text-xs text-gray-400 mt-1">Day when claims are due (1-31)</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">

@@ -252,13 +252,13 @@ export default function ParticipantDetailPage() {
               <div className="space-y-4">
                 {participant.silProviderName && (
                   <div>
-                    <p className="text-gray-500 text-sm mb-1">SIL Provider</p>
+                    <p className="text-gray-400 text-sm mb-1">SIL Provider</p>
                     <p className="text-white">{participant.silProviderName}</p>
                   </div>
                 )}
                 {participant.supportCoordinatorName && (
                   <div>
-                    <p className="text-gray-500 text-sm mb-1">Support Coordinator</p>
+                    <p className="text-gray-400 text-sm mb-1">Support Coordinator</p>
                     <p className="text-white">{participant.supportCoordinatorName}</p>
                     {participant.supportCoordinatorEmail && (
                       <p className="text-gray-400 text-sm">{participant.supportCoordinatorEmail}</p>
@@ -502,7 +502,7 @@ function DocumentCard({ document }: { document: any }) {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-gray-500 text-sm">{label}</p>
+      <p className="text-gray-400 text-sm">{label}</p>
       <p className="text-white">{value}</p>
     </div>
   );
@@ -543,13 +543,13 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
     <div className={compact ? "space-y-2" : "space-y-4"}>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-gray-500 text-xs">Plan Period</p>
+          <p className="text-gray-400 text-xs">Plan Period</p>
           <p className="text-white text-sm">
             {plan.planStartDate} to {plan.planEndDate}
           </p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Status</p>
+          <p className="text-gray-400 text-xs">Status</p>
           <p className={`text-sm font-medium ${getPlanStatusColor(plan.planStatus)}`}>
             {plan.planStatus.toUpperCase()}
           </p>
@@ -560,22 +560,22 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700">
             <div>
-              <p className="text-gray-500 text-xs">Monthly Amount</p>
+              <p className="text-gray-400 text-xs">Monthly Amount</p>
               <p className="text-white text-sm">{formatCurrency(plan.monthlySdaAmount || 0)}</p>
             </div>
             <div>
-              <p className="text-gray-500 text-xs">Annual Budget</p>
+              <p className="text-gray-400 text-xs">Annual Budget</p>
               <p className="text-white text-sm">{formatCurrency(plan.annualSdaBudget)}</p>
             </div>
             {plan.claimDay && (
               <div>
-                <p className="text-gray-500 text-xs">Claim Day</p>
+                <p className="text-gray-400 text-xs">Claim Day</p>
                 <p className="text-white text-sm">{plan.claimDay}{getOrdinalSuffix(plan.claimDay)} of month</p>
               </div>
             )}
             {plan.reasonableRentContribution && (
               <div>
-                <p className="text-gray-500 text-xs">RRC</p>
+                <p className="text-gray-400 text-xs">RRC</p>
                 <p className="text-white text-sm">
                   {formatCurrency(plan.reasonableRentContribution)}
                   {plan.rentContributionFrequency && (
@@ -590,11 +590,11 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
             <div>
-              <p className="text-gray-500 text-xs">Design Category</p>
+              <p className="text-gray-400 text-xs">Design Category</p>
               <p className="text-white text-sm">{formatCategory(plan.sdaDesignCategory)}</p>
             </div>
             <div>
-              <p className="text-gray-500 text-xs">Building Type</p>
+              <p className="text-gray-400 text-xs">Building Type</p>
               <p className="text-white text-sm capitalize">
                 {plan.sdaBuildingType.replace("_", " ")}
               </p>
@@ -603,14 +603,14 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
             <div>
-              <p className="text-gray-500 text-xs">Funding Management</p>
+              <p className="text-gray-400 text-xs">Funding Management</p>
               <p className="text-white text-sm capitalize">
                 {plan.fundingManagementType.replace(/_/g, " ")}
               </p>
             </div>
             {plan.planManagerName && (
               <div>
-                <p className="text-gray-500 text-xs">Plan Manager</p>
+                <p className="text-gray-400 text-xs">Plan Manager</p>
                 <p className="text-white text-sm">{plan.planManagerName}</p>
                 {plan.planManagerEmail && (
                   <p className="text-gray-400 text-xs">{plan.planManagerEmail}</p>
@@ -621,7 +621,7 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
 
           {plan.notes && (
             <div className="pt-4 border-t border-gray-700">
-              <p className="text-gray-500 text-xs mb-1">Notes</p>
+              <p className="text-gray-400 text-xs mb-1">Notes</p>
               <p className="text-gray-300 text-sm">{plan.notes}</p>
             </div>
           )}

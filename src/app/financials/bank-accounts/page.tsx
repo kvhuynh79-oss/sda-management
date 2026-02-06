@@ -229,35 +229,35 @@ function AccountCard({
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <p className="text-gray-500 text-xs">BSB</p>
+          <p className="text-gray-400 text-xs">BSB</p>
           <p className="text-white font-mono">{account.bsb}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Account Number</p>
+          <p className="text-gray-400 text-xs">Account Number</p>
           <p className="text-white font-mono">{account.accountNumber}</p>
         </div>
       </div>
 
       <div className="border-t border-gray-700 pt-4 grid grid-cols-3 gap-4">
         <div>
-          <p className="text-gray-500 text-xs">Transactions</p>
+          <p className="text-gray-400 text-xs">Transactions</p>
           <p className="text-white font-semibold">{transactionCount}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Unmatched</p>
+          <p className="text-gray-400 text-xs">Unmatched</p>
           <p className={`font-semibold ${unmatchedCount > 0 ? "text-yellow-400" : "text-green-400"}`}>
             {unmatchedCount}
           </p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Balance</p>
+          <p className="text-gray-400 text-xs">Balance</p>
           <p className="text-white font-semibold">{formatCurrency(currentBalance)}</p>
         </div>
       </div>
 
       {account.lastReconciledDate && (
         <div className="mt-4 pt-4 border-t border-gray-700">
-          <p className="text-gray-500 text-xs">Last Reconciled</p>
+          <p className="text-gray-400 text-xs">Last Reconciled</p>
           <p className="text-gray-300 text-sm">
             {account.lastReconciledDate} - {formatCurrency(account.lastReconciledBalance ?? null)}
           </p>
@@ -507,7 +507,7 @@ function StatCard({
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="bg-gray-800 rounded-lg p-12 text-center border border-gray-700">
-      <div className="text-gray-500 text-6xl mb-4">
+      <div className="text-gray-400 text-6xl mb-4">
         <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>

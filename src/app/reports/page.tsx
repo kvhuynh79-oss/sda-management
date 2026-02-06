@@ -591,7 +591,7 @@ export default function ReportsPage() {
                             </div>
                           ))}
                         {Object.values(incidentSummary.byType).every((c) => c === 0) && (
-                          <p className="text-gray-500">No incidents</p>
+                          <p className="text-gray-400">No incidents</p>
                         )}
                       </div>
                     </div>
@@ -676,7 +676,7 @@ export default function ReportsPage() {
                           <div className="text-right text-sm">
                             <p className="text-gray-400">Owner: {property.owner.name}</p>
                             {property.owner.bankAccountName && (
-                              <p className="text-gray-500">
+                              <p className="text-gray-400">
                                 {property.owner.bankAccountName} | BSB: {property.owner.bankBsb}
                               </p>
                             )}
@@ -776,7 +776,7 @@ function StatCard({
     <div className="bg-gray-700 rounded-lg p-4">
       <p className="text-gray-400 text-sm mb-2">{label}</p>
       <p className={`text-2xl font-bold ${colorClasses[color]}`}>{value}</p>
-      {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-gray-400 text-sm mt-1">{subtitle}</p>}
     </div>
   );
 }

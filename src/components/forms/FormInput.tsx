@@ -60,7 +60,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={helperId} className="mt-1 text-sm text-gray-500">
+          <p id={helperId} className="mt-1 text-sm text-gray-400">
             {helperText}
           </p>
         )}

@@ -230,11 +230,11 @@ export default function NewCertificationPage() {
               <p className="text-gray-300 text-sm">{selectedGuidance.description}</p>
               <div className="grid grid-cols-2 gap-4 mt-3">
                 <div>
-                  <p className="text-gray-500 text-xs">Typical Certifier</p>
+                  <p className="text-gray-400 text-xs">Typical Certifier</p>
                   <p className="text-gray-300 text-sm">{selectedGuidance.typicalCertifier}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 text-xs">Renewal Period</p>
+                  <p className="text-gray-400 text-xs">Renewal Period</p>
                   <p className="text-gray-300 text-sm">{selectedGuidance.renewalPeriod}</p>
                 </div>
               </div>

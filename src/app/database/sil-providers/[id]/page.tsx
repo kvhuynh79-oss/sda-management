@@ -307,7 +307,7 @@ export default function SILProviderDetailPage() {
                 </button>
               </div>
               {!provider.portalUsers || provider.portalUsers.length === 0 ? (
-                <p className="text-gray-500 text-sm italic">No portal users linked</p>
+                <p className="text-gray-400 text-sm italic">No portal users linked</p>
               ) : (
                 <div className="space-y-2">
                   {provider.portalUsers.map((user) => (
@@ -347,7 +347,7 @@ export default function SILProviderDetailPage() {
             <h2 className="text-lg font-semibold text-white mb-4">Allocated Dwellings</h2>
             {!provider.allocatedDwellings || provider.allocatedDwellings.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500">No dwellings allocated</p>
+                <p className="text-gray-400">No dwellings allocated</p>
                 <p className="text-gray-600 text-sm mt-1">
                   Allocate dwellings from the property detail page
                 </p>
@@ -370,7 +370,7 @@ export default function SILProviderDetailPage() {
                         <p className="text-gray-400 text-sm">
                           {allocation.property?.propertyName || allocation.property?.addressLine1}
                         </p>
-                        <p className="text-gray-500 text-xs mt-1">
+                        <p className="text-gray-400 text-xs mt-1">
                           {allocation.property?.suburb} {allocation.property?.state}
                         </p>
                       </div>
@@ -396,7 +396,7 @@ export default function SILProviderDetailPage() {
                       </div>
                     )}
                     {allocation.startDate && (
-                      <p className="text-gray-500 text-xs mt-2">
+                      <p className="text-gray-400 text-xs mt-2">
                         Since: {new Date(allocation.startDate).toLocaleDateString()}
                       </p>
                     )}
@@ -409,12 +409,12 @@ export default function SILProviderDetailPage() {
           {/* Right Column - Linked Participants */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Linked Participants</h2>
-            <p className="text-gray-500 text-xs mb-4">
+            <p className="text-gray-400 text-xs mb-4">
               Participants linked via their profile page
             </p>
             {!provider.linkedParticipants || provider.linkedParticipants.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500">No participants linked</p>
+                <p className="text-gray-400">No participants linked</p>
                 <p className="text-gray-600 text-sm mt-1">
                   Link participants from their detail page
                 </p>
@@ -491,7 +491,7 @@ export default function SILProviderDetailPage() {
               {availableUsers.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-gray-400">No available users to link.</p>
-                  <p className="text-gray-500 text-sm mt-2">
+                  <p className="text-gray-400 text-sm mt-2">
                     All users are either already linked to a provider or are admins.
                   </p>
                 </div>

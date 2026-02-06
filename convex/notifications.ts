@@ -555,6 +555,117 @@ export const sendDailyDigestForAllUsers = internalAction({
  *    sendNotificationsForRecentAlerts action to be scheduled.
  */
 
+// Send incident failure email to admin (for error handling)
+export const sendIncidentFailureEmail = internalAction({
+  args: {
+    incidentData: v.object({
+      title: v.string(),
+      description: v.string(),
+      incidentType: v.string(),
+      severity: v.string(),
+      incidentDate: v.string(),
+      propertyId: v.string(),
+      reportedByUserId: v.string(),
+    }),
+    errorMessage: v.string(),
+  },
+  handler: async (ctx, args): Promise<NotificationResult> => {
+    if (!process.env.RESEND_API_KEY) {
+      console.error("Cannot send incident failure email: RESEND_API_KEY not configured");
+      return {
+        success: false,
+        skipped: true,
+        reason: "RESEND_API_KEY not configured"
+      };
+    }
+
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@yourdomain.com";
+    const incident = args.incidentData;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #dc2626; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
+            .error-box { background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 16px; margin: 16px 0; border-radius: 4px; }
+            .data-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+            .data-table td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+            .data-table td:first-child { font-weight: bold; width: 150px; color: #374151; }
+            .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin: 0;">🚨 Incident Creation Failed</h1>
+              <p style="margin: 8px 0 0 0; opacity: 0.9;">An error occurred while creating an incident report</p>
+            </div>
+            <div class="content">
+              <div class="error-box">
+                <h3 style="margin: 0 0 8px 0; color: #dc2626;">Error Message:</h3>
+                <p style="margin: 0; font-family: monospace; color: #991b1b;">${args.errorMessage}</p>
+              </div>
+
+              <h3 style="color: #111827; margin-top: 24px;">Incident Details:</h3>
+              <table class="data-table">
+                <tr>
+                  <td>Title</td>
+                  <td>${incident.title}</td>
+                </tr>
+                <tr>
+                  <td>Type</td>
+                  <td>${incident.incidentType}</td>
+                </tr>
+                <tr>
+                  <td>Severity</td>
+                  <td>${incident.severity}</td>
+                </tr>
+                <tr>
+                  <td>Date</td>
+                  <td>${incident.incidentDate}</td>
+                </tr>
+                <tr>
+                  <td>Property ID</td>
+                  <td>${incident.propertyId}</td>
+                </tr>
+                <tr>
+                  <td>Reported By</td>
+                  <td>${incident.reportedByUserId}</td>
+                </tr>
+              </table>
+
+              <h3 style="color: #111827; margin-top: 24px;">Description:</h3>
+              <div style="background: white; padding: 16px; border-radius: 4px; margin: 8px 0;">
+                <p style="margin: 0; color: #4b5563; white-space: pre-wrap;">${incident.description}</p>
+              </div>
+
+              <div class="footer">
+                <p><strong>Action Required:</strong> Please investigate this error and manually create the incident if necessary.</p>
+                <p>This is an automated error notification from the SDA Management System.</p>
+                <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Send email with retry logic
+    return await sendEmailWithRetry(
+      process.env.RESEND_API_KEY,
+      process.env.RESEND_FROM_EMAIL || "alerts@yourdomain.com",
+      adminEmail,
+      `[ERROR] Failed to Create Incident: ${incident.title}`,
+      htmlContent
+    );
+  },
+});
+
 // Internal action to send test email (without requiring alertId, with retry)
 export const sendTestEmail = internalAction({
   args: {

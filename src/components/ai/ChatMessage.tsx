@@ -41,7 +41,7 @@ export default function ChatMessage({ role, content, timestamp }: ChatMessagePro
         >
           <div className="whitespace-pre-wrap text-sm">{content}</div>
         </div>
-        <span className="text-xs text-gray-500 mt-1">{formatTime(timestamp)}</span>
+        <span className="text-xs text-gray-400 mt-1">{formatTime(timestamp)}</span>
       </div>
     </div>
   );

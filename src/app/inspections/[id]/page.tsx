@@ -343,11 +343,11 @@ export default function InspectionDetailPage() {
                 {inspection.property?.addressLine1}, {inspection.property?.suburb}
               </p>
               {inspection.dwelling && (
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-400 text-sm">
                   Dwelling: {inspection.dwelling.dwellingName}
                 </p>
               )}
-              <p className="text-gray-500 text-sm mt-1">
+              <p className="text-gray-400 text-sm mt-1">
                 Template: {inspection.template?.name}
               </p>
             </div>
@@ -427,7 +427,7 @@ export default function InspectionDetailPage() {
                     </span>
                     <div>
                       <h3 className="text-white font-medium">{category}</h3>
-                      <p className="text-gray-500 text-sm">
+                      <p className="text-gray-400 text-sm">
                         {stats.completed}/{stats.total} completed
                         {stats.failed > 0 && (
                           <span className="text-red-400 ml-1">
@@ -518,7 +518,7 @@ export default function InspectionDetailPage() {
                             <div className="flex items-center gap-2">
                               {item.remarks ? (
                                 <p className="text-gray-400 text-sm flex-1">
-                                  <span className="text-gray-500">Remarks:</span> {item.remarks}
+                                  <span className="text-gray-400">Remarks:</span> {item.remarks}
                                 </p>
                               ) : null}
                               {inspection.status !== "completed" && (
@@ -600,7 +600,7 @@ export default function InspectionDetailPage() {
         <div className="bg-gray-800 rounded-lg overflow-hidden mt-4">
           <div className="px-4 py-3 border-b border-gray-700">
             <h3 className="text-white font-medium">General Photos</h3>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-400 text-sm">
               Photos for items not on the checklist
             </p>
           </div>
@@ -657,7 +657,7 @@ export default function InspectionDetailPage() {
             )}
 
             {!generalPhotos?.length && inspection.status === "completed" && (
-              <p className="text-gray-500 text-sm">No general photos</p>
+              <p className="text-gray-400 text-sm">No general photos</p>
             )}
           </div>
         </div>

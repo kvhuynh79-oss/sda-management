@@ -271,7 +271,7 @@ export default function TaskDetailPage() {
                 />
               ) : (
                 <p className="text-gray-300">
-                  {task.description || <span className="text-gray-500 italic">No description</span>}
+                  {task.description || <span className="text-gray-400 italic">No description</span>}
                 </p>
               )}
             </div>
@@ -346,24 +346,24 @@ export default function TaskDetailPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Due Date</span>
+                    <span className="text-gray-400">Due Date</span>
                     <p className={`text-white ${task.isOverdue ? "text-red-400 font-medium" : ""}`}>
                       {task.dueDate}
                     </p>
                   </div>
                   {task.reminderDate && (
                     <div>
-                      <span className="text-gray-500">Reminder</span>
+                      <span className="text-gray-400">Reminder</span>
                       <p className="text-white">{task.reminderDate}</p>
                     </div>
                   )}
                   <div>
-                    <span className="text-gray-500">Created</span>
+                    <span className="text-gray-400">Created</span>
                     <p className="text-white">{new Date(task.createdAt).toLocaleDateString()}</p>
                   </div>
                   {task.createdByUser && (
                     <div>
-                      <span className="text-gray-500">Created By</span>
+                      <span className="text-gray-400">Created By</span>
                       <p className="text-white">
                         {task.createdByUser.firstName} {task.createdByUser.lastName}
                       </p>
@@ -371,7 +371,7 @@ export default function TaskDetailPage() {
                   )}
                   {task.assignedToUser && (
                     <div>
-                      <span className="text-gray-500">Assigned To</span>
+                      <span className="text-gray-400">Assigned To</span>
                       <p className="text-white">
                         {task.assignedToUser.firstName} {task.assignedToUser.lastName}
                       </p>
@@ -379,7 +379,7 @@ export default function TaskDetailPage() {
                   )}
                   {task.participant && (
                     <div>
-                      <span className="text-gray-500">Participant</span>
+                      <span className="text-gray-400">Participant</span>
                       <p className="text-white">
                         <Link href={`/participants/${task.linkedParticipantId}`} className="text-blue-400 hover:text-blue-300">
                           {task.participant.firstName} {task.participant.lastName}
@@ -397,12 +397,12 @@ export default function TaskDetailPage() {
                 <h2 className="text-lg font-semibold text-green-400 mb-4">Completion Details</h2>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Completed On</span>
+                    <span className="text-gray-400">Completed On</span>
                     <p className="text-white">{task.completedDate}</p>
                   </div>
                   {task.completedByUser && (
                     <div>
-                      <span className="text-gray-500">Completed By</span>
+                      <span className="text-gray-400">Completed By</span>
                       <p className="text-white">
                         {task.completedByUser.firstName} {task.completedByUser.lastName}
                       </p>
@@ -410,7 +410,7 @@ export default function TaskDetailPage() {
                   )}
                   {task.completionNotes && (
                     <div className="col-span-2">
-                      <span className="text-gray-500">Notes</span>
+                      <span className="text-gray-400">Notes</span>
                       <p className="text-white">{task.completionNotes}</p>
                     </div>
                   )}

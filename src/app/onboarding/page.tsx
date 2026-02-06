@@ -1315,7 +1315,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
                 {rrcCalculation.lastUpdated && (
-                  <p className="text-gray-500 text-xs mt-2">Last updated: {rrcCalculation.lastUpdated}</p>
+                  <p className="text-gray-400 text-xs mt-2">Last updated: {rrcCalculation.lastUpdated}</p>
                 )}
               </div>
             )}
@@ -1476,7 +1476,7 @@ export default function OnboardingPage() {
           </div>
 
           {!selectedParticipant && (
-            <p className="text-gray-500 text-sm mt-4 text-center">
+            <p className="text-gray-400 text-sm mt-4 text-center">
               Select a participant and dwelling above to generate documents.
             </p>
           )}
@@ -1668,7 +1668,7 @@ export default function OnboardingPage() {
                             }
                           }}
                         />
-                        <svg className="w-16 h-16 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                         <p className="text-white font-medium mb-2">Drop your NDIS plan here</p>
@@ -1983,7 +1983,7 @@ export default function OnboardingPage() {
                         onChange={(e) => setAiClaimDay(e.target.value)}
                         className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                       />
-                      <p className="text-gray-500 text-xs mt-1">Day of the month when SDA claims are due</p>
+                      <p className="text-gray-400 text-xs mt-1">Day of the month when SDA claims are due</p>
                     </div>
                   </div>
 

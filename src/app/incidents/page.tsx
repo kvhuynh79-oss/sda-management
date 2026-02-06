@@ -161,7 +161,7 @@ function IncidentCard({ incident }: { incident: any }) {
                 )}
               </>
             )}
-            <span className="text-gray-500 text-sm">{formatStatus(incident.incidentType)}</span>
+            <span className="text-gray-400 text-sm">{formatStatus(incident.incidentType)}</span>
           </div>
           <h2 className="text-lg font-semibold text-white">{incident.title}</h2>
           <p className="text-gray-400 text-sm mt-1 line-clamp-2">{incident.description}</p>
@@ -176,17 +176,17 @@ function IncidentCard({ incident }: { incident: any }) {
 
       <div className="flex flex-wrap gap-4 sm:gap-6 text-sm text-gray-400">
         <div>
-          <span className="text-gray-500">Property:</span>{" "}
+          <span className="text-gray-400">Property:</span>{" "}
           {incident.property?.propertyName || incident.property?.addressLine1}
         </div>
         {incident.participant && (
           <div>
-            <span className="text-gray-500">Participant:</span>{" "}
+            <span className="text-gray-400">Participant:</span>{" "}
             {incident.participant.firstName} {incident.participant.lastName}
           </div>
         )}
         <div>
-          <span className="text-gray-500">Date:</span> {incident.incidentDate}
+          <span className="text-gray-400">Date:</span> {incident.incidentDate}
         </div>
       </div>
     </article>

@@ -141,9 +141,9 @@ export default function InspectionTemplatesPage() {
             </div>
           ) : templates.length === 0 ? (
             <div className="bg-gray-800 rounded-lg p-8 text-center">
-              <div className="text-gray-500 text-5xl mb-4">📋</div>
+              <div className="text-gray-400 text-5xl mb-4">📋</div>
               <p className="text-gray-400 mb-4">No templates found</p>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-400 text-sm mb-4">
                 Create the BLS Property Inspection template to get started.
               </p>
               <button
@@ -182,7 +182,7 @@ export default function InspectionTemplatesPage() {
                           {template.description}
                         </p>
                       )}
-                      <p className="text-gray-500 text-sm mt-2">
+                      <p className="text-gray-400 text-sm mt-2">
                         {template.categories.length} categories •{" "}
                         {getTotalItems(template)} items
                       </p>
@@ -226,7 +226,7 @@ export default function InspectionTemplatesPage() {
                         <div key={catIndex}>
                           <h3 className="text-white font-medium mb-2">
                             {category.name}
-                            <span className="text-gray-500 font-normal ml-2">
+                            <span className="text-gray-400 font-normal ml-2">
                               ({category.items.length} items)
                             </span>
                           </h3>
@@ -265,7 +265,7 @@ export default function InspectionTemplatesPage() {
             Inspection template includes standard categories like Heating &
             Cooling, Electrical, Plumbing, and individual room checks.
           </p>
-          <p className="text-gray-500 text-sm mt-2">
+          <p className="text-gray-400 text-sm mt-2">
             Custom templates can be created for specific inspection needs.
             Contact your administrator for custom template requests.
           </p>

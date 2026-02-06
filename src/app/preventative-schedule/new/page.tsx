@@ -238,7 +238,7 @@ export default function NewPreventativeSchedulePage() {
                 placeholder="1"
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 E.g., "2" with "Monthly" = every 2 months
               </p>
             </div>

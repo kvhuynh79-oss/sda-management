@@ -509,7 +509,7 @@ function TransactionRow({
       other_income: "bg-green-600/20 text-green-400",
       other_expense: "bg-pink-600/20 text-pink-400",
       transfer: "bg-cyan-600/20 text-cyan-400",
-      uncategorized: "bg-gray-600/20 text-gray-500",
+      uncategorized: "bg-gray-600/20 text-gray-400",
     };
     return styles[category] || "";
   };
@@ -537,7 +537,7 @@ function TransactionRow({
       <td className="px-4 py-3 text-sm text-gray-300 max-w-md truncate" title={transaction.description}>
         {transaction.description}
         {transaction.reference && (
-          <span className="text-gray-500 text-xs block">Ref: {transaction.reference}</span>
+          <span className="text-gray-400 text-xs block">Ref: {transaction.reference}</span>
         )}
       </td>
       <td className={`px-4 py-3 text-sm text-right font-mono ${transaction.amount >= 0 ? "text-green-400" : "text-red-400"}`}>
@@ -907,7 +907,7 @@ function formatCurrency(amount: number): string {
 function EmptyAccountState() {
   return (
     <div className="bg-gray-800 rounded-lg p-12 text-center border border-gray-700">
-      <div className="text-gray-500 text-6xl mb-4">
+      <div className="text-gray-400 text-6xl mb-4">
         <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
@@ -929,7 +929,7 @@ function EmptyAccountState() {
 function EmptyTransactionState({ onImport, isXeroConnected }: { onImport: () => void; isXeroConnected: boolean }) {
   return (
     <div className="bg-gray-800 rounded-lg p-12 text-center border border-gray-700">
-      <div className="text-gray-500 text-6xl mb-4">
+      <div className="text-gray-400 text-6xl mb-4">
         <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>

@@ -15,9 +15,11 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
   return bcrypt.compare(password, hash);
 }
 
-// Create a new user (for initial setup or admin creating users)
+// Create a new user (admin only - prevents unauthorized account creation)
+// SECURITY: Requires admin verification to prevent non-admins from creating admin accounts
 export const createUser = action({
   args: {
+    actingUserId: v.optional(v.id("users")), // User performing the action (must be admin, optional for initial setup)
     email: v.string(),
     password: v.string(),
     firstName: v.string(),
@@ -33,11 +35,29 @@ export const createUser = action({
     silProviderId: v.optional(v.id("silProviders")), // For SIL provider users
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
+    // Check if any users exist (for initial setup)
+    const hasUsers = await ctx.runMutation(internal.auth.checkUsersExist, {});
+
+    // If users exist, require admin verification
+    let actingUser: { email: string; firstName: string; lastName: string } | null = null;
+    if (hasUsers) {
+      if (!args.actingUserId) {
+        throw new Error("Admin access required to create users. Please provide actingUserId.");
+      }
+      // SECURITY: Verify acting user is an admin via internal mutation
+      actingUser = await ctx.runMutation(internal.auth.verifyAdminInternal, {
+        userId: args.actingUserId,
+      });
+    }
+
     // Hash password with bcrypt (secure)
     const passwordHash = await hashPassword(args.password);
 
     // Call internal mutation to create the user
     const userId: Id<"users"> = await ctx.runMutation(internal.auth.createUserInternal, {
+      actingUserId: args.actingUserId,
+      actingUserEmail: actingUser?.email,
+      actingUserName: actingUser ? `${actingUser.firstName} ${actingUser.lastName}` : undefined,
       email: args.email,
       passwordHash,
       firstName: args.firstName,
@@ -51,9 +71,45 @@ export const createUser = action({
   },
 });
 
+// Internal mutation to verify admin access (used by actions that can't directly call requireAdmin)
+export const verifyAdminInternal = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Authentication required. User not found.");
+    }
+    if (!user.isActive) {
+      throw new Error("Account is disabled. Please contact your administrator.");
+    }
+    if (user.role !== "admin") {
+      throw new Error("Admin access required. Your role: " + user.role);
+    }
+    return {
+      _id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+    };
+  },
+});
+
+// Internal mutation to check if any users exist (for initial setup)
+export const checkUsersExist = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await ctx.db.query("users").first();
+    return user !== null;
+  },
+});
+
 // Internal mutation for creating user (called from action)
 export const createUserInternal = internalMutation({
   args: {
+    actingUserId: v.optional(v.id("users")),
+    actingUserEmail: v.optional(v.string()),
+    actingUserName: v.optional(v.string()),
     email: v.string(),
     passwordHash: v.string(),
     firstName: v.string(),
@@ -92,6 +148,25 @@ export const createUserInternal = internalMutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Audit log the user creation (if acting user is provided, i.e., not initial setup)
+    if (args.actingUserId && args.actingUserEmail && args.actingUserName) {
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: args.actingUserId,
+        userEmail: args.actingUserEmail,
+        userName: args.actingUserName,
+        action: "create",
+        entityType: "user",
+        entityId: userId,
+        entityName: args.email.toLowerCase(),
+        changes: JSON.stringify({
+          email: args.email.toLowerCase(),
+          firstName: args.firstName,
+          lastName: args.lastName,
+          role: args.role,
+        }),
+      });
+    }
 
     return userId;
   },
@@ -268,10 +343,11 @@ export const getAllUsers = query({
   },
 });
 
-// Update user
+// Update user (admin only - prevents privilege escalation)
 export const updateUser = mutation({
   args: {
-    userId: v.id("users"),
+    actingUserId: v.id("users"), // User performing the action (must be admin)
+    targetUserId: v.id("users"), // User being updated
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -288,16 +364,61 @@ export const updateUser = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { userId, ...updates } = args;
-    
+    // SECURITY: Verify acting user is an admin to prevent privilege escalation
+    const actingUser = await ctx.db.get(args.actingUserId);
+    if (!actingUser) {
+      throw new Error("Authentication required. User not found.");
+    }
+    if (!actingUser.isActive) {
+      throw new Error("Account is disabled. Please contact your administrator.");
+    }
+    if (actingUser.role !== "admin") {
+      throw new Error("Admin access required to update users. Your role: " + actingUser.role);
+    }
+
+    // Get target user for audit logging
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser) {
+      throw new Error("Target user not found");
+    }
+
+    const { actingUserId, targetUserId, ...updates } = args;
+
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {};
+
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
         filteredUpdates[key] = value;
+        // Track changes for audit log
+        if ((targetUser as Record<string, unknown>)[key] !== value) {
+          changedFields[key] = {
+            from: (targetUser as Record<string, unknown>)[key],
+            to: value,
+          };
+        }
       }
     }
 
-    await ctx.db.patch(userId, filteredUpdates);
+    await ctx.db.patch(targetUserId, filteredUpdates);
+
+    // Audit log the update
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: actingUserId,
+      userEmail: actingUser.email,
+      userName: `${actingUser.firstName} ${actingUser.lastName}`,
+      action: "update",
+      entityType: "user",
+      entityId: targetUserId,
+      entityName: targetUser.email,
+      changes: JSON.stringify(changedFields),
+      previousValues: JSON.stringify(
+        Object.fromEntries(
+          Object.keys(changedFields).map((k) => [k, changedFields[k].from])
+        )
+      ),
+    });
+
     return { success: true };
   },
 });
@@ -339,22 +460,69 @@ export const changePassword = action({
 });
 
 // Reset password (admin function) - uses action for bcrypt
+// SECURITY: Requires admin verification to prevent unauthorized password resets
 export const resetPassword = action({
   args: {
-    userId: v.id("users"),
+    actingUserId: v.id("users"), // User performing the action (must be admin)
+    targetUserId: v.id("users"), // User whose password is being reset
     newPassword: v.string(),
   },
   handler: async (ctx, args) => {
+    // SECURITY: Verify acting user is an admin via internal mutation
+    const actingUser = await ctx.runMutation(internal.auth.verifyAdminInternal, {
+      userId: args.actingUserId,
+    });
+
     // Hash new password with bcrypt
     const newHash = await hashPassword(args.newPassword);
 
-    // Update via internal mutation
-    await ctx.runMutation(internal.auth.updatePasswordHash, {
-      userId: args.userId,
+    // Update password and log via internal mutation
+    await ctx.runMutation(internal.auth.resetPasswordInternal, {
+      actingUserId: args.actingUserId,
+      actingUserEmail: actingUser.email,
+      actingUserName: `${actingUser.firstName} ${actingUser.lastName}`,
+      targetUserId: args.targetUserId,
       passwordHash: newHash,
     });
 
     return { success: true };
+  },
+});
+
+// Internal mutation to reset password with audit logging
+export const resetPasswordInternal = internalMutation({
+  args: {
+    actingUserId: v.id("users"),
+    actingUserEmail: v.string(),
+    actingUserName: v.string(),
+    targetUserId: v.id("users"),
+    passwordHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get target user for audit log
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser) {
+      throw new Error("Target user not found");
+    }
+
+    // Update password
+    await ctx.db.patch(args.targetUserId, {
+      passwordHash: args.passwordHash,
+      updatedAt: Date.now(),
+    });
+
+    // Audit log the password reset
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.actingUserId,
+      userEmail: args.actingUserEmail,
+      userName: args.actingUserName,
+      action: "update",
+      entityType: "user",
+      entityId: args.targetUserId,
+      entityName: targetUser.email,
+      changes: JSON.stringify({ passwordReset: true }),
+      metadata: JSON.stringify({ action: "password_reset" }),
+    });
   },
 });
 
@@ -419,6 +587,362 @@ export const logout = mutation({
       entityId: user._id,
       entityName: user.email,
     });
+
+    return { success: true };
+  },
+});
+
+// ============================================
+// SESSION-BASED AUTHENTICATION (Server-Side)
+// ============================================
+
+// Login result with session tokens
+interface SessionLoginResult {
+  user: {
+    _id: Id<"users">;
+    id: Id<"users">;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    silProviderId?: Id<"silProviders">;
+    providerName?: string;
+  };
+  token: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
+// Login with session - creates server-side session tokens
+export const loginWithSession = action({
+  args: {
+    email: v.string(),
+    password: v.string(),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<SessionLoginResult> => {
+    // Get user data via internal query
+    const userData = await ctx.runMutation(internal.auth.getUserForLogin, {
+      email: args.email,
+    });
+
+    if (!userData) {
+      throw new Error("Invalid email or password");
+    }
+
+    if (!userData.isActive) {
+      throw new Error("Account is disabled. Contact your administrator.");
+    }
+
+    // Verify password with bcrypt
+    const isValid = await verifyPassword(args.password, userData.passwordHash);
+    if (!isValid) {
+      throw new Error("Invalid email or password");
+    }
+
+    // Generate tokens using crypto.randomUUID (secure random)
+    const token = crypto.randomUUID();
+    const refreshToken = crypto.randomUUID();
+
+    // Calculate expiration times
+    const now = Date.now();
+    const expiresAt = now + (24 * 60 * 60 * 1000); // 24 hours
+    const refreshTokenExpiresAt = now + (30 * 24 * 60 * 60 * 1000); // 30 days
+
+    // Create session and process login via internal mutation
+    const result = await ctx.runMutation(internal.auth.createSessionAndProcessLogin, {
+      userId: userData._id,
+      token,
+      refreshToken,
+      expiresAt,
+      refreshTokenExpiresAt,
+      userAgent: args.userAgent,
+      ipAddress: args.ipAddress,
+    });
+
+    return result;
+  },
+});
+
+// Internal mutation to create session and process login
+export const createSessionAndProcessLogin = internalMutation({
+  args: {
+    userId: v.id("users"),
+    token: v.string(),
+    refreshToken: v.string(),
+    expiresAt: v.number(),
+    refreshTokenExpiresAt: v.number(),
+    userAgent: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<SessionLoginResult> => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+
+    // Create session in database
+    await ctx.db.insert("sessions", {
+      userId: args.userId,
+      token: args.token,
+      refreshToken: args.refreshToken,
+      expiresAt: args.expiresAt,
+      refreshTokenExpiresAt: args.refreshTokenExpiresAt,
+      userAgent: args.userAgent,
+      ipAddress: args.ipAddress,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Update last login
+    await ctx.db.patch(user._id, {
+      lastLogin: now,
+    });
+
+    // Audit log the login
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "login",
+      entityType: "user",
+      entityId: user._id,
+      entityName: user.email,
+      metadata: JSON.stringify({
+        sessionCreated: true,
+        userAgent: args.userAgent,
+        ipAddress: args.ipAddress,
+      }),
+    });
+
+    // For SIL provider users, get their provider info
+    let silProviderId: Id<"silProviders"> | undefined = user.silProviderId;
+    let providerName: string | undefined = undefined;
+    if (user.role === "sil_provider" && user.silProviderId) {
+      const provider = await ctx.db.get(user.silProviderId);
+      if (provider) {
+        providerName = provider.companyName;
+      }
+    }
+
+    // Return user info and tokens
+    return {
+      user: {
+        _id: user._id,
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        silProviderId,
+        providerName,
+      },
+      token: args.token,
+      refreshToken: args.refreshToken,
+      expiresAt: args.expiresAt,
+    };
+  },
+});
+
+// Validate session - check if token is valid and not expired
+export const validateSession = query({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Look up session by token
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!session) {
+      return null; // Session not found
+    }
+
+    // Check if token is expired
+    const now = Date.now();
+    if (session.expiresAt < now) {
+      return null; // Token expired
+    }
+
+    // Get user details
+    const user = await ctx.db.get(session.userId);
+    if (!user || !user.isActive) {
+      return null; // User not found or inactive
+    }
+
+    // For SIL provider users, get their provider info
+    let silProviderId: Id<"silProviders"> | undefined = user.silProviderId;
+    let providerName: string | undefined = undefined;
+    if (user.role === "sil_provider" && user.silProviderId) {
+      const provider = await ctx.db.get(user.silProviderId);
+      if (provider) {
+        providerName = provider.companyName;
+      }
+    }
+
+    // Return user info (session is valid)
+    return {
+      _id: user._id,
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      silProviderId,
+      providerName,
+      sessionExpiresAt: session.expiresAt,
+    };
+  },
+});
+
+// Refresh session - generate new tokens using refresh token
+export const refreshSession = action({
+  args: {
+    refreshToken: v.string(),
+  },
+  handler: async (ctx, args): Promise<SessionLoginResult> => {
+    // Look up session by refresh token via internal mutation
+    const sessionData = await ctx.runMutation(internal.auth.getSessionByRefreshToken, {
+      refreshToken: args.refreshToken,
+    });
+
+    if (!sessionData) {
+      throw new Error("Invalid refresh token");
+    }
+
+    // Check if refresh token is expired
+    const now = Date.now();
+    if (sessionData.refreshTokenExpiresAt < now) {
+      throw new Error("Refresh token expired. Please log in again.");
+    }
+
+    // Generate new tokens
+    const newToken = crypto.randomUUID();
+    const newRefreshToken = crypto.randomUUID();
+    const newExpiresAt = now + (24 * 60 * 60 * 1000); // 24 hours
+    const newRefreshTokenExpiresAt = now + (30 * 24 * 60 * 60 * 1000); // 30 days
+
+    // Update session with new tokens
+    const result = await ctx.runMutation(internal.auth.updateSessionTokens, {
+      sessionId: sessionData.sessionId,
+      userId: sessionData.userId,
+      token: newToken,
+      refreshToken: newRefreshToken,
+      expiresAt: newExpiresAt,
+      refreshTokenExpiresAt: newRefreshTokenExpiresAt,
+    });
+
+    return result;
+  },
+});
+
+// Internal mutation to get session by refresh token
+export const getSessionByRefreshToken = internalMutation({
+  args: { refreshToken: v.string() },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_refreshToken", (q) => q.eq("refreshToken", args.refreshToken))
+      .first();
+
+    if (!session) return null;
+
+    return {
+      sessionId: session._id,
+      userId: session.userId,
+      refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+    };
+  },
+});
+
+// Internal mutation to update session tokens
+export const updateSessionTokens = internalMutation({
+  args: {
+    sessionId: v.id("sessions"),
+    userId: v.id("users"),
+    token: v.string(),
+    refreshToken: v.string(),
+    expiresAt: v.number(),
+    refreshTokenExpiresAt: v.number(),
+  },
+  handler: async (ctx, args): Promise<SessionLoginResult> => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // Update session with new tokens
+    await ctx.db.patch(args.sessionId, {
+      token: args.token,
+      refreshToken: args.refreshToken,
+      expiresAt: args.expiresAt,
+      refreshTokenExpiresAt: args.refreshTokenExpiresAt,
+      updatedAt: Date.now(),
+    });
+
+    // For SIL provider users, get their provider info
+    let silProviderId: Id<"silProviders"> | undefined = user.silProviderId;
+    let providerName: string | undefined = undefined;
+    if (user.role === "sil_provider" && user.silProviderId) {
+      const provider = await ctx.db.get(user.silProviderId);
+      if (provider) {
+        providerName = provider.companyName;
+      }
+    }
+
+    return {
+      user: {
+        _id: user._id,
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        silProviderId,
+        providerName,
+      },
+      token: args.token,
+      refreshToken: args.refreshToken,
+      expiresAt: args.expiresAt,
+    };
+  },
+});
+
+// Logout with session - delete session from database
+export const logoutWithSession = mutation({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find session by token
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!session) {
+      return { success: true }; // Session already gone
+    }
+
+    // Get user for audit log
+    const user = await ctx.db.get(session.userId);
+    if (user) {
+      // Audit log the logout
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: user._id,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        action: "logout",
+        entityType: "user",
+        entityId: user._id,
+        entityName: user.email,
+        metadata: JSON.stringify({ sessionDeleted: true }),
+      });
+    }
+
+    // Delete session from database
+    await ctx.db.delete(session._id);
 
     return { success: true };
   },

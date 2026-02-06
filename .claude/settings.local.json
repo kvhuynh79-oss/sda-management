@@ -29,7 +29,9 @@
       "WebFetch(domain:mysdamanager.com)",
       "Bash(git pull:*)",
       "Bash(npx eslint:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(git clone:*)",
+      "Bash(where:*)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

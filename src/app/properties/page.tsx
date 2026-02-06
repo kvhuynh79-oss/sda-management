@@ -118,19 +118,19 @@ function PropertyCard({ property }: { property: any }) {
 
         <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <p className="text-gray-500 text-sm">Owner</p>
+            <p className="text-gray-400 text-sm">Owner</p>
             <p className="text-white">{ownerName}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-sm">Dwellings</p>
+            <p className="text-gray-400 text-sm">Dwellings</p>
             <p className="text-white">{property.dwellingCount}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-sm">Vacancies</p>
+            <p className="text-gray-400 text-sm">Vacancies</p>
             <p className="text-white">{property.vacancies}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-sm">Revenue Share</p>
+            <p className="text-gray-400 text-sm">Revenue Share</p>
             <p className="text-white">
               {property.ownershipType === "self_owned"
                 ? "N/A"

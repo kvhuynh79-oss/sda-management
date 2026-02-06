@@ -38,7 +38,7 @@ export function EmptyState({
       aria-label={isFiltered ? "No matching results" : "Empty state"}
     >
       {icon && (
-        <div className="text-gray-500 mb-4 flex justify-center" aria-hidden="true">
+        <div className="text-gray-400 mb-4 flex justify-center" aria-hidden="true">
           {icon}
         </div>
       )}
@@ -70,7 +70,7 @@ export function EmptyState({
       </div>
 
       {isFiltered && (
-        <p className="text-gray-500 text-sm mt-4">
+        <p className="text-gray-400 text-sm mt-4">
           Try adjusting your filters or search criteria
         </p>
       )}

@@ -308,7 +308,7 @@ function AlertCard({
 
           {linkedEntity && (
             <div className="text-sm text-gray-400">
-              <span className="text-gray-500">{linkedEntity.type}: </span>
+              <span className="text-gray-400">{linkedEntity.type}: </span>
               {linkedEntity.link ? (
                 <Link
                   href={linkedEntity.link}
@@ -349,12 +349,12 @@ function AlertCard({
 
       <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
         <div>
-          <p className="text-gray-500 text-xs">Trigger Date</p>
+          <p className="text-gray-400 text-xs">Trigger Date</p>
           <p className="text-white">{alert.triggerDate}</p>
         </div>
         {alert.dueDate && (
           <div>
-            <p className="text-gray-500 text-xs">Due Date</p>
+            <p className="text-gray-400 text-xs">Due Date</p>
             <p className="text-white">{alert.dueDate}</p>
           </div>
         )}

@@ -1125,7 +1125,7 @@ export default function MaintenanceRequestDetailPage() {
                     placeholder="12"
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
                   />
-                  <p className="text-gray-500 text-xs mt-1">For warranty tracking purposes</p>
+                  <p className="text-gray-400 text-xs mt-1">For warranty tracking purposes</p>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
@@ -1302,7 +1302,7 @@ Better Living Solutions`;
           </label>
           <div className="bg-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto">
             {matchingContractors.length === 0 ? (
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-400 text-sm">
                 {contractors.length === 0
                   ? "No contractors in system. Add contractors first."
                   : "All matching contractors have already been sent requests."}

@@ -333,7 +333,7 @@ function ScheduleCard({
 
           <div className="text-sm text-gray-400">
             <p>
-              <span className="text-gray-500">Property: </span>
+              <span className="text-gray-400">Property: </span>
               <Link
                 href={`/properties/${schedule.property._id}`}
                 className="text-blue-400 hover:text-blue-300"
@@ -343,13 +343,13 @@ function ScheduleCard({
             </p>
             {schedule.dwelling && (
               <p>
-                <span className="text-gray-500">Dwelling: </span>
+                <span className="text-gray-400">Dwelling: </span>
                 <span className="text-white">{schedule.dwelling.dwellingName}</span>
               </p>
             )}
             {schedule.contractorName && (
               <p>
-                <span className="text-gray-500">Contractor: </span>
+                <span className="text-gray-400">Contractor: </span>
                 <span className="text-white">{schedule.contractorName}</span>
               </p>
             )}
@@ -376,18 +376,18 @@ function ScheduleCard({
 
       <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
         <div>
-          <p className="text-gray-500 text-xs">Next Due</p>
+          <p className="text-gray-400 text-xs">Next Due</p>
           <p className="text-white">{schedule.nextDueDate}</p>
         </div>
         {schedule.lastCompletedDate && (
           <div>
-            <p className="text-gray-500 text-xs">Last Completed</p>
+            <p className="text-gray-400 text-xs">Last Completed</p>
             <p className="text-white">{schedule.lastCompletedDate}</p>
           </div>
         )}
         {schedule.estimatedCost && (
           <div>
-            <p className="text-gray-500 text-xs">Estimated Cost</p>
+            <p className="text-gray-400 text-xs">Estimated Cost</p>
             <p className="text-white">${schedule.estimatedCost.toFixed(2)}</p>
           </div>
         )}
@@ -399,7 +399,7 @@ function ScheduleCard({
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="bg-gray-800 rounded-lg p-12 text-center">
-      <div className="text-gray-500 text-6xl mb-4">📅</div>
+      <div className="text-gray-400 text-6xl mb-4">📅</div>
       <h3 className="text-xl font-semibold text-white mb-2">
         {hasFilters ? "No schedules found" : "No preventative schedules yet"}
       </h3>

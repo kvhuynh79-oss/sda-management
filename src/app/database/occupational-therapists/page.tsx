@@ -336,7 +336,7 @@ export default function OccupationalTherapistsPage() {
                       <p className="text-gray-400 mt-1">{therapist.organization}</p>
                     )}
                     {therapist.ahpraNumber && (
-                      <p className="text-gray-500 text-sm">AHPRA: {therapist.ahpraNumber}</p>
+                      <p className="text-gray-400 text-sm">AHPRA: {therapist.ahpraNumber}</p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2">
                       <a

@@ -302,31 +302,31 @@ export default function CommunicationDetailPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Date</span>
+                    <span className="text-gray-400">Date</span>
                     <p className="text-white">
                       {communication.communicationDate}
                       {communication.communicationTime && ` at ${communication.communicationTime}`}
                     </p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Logged</span>
+                    <span className="text-gray-400">Logged</span>
                     <p className="text-white">{new Date(communication.createdAt).toLocaleDateString()}</p>
                   </div>
                   {communication.contactEmail && (
                     <div>
-                      <span className="text-gray-500">Email</span>
+                      <span className="text-gray-400">Email</span>
                       <p className="text-white">{communication.contactEmail}</p>
                     </div>
                   )}
                   {communication.contactPhone && (
                     <div>
-                      <span className="text-gray-500">Phone</span>
+                      <span className="text-gray-400">Phone</span>
                       <p className="text-white">{communication.contactPhone}</p>
                     </div>
                   )}
                   {communication.participant && (
                     <div>
-                      <span className="text-gray-500">Participant</span>
+                      <span className="text-gray-400">Participant</span>
                       <p className="text-white">
                         <Link href={`/participants/${communication.linkedParticipantId}`} className="text-blue-400 hover:text-blue-300">
                           {communication.participant.firstName} {communication.participant.lastName}
@@ -336,7 +336,7 @@ export default function CommunicationDetailPage() {
                   )}
                   {communication.property && (
                     <div>
-                      <span className="text-gray-500">Property</span>
+                      <span className="text-gray-400">Property</span>
                       <p className="text-white">
                         <Link href={`/properties/${communication.linkedPropertyId}`} className="text-blue-400 hover:text-blue-300">
                           {communication.property.propertyName || communication.property.addressLine1}
@@ -346,7 +346,7 @@ export default function CommunicationDetailPage() {
                   )}
                   {communication.createdByUser && (
                     <div>
-                      <span className="text-gray-500">Logged By</span>
+                      <span className="text-gray-400">Logged By</span>
                       <p className="text-white">
                         {communication.createdByUser.firstName} {communication.createdByUser.lastName}
                       </p>

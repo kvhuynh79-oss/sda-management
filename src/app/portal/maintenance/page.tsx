@@ -203,7 +203,7 @@ export default function SILProviderMaintenance() {
               />
             </svg>
             <p className="text-gray-400">No maintenance requests found</p>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-400 text-sm mt-1">
               {statusFilter !== "all"
                 ? "Try changing the filter"
                 : "Everything is running smoothly!"}
@@ -237,7 +237,7 @@ export default function SILProviderMaintenance() {
                     <p className="text-gray-400 text-sm mt-1 line-clamp-2">
                       {request.description}
                     </p>
-                    <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500">
+                    <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-400">
                       <span>{request.reportedDate}</span>
                       <span>
                         {request.property?.propertyName ||

@@ -60,7 +60,7 @@ export default function ConversationsList({
 
       <div className="flex-1 overflow-y-auto space-y-1">
         {conversations.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-4">
+          <p className="text-gray-400 text-sm text-center py-4">
             No conversations yet
           </p>
         ) : (
@@ -79,7 +79,7 @@ export default function ConversationsList({
                 <p className="text-sm truncate">
                   {conv.title || "New conversation"}
                 </p>
-                <p className="text-xs text-gray-500">{formatDate(conv.updatedAt)}</p>
+                <p className="text-xs text-gray-400">{formatDate(conv.updatedAt)}</p>
               </div>
               <button
                 onClick={(e) => {

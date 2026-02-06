@@ -336,7 +336,7 @@ export default function EditPropertyPage() {
                       </option>
                     ))}
                   </select>
-                  <p className="text-gray-500 text-xs mt-1">
+                  <p className="text-gray-400 text-xs mt-1">
                     The SIL provider you are managing this property for.{" "}
                     <Link href="/database/sil-providers/new" className="text-blue-400 hover:underline">
                       Add new provider
@@ -361,7 +361,7 @@ export default function EditPropertyPage() {
                 max="100"
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="text-gray-400 text-xs mt-1">
                 % kept as management fee for owner distributions (0-100)
               </p>
             </div>

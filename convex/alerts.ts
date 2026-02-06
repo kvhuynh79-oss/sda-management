@@ -15,7 +15,8 @@ export const create = mutation({
       v.literal("document_expiry"),
       v.literal("vacancy"),
       v.literal("preventative_schedule_due"),
-      v.literal("claim_due")
+      v.literal("claim_due"),
+      v.literal("payment_variance")
     ),
     severity: v.union(v.literal("critical"), v.literal("warning"), v.literal("info")),
     title: v.string(),
@@ -215,7 +216,8 @@ export const getByType = query({
       v.literal("document_expiry"),
       v.literal("vacancy"),
       v.literal("preventative_schedule_due"),
-      v.literal("claim_due")
+      v.literal("claim_due"),
+      v.literal("payment_variance")
     ),
   },
   handler: async (ctx, args) => {
@@ -487,5 +489,62 @@ export const getActivePaginated = query({
       isDone: result.isDone,
       continueCursor: result.continueCursor,
     };
+  },
+});
+
+// Create payment variance alert (called by payments.create when variance > $500)
+export const createVarianceAlert = internalMutation({
+  args: {
+    paymentId: v.id("payments"),
+    participantId: v.id("participants"),
+    expectedAmount: v.number(),
+    actualAmount: v.number(),
+    variance: v.number(),
+    paymentDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get participant details
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) {
+      console.error("Participant not found for variance alert");
+      return null;
+    }
+
+    const participantName = `${participant.firstName} ${participant.lastName}`;
+    const absVariance = Math.abs(args.variance);
+    const variancePercent = ((absVariance / args.expectedAmount) * 100).toFixed(1);
+    const varianceType = args.variance > 0 ? "overpayment" : "underpayment";
+
+    // Determine severity based on variance amount
+    let severity: "critical" | "warning" | "info";
+    if (absVariance > 2000) {
+      severity = "critical";
+    } else if (absVariance > 1000) {
+      severity = "warning";
+    } else {
+      severity = "warning"; // Default for >$500
+    }
+
+    const title = `Payment Variance: ${participantName}`;
+    const message = `${varianceType.charAt(0).toUpperCase() + varianceType.slice(1)} of $${absVariance.toLocaleString("en-AU", {
+      minimumFractionDigits: 2
+    })} (${variancePercent}%) detected. Expected: $${args.expectedAmount.toLocaleString("en-AU", {
+      minimumFractionDigits: 2
+    })}, Actual: $${args.actualAmount.toLocaleString("en-AU", {
+      minimumFractionDigits: 2
+    })}`;
+
+    // Create the alert using helper (handles duplicate checking)
+    const alertId = await createAlertIfNotExists(ctx, {
+      alertType: "payment_variance",
+      severity,
+      title,
+      message,
+      linkedParticipantId: args.participantId,
+      triggerDate: args.paymentDate,
+      dueDate: args.paymentDate, // Set due date to payment date for sorting
+    });
+
+    return alertId;
   },
 });

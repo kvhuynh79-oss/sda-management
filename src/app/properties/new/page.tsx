@@ -696,7 +696,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             max="100"
             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
           />
-          <p className="text-gray-500 text-xs mt-1">% kept as management fee for owner distributions</p>
+          <p className="text-gray-400 text-xs mt-1">% kept as management fee for owner distributions</p>
         </div>
 
         <div>
@@ -784,7 +784,7 @@ function SilProviderStep({
             <option value="incidents_only">Incidents Only</option>
             <option value="full_management">Full Property Management</option>
           </select>
-          <p className="text-gray-500 text-xs mt-1">What services you provide for this property</p>
+          <p className="text-gray-400 text-xs mt-1">What services you provide for this property</p>
         </div>
 
         {/* Contract Dates */}
@@ -806,7 +806,7 @@ function SilProviderStep({
               onChange={(e) => setPropertyData({ ...propertyData, silContractEndDate: e.target.value })}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
-            <p className="text-gray-500 text-xs mt-1">Leave blank if ongoing</p>
+            <p className="text-gray-400 text-xs mt-1">Leave blank if ongoing</p>
           </div>
         </div>
 
@@ -821,7 +821,7 @@ function SilProviderStep({
             min="0"
             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
           />
-          <p className="text-gray-500 text-xs mt-1">Fee charged to SIL provider for managing this property</p>
+          <p className="text-gray-400 text-xs mt-1">Fee charged to SIL provider for managing this property</p>
         </div>
 
         {/* Contact Details */}
@@ -873,7 +873,7 @@ function SilProviderStep({
             <span className={`transform transition-transform ${showOwnerSection ? "rotate-90" : ""}`}>▶</span>
             Property Owner Details (Optional)
           </button>
-          <p className="text-gray-500 text-xs mt-1 mb-4">
+          <p className="text-gray-400 text-xs mt-1 mb-4">
             Add owner details if known - you can skip this if you don't have the information
           </p>
 

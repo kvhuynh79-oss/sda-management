@@ -5,6 +5,8 @@ import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Modal from "@/components/ui/Modal";
+import { storeTokens } from "@/lib/auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,7 +17,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetSubmitted, setResetSubmitted] = useState(false);
 
-  const login = useAction(api.auth.login);
+  const loginWithSession = useAction(api.auth.loginWithSession);
   const router = useRouter();
 
   // Sanitize error messages to be user-friendly
@@ -38,17 +40,13 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const user = await login({ email, password });
+      const result = await loginWithSession({ email, password });
 
-      // Store user info with session expiry (24 hours)
-      const sessionData = {
-        ...user,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-      };
-      localStorage.setItem("sda_user", JSON.stringify(sessionData));
+      // Store session tokens (replaces old localStorage approach)
+      storeTokens(result.token, result.refreshToken);
 
       // Redirect based on role - SIL providers go to their restricted portal
-      if (user.role === "sil_provider") {
+      if (result.user.role === "sil_provider") {
         router.push("/portal/dashboard");
       } else {
         router.push("/dashboard");
@@ -82,9 +80,9 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className="bg-gray-800 rounded-lg shadow-xl p-8">
-          <h2 className="text-xl font-semibold text-white mb-6">
+          <h1 className="text-xl font-semibold text-white mb-6">
             Sign in to your account
-          </h2>
+          </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
@@ -96,8 +94,8 @@ export default function LoginPage() {
 
             {/* Email Field */}
             <div>
-              <label 
-                htmlFor="email" 
+              <label
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-300 mb-2"
               >
                 Email address
@@ -108,6 +106,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="you@example.com"
               />
@@ -136,6 +135,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter your password"
               />
@@ -153,110 +153,98 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-sm mt-8">
+        <p className="text-center text-gray-400 text-sm mt-8">
           SDA Property Management System
         </p>
       </div>
 
       {/* Forgot Password Modal */}
-      {showForgotPassword && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-white">Reset Password</h2>
+      <Modal
+        isOpen={showForgotPassword}
+        onClose={() => {
+          setShowForgotPassword(false);
+          setResetEmail("");
+          setResetSubmitted(false);
+        }}
+        title="Reset Password"
+        size="md"
+      >
+        {!resetSubmitted ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setResetSubmitted(true);
+            }}
+            className="space-y-4"
+          >
+            <p className="text-gray-300 text-sm">
+              Enter your email address and we&apos;ll help you reset your password.
+            </p>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Email address
+              </label>
+              <input
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => {
                   setShowForgotPassword(false);
                   setResetEmail("");
-                  setResetSubmitted(false);
                 }}
-                className="text-gray-400 hover:text-white"
+                className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                Submit
               </button>
             </div>
-
-            <div className="p-6">
-              {!resetSubmitted ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setResetSubmitted(true);
-                  }}
-                  className="space-y-4"
-                >
-                  <p className="text-gray-300 text-sm">
-                    Enter your email address and we&apos;ll help you reset your password.
-                  </p>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Email address
-                    </label>
-                    <input
-                      type="email"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="you@example.com"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowForgotPassword(false);
-                        setResetEmail("");
-                      }}
-                      className="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                    >
-                      Submit
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto">
-                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-white">Contact your administrator</h3>
-                  <p className="text-gray-400 text-sm">
-                    To reset your password for <span className="text-white font-medium">{resetEmail}</span>, please contact your system administrator.
-                  </p>
-                  <div className="pt-2 p-4 bg-gray-700/50 rounded-lg">
-                    <p className="text-gray-300 text-sm">
-                      <strong>Contact:</strong><br />
-                      khen@betterlivingsolutions.com.au
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowForgotPassword(false);
-                      setResetEmail("");
-                      setResetSubmitted(false);
-                    }}
-                    className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors mt-4"
-                  >
-                    Back to Login
-                  </button>
-                </div>
-              )}
+          </form>
+        ) : (
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
             </div>
+            <h3 className="text-lg font-medium text-white">Contact your administrator</h3>
+            <p className="text-gray-400 text-sm">
+              To reset your password for <span className="text-white font-medium">{resetEmail}</span>, please contact your system administrator.
+            </p>
+            <div className="pt-2 p-4 bg-gray-700/50 rounded-lg">
+              <p className="text-gray-300 text-sm">
+                <strong>Contact:</strong><br />
+                khen@betterlivingsolutions.com.au
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setShowForgotPassword(false);
+                setResetEmail("");
+                setResetSubmitted(false);
+              }}
+              className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors mt-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
+            >
+              Back to Login
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

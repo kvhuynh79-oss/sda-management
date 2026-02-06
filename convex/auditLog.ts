@@ -1,9 +1,62 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
 // Type for audit log actions
 export type AuditAction = "create" | "update" | "delete" | "view" | "login" | "logout" | "export" | "import";
+
+/**
+ * Calculate SHA-256 hash of audit log entry for hash chain
+ * This creates an immutable audit trail - any tampering will break the chain
+ *
+ * @param entry - The audit log entry to hash
+ * @returns Hex string of SHA-256 hash
+ */
+async function hashLogEntry(entry: {
+  userId: string;
+  userEmail: string;
+  userName: string;
+  action: string;
+  entityType: string;
+  entityId?: string;
+  entityName?: string;
+  changes?: string;
+  previousValues?: string;
+  metadata?: string;
+  timestamp: number;
+  previousHash?: string;
+  sequenceNumber?: number;
+}): Promise<string> {
+  // Create deterministic string representation of the entry
+  const dataToHash = JSON.stringify({
+    userId: entry.userId,
+    userEmail: entry.userEmail,
+    userName: entry.userName,
+    action: entry.action,
+    entityType: entry.entityType,
+    entityId: entry.entityId || "",
+    entityName: entry.entityName || "",
+    changes: entry.changes || "",
+    previousValues: entry.previousValues || "",
+    metadata: entry.metadata || "",
+    timestamp: entry.timestamp,
+    previousHash: entry.previousHash || "",
+    sequenceNumber: entry.sequenceNumber || 0,
+  });
+
+  // Convert string to Uint8Array for hashing
+  const encoder = new TextEncoder();
+  const data = encoder.encode(dataToHash);
+
+  // Calculate SHA-256 hash using Web Crypto API
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+
+  // Convert hash to hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+  return hashHex;
+}
 
 // Type for entity types that can be audited
 export type AuditEntityType =
@@ -29,6 +82,7 @@ export type AuditEntityType =
   | "system";
 
 // Internal mutation for logging - used by other mutations
+// Implements hash chain for immutability (NDIS 7-year retention compliance)
 export const log = internalMutation({
   args: {
     userId: v.id("users"),
@@ -52,7 +106,22 @@ export const log = internalMutation({
     metadata: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("auditLogs", {
+    // Get the most recent audit log entry for hash chain
+    const previousLog = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_sequenceNumber")
+      .order("desc")
+      .first();
+
+    // Calculate sequence number
+    const sequenceNumber = previousLog ? (previousLog.sequenceNumber || 0) + 1 : 1;
+
+    // Get previous hash for chain (empty string for first entry)
+    const previousHash = previousLog?.currentHash || "";
+
+    // Create the entry data (without hash yet)
+    const timestamp = Date.now();
+    const entryData = {
       userId: args.userId,
       userEmail: args.userEmail,
       userName: args.userName,
@@ -63,12 +132,25 @@ export const log = internalMutation({
       changes: args.changes,
       previousValues: args.previousValues,
       metadata: args.metadata,
-      timestamp: Date.now(),
+      timestamp,
+      previousHash,
+      sequenceNumber,
+    };
+
+    // Calculate hash of this entry
+    const currentHash = await hashLogEntry(entryData);
+
+    // Insert the log with hash chain
+    await ctx.db.insert("auditLogs", {
+      ...entryData,
+      currentHash,
+      isIntegrityVerified: false, // Will be verified by daily cron
     });
   },
 });
 
 // Public mutation for logging (used from client-side when needed)
+// Implements hash chain for immutability (NDIS 7-year retention compliance)
 export const createLog = mutation({
   args: {
     userId: v.id("users"),
@@ -95,7 +177,22 @@ export const createLog = mutation({
       throw new Error("User not found");
     }
 
-    await ctx.db.insert("auditLogs", {
+    // Get the most recent audit log entry for hash chain
+    const previousLog = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_sequenceNumber")
+      .order("desc")
+      .first();
+
+    // Calculate sequence number
+    const sequenceNumber = previousLog ? (previousLog.sequenceNumber || 0) + 1 : 1;
+
+    // Get previous hash for chain (empty string for first entry)
+    const previousHash = previousLog?.currentHash || "";
+
+    // Create the entry data (without hash yet)
+    const timestamp = Date.now();
+    const entryData = {
       userId: args.userId,
       userEmail: user.email,
       userName: `${user.firstName} ${user.lastName}`,
@@ -105,7 +202,19 @@ export const createLog = mutation({
       entityName: args.entityName,
       changes: args.changes,
       metadata: args.metadata,
-      timestamp: Date.now(),
+      timestamp,
+      previousHash,
+      sequenceNumber,
+    };
+
+    // Calculate hash of this entry
+    const currentHash = await hashLogEntry(entryData);
+
+    // Insert the log with hash chain
+    await ctx.db.insert("auditLogs", {
+      ...entryData,
+      currentHash,
+      isIntegrityVerified: false, // Will be verified by daily cron
     });
   },
 });
@@ -286,3 +395,156 @@ export function formatChanges(
     previousValues: JSON.stringify(previousFields),
   };
 }
+
+// DELETION PREVENTION - Audit logs are immutable for NDIS 7-year retention compliance
+export const deleteAuditLog = mutation({
+  args: {
+    logId: v.id("auditLogs"),
+  },
+  handler: async (ctx, args) => {
+    throw new Error(
+      "IMMUTABILITY VIOLATION: Audit logs cannot be deleted. " +
+      "This is required for NDIS 7-year retention compliance and audit trail integrity. " +
+      "All audit records must be preserved to maintain the hash chain. " +
+      "If you need to mark a log as incorrect, create a new corrective entry instead."
+    );
+  },
+});
+
+// DELETION PREVENTION - Batch deletion also blocked
+export const deleteMultipleAuditLogs = mutation({
+  args: {
+    logIds: v.array(v.id("auditLogs")),
+  },
+  handler: async (ctx, args) => {
+    throw new Error(
+      "IMMUTABILITY VIOLATION: Audit logs cannot be deleted. " +
+      "This is required for NDIS 7-year retention compliance and audit trail integrity. " +
+      "All audit records must be preserved to maintain the hash chain."
+    );
+  },
+});
+
+// Verify integrity of audit log hash chain
+// Returns details of any broken links in the chain
+export const verifyHashChainIntegrity = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const logs = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_sequenceNumber")
+      .order("asc")
+      .collect();
+
+    const violations: Array<{
+      logId: string;
+      sequenceNumber: number;
+      issue: string;
+      timestamp: number;
+    }> = [];
+
+    let verifiedCount = 0;
+    let previousLog = null;
+
+    for (const log of logs) {
+      // Skip if already verified
+      if (log.isIntegrityVerified) {
+        previousLog = log;
+        continue;
+      }
+
+      // Check 1: Verify sequence number is sequential
+      if (previousLog && log.sequenceNumber !== (previousLog.sequenceNumber || 0) + 1) {
+        violations.push({
+          logId: log._id,
+          sequenceNumber: log.sequenceNumber || 0,
+          issue: `Sequence number gap detected. Expected ${(previousLog.sequenceNumber || 0) + 1}, got ${log.sequenceNumber}`,
+          timestamp: log.timestamp,
+        });
+      }
+
+      // Check 2: Verify previousHash matches previous entry's currentHash
+      if (previousLog) {
+        if (log.previousHash !== previousLog.currentHash) {
+          violations.push({
+            logId: log._id,
+            sequenceNumber: log.sequenceNumber || 0,
+            issue: `Hash chain broken. Previous hash mismatch.`,
+            timestamp: log.timestamp,
+          });
+        }
+      } else if (log.sequenceNumber === 1 && log.previousHash !== "") {
+        violations.push({
+          logId: log._id,
+          sequenceNumber: log.sequenceNumber || 0,
+          issue: `First entry should have empty previousHash`,
+          timestamp: log.timestamp,
+        });
+      }
+
+      // Check 3: Verify currentHash is correct by recalculating
+      const calculatedHash = await hashLogEntry({
+        userId: log.userId,
+        userEmail: log.userEmail,
+        userName: log.userName,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        entityName: log.entityName,
+        changes: log.changes,
+        previousValues: log.previousValues,
+        metadata: log.metadata,
+        timestamp: log.timestamp,
+        previousHash: log.previousHash,
+        sequenceNumber: log.sequenceNumber,
+      });
+
+      if (calculatedHash !== log.currentHash) {
+        violations.push({
+          logId: log._id,
+          sequenceNumber: log.sequenceNumber || 0,
+          issue: `Hash mismatch. Entry may have been tampered with.`,
+          timestamp: log.timestamp,
+        });
+      }
+
+      // If no violations for this log, mark as verified
+      if (!violations.some(v => v.logId === log._id)) {
+        await ctx.db.patch(log._id, { isIntegrityVerified: true });
+        verifiedCount++;
+      }
+
+      previousLog = log;
+    }
+
+    return {
+      totalLogs: logs.length,
+      verifiedCount,
+      violationsFound: violations.length,
+      violations,
+      timestamp: Date.now(),
+    };
+  },
+});
+
+// Public query to check integrity status
+export const getIntegrityStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const totalLogs = await ctx.db.query("auditLogs").collect();
+    const verifiedLogs = totalLogs.filter(log => log.isIntegrityVerified === true);
+    const unverifiedLogs = totalLogs.filter(log => !log.isIntegrityVerified);
+
+    return {
+      totalLogs: totalLogs.length,
+      verifiedLogs: verifiedLogs.length,
+      unverifiedLogs: unverifiedLogs.length,
+      integrityPercentage: totalLogs.length > 0
+        ? ((verifiedLogs.length / totalLogs.length) * 100).toFixed(2)
+        : "0",
+      oldestUnverifiedLog: unverifiedLogs.length > 0
+        ? unverifiedLogs.sort((a, b) => a.timestamp - b.timestamp)[0].timestamp
+        : null,
+    };
+  },
+});

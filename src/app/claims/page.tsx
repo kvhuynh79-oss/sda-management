@@ -438,7 +438,7 @@ export default function ClaimsPage() {
           <div className="grid grid-cols-7 gap-1">
             {/* Day headers */}
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="text-center text-gray-500 text-xs py-2 font-medium">
+              <div key={day} className="text-center text-gray-400 text-xs py-2 font-medium">
                 {day}
               </div>
             ))}
@@ -491,7 +491,7 @@ export default function ClaimsPage() {
                             );
                           })}
                           {dayData.length > 4 && (
-                            <span className="text-[9px] text-gray-500">+{dayData.length - 4} more</span>
+                            <span className="text-[9px] text-gray-400">+{dayData.length - 4} more</span>
                           )}
                         </div>
                       )}
@@ -523,7 +523,7 @@ export default function ClaimsPage() {
               <div className="w-3 h-3 rounded border-2 border-yellow-500 bg-transparent"></div>
               <span>Today</span>
             </div>
-            <span className="text-gray-500 ml-auto">Click a day to filter claims</span>
+            <span className="text-gray-400 ml-auto">Click a day to filter claims</span>
           </div>
         </div>
 
@@ -592,13 +592,13 @@ export default function ClaimsPage() {
                           <p className="text-gray-400 text-sm mt-1">
                             {claim.property?.addressLine1} - {claim.dwelling?.dwellingName}
                           </p>
-                          <p className="text-gray-500 text-xs mt-1">
+                          <p className="text-gray-400 text-xs mt-1">
                             NDIS: {claim.participant.ndisNumber}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-green-400 font-medium">{formatCurrency(claim.expectedAmount)}</p>
-                          <p className="text-gray-500 text-xs">Monthly SDA</p>
+                          <p className="text-gray-400 text-xs">Monthly SDA</p>
                         </div>
                         <div className="ml-4 flex gap-2">
                           {claim.status === "pending" && (
@@ -672,7 +672,7 @@ export default function ClaimsPage() {
         {(!groupedByDay || Object.keys(groupedByDay).length === 0) && (
           <div className="text-center py-12 bg-gray-800 rounded-lg">
             <p className="text-gray-400">No claims data available.</p>
-            <p className="text-gray-500 text-sm mt-2">
+            <p className="text-gray-400 text-sm mt-2">
               Make sure participants have active plans with claim days set.
             </p>
           </div>

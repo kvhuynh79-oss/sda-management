@@ -63,7 +63,7 @@ export function StatCard({
           <p className="text-sm text-gray-400">{title}</p>
           <p className={`text-3xl font-bold ${finalValueColor} mt-1`}>{value}</p>
           {subtitle && (
-            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
           )}
           {trend && (
             <p
@@ -77,7 +77,7 @@ export function StatCard({
           )}
         </div>
         {icon && (
-          <div className="text-gray-500" aria-hidden="true">
+          <div className="text-gray-400" aria-hidden="true">
             {icon}
           </div>
         )}

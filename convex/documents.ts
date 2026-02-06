@@ -316,7 +316,7 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     // Verify user has permission to delete documents
-    await requirePermission(ctx, args.userId, "documents", "delete");
+    const user = await requirePermission(ctx, args.userId, "documents", "delete");
     const doc = await ctx.db.get(args.documentId);
     if (!doc) throw new Error("Document not found");
 
@@ -325,6 +325,31 @@ export const remove = mutation({
 
     // Delete document record
     await ctx.db.delete(args.documentId);
+
+    // Audit log: Document deleted
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "delete",
+      entityType: "document",
+      entityId: args.documentId,
+      entityName: doc.fileName,
+      previousValues: JSON.stringify({
+        fileName: doc.fileName,
+        documentType: doc.documentType,
+        documentCategory: doc.documentCategory,
+        expiryDate: doc.expiryDate,
+        linkedParticipantId: doc.linkedParticipantId,
+        linkedPropertyId: doc.linkedPropertyId,
+      }),
+      metadata: JSON.stringify({
+        documentType: doc.documentType,
+        documentCategory: doc.documentCategory,
+        fileSize: doc.fileSize,
+      }),
+    });
+
     return { success: true };
   },
 });

@@ -163,26 +163,30 @@ export default function SettingsPage() {
   };
 
   const handleSubmitUser = async () => {
+    if (!user) return;
+
     setIsSubmittingUser(true);
     setUserError(null);
 
     try {
       if (editingUserId) {
-        // Update existing user
+        // Update existing user - pass acting user ID for admin verification
         await updateUser({
-          userId: editingUserId as Id<"users">,
+          actingUserId: user.id as Id<"users">,
+          targetUserId: editingUserId as Id<"users">,
           firstName: userFormData.firstName,
           lastName: userFormData.lastName,
           role: userFormData.role,
         });
       } else {
-        // Create new user
+        // Create new user - pass acting user ID for admin verification
         if (!userFormData.password) {
           setUserError("Password is required for new users");
           setIsSubmittingUser(false);
           return;
         }
         await createUser({
+          actingUserId: user.id as Id<"users">,
           email: userFormData.email,
           password: userFormData.password,
           firstName: userFormData.firstName,
@@ -203,9 +207,12 @@ export default function SettingsPage() {
   };
 
   const handleToggleUserActive = async (userId: string, currentlyActive: boolean) => {
+    if (!user) return;
+
     try {
       await updateUser({
-        userId: userId as Id<"users">,
+        actingUserId: user.id as Id<"users">,
+        targetUserId: userId as Id<"users">,
         isActive: !currentlyActive,
       });
     } catch (error) {
@@ -215,13 +222,16 @@ export default function SettingsPage() {
   };
 
   const handleResetPassword = async (userId: string) => {
+    if (!user) return;
+
     if (!newPassword) {
       alert("Please enter a new password");
       return;
     }
     try {
       await resetPassword({
-        userId: userId as Id<"users">,
+        actingUserId: user.id as Id<"users">,
+        targetUserId: userId as Id<"users">,
         newPassword,
       });
       setShowResetPassword(null);
@@ -389,7 +399,7 @@ export default function SettingsPage() {
                 </div>
               ))}
               {!allUsers?.length && (
-                <p className="text-gray-500 text-center py-8">No users found</p>
+                <p className="text-gray-400 text-center py-8">No users found</p>
               )}
             </div>
 
@@ -698,7 +708,7 @@ export default function SettingsPage() {
                   required
                 />
                 {editingUserId && (
-                  <p className="text-gray-500 text-xs mt-1">Email cannot be changed</p>
+                  <p className="text-gray-400 text-xs mt-1">Email cannot be changed</p>
                 )}
               </div>
 

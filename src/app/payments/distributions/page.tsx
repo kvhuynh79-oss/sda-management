@@ -177,7 +177,7 @@ export default function OwnerDistributionsPage() {
                         <tr key={p.participant._id} className="border-b border-gray-600/50">
                           <td className="py-2 text-white">
                             {p.participant.firstName} {p.participant.lastName}
-                            <span className="text-gray-500 text-xs ml-2">
+                            <span className="text-gray-400 text-xs ml-2">
                               ({p.dwelling?.dwellingName || "Unknown"})
                             </span>
                           </td>
@@ -231,23 +231,23 @@ export default function OwnerDistributionsPage() {
             {/* Owner Summary */}
             <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-5 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Total SDA</p>
+                <p className="text-gray-400">Total SDA</p>
                 <p className="text-white font-medium">{formatCurrency(ownerDist.grandTotalSda)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Total RRC</p>
+                <p className="text-gray-400">Total RRC</p>
                 <p className="text-white font-medium">{formatCurrency(ownerDist.grandTotalRrc)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Total Income</p>
+                <p className="text-gray-400">Total Income</p>
                 <p className="text-blue-400 font-medium">{formatCurrency(ownerDist.grandTotalIncome)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Management Fees</p>
+                <p className="text-gray-400">Management Fees</p>
                 <p className="text-green-400 font-medium">{formatCurrency(ownerDist.grandTotalManagementFee)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Owner Payment</p>
+                <p className="text-gray-400">Owner Payment</p>
                 <p className="text-yellow-400 font-bold">{formatCurrency(ownerDist.grandTotalOwnerPayment)}</p>
               </div>
             </div>

@@ -280,7 +280,7 @@ export default function OccupationalTherapistsContent() {
                     )}
                   </div>
                   {therapist.organization && <p className="text-gray-400 mt-1">{therapist.organization}</p>}
-                  {therapist.ahpraNumber && <p className="text-gray-500 text-sm">AHPRA: {therapist.ahpraNumber}</p>}
+                  {therapist.ahpraNumber && <p className="text-gray-400 text-sm">AHPRA: {therapist.ahpraNumber}</p>}
                   <div className="flex flex-wrap gap-2 mt-2">
                     <a href={`mailto:${therapist.email}`} className="text-blue-400 hover:text-blue-300 text-sm">{therapist.email}</a>
                     {therapist.phone && <a href={`tel:${therapist.phone}`} className="text-gray-400 hover:text-gray-300 text-sm">{therapist.phone}</a>}

@@ -37,6 +37,23 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_role", ["role"]),
 
+  // Sessions table - server-side session management (replaces localStorage auth)
+  sessions: defineTable({
+    userId: v.id("users"),
+    token: v.string(), // Access token (short-lived, 24 hours)
+    refreshToken: v.string(), // Refresh token (long-lived, 30 days)
+    expiresAt: v.number(), // Access token expiration timestamp
+    refreshTokenExpiresAt: v.number(), // Refresh token expiration timestamp
+    userAgent: v.optional(v.string()), // Browser/device info for security
+    ipAddress: v.optional(v.string()), // IP address for security tracking
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_userId", ["userId"])
+    .index("by_refreshToken", ["refreshToken"])
+    .index("by_expiresAt", ["expiresAt"]),
+
   // Audit Logs table - track all user actions for security and compliance
   auditLogs: defineTable({
     userId: v.id("users"),
@@ -61,12 +78,18 @@ export default defineSchema({
     userAgent: v.optional(v.string()),
     metadata: v.optional(v.string()), // Additional context as JSON
     timestamp: v.number(),
+    // Hash chain fields for immutability (NDIS 7-year retention compliance)
+    previousHash: v.optional(v.string()), // SHA-256 hash of previous log entry
+    currentHash: v.optional(v.string()), // SHA-256 hash of this log entry
+    sequenceNumber: v.optional(v.number()), // Sequential number for ordering
+    isIntegrityVerified: v.optional(v.boolean()), // Flag for verified entries
   })
     .index("by_userId", ["userId"])
     .index("by_action", ["action"])
     .index("by_entityType", ["entityType"])
     .index("by_timestamp", ["timestamp"])
-    .index("by_entityType_entityId", ["entityType", "entityId"]),
+    .index("by_entityType_entityId", ["entityType", "entityId"])
+    .index("by_sequenceNumber", ["sequenceNumber"]),
 
   // Owners table - property investors/landlords
   owners: defineTable({
@@ -595,6 +618,7 @@ export default defineSchema({
       v.literal("claim_due"), // Reminder to submit SDA claim
       v.literal("owner_payment_due"), // Reminder to pay owners
       v.literal("payment_overdue"), // Expected payment not received
+      v.literal("payment_variance"), // Significant payment variance (>$500)
       // Compliance alerts
       v.literal("ndis_notification_overdue"), // Reportable incident notification overdue
       v.literal("vacancy_notification_overdue"), // NDIA vacancy notification overdue (5 business days)

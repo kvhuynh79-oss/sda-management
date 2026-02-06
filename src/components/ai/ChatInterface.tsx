@@ -300,7 +300,7 @@ export default function ChatInterface({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading || !!pendingAction || !!selectedFile}
-              className="px-3 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-gray-300 hover:text-white disabled:text-gray-500 rounded-lg transition-colors"
+              className="px-3 py-3 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-gray-300 hover:text-white disabled:text-gray-400 rounded-lg transition-colors"
               title="Upload document"
             >
               <Paperclip className="w-5 h-5" />
@@ -336,7 +336,7 @@ export default function ChatInterface({
             )}
           </button>
         </form>
-        <p className="text-xs text-gray-500 mt-2 text-center">
+        <p className="text-xs text-gray-400 mt-2 text-center">
           {selectedFile
             ? "Type instructions like 'file to Waldron Rd' then click send, or just send to analyze"
             : "Press Enter to send • Drag & drop or click 📎 to upload documents"

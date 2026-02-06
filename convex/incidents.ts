@@ -90,56 +90,82 @@ export const create = mutation({
     reportedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission
-    const user = await requirePermission(ctx, args.reportedBy, "incidents", "create");
+    try {
+      // Verify user has permission
+      const user = await requirePermission(ctx, args.reportedBy, "incidents", "create");
 
-    const now = Date.now();
+      const now = Date.now();
 
-    // Determine if this is an NDIS reportable incident
-    const { isReportable, timeframe } = getNdisReportableInfo(args.incidentType);
+      // Determine if this is an NDIS reportable incident
+      const { isReportable, timeframe } = getNdisReportableInfo(args.incidentType);
 
-    // Build base incident data
-    const baseData = {
-      ...args,
-      status: "reported" as const,
-      isNdisReportable: isReportable,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    let incidentId;
-
-    // Add NDIS notification tracking if reportable
-    if (isReportable && timeframe) {
-      incidentId = await ctx.db.insert("incidents", {
-        ...baseData,
-        ndisNotificationTimeframe: timeframe,
-        ndisNotificationDueDate: calculateDueDate(args.incidentDate, timeframe),
-        ndisCommissionNotified: false,
-        ndisNotificationOverdue: false,
-      });
-    } else {
-      incidentId = await ctx.db.insert("incidents", baseData);
-    }
-
-    // Audit log
-    await ctx.runMutation(internal.auditLog.log, {
-      userId: user._id,
-      userEmail: user.email,
-      userName: `${user.firstName} ${user.lastName}`,
-      action: "create",
-      entityType: "incident",
-      entityId: incidentId,
-      entityName: args.title,
-      metadata: JSON.stringify({
-        incidentType: args.incidentType,
-        severity: args.severity,
+      // Build base incident data
+      const baseData = {
+        ...args,
+        status: "reported" as const,
         isNdisReportable: isReportable,
-        incidentDate: args.incidentDate,
-      }),
-    });
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    return incidentId;
+      let incidentId;
+
+      // Add NDIS notification tracking if reportable
+      if (isReportable && timeframe) {
+        incidentId = await ctx.db.insert("incidents", {
+          ...baseData,
+          ndisNotificationTimeframe: timeframe,
+          ndisNotificationDueDate: calculateDueDate(args.incidentDate, timeframe),
+          ndisCommissionNotified: false,
+          ndisNotificationOverdue: false,
+        });
+      } else {
+        incidentId = await ctx.db.insert("incidents", baseData);
+      }
+
+      // Audit log
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: user._id,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        action: "create",
+        entityType: "incident",
+        entityId: incidentId,
+        entityName: args.title,
+        metadata: JSON.stringify({
+          incidentType: args.incidentType,
+          severity: args.severity,
+          isNdisReportable: isReportable,
+          incidentDate: args.incidentDate,
+        }),
+      });
+
+      return incidentId;
+    } catch (error) {
+      // Log the error
+      console.error("Failed to create incident:", error);
+
+      // Send failure email to admin
+      try {
+        await ctx.scheduler.runAfter(0, internal.notifications.sendIncidentFailureEmail, {
+          incidentData: {
+            title: args.title,
+            description: args.description,
+            incidentType: args.incidentType,
+            severity: args.severity,
+            incidentDate: args.incidentDate,
+            propertyId: args.propertyId,
+            reportedByUserId: args.reportedBy,
+          },
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+      } catch (emailError) {
+        console.error("Failed to send incident failure email:", emailError);
+      }
+
+      // Re-throw the error so the user knows it failed
+      throw error;
+    }
   },
 });
 
@@ -319,8 +345,19 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     // Verify user has permission to update incidents
-    await requirePermission(ctx, args.userId, "incidents", "update");
+    const user = await requirePermission(ctx, args.userId, "incidents", "update");
     const { incidentId, userId, ...updates } = args;
+
+    // Capture previous values BEFORE update for audit trail
+    const incident = await ctx.db.get(incidentId);
+    if (!incident) throw new Error("Incident not found");
+
+    const previousValues: Record<string, unknown> = {};
+    for (const key of Object.keys(updates)) {
+      if ((updates as Record<string, unknown>)[key] !== undefined) {
+        previousValues[key] = (incident as Record<string, unknown>)[key];
+      }
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -335,11 +372,30 @@ export const update = mutation({
     }
 
     await ctx.db.patch(incidentId, filteredUpdates);
+
+    // Audit log the update with previous values
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "incident",
+      entityId: incidentId,
+      entityName: incident.title,
+      changes: JSON.stringify(filteredUpdates),
+      previousValues: JSON.stringify(previousValues),
+      metadata: JSON.stringify({
+        incidentType: incident.incidentType,
+        isNdisReportable: incident.isNdisReportable,
+      }),
+    });
+
     return { success: true };
   },
 });
 
 // Mark incident as notified to NDIS Commission
+// CRITICAL: This function MUST log the exact timestamp for NDIS 24-hour notification compliance
 export const markNdisNotified = mutation({
   args: {
     userId: v.id("users"),
@@ -349,9 +405,22 @@ export const markNdisNotified = mutation({
   },
   handler: async (ctx, args) => {
     // Verify user has permission to update incidents
-    await requirePermission(ctx, args.userId, "incidents", "update");
+    const user = await requirePermission(ctx, args.userId, "incidents", "update");
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) throw new Error("Incident not found");
+
+    // Capture the exact timestamp for compliance audit trail
+    const notificationTimestamp = new Date().toISOString();
+
+    // Capture previous NDIS notification state
+    const previousValues = {
+      ndisCommissionNotified: incident.ndisCommissionNotified,
+      ndisCommissionNotificationDate: incident.ndisCommissionNotificationDate,
+      ndisCommissionReferenceNumber: incident.ndisCommissionReferenceNumber,
+      ndisNotificationOverdue: incident.ndisNotificationOverdue,
+      reportedToNdis: incident.reportedToNdis,
+      ndisReportDate: incident.ndisReportDate,
+    };
 
     await ctx.db.patch(args.incidentId, {
       ndisCommissionNotified: true,
@@ -362,6 +431,35 @@ export const markNdisNotified = mutation({
       reportedToNdis: true,
       ndisReportDate: args.notificationDate,
       updatedAt: Date.now(),
+    });
+
+    // CRITICAL AUDIT LOG: Records exact timestamp of NDIS notification for compliance
+    // This proves we met the 24-hour notification requirement for major incidents
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "incident",
+      entityId: args.incidentId,
+      entityName: "NDIS_NOTIFICATION",
+      changes: JSON.stringify({
+        ndisCommissionNotified: true,
+        ndisCommissionNotificationDate: args.notificationDate,
+        ndisCommissionReferenceNumber: args.referenceNumber,
+        notificationTimestamp: notificationTimestamp,
+      }),
+      previousValues: JSON.stringify(previousValues),
+      metadata: JSON.stringify({
+        incidentTitle: incident.title,
+        incidentType: incident.incidentType,
+        incidentDate: incident.incidentDate,
+        severity: incident.severity,
+        isNdisReportable: incident.isNdisReportable,
+        ndisNotificationTimeframe: incident.ndisNotificationTimeframe,
+        ndisNotificationDueDate: incident.ndisNotificationDueDate,
+        wasOverdue: incident.ndisNotificationOverdue,
+      }),
     });
 
     return { success: true };
@@ -479,14 +577,56 @@ export const resolve = mutation({
   },
   handler: async (ctx, args) => {
     // Verify user has permission to update incidents
-    await requirePermission(ctx, args.resolvedBy, "incidents", "update");
+    const user = await requirePermission(ctx, args.resolvedBy, "incidents", "update");
+
+    // Get incident for audit trail
+    const incident = await ctx.db.get(args.incidentId);
+    if (!incident) throw new Error("Incident not found");
+
+    const resolvedAt = Date.now();
+    const resolvedAtISO = new Date(resolvedAt).toISOString();
+
+    // Capture previous status for audit
+    const previousValues = {
+      status: incident.status,
+      resolvedBy: incident.resolvedBy,
+      resolvedAt: incident.resolvedAt,
+      resolutionNotes: incident.resolutionNotes,
+    };
+
     await ctx.db.patch(args.incidentId, {
       status: "resolved",
       resolvedBy: args.resolvedBy,
-      resolvedAt: Date.now(),
+      resolvedAt: resolvedAt,
       resolutionNotes: args.resolutionNotes,
-      updatedAt: Date.now(),
+      updatedAt: resolvedAt,
     });
+
+    // Audit log the resolution
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "incident",
+      entityId: args.incidentId,
+      entityName: "INCIDENT_RESOLVED",
+      changes: JSON.stringify({
+        status: "resolved",
+        resolvedAt: resolvedAtISO,
+        resolutionNotes: args.resolutionNotes,
+      }),
+      previousValues: JSON.stringify(previousValues),
+      metadata: JSON.stringify({
+        incidentTitle: incident.title,
+        incidentType: incident.incidentType,
+        incidentDate: incident.incidentDate,
+        severity: incident.severity,
+        isNdisReportable: incident.isNdisReportable,
+        ndisCommissionNotified: incident.ndisCommissionNotified,
+      }),
+    });
+
     return { success: true };
   },
 });

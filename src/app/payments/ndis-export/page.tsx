@@ -273,7 +273,7 @@ export default function NDISExportPage() {
                     placeholder="06_431_0131_2_2"
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-400 mt-1">
                     SDA support item code (e.g., 06_431_0131_2_2)
                   </p>
                 </div>

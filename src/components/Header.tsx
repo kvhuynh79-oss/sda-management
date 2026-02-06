@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSession } from "../hooks/useSession";
+import { logout } from "../lib/auth";
 
 interface HeaderProps {
   currentPage?:
@@ -34,20 +36,9 @@ interface HeaderProps {
 
 export default function Header({ currentPage }: HeaderProps) {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName: string;
-    lastName: string;
-    role: string;
-  } | null>(null);
+  const { user, loading } = useSession();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLAnchorElement>(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
 
   // Scroll active nav item into view on mount/page change
   useEffect(() => {
@@ -65,8 +56,7 @@ export default function Header({ currentPage }: HeaderProps) {
   }, [currentPage]);
 
   const handleLogout = () => {
-    localStorage.removeItem("sda_user");
-    router.push("/login");
+    logout(); // Uses centralized logout function
   };
 
   const navItems = [

@@ -225,8 +225,22 @@ export const updateStatus = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requirePermission(ctx, args.userId, "payments", "update");
+    const user = await requirePermission(ctx, args.userId, "payments", "update");
     const { claimId, userId, ...updates } = args;
+
+    // Get current claim for audit logging (BEFORE update)
+    const claim = await ctx.db.get(claimId);
+    if (!claim) {
+      throw new Error("Claim not found");
+    }
+
+    // Capture previous values for audit trail
+    const previousValues: Record<string, unknown> = {};
+    for (const key of Object.keys(updates)) {
+      if ((updates as Record<string, unknown>)[key] !== undefined) {
+        previousValues[key] = (claim as Record<string, unknown>)[key];
+      }
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -236,6 +250,23 @@ export const updateStatus = mutation({
     }
 
     await ctx.db.patch(claimId, filteredUpdates);
+
+    // Audit log: Claim status updated (only if there are actual changes)
+    if (Object.keys(filteredUpdates).length > 1) { // More than just updatedAt
+      const participant = await ctx.db.get(claim.participantId);
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: user._id,
+        userEmail: user.email,
+        userName: getUserFullName(user),
+        action: "update",
+        entityType: "claim",
+        entityId: claimId,
+        entityName: `${participant?.firstName} ${participant?.lastName} - ${claim.claimPeriod}`,
+        changes: JSON.stringify(filteredUpdates),
+        previousValues: JSON.stringify(previousValues),
+      });
+    }
+
     return { success: true };
   },
 });
@@ -248,7 +279,7 @@ export const bulkCreateForPeriod = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requirePermission(ctx, args.userId, "payments", "create");
+    const user = await requirePermission(ctx, args.userId, "payments", "create");
     const now = Date.now();
 
     // Get all active participants
@@ -259,6 +290,7 @@ export const bulkCreateForPeriod = mutation({
 
     let created = 0;
     let skipped = 0;
+    const createdClaimIds: string[] = [];
 
     for (const participant of participants) {
       // Get current plan
@@ -286,7 +318,7 @@ export const bulkCreateForPeriod = mutation({
       }
 
       // Create claim
-      await ctx.db.insert("claims", {
+      const claimId = await ctx.db.insert("claims", {
         participantId: participant._id,
         planId: currentPlan._id,
         claimPeriod: args.claimPeriod,
@@ -298,7 +330,27 @@ export const bulkCreateForPeriod = mutation({
         updatedAt: now,
       });
 
+      createdClaimIds.push(claimId);
       created++;
+    }
+
+    // Audit log: Bulk claim creation
+    if (created > 0) {
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: user._id,
+        userEmail: user.email,
+        userName: getUserFullName(user),
+        action: "create",
+        entityType: "claim",
+        entityId: createdClaimIds[0], // Log first claim ID
+        entityName: `Bulk Claims - ${args.claimPeriod}`,
+        metadata: JSON.stringify({
+          claimPeriod: args.claimPeriod,
+          created,
+          skipped,
+          claimIds: createdClaimIds,
+        }),
+      });
     }
 
     return { created, skipped };

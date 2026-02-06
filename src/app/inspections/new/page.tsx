@@ -132,7 +132,7 @@ export default function NewInspectionPage() {
 
           {templates && templates.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-500 text-5xl mb-4">📋</div>
+              <div className="text-gray-400 text-5xl mb-4">📋</div>
               <p className="text-gray-400 mb-4">
                 No inspection templates available. Create a template first.
               </p>
@@ -166,7 +166,7 @@ export default function NewInspectionPage() {
                   ))}
                 </select>
                 {formData.templateId && templates && (
-                  <p className="mt-2 text-gray-500 text-sm">
+                  <p className="mt-2 text-gray-400 text-sm">
                     {templates.find((t) => t._id === formData.templateId)
                       ?.categories.length || 0}{" "}
                     categories,{" "}
@@ -226,7 +226,7 @@ export default function NewInspectionPage() {
                       </option>
                     ))}
                   </select>
-                  <p className="mt-2 text-gray-500 text-sm">
+                  <p className="mt-2 text-gray-400 text-sm">
                     Leave blank for property-wide inspection
                   </p>
                 </div>
@@ -310,22 +310,22 @@ export default function NewInspectionPage() {
                   </h3>
                   <div className="text-sm text-gray-400 space-y-1">
                     <p>
-                      <span className="text-gray-500">Property:</span>{" "}
+                      <span className="text-gray-400">Property:</span>{" "}
                       {selectedProperty.propertyName ||
                         selectedProperty.addressLine1}
                     </p>
                     <p>
-                      <span className="text-gray-500">Address:</span>{" "}
+                      <span className="text-gray-400">Address:</span>{" "}
                       {selectedProperty.addressLine1}, {selectedProperty.suburb}{" "}
                       {selectedProperty.state} {selectedProperty.postcode}
                     </p>
                     <p>
-                      <span className="text-gray-500">Template:</span>{" "}
+                      <span className="text-gray-400">Template:</span>{" "}
                       {templates?.find((t) => t._id === formData.templateId)
                         ?.name || ""}
                     </p>
                     <p>
-                      <span className="text-gray-500">Scheduled:</span>{" "}
+                      <span className="text-gray-400">Scheduled:</span>{" "}
                       {formData.scheduledDate}
                     </p>
                   </div>

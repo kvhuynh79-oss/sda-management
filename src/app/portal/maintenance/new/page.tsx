@@ -280,7 +280,7 @@ export default function NewMaintenancePage() {
                       >
                         {p.label}
                       </span>
-                      <span className="text-xs text-gray-500 block">
+                      <span className="text-xs text-gray-400 block">
                         {p.desc}
                       </span>
                     </button>

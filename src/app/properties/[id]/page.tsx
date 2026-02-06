@@ -247,9 +247,9 @@ export default function PropertyDetailPage() {
                 </Link>
               </div>
               {documents === undefined ? (
-                <p className="text-gray-500 text-sm">Loading...</p>
+                <p className="text-gray-400 text-sm">Loading...</p>
               ) : documents.length === 0 ? (
-                <p className="text-gray-500 text-sm">No documents attached to this property</p>
+                <p className="text-gray-400 text-sm">No documents attached to this property</p>
               ) : (
                 <div className="space-y-2">
                   {documents.map((doc) => (
@@ -276,7 +276,7 @@ export default function PropertyDetailPage() {
 
               {dwellings.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-gray-500 text-5xl mb-4">🏘️</div>
+                  <div className="text-gray-400 text-5xl mb-4">🏘️</div>
                   <p className="text-gray-400 mb-4">No dwellings added yet</p>
                   <Link
                     href={`/properties/${propertyId}/dwellings/new`}
@@ -346,7 +346,7 @@ function StatCard({
 
   return (
     <div>
-      <p className="text-gray-500 text-sm">{label}</p>
+      <p className="text-gray-400 text-sm">{label}</p>
       <p className={`text-2xl font-bold ${colorClasses[color]}`}>{value}</p>
     </div>
   );
@@ -355,7 +355,7 @@ function StatCard({
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-gray-500 text-sm">{label}</p>
+      <p className="text-gray-400 text-sm">{label}</p>
       <p className="text-white">{value}</p>
     </div>
   );
@@ -484,23 +484,23 @@ function DwellingCard({
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
         <div>
-          <p className="text-gray-500 text-xs">Bedrooms</p>
+          <p className="text-gray-400 text-xs">Bedrooms</p>
           <p className="text-white text-sm">{dwelling.bedrooms}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Design Category</p>
+          <p className="text-gray-400 text-xs">Design Category</p>
           <p className="text-white text-sm">{formatCategory(dwelling.sdaDesignCategory)}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Building Type</p>
+          <p className="text-gray-400 text-xs">Building Type</p>
           <p className="text-white text-sm capitalize">{dwelling.sdaBuildingType.replace("_", " ")}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">Registration Date</p>
+          <p className="text-gray-400 text-xs">Registration Date</p>
           <p className="text-white text-sm">{dwelling.registrationDate || "Not registered"}</p>
         </div>
         <div>
-          <p className="text-gray-500 text-xs">SDA Amount (Annual)</p>
+          <p className="text-gray-400 text-xs">SDA Amount (Annual)</p>
           <p className="text-white text-sm font-medium">
             {dwelling.sdaRegisteredAmount
               ? `$${dwelling.sdaRegisteredAmount.toLocaleString()}`
@@ -521,7 +521,7 @@ function DwellingCard({
           </button>
         </div>
         {!allocatedProviders || allocatedProviders.length === 0 ? (
-          <p className="text-gray-500 text-xs italic">No SIL provider allocated</p>
+          <p className="text-gray-400 text-xs italic">No SIL provider allocated</p>
         ) : (
           <div className="space-y-1">
             {allocatedProviders.map((allocation) => (
@@ -1023,11 +1023,11 @@ function MediaGallery({
             isDragOver ? "border-blue-500 bg-blue-600/10" : "border-gray-700"
           }`}
         >
-          <div className="text-gray-500 text-5xl mb-4">{isDragOver ? "📥" : "📷"}</div>
+          <div className="text-gray-400 text-5xl mb-4">{isDragOver ? "📥" : "📷"}</div>
           <p className="text-gray-400 mb-2">
             {isDragOver ? "Drop files here" : "No photos or videos yet"}
           </p>
-          <p className="text-gray-500 text-sm mb-4">
+          <p className="text-gray-400 text-sm mb-4">
             {isDragOver ? "Release to upload" : "Drag & drop or click to upload images and videos"}
           </p>
           {!isDragOver && (
@@ -1146,7 +1146,7 @@ function MediaGallery({
               {selectedMedia.description && (
                 <p className="text-gray-400 text-sm mt-1">{selectedMedia.description}</p>
               )}
-              <p className="text-gray-500 text-xs mt-2">
+              <p className="text-gray-400 text-xs mt-2">
                 {formatFileSize(selectedMedia.fileSize)} | {selectedMedia.fileType}
               </p>
             </div>

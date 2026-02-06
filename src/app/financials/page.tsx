@@ -543,7 +543,7 @@ function ClaimsTab({ userId }: { userId: string }) {
         </div>
         <div className="grid grid-cols-7 gap-1">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-            <div key={day} className="text-center text-gray-500 text-xs py-2 font-medium">{day}</div>
+            <div key={day} className="text-center text-gray-400 text-xs py-2 font-medium">{day}</div>
           ))}
           {getCalendarDays().map((day, index) => {
             const dayData = day ? claimsByDay?.[day] : null;
@@ -575,7 +575,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                             </div>
                           );
                         })}
-                        {dayData.length > 3 && <span className="text-[9px] text-gray-500">+{dayData.length - 3} more</span>}
+                        {dayData.length > 3 && <span className="text-[9px] text-gray-400">+{dayData.length - 3} more</span>}
                       </div>
                     )}
                   </>
@@ -668,7 +668,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                         <p className="text-gray-400 text-sm">{claim.property?.addressLine1} - {claim.dwelling?.dwellingName}</p>
                         <div className="flex items-center gap-2 mt-1">
                           {getStatusBadge(claim.status, claim.isOverdue)}
-                          <span className="text-xs text-gray-500 capitalize">{claim.claimMethod.replace(/_/g, " ")}</span>
+                          <span className="text-xs text-gray-400 capitalize">{claim.claimMethod.replace(/_/g, " ")}</span>
                         </div>
                       </div>
                     </div>
@@ -1013,7 +1013,7 @@ function PaymentsTab() {
                   <td className="px-4 py-3 text-white text-sm">{payment.paymentDate}</td>
                   <td className="px-4 py-3">
                     <p className="text-white text-sm">{payment.participant?.firstName} {payment.participant?.lastName}</p>
-                    <p className="text-gray-500 text-xs">{payment.participant?.ndisNumber}</p>
+                    <p className="text-gray-400 text-xs">{payment.participant?.ndisNumber}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-sm">{payment.paymentPeriodStart} - {payment.paymentPeriodEnd}</td>
                   <td className="px-4 py-3 text-right text-white text-sm">{formatCurrency(payment.expectedAmount)}</td>
@@ -1997,16 +1997,16 @@ function OwnerPaymentsTab() {
                   <div className="px-4 py-3 bg-gray-700 text-sm">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-300">
                       <div>
-                        <span className="text-gray-500">Monthly SDA:</span> {formatCurrency(suggested.sdaAmount)}
+                        <span className="text-gray-400">Monthly SDA:</span> {formatCurrency(suggested.sdaAmount)}
                       </div>
                       <div>
-                        <span className="text-gray-500">Monthly RRC:</span> {formatCurrency(suggested.rrcAmount)}
+                        <span className="text-gray-400">Monthly RRC:</span> {formatCurrency(suggested.rrcAmount)}
                       </div>
                       <div>
-                        <span className="text-gray-500">Mgmt Fee ({suggested.managementFeePercent}%):</span> ({formatCurrency(suggested.managementFee)})
+                        <span className="text-gray-400">Mgmt Fee ({suggested.managementFeePercent}%):</span> ({formatCurrency(suggested.managementFee)})
                       </div>
                       <div>
-                        <span className="text-gray-500">Net to Owner:</span> <span className="text-green-400 font-medium">{formatCurrency(suggested.netAmount)}</span>
+                        <span className="text-gray-400">Net to Owner:</span> <span className="text-green-400 font-medium">{formatCurrency(suggested.netAmount)}</span>
                       </div>
                     </div>
                   </div>

@@ -454,7 +454,7 @@ function InspectionsTab({ userId }: { userId: string }) {
                   <p className="text-gray-400 text-sm">
                     {inspection.dwelling?.dwellingName || "All Dwellings"} | {inspection.scheduledDate}
                   </p>
-                  <p className="text-gray-500 text-xs mt-1">
+                  <p className="text-gray-400 text-xs mt-1">
                     {inspection.completedItems}/{inspection.totalItems} items |
                     {inspection.passedItems} passed, {inspection.failedItems} failed
                   </p>
@@ -684,7 +684,7 @@ function ScheduleCard({
           </div>
           <h3 className="text-white font-medium">{schedule.taskName}</h3>
           <p className="text-gray-400 text-sm">{schedule.property?.addressLine1}</p>
-          <p className="text-gray-500 text-xs mt-1">
+          <p className="text-gray-400 text-xs mt-1">
             Due: {schedule.nextDueDate} ({schedule.daysUntilDue > 0 ? `in ${schedule.daysUntilDue} days` : `${Math.abs(schedule.daysUntilDue)} days overdue`})
           </p>
         </div>

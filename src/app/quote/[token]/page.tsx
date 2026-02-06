@@ -195,7 +195,7 @@ export default function QuoteSubmissionPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="text-sm text-gray-500">Property</label>
+              <label className="text-sm text-gray-400">Property</label>
               <p className="text-gray-800 font-medium">
                 {property?.addressLine1}
                 <br />
@@ -203,15 +203,15 @@ export default function QuoteSubmissionPage() {
               </p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Dwelling</label>
+              <label className="text-sm text-gray-400">Dwelling</label>
               <p className="text-gray-800 font-medium">{dwelling?.dwellingName || "Main Property"}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Category</label>
+              <label className="text-sm text-gray-400">Category</label>
               <p className="text-gray-800 font-medium capitalize">{maintenanceRequest.category}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Priority</label>
+              <label className="text-sm text-gray-400">Priority</label>
               <span
                 className={`inline-block px-2 py-1 text-xs rounded-full ${
                   maintenanceRequest.priority === "urgent"
@@ -229,7 +229,7 @@ export default function QuoteSubmissionPage() {
           </div>
 
           <div className="border-t border-gray-200 pt-4">
-            <label className="text-sm text-gray-500">Issue</label>
+            <label className="text-sm text-gray-400">Issue</label>
             <h3 className="text-gray-800 font-medium">{maintenanceRequest.title}</h3>
             <p className="text-gray-600 mt-2">{maintenanceRequest.description}</p>
           </div>
@@ -237,7 +237,7 @@ export default function QuoteSubmissionPage() {
           {/* Photos */}
           {photos && photos.length > 0 && (
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <label className="text-sm text-gray-500 mb-2 block">Photos ({photos.length})</label>
+              <label className="text-sm text-gray-400 mb-2 block">Photos ({photos.length})</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {photos.map((photo, index) => (
                   <a
@@ -274,7 +274,7 @@ export default function QuoteSubmissionPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Total Quote Amount *</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
                   <input
                     type="number"
                     step="0.01"
@@ -305,7 +305,7 @@ export default function QuoteSubmissionPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Labor Cost</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
                   <input
                     type="number"
                     step="0.01"
@@ -319,7 +319,7 @@ export default function QuoteSubmissionPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Materials Cost</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
                   <input
                     type="number"
                     step="0.01"
@@ -395,7 +395,7 @@ export default function QuoteSubmissionPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-gray-500 text-sm">
+        <div className="text-center mt-6 text-gray-400 text-sm">
           <p>Quote request expires: {quoteData.quoteRequest.expiryDate}</p>
         </div>
       </div>

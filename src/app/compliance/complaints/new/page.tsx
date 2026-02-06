@@ -231,7 +231,7 @@ export default function NewComplaintPage() {
                 onChange={(e) => setFormData({ ...formData, complaintDate: e.target.value })}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
-              <p className="text-gray-500 text-xs mt-1">When the issue occurred or was raised</p>
+              <p className="text-gray-400 text-xs mt-1">When the issue occurred or was raised</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -244,7 +244,7 @@ export default function NewComplaintPage() {
                 onChange={(e) => setFormData({ ...formData, receivedDate: e.target.value })}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
-              <p className="text-gray-500 text-xs mt-1">When complaint was formally received (starts 5-day acknowledgment clock)</p>
+              <p className="text-gray-400 text-xs mt-1">When complaint was formally received (starts 5-day acknowledgment clock)</p>
             </div>
           </div>
 

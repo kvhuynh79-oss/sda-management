@@ -2,6 +2,29 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission } from "./authHelpers";
+import { z } from "zod";
+
+// Zod schema for payment validation
+const PaymentSchema = z.object({
+  expectedAmount: z.number()
+    .positive("Expected amount must be positive")
+    .max(100000, "Expected amount cannot exceed $100,000"),
+  actualAmount: z.number()
+    .positive("Actual amount must be positive")
+    .max(100000, "Actual amount cannot exceed $100,000"),
+  paymentDate: z.string().refine(
+    (date) => !isNaN(Date.parse(date)),
+    "Invalid payment date format"
+  ),
+  paymentPeriodStart: z.string().refine(
+    (date) => !isNaN(Date.parse(date)),
+    "Invalid payment period start date"
+  ),
+  paymentPeriodEnd: z.string().refine(
+    (date) => !isNaN(Date.parse(date)),
+    "Invalid payment period end date"
+  ),
+});
 
 // Create a new payment record
 export const create = mutation({
@@ -27,9 +50,53 @@ export const create = mutation({
     // Verify user has permission
     const user = await requirePermission(ctx, args.createdBy, "payments", "create");
 
+    // VALIDATION 1: Zod schema validation (positive amounts, max $100k)
+    const validationResult = PaymentSchema.safeParse({
+      expectedAmount: args.expectedAmount,
+      actualAmount: args.actualAmount,
+      paymentDate: args.paymentDate,
+      paymentPeriodStart: args.paymentPeriodStart,
+      paymentPeriodEnd: args.paymentPeriodEnd,
+    });
+
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.issues.map(e => e.message).join(", ");
+      throw new Error(`Payment validation failed: ${errorMessages}`);
+    }
+
+    // VALIDATION 2: Duplicate payment check (participant + date)
+    const existingPayment = await ctx.db
+      .query("payments")
+      .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
+      .filter((q) => q.eq(q.field("paymentDate"), args.paymentDate))
+      .first();
+
+    if (existingPayment) {
+      throw new Error(
+        `Duplicate payment detected: A payment for this participant on ${args.paymentDate} already exists (Payment ID: ${existingPayment._id})`
+      );
+    }
+
+    // VALIDATION 3: Plan expiry validation
+    const plan = await ctx.db.get(args.planId);
+    if (!plan) {
+      throw new Error("Plan not found");
+    }
+
+    const paymentDate = new Date(args.paymentDate);
+    const planEndDate = new Date(plan.planEndDate);
+
+    if (paymentDate > planEndDate) {
+      throw new Error(
+        `Payment date (${args.paymentDate}) is after the plan end date (${plan.planEndDate}). The plan has expired.`
+      );
+    }
+
+    // Calculate variance
     const variance = args.actualAmount - args.expectedAmount;
     const now = Date.now();
 
+    // Insert payment
     const paymentId = await ctx.db.insert("payments", {
       ...args,
       variance,
@@ -53,8 +120,23 @@ export const create = mutation({
         amount: args.actualAmount,
         paymentSource: args.paymentSource,
         paymentDate: args.paymentDate,
+        variance: variance,
       }),
     });
+
+    // VALIDATION 4: Variance alert (>$500)
+    const absVariance = Math.abs(variance);
+    if (absVariance > 500) {
+      // Create an alert for significant variance
+      await ctx.scheduler.runAfter(0, internal.alerts.createVarianceAlert, {
+        paymentId: paymentId,
+        participantId: args.participantId,
+        expectedAmount: args.expectedAmount,
+        actualAmount: args.actualAmount,
+        variance: variance,
+        paymentDate: args.paymentDate,
+      });
+    }
 
     return paymentId;
   },

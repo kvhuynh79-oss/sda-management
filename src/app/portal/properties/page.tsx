@@ -109,7 +109,7 @@ export default function SILProviderProperties() {
               />
             </svg>
             <p className="text-gray-400">No properties allocated yet</p>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-400 text-sm mt-1">
               Contact your administrator to get property access
             </p>
           </div>
@@ -175,7 +175,7 @@ export default function SILProviderProperties() {
                             </div>
                           )}
                           {dwellingParticipants.length === 0 && (
-                            <div className="mt-2 text-sm text-gray-500">
+                            <div className="mt-2 text-sm text-gray-400">
                               No participants
                             </div>
                           )}

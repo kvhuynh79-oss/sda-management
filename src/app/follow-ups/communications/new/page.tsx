@@ -428,7 +428,7 @@ export default function NewCommunicationPage() {
                 >
                   <div className="flex flex-col items-center gap-2">
                     <svg
-                      className={`w-8 h-8 ${isDragOver ? "text-blue-400" : "text-gray-500"}`}
+                      className={`w-8 h-8 ${isDragOver ? "text-blue-400" : "text-gray-400"}`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -450,7 +450,7 @@ export default function NewCommunicationPage() {
                         </>
                       )}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-400">
                       Images, PDF, or Word documents
                     </p>
                   </div>

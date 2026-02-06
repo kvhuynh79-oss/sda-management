@@ -1,23 +1,185 @@
 # 🏗️ Architect Coordination Center
-**Project:** MySDAManager Security Hardening
-**Date Started:** 2026-02-06
+**Current Project:** MySDAManager v1.4.0 - CommunicationsLog Refactor
+**Date Started:** 2026-02-07
 **Architect:** Window 1 (This Window)
 **Backend Team:** Window 2
 **Frontend Team:** Window 3
 
 ---
 
-## 📊 Overall Progress
+## 📊 Overall Progress - CommunicationsLog Refactor
 
-| Team | Tasks Assigned | Completed | In Progress | Status |
-|------|----------------|-----------|-------------|--------|
-| **Backend** | 10 tasks | 10 | 0 | ✅ **ALL DONE** |
-| **Frontend** | 5 tasks | 5 | 0 | ✅ **ALL DONE** |
+| Team | Phase | Tasks Assigned | Completed | In Progress | Status |
+|------|-------|----------------|-----------|-------------|--------|
+| **Backend** | Phase 1: Schema | 5 tasks | 0 | 0 | ⏳ READY TO START |
+| **Frontend** | Phase 1: Planning | 0 tasks | 0 | 0 | ⏳ STANDBY |
 
-**Total Estimated Time:** 38 hours
-**Actual Time:** ~4 hours (parallel execution)
+**Total Estimated Time:** 120 hours over 6 weeks
+**Current Phase:** Phase 1 - Database Schema & Migration
 
-## 🏆 PROJECT STATUS: COMPLETE
+## 🎯 CURRENT MILESTONE: Deploy Schema Changes to Dev Environment
+
+---
+
+## 📋 CURRENT PROJECT TASKS - CommunicationsLog Refactor
+
+### 🔴 BACKEND TEAM - Phase 1: Database Schema & Migration (Week 1)
+
+#### Task 1.1: Update Communications Schema [⏳ READY TO START] - 3 hours
+**Files:** `convex/schema.ts` (lines 1697-1813)
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Add new fields to communications table:
+   - complianceCategory (9 options: routine, incident_related, complaint, safeguarding, plan_review, access_request, quality_audit, advocacy, none)
+   - complianceFlags (array: requires_documentation, time_sensitive, escalation_required, ndia_reportable, legal_hold)
+   - Threading fields: threadId, parentCommunicationId, isThreadStarter, threadParticipants
+   - Stakeholder linking: stakeholderEntityType, stakeholderEntityId
+   - Consultation Gate: requiresFollowUp, followUpDueDate, followUpStatus, consultationOutcome
+   - Participant involvement: isParticipantInvolved, participantConsentGiven
+   - Multiple attachments: attachmentStorageIds (array), attachmentMetadata (array of objects)
+2. Add new indexes:
+   - by_thread: [threadId, timestamp]
+   - by_participant_compliance: [participantId, complianceCategory, timestamp]
+   - by_stakeholder: [stakeholderEntityType, stakeholderEntityId, timestamp]
+   - by_follow_up: [requiresFollowUp, followUpDueDate]
+3. Rename linkedParticipantId → participantId (make required)
+4. Add linkedParticipantIds (optional array) for multi-participant communications
+5. Deploy schema to dev environment using `npx convex dev`
+
+**Deliverables:**
+- [ ] Modified `convex/schema.ts` with all new fields
+- [ ] All new indexes added
+- [ ] Schema deployed to dev (not production yet!)
+- [ ] Test: Create sample communication with new fields
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 1.2: Create threadSummaries Table [⏳ READY TO START] - 1 hour
+**Files:** `convex/schema.ts`
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Create new table `threadSummaries` with fields:
+   - threadId, participantId, startedAt, lastActivityAt
+   - messageCount, participantNames, subject, previewText
+   - hasUnread, complianceCategories, requiresAction
+2. Add indexes:
+   - by_participant_activity: [participantId, lastActivityAt]
+   - by_thread: [threadId]
+3. Deploy schema change
+
+**Deliverables:**
+- [ ] New `threadSummaries` table in schema
+- [ ] Indexes added
+- [ ] Schema deployed to dev
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 1.3: Create Migration Script [⏳ READY TO START] - 4 hours
+**Files:** `convex/migrations/communications_v2.ts` (NEW)
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Create new file `convex/migrations/communications_v2.ts`
+2. Implement `migrateToV2` internal mutation with:
+   - Batch processing (100 records at a time)
+   - Field mapping: linkedParticipantId → participantId
+   - Infer complianceCategory from keywords in subject/summary
+   - Infer stakeholderEntityType from existing contactType
+   - Set defaults: isParticipantInvolved: true, requiresFollowUp: false, threadId: comm._id
+   - Convert single attachmentStorageId to array attachmentStorageIds
+   - Add migrated_v2 flag for tracking
+3. Include helper functions: inferComplianceCategory, inferStakeholderType
+4. Add audit logging for migration
+
+**Deliverables:**
+- [ ] New migration file created
+- [ ] Migration logic implemented with rollback support
+- [ ] Test migration on 10 sample records in dev
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 1.4: Backup Communications Data [⏳ READY TO START] - 30 minutes
+**Files:** Command line / Convex dashboard
+**Assigned To:** Backend Window 2
+**Instructions:**
+1. Export existing communications table from dev environment
+2. Save backup JSON file to project root: `communications_backup_2026-02-07.json`
+3. Document backup location in migration script comments
+
+**Deliverables:**
+- [ ] Backup file created
+- [ ] Backup location documented
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task 1.5: Test Migration & Rollback [⏳ READY TO START] - 2 hours
+**Files:** `convex/migrations/communications_v2.ts`
+**Assigned To:** Backend Window 2
+**Dependencies:** ⚠️ WAIT for Tasks 1.1, 1.2, 1.3, 1.4 to complete
+**Instructions:**
+1. Run migration on dev environment (100 records max)
+2. Verify all fields populated correctly
+3. Check audit log for migration entries
+4. Test rollback: restore from backup if needed
+5. Document migration results
+
+**Deliverables:**
+- [ ] Migration tested successfully
+- [ ] All data preserved with new fields
+- [ ] Rollback procedure tested
+- [ ] Migration report written
+
+**Report back when:** COMPLETED
+
+---
+
+### 🎨 FRONTEND TEAM - Phase 1: Planning & Research (Week 1)
+
+#### Task F1.1: Review Existing Components [⏳ STANDBY] - 1 hour
+**Files:** `src/components/ui/CommunicationCard.tsx`, `src/app/follow-ups/`
+**Assigned To:** Frontend Window 3
+**Dependencies:** ⚠️ STANDBY until Backend completes schema migration
+**Instructions:**
+1. Read and understand current CommunicationCard component
+2. Read follow-ups page implementation
+3. Identify reusable patterns (badges, loading states, filters)
+4. Document component structure for refactor
+
+**Deliverables:**
+- [ ] Component analysis notes
+- [ ] List of reusable patterns
+- [ ] Recommendations for Phase 4
+
+**Report back when:** COMPLETED
+
+---
+
+## 📅 Execution Timeline
+
+**Week 1 (Current):** Backend Phase 1 - Database schema changes
+**Week 2:** Backend Phase 2 & 3 - Threading engine + Consultation Gate
+**Week 3:** Frontend Phase 4 - Multi-view interface
+**Week 4:** Frontend Phase 5 - Enhanced components
+**Week 5:** Backend + Frontend Phase 6 - Bulk operations & performance
+**Week 6:** Testing Phase 7 - Accessibility & QA
+
+---
+
+## 🏆 PREVIOUS PROJECT: Security Hardening - ✅ COMPLETE
+
+| Team | Tasks | Completed | Status |
+|------|-------|-----------|--------|
+| **Backend** | 10 tasks | 10 | ✅ **ALL DONE** |
+| **Frontend** | 5 tasks | 5 | ✅ **ALL DONE** |
+
+**Completed:** 2026-02-06 (MFA Implementation)
 
 ---
 

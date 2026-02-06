@@ -331,11 +331,22 @@ src/components/
   - **Status**: Build passes, ready for deployment and testing
 
 ## Next Session Priorities
-1. **Testing needed:**
+1. **CommunicationsLog Refactor (v1.4.0)** - 🔄 **IN PROGRESS**
+   - Transform basic contact log into NDIS-audit-ready stakeholder management system
+   - Phase 1: Database schema changes + migration (Week 1)
+   - Phase 2: Smart threading engine with 12-hour window fuzzy matching (Week 2)
+   - Phase 3: Consultation Gate workflow with auto-task creation (Week 2)
+   - Phase 4: Multi-view interface (Thread/Timeline/Stakeholder/Compliance) (Week 3)
+   - Phase 5: Enhanced components & compliance badges (Week 4)
+   - Phase 6: Bulk operations & pagination (Week 5)
+   - Phase 7: Accessibility testing & WCAG 2.1 AA compliance (Week 6)
+   - **Plan**: See `C:\Users\User\.claude\plans\transient-wobbling-floyd.md`
+   - **Estimated**: 6 weeks, 120 hours total
+2. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
-2. **Bug fixing** - Test all features, fix any issues
-3. **Bulk data entry** - User will upload property/participant data
-4. **Frontend Refactoring (remaining pages):**
+3. **Bug fixing** - Test all features, fix any issues
+4. **Bulk data entry** - User will upload property/participant data
+5. **Frontend Refactoring (remaining pages):**
    - `payments/page.tsx` - Apply shared components, useMemo, formatCurrency
    - `inspections/page.tsx` - Apply shared components, useMemo, color constants
    - `operations/page.tsx` - Large page with tabs, needs LoadingScreen/EmptyState/useMemo

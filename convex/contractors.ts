@@ -7,9 +7,10 @@ import { requirePermission, getUserFullName } from "./authHelpers";
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
+    // Use index for better performance
     const contractors = await ctx.db
       .query("contractors")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
 
     // Get preferred properties for each contractor
@@ -90,9 +91,10 @@ export const getBySpecialty = query({
 export const getByProperty = query({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
+    // Use index for better performance
     const allContractors = await ctx.db
       .query("contractors")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
 
     // Filter to contractors who have this property as preferred

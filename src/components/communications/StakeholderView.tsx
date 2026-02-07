@@ -4,11 +4,26 @@ import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import Link from "next/link";
 import { ContactTypeBadge } from "../ui/Badge";
 import Badge from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 import { FormInput } from "../forms/FormInput";
+
+function buildStakeholderFollowUpUrl(stakeholder: any): string {
+  const params: Record<string, string> = {};
+  if (stakeholder.contactType) params.contactType = stakeholder.contactType;
+  if (stakeholder.contactName) params.contactName = stakeholder.contactName;
+  if (stakeholder.contactEmail) params.contactEmail = stakeholder.contactEmail;
+  if (stakeholder.contactPhone) params.contactPhone = stakeholder.contactPhone;
+  if (stakeholder.latestSubject) params.subject = stakeholder.latestSubject;
+  if (stakeholder.stakeholderEntityType) {
+    params.stakeholderType = stakeholder.stakeholderEntityType;
+    if (stakeholder.stakeholderEntityId) params.stakeholderId = stakeholder.stakeholderEntityId;
+  }
+  return `/follow-ups/communications/new?${new URLSearchParams(params).toString()}`;
+}
 
 interface StakeholderViewProps {
   userId: string;
@@ -217,6 +232,16 @@ export function StakeholderView({
                               ))}
                           </div>
                         )}
+
+                        {/* Follow-up action */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <Link
+                            href={buildStakeholderFollowUpUrl(stakeholder)}
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
+                          >
+                            Log Follow-up
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

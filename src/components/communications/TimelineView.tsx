@@ -4,11 +4,28 @@ import { useState, useCallback, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import Link from "next/link";
 import { CommunicationTypeBadge, ContactTypeBadge, DirectionBadge } from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 import { FormSelect } from "../forms/FormSelect";
 import { FormInput } from "../forms/FormInput";
+
+function buildFollowUpUrl(comm: any): string {
+  const params: Record<string, string> = {};
+  if (comm.participantId) params.participantId = comm.participantId;
+  if (comm.linkedPropertyId) params.propertyId = comm.linkedPropertyId;
+  if (comm.contactType) params.contactType = comm.contactType;
+  if (comm.contactName) params.contactName = comm.contactName;
+  if (comm.contactEmail) params.contactEmail = comm.contactEmail;
+  if (comm.contactPhone) params.contactPhone = comm.contactPhone;
+  if (comm.subject) params.subject = comm.subject;
+  if (comm.stakeholderEntityType) {
+    params.stakeholderType = comm.stakeholderEntityType;
+    if (comm.stakeholderEntityId) params.stakeholderId = comm.stakeholderEntityId;
+  }
+  return `/follow-ups/communications/new?${new URLSearchParams(params).toString()}`;
+}
 
 interface TimelineViewProps {
   userId: string;
@@ -277,6 +294,14 @@ export function TimelineView({
                             Participant: {comm.participantName}
                           </p>
                         )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <Link
+                            href={buildFollowUpUrl(comm)}
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
+                          >
+                            Log Follow-up
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </article>

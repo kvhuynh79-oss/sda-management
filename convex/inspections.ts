@@ -819,6 +819,138 @@ export const deleteCustomItem = mutation({
 });
 
 // ============================================
+// INSPECTION PDF REPORT
+// ============================================
+
+// Get full inspection data for PDF report generation
+export const getInspectionReport = query({
+  args: {
+    inspectionId: v.id("inspections"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) throw new Error("Inspection not found");
+
+    // Fetch related records
+    const [template, property, inspector, dwelling] = await Promise.all([
+      ctx.db.get(inspection.templateId),
+      ctx.db.get(inspection.propertyId),
+      ctx.db.get(inspection.inspectorId),
+      inspection.dwellingId ? ctx.db.get(inspection.dwellingId) : null,
+    ]);
+
+    // Fetch items and photos in parallel
+    const [items, photos] = await Promise.all([
+      ctx.db
+        .query("inspectionItems")
+        .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+        .collect(),
+      ctx.db
+        .query("inspectionPhotos")
+        .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+        .collect(),
+    ]);
+
+    // Get photo URLs
+    const photosWithUrls = await Promise.all(
+      photos.map(async (photo) => ({
+        ...photo,
+        url: await ctx.storage.getUrl(photo.storageId),
+      }))
+    );
+
+    // Build photo lookup by item ID
+    const photosByItem = new Map<string, typeof photosWithUrls>();
+    const generalPhotos: typeof photosWithUrls = [];
+
+    for (const photo of photosWithUrls) {
+      if (!photo.inspectionItemId || photo.isGeneralPhoto) {
+        generalPhotos.push(photo);
+      } else {
+        const key = photo.inspectionItemId;
+        if (!photosByItem.has(key)) photosByItem.set(key, []);
+        photosByItem.get(key)!.push(photo);
+      }
+    }
+
+    // Enrich items with photos, sort by order
+    const enrichedItems = items
+      .sort((a, b) => a.itemOrder - b.itemOrder)
+      .map((item) => ({
+        category: item.category,
+        itemName: item.itemName,
+        status: item.status,
+        condition: item.condition || null,
+        remarks: item.remarks || null,
+        hasIssue: item.hasIssue,
+        photos: photosByItem.get(item._id) || [],
+      }));
+
+    // Calculate summary + category breakdown
+    const categoryMap = new Map<string, { total: number; passed: number; failed: number; na: number }>();
+    let totalItems = 0;
+    let passedItems = 0;
+    let failedItems = 0;
+    let naItems = 0;
+
+    for (const item of enrichedItems) {
+      totalItems++;
+      if (item.status === "pass") passedItems++;
+      else if (item.status === "fail") failedItems++;
+      else if (item.status === "na") naItems++;
+
+      if (!categoryMap.has(item.category)) {
+        categoryMap.set(item.category, { total: 0, passed: 0, failed: 0, na: 0 });
+      }
+      const cat = categoryMap.get(item.category)!;
+      cat.total++;
+      if (item.status === "pass") cat.passed++;
+      else if (item.status === "fail") cat.failed++;
+      else if (item.status === "na") cat.na++;
+    }
+
+    const assessed = passedItems + failedItems;
+    const passRate = assessed > 0 ? Math.round((passedItems / assessed) * 100) : 0;
+
+    const categorySummary = Array.from(categoryMap.entries()).map(([name, data]) => ({
+      name,
+      ...data,
+    }));
+
+    return {
+      inspection,
+      property: property
+        ? {
+            propertyName: property.propertyName,
+            addressLine1: property.addressLine1,
+            suburb: property.suburb,
+            state: property.state,
+            postcode: property.postcode,
+          }
+        : null,
+      dwelling: dwelling ? { dwellingName: dwelling.dwellingName } : null,
+      inspector: inspector
+        ? { firstName: inspector.firstName, lastName: inspector.lastName }
+        : null,
+      template: template ? { name: template.name } : null,
+      items: enrichedItems,
+      generalPhotos,
+      summary: {
+        totalItems,
+        passedItems,
+        failedItems,
+        naItems,
+        passRate,
+        categorySummary,
+      },
+    };
+  },
+});
+
+// ============================================
 // SEED DATA - BLS INSPECTION TEMPLATE
 // ============================================
 

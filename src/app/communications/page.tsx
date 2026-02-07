@@ -187,6 +187,12 @@ function CommunicationsContent() {
         {/* Page title */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Communications</h1>
+          <Link
+            href="/follow-ups/communications/new"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            + New Communication
+          </Link>
         </div>
 
         {/* Stats Header */}

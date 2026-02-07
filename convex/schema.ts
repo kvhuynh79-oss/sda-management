@@ -1819,6 +1819,7 @@ export default defineSchema({
     participantId: v.optional(v.id("participants")), // TODO: Make required after migration - renamed from linkedParticipantId
     linkedParticipantIds: v.optional(v.array(v.id("participants"))), // Multi-participant communications
     linkedPropertyId: v.optional(v.id("properties")),
+    linkedIncidentId: v.optional(v.id("incidents")),
 
     // Legacy fields - kept during migration transition
     linkedParticipantId: v.optional(v.id("participants")), // DEPRECATED: Use participantId
@@ -1847,7 +1848,8 @@ export default defineSchema({
     .index("by_thread", ["threadId", "createdAt"])
     .index("by_participant_compliance", ["participantId", "complianceCategory", "createdAt"])
     .index("by_stakeholder", ["stakeholderEntityType", "stakeholderEntityId", "createdAt"])
-    .index("by_follow_up", ["requiresFollowUp", "followUpDueDate"]),
+    .index("by_follow_up", ["requiresFollowUp", "followUpDueDate"])
+    .index("by_linked_incident", ["linkedIncidentId"]),
 
   // Thread summaries table - performance cache for thread views
   threadSummaries: defineTable({

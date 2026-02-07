@@ -49,6 +49,7 @@ export const create = mutation({
     summary: v.string(),
     linkedParticipantId: v.optional(v.id("participants")),
     linkedPropertyId: v.optional(v.id("properties")),
+    linkedIncidentId: v.optional(v.id("incidents")),
     attachmentStorageId: v.optional(v.id("_storage")),
     attachmentFileName: v.optional(v.string()),
     attachmentFileType: v.optional(v.string()),
@@ -814,6 +815,20 @@ export const getByStakeholder = query({
         participantName: pid ? participantMap.get(pid) || null : null,
       };
     });
+  },
+});
+
+// Get communications linked to an incident
+export const getByIncident = query({
+  args: { incidentId: v.id("incidents") },
+  handler: async (ctx, args) => {
+    const communications = await ctx.db
+      .query("communications")
+      .withIndex("by_linked_incident", (q) => q.eq("linkedIncidentId", args.incidentId))
+      .order("desc")
+      .collect();
+
+    return communications;
   },
 });
 

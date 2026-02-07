@@ -171,6 +171,21 @@ export const create = mutation({
         }),
       });
 
+      // Auto-create a linked communication entry for compliance tracking
+      await ctx.runMutation(internal.communications.autoCreateForIncident, {
+        incidentId,
+        incidentTitle: args.title,
+        incidentDescription: args.description,
+        incidentType: args.incidentType,
+        severity: args.severity,
+        incidentDate: args.incidentDate,
+        incidentTime: args.incidentTime,
+        propertyId: args.propertyId,
+        participantId: args.participantId,
+        isNdisReportable: isReportable,
+        createdBy: args.reportedBy,
+      });
+
       return incidentId;
     } catch (error) {
       // Log the error

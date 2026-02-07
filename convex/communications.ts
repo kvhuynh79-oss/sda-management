@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission } from "./authHelpers";
@@ -2280,5 +2280,115 @@ export const deleteByContactName = mutation({
     });
 
     return { deletedCount: targetComms.length };
+  },
+});
+
+/**
+ * Internal: Auto-create a communication entry when an incident is created.
+ * Called from incidents.create - no permission check needed (internal).
+ */
+export const autoCreateForIncident = internalMutation({
+  args: {
+    incidentId: v.id("incidents"),
+    incidentTitle: v.string(),
+    incidentDescription: v.string(),
+    incidentType: v.string(),
+    severity: v.string(),
+    incidentDate: v.string(),
+    incidentTime: v.optional(v.string()),
+    propertyId: v.id("properties"),
+    participantId: v.optional(v.id("participants")),
+    isNdisReportable: v.boolean(),
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Get the user who created the incident
+    const user = await ctx.db.get(args.createdBy);
+    if (!user) return;
+
+    // Get participant name if linked
+    let contactName = `${user.firstName} ${user.lastName}`;
+    if (args.participantId) {
+      const participant = await ctx.db.get(args.participantId);
+      if (participant) {
+        contactName = `${participant.firstName} ${participant.lastName}`;
+      }
+    }
+
+    // Build compliance flags
+    const complianceFlags: ("ndia_reportable" | "requires_documentation" | "time_sensitive" | "escalation_required" | "legal_hold")[] = ["requires_documentation"];
+    if (args.isNdisReportable) {
+      complianceFlags.push("ndia_reportable");
+      complianceFlags.push("time_sensitive");
+    }
+
+    // Create a new thread for this incident
+    const threadId = `thread_incident_${args.incidentId}_${now}`;
+
+    // Truncate description for summary (max 500 chars)
+    const summary = `[Auto-created from incident] ${args.incidentDescription.substring(0, 500)}`;
+
+    // Create the communication entry
+    const communicationId = await ctx.db.insert("communications", {
+      communicationType: "other" as const,
+      direction: "sent" as const,
+      communicationDate: args.incidentDate,
+      communicationTime: args.incidentTime,
+      contactType: args.participantId ? "participant" as const : "other" as const,
+      contactName,
+      subject: `Incident: ${args.incidentTitle}`,
+      summary,
+      linkedParticipantId: args.participantId,
+      linkedPropertyId: args.propertyId,
+      linkedIncidentId: args.incidentId,
+      complianceCategory: "incident_related" as const,
+      complianceFlags,
+      createdBy: args.createdBy,
+      isThreadStarter: true,
+      requiresFollowUp: args.isNdisReportable,
+      isParticipantInvolved: args.participantId != null,
+      threadId,
+      participantId: args.participantId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create thread summary if participant is linked
+    if (args.participantId) {
+      await ctx.db.insert("threadSummaries", {
+        threadId,
+        participantId: args.participantId,
+        startedAt: now,
+        lastActivityAt: now,
+        messageCount: 1,
+        participantNames: [contactName],
+        subject: `Incident: ${args.incidentTitle}`,
+        previewText: summary.substring(0, 100),
+        hasUnread: true,
+        complianceCategories: ["incident_related"],
+        requiresAction: args.isNdisReportable,
+      });
+    }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "communication",
+      entityId: communicationId,
+      entityName: `Auto-created from incident: ${args.incidentTitle}`,
+      metadata: JSON.stringify({
+        autoCreated: true,
+        incidentId: args.incidentId,
+        incidentType: args.incidentType,
+        severity: args.severity,
+      }),
+    });
+
+    return communicationId;
   },
 });

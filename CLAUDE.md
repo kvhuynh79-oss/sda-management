@@ -11,7 +11,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **Email**: Resend API
 - **SMS**: Twilio API
 
-## Current Version: v1.3.2
+## Current Version: v1.5.0
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -28,6 +28,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 12. **Incident Actions** - Define remediation actions, assign to contractor (via MR) or in-house
 13. **Database Management** - Support Coordinators, Contractors, SIL Providers, OTs
 14. **Follow-ups & Tasks** - Track communications (email, SMS, calls) and follow-up tasks for funding, plan approvals
+15. **Communications Hub** - Multi-view communications with threading, compliance tracking, bulk operations, incident auto-linking
 
 ## Project Structure
 ```
@@ -353,17 +354,50 @@ src/components/
     - Download button on completed inspections with loading state
   - **List-to-Detail Navigation**: Contractor + OT list pages wired to detail pages
   - **Build**: 65 pages, 0 errors
+- **Communications v1.5 Enhancements (2026-02-07)** ✓
+  - **Soft Delete + Admin Restore**:
+    - `remove` mutation converted from hard delete to soft delete (`isDeleted`, `deletedAt`, `deletedBy`)
+    - New `restore` mutation (admin-only) to undo deletions
+    - `regenerateThreadSummary` filters out deleted messages
+    - All 13+ queries filter out `isDeleted` records
+  - **Thread Archive/Complete**:
+    - New `updateThreadStatus` mutation (active/completed/archived)
+    - Status filter tabs (Active/Completed/Archived) on ThreadView
+    - Complete/Archive/Reactivate buttons per thread
+    - URL-persisted `threadStatus` filter on communications page
+  - **Delete Buttons on All Views**:
+    - StakeholderView: `deleteByContactName` mutation (bulk soft-delete all comms for a contact)
+    - TimelineView: Per-communication delete button
+    - ComplianceView: Per-communication delete button
+    - Role-gated: only admin + property_manager see delete buttons
+  - **Incident-to-Communications Auto-Linking**:
+    - New `autoCreateForIncident` internal mutation in communications.ts
+    - Auto-creates communication with `complianceCategory: "incident_related"` when incident created
+    - NDIS-reportable incidents get `ndia_reportable` + `time_sensitive` flags
+    - Linked to participant thread if participant specified
+    - Incidents now appear automatically in Compliance view
+  - **Threaded Participant View**: `getByParticipantThreaded` query for collapsible thread groups
+  - **Deleted Items Admin View**: `getDeletedCommunications` query for admin restore UI
+  - **+ New Communication Button**: Added to communications page header
+  - **Schema**: Added `isDeleted`/`deletedAt`/`deletedBy` on communications, `status` on threadSummaries, 2 new indexes
+  - **Commits**: `3435390` (delete buttons), `8bf16cc` (incident auto-linking), `f1fcb54` (new comm button)
 
 ## Next Session Priorities
-1. **OT + Contractor Detail Pages** - 🔄 **W2 IN PROGRESS**
+1. **Communications v1.5 Frontend Remaining**:
+   - Admin restore UI (`/follow-ups/communications/[id]` deleted banner + restore button)
+   - Deleted items admin section (uses `getDeletedCommunications` query)
+   - CommunicationsHistory threaded view for participant detail pages (collapsible sections)
+2. **OT + Contractor Detail Pages**:
    - OT detail page: src/app/database/occupational-therapists/[id]/page.tsx
    - Contractor detail page: src/app/contractors/[id]/page.tsx
    - Both include CommunicationsHistory component
-2. **Testing needed:**
+3. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
    - Run test_communications.py functional tests
-3. **Bug fixing** - Test all features, fix any issues
-4. **Bulk data entry** - User will upload property/participant data
+   - Test soft delete + restore flow end-to-end
+   - Test incident → communication auto-creation in production
+4. **Bug fixing** - Test all features, fix any issues
+5. **Bulk data entry** - User will upload property/participant data
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:
@@ -377,8 +411,9 @@ src/components/
 1. Security enhancements - ✅ **COMPLETE** (RBAC, audit logging, sessions, validation)
 2. MFA for admin accounts - ✅ **COMPLETE** (TOTP-based, backup codes, Settings UI)
 3. Inspection PDF reports - ✅ **COMPLETE** (jsPDF + autoTable, getInspectionReport query)
-4. Field-level encryption - Encrypt NDIS numbers, DOB, incident descriptions at rest
-5. Proper authentication (Clerk) - Optional migration from current session system
+4. Communications v1.5 - ✅ **COMPLETE** (soft delete, thread archive, incident auto-link, delete buttons)
+5. Field-level encryption - Encrypt NDIS numbers, DOB, incident descriptions at rest
+6. Proper authentication (Clerk) - Optional migration from current session system
 
 ## Phase 2: SaaS Subscription Model (Start: Mid-February 2026)
 **Prerequisite:** Complete 2-3 weeks of testing/debugging current app first.

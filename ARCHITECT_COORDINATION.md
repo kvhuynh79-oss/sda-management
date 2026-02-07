@@ -14,6 +14,7 @@
 | **Backend** | Phase 1: Schema | 5 tasks | 5 | 0 | ✅ **COMPLETE** |
 | **Backend** | Phase 2: Threading Engine | 7 tasks | 7 | 0 | ✅ **COMPLETE** |
 | **Backend** | Phase 3: Consultation Gate | 6 tasks | 6 | 0 | ✅ **COMPLETE** |
+| **Backend** | Phase 4B: Backend Support Queries | 7 tasks | 7 | 0 | ✅ **COMPLETE** |
 | **Frontend** | MFA Security Testing | 5 tasks | 0 | 0 | 🔄 **IN PROGRESS** |
 | **Frontend** | Phase 4: Multi-View UI | 0 tasks | 0 | 0 | ⏳ STANDBY |
 
@@ -633,6 +634,26 @@
 
 ---
 
+### 2026-02-07 Session 4 - Phase 4B Backend Support Queries (COMPLETE)
+
+| Time | Task | Status | Notes |
+|------|------|--------|-------|
+| ✅ | Task 4B.1: Thread View Query | COMPLETED | getThreadedView with cursor pagination from threadSummaries (W2) |
+| ✅ | Task 4B.2: Thread Detail Query | COMPLETED | getThreadMessages sorted ASC with summary (W2) |
+| ✅ | Task 4B.3: Timeline View Query | COMPLETED | getTimelineView with date range + type filters (W2) |
+| ✅ | Task 4B.4: Stakeholder View Query | COMPLETED | getStakeholderView grouped by contactName (W2) |
+| ✅ | Task 4B.5: Compliance View Query | COMPLETED | getComplianceView with stats + category breakdown (W2) |
+| ✅ | Task 4B.6: Mark Thread Read Mutation | COMPLETED | markThreadRead with audit logging (W2) |
+| ✅ | Task 4B.7: Communication Stats Query | COMPLETED | getCommunicationStats dashboard endpoint (W2) |
+
+### 🎉 PHASE 4B COMPLETE - All Backend Queries Ready for Frontend!
+
+**Schema Change:** Added `readAt: v.optional(v.string())` to communications table
+**Deployment:** 2 deployments (1 fix for readAt schema), all TypeScript clean
+**All queries:** cursor-based pagination + requirePermission checks
+
+---
+
 ### 2026-02-06 Session 1
 
 | Time | Task | Status | Notes |
@@ -702,7 +723,7 @@
 | Window | Current Task | Status |
 |--------|-------------|--------|
 | W1 | Architect/Coordinator - Phase 4 Planning | Active |
-| W2 | Phase 3 COMPLETE - Awaiting Phase 4 Assignment | Done |
+| W2 | Phase 4B COMPLETE - All backend queries deployed | Done |
 | W3 | MFA Security Testing (Tasks S1-S5) | In Progress |
 
 ---

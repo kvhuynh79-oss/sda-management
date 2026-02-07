@@ -16,6 +16,8 @@
 | **Backend** | Phase 3: Consultation Gate | 6 tasks | 6 | 0 | ✅ **COMPLETE** |
 | **Backend** | Phase 4B: Backend Support Queries | 7 tasks | 7 | 0 | ✅ **COMPLETE** |
 | **Backend** | Phase 6B: Bulk Operations | 6 tasks | 6 | 0 | ✅ **COMPLETE** |
+| **Backend** | MFA Hardening | 3 tasks | 3 | 0 | ✅ **COMPLETE** |
+| **Backend** | Phase 5B: Color Constants + Badges | 2 tasks | 2 | 0 | ✅ **COMPLETE** |
 | **Frontend** | MFA Security Testing | 5 tasks | 5 | 0 | ✅ **COMPLETE** (Grade: B+) |
 | **Frontend** | Phase 4F: Multi-View UI | 8 tasks | 8 | 0 | ✅ **COMPLETE** |
 
@@ -670,6 +672,23 @@
 
 ---
 
+### 2026-02-07 Session 8 - MFA Hardening + Phase 5B Backend (COMPLETE)
+
+| Time | Task | Status | Notes |
+|------|------|--------|-------|
+| ✅ | Task MFA-H1: TOTP Rate Limiting | COMPLETED | 5 attempts → 15min lockout, auto-reset on success (W2) |
+| ✅ | Task MFA-H2: MFA Audit Logging | COMPLETED | 5 audit types: enabled, disabled, backup_used, regenerated, lockout (W2) |
+| ✅ | Task MFA-H3: Schema Update | COMPLETED | mfaFailedAttempts + mfaLockedUntil fields (W2) |
+| ✅ | Task 5B.1: Compliance Color Constants | COMPLETED | 9 category + 6 flag + 10 stakeholder colors with types (W2) |
+| ✅ | Task 5B.2: Badge Presets | COMPLETED | ComplianceCategoryBadge (9), ComplianceFlagBadge (6), StakeholderTypeBadge (10) (W2) |
+
+### 🎉 ALL BACKEND COMPLETE - W2 Finished! (36 tasks total)
+
+**Deployment:** Convex deployed, build passes (65 pages, 0 errors)
+**Badges ready for frontend consumption** → W3 can now start Tasks 5F.1-5F.4
+
+---
+
 ### 2026-02-07 Session 7 - Phase 4F Multi-View Frontend (COMPLETE)
 
 | Time | Task | Status | Notes |
@@ -791,7 +810,7 @@
 | Window | Current Task | Status |
 |--------|-------------|--------|
 | W1 | Architect/Coordinator | Active |
-| W2 | MFA Hardening + Phase 5 Backend (Tasks MFA-H1-H3 + 5B.1-5B.2) | In Progress |
+| W2 | ✅ ALL BACKEND COMPLETE (36 tasks) | Done |
 | W3 | Phase 5F + 7: Component Enhancement + Accessibility (Tasks 5F.1-5F.4 + 7.1-7.3) | In Progress |
 
 ---

@@ -329,28 +329,41 @@ src/components/
     - `src/app/settings/security/page.tsx` - MFA management UI
     - 15+ pages - Query permission fixes
   - **Status**: Build passes, ready for deployment and testing
+- **CommunicationsLog v1.4.0 COMPLETE (2026-02-07)** ✓ **MAJOR FEATURE**
+  - **Phase 1-6 (2026-02-04 to 2026-02-06)**: Schema, threading, consultation gate, multi-view, bulk ops
+  - **Phase 7 WCAG Audit (2026-02-07)**: All 9 communication components audited
+    - Keyboard navigation: all controls reachable via Tab
+    - Focus visibility: focus-visible:ring-2 on all interactive elements
+    - ARIA: role="tablist"/tab/tabpanel, aria-expanded, aria-live regions
+    - Color contrast: zero text-gray-500 violations
+    - BulkActionBar: ArrowUp/Down keyboard nav, auto-focus on dropdown open, Escape closes
+  - **Communications Gap-Fix (2026-02-07)**:
+    - DB-linked dropdowns: SC, SIL Provider, OT, Contractor from database
+    - Auto-populate email/phone on entity selection
+    - NDIS Compliance section: 9 categories + 5 flags on every communication
+    - getByStakeholder backend query using by_stakeholder index
+    - CommunicationsHistory reusable component on participant, property, SC, SIL detail pages
+    - Pre-fill support via URL search params from detail pages
+  - **Bulk Operations UI**:
+    - BulkActionBar: Mark Read, Categorize, Flag with checkbox selection
+    - Integrated into ThreadView, TimelineView, ComplianceView
+  - **Inspection PDF Reports**:
+    - getInspectionReport backend query (items, photos, category summaries, pass rate)
+    - Client-side PDF generation via jsPDF + autoTable (511 lines)
+    - Download button on completed inspections with loading state
+  - **List-to-Detail Navigation**: Contractor + OT list pages wired to detail pages
+  - **Build**: 65 pages, 0 errors
 
 ## Next Session Priorities
-1. **CommunicationsLog Refactor (v1.4.0)** - 🔄 **IN PROGRESS**
-   - Transform basic contact log into NDIS-audit-ready stakeholder management system
-   - Phase 1: Database schema changes + migration (Week 1)
-   - Phase 2: Smart threading engine with 12-hour window fuzzy matching (Week 2)
-   - Phase 3: Consultation Gate workflow with auto-task creation (Week 2)
-   - Phase 4: Multi-view interface (Thread/Timeline/Stakeholder/Compliance) (Week 3)
-   - Phase 5: Enhanced components & compliance badges (Week 4)
-   - Phase 6: Bulk operations & pagination (Week 5)
-   - Phase 7: Accessibility testing & WCAG 2.1 AA compliance (Week 6)
-   - **Plan**: See `C:\Users\User\.claude\plans\transient-wobbling-floyd.md`
-   - **Estimated**: 6 weeks, 120 hours total
+1. **OT + Contractor Detail Pages** - 🔄 **W2 IN PROGRESS**
+   - OT detail page: src/app/database/occupational-therapists/[id]/page.tsx
+   - Contractor detail page: src/app/contractors/[id]/page.tsx
+   - Both include CommunicationsHistory component
 2. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
+   - Run test_communications.py functional tests
 3. **Bug fixing** - Test all features, fix any issues
 4. **Bulk data entry** - User will upload property/participant data
-5. **Frontend Refactoring (remaining pages):**
-   - `payments/page.tsx` - Apply shared components, useMemo, formatCurrency
-   - `inspections/page.tsx` - Apply shared components, useMemo, color constants
-   - `operations/page.tsx` - Large page with tabs, needs LoadingScreen/EmptyState/useMemo
-   - `compliance/page.tsx` - Large page, needs shared components and accessibility
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:
@@ -363,9 +376,9 @@ src/components/
 ## Future Roadmap (Priorities)
 1. Security enhancements - ✅ **COMPLETE** (RBAC, audit logging, sessions, validation)
 2. MFA for admin accounts - ✅ **COMPLETE** (TOTP-based, backup codes, Settings UI)
-3. Field-level encryption - Encrypt NDIS numbers, DOB, incident descriptions at rest
-4. Proper authentication (Clerk) - Optional migration from current session system
-5. Inspection PDF reports
+3. Inspection PDF reports - ✅ **COMPLETE** (jsPDF + autoTable, getInspectionReport query)
+4. Field-level encryption - Encrypt NDIS numbers, DOB, incident descriptions at rest
+5. Proper authentication (Clerk) - Optional migration from current session system
 
 ## Phase 2: SaaS Subscription Model (Start: Mid-February 2026)
 **Prerequisite:** Complete 2-3 weeks of testing/debugging current app first.
@@ -397,4 +410,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-06
+**Last Updated**: 2026-02-07

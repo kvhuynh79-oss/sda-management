@@ -48,6 +48,8 @@ export function BulkActionBar({
   const bulkMarkAsRead = useMutation(api.communications.bulkMarkAsRead);
   const bulkUpdateCategory = useMutation(api.communications.bulkUpdateCategory);
   const bulkAddFlags = useMutation(api.communications.bulkAddFlags);
+  const categoryItemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const flagItemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const count = selectedIds.size;
 
@@ -65,16 +67,21 @@ export function BulkActionBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Escape key to deselect all
+  // Escape key: close dropdowns first, then deselect all
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && count > 0) {
-        onDeselectAll();
+      if (e.key === "Escape") {
+        if (showCategoryDropdown || showFlagDropdown) {
+          setShowCategoryDropdown(false);
+          setShowFlagDropdown(false);
+        } else if (count > 0) {
+          onDeselectAll();
+        }
       }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [count, onDeselectAll]);
+  }, [count, onDeselectAll, showCategoryDropdown, showFlagDropdown]);
 
   // Auto-hide toast
   useEffect(() => {
@@ -154,6 +161,38 @@ export function BulkActionBar({
     [bulkAddFlags, userId, getIds, showToast, onActionComplete]
   );
 
+  // Focus first item when dropdown opens
+  useEffect(() => {
+    if (showCategoryDropdown) {
+      requestAnimationFrame(() => categoryItemRefs.current[0]?.focus());
+    }
+  }, [showCategoryDropdown]);
+
+  useEffect(() => {
+    if (showFlagDropdown) {
+      requestAnimationFrame(() => flagItemRefs.current[0]?.focus());
+    }
+  }, [showFlagDropdown]);
+
+  const handleDropdownKeyDown = useCallback(
+    (e: React.KeyboardEvent, refs: React.MutableRefObject<(HTMLButtonElement | null)[]>, length: number) => {
+      const currentIndex = refs.current.findIndex((el) => el === document.activeElement);
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = (currentIndex + 1) % length;
+        refs.current[next]?.focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = (currentIndex - 1 + length) % length;
+        refs.current[prev]?.focus();
+      } else if (e.key === "Escape") {
+        setShowCategoryDropdown(false);
+        setShowFlagDropdown(false);
+      }
+    },
+    []
+  );
+
   if (count === 0) return null;
 
   return (
@@ -231,10 +270,12 @@ export function BulkActionBar({
                     role="listbox"
                     aria-label="Compliance categories"
                   >
-                    {COMPLIANCE_CATEGORIES.map((cat) => (
+                    {COMPLIANCE_CATEGORIES.map((cat, i) => (
                       <button
                         key={cat.value}
+                        ref={(el) => { categoryItemRefs.current[i] = el; }}
                         onClick={() => handleCategorize(cat.value)}
+                        onKeyDown={(e) => handleDropdownKeyDown(e, categoryItemRefs, COMPLIANCE_CATEGORIES.length)}
                         role="option"
                         className="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 transition-colors focus:outline-none focus-visible:bg-gray-600"
                       >
@@ -268,10 +309,12 @@ export function BulkActionBar({
                     role="listbox"
                     aria-label="Compliance flags"
                   >
-                    {FLAG_TYPES.map((flag) => (
+                    {FLAG_TYPES.map((flag, i) => (
                       <button
                         key={flag.value}
+                        ref={(el) => { flagItemRefs.current[i] = el; }}
                         onClick={() => handleAddFlag(flag.value)}
+                        onKeyDown={(e) => handleDropdownKeyDown(e, flagItemRefs, FLAG_TYPES.length)}
                         role="option"
                         className="w-full text-left px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-600 transition-colors focus:outline-none focus-visible:bg-gray-600"
                       >

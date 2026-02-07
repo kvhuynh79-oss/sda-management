@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import Link from "next/link";
 import Header from "../../../components/Header";
 import { useRouter } from "next/navigation";
 
@@ -394,6 +395,12 @@ export default function OccupationalTherapistsPage() {
                   </div>
 
                   <div className="flex gap-2">
+                    <Link
+                      href={`/database/occupational-therapists/${therapist._id}`}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >
+                      View
+                    </Link>
                     <button
                       onClick={() => handleEdit(therapist)}
                       className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"

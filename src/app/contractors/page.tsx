@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
@@ -317,6 +318,12 @@ function ContractorCard({
       )}
 
       <div className="flex gap-2 mt-4 pt-3 border-t border-gray-700">
+        <Link
+          href={`/contractors/${contractor._id}`}
+          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          View
+        </Link>
         <button
           onClick={onEdit}
           className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"

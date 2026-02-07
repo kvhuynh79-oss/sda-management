@@ -52,6 +52,34 @@ export const create = mutation({
     attachmentStorageId: v.optional(v.id("_storage")),
     attachmentFileName: v.optional(v.string()),
     attachmentFileType: v.optional(v.string()),
+    // Stakeholder linking (DB record)
+    stakeholderEntityType: v.optional(v.union(
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("occupational_therapist"),
+      v.literal("contractor"),
+      v.literal("participant")
+    )),
+    stakeholderEntityId: v.optional(v.string()),
+    // NDIS Compliance
+    complianceCategory: v.optional(v.union(
+      v.literal("routine"),
+      v.literal("incident_related"),
+      v.literal("complaint"),
+      v.literal("safeguarding"),
+      v.literal("plan_review"),
+      v.literal("access_request"),
+      v.literal("quality_audit"),
+      v.literal("advocacy"),
+      v.literal("none")
+    )),
+    complianceFlags: v.optional(v.array(v.union(
+      v.literal("requires_documentation"),
+      v.literal("time_sensitive"),
+      v.literal("escalation_required"),
+      v.literal("ndia_reportable"),
+      v.literal("legal_hold")
+    ))),
     createdBy: v.id("users"),
     skipConsultationGate: v.optional(v.boolean()), // Admin/property_manager can bypass gate
   },
@@ -112,8 +140,13 @@ export const create = mutation({
     // Create communication with thread assignment
     const communicationId = await ctx.db.insert("communications", {
       ...args,
-      // New v2 fields with defaults (optional during migration period)
-      complianceCategory: "none" as const, // Default, user can update later
+      // NDIS Compliance fields (from form or defaults)
+      complianceCategory: args.complianceCategory || ("none" as const),
+      complianceFlags: args.complianceFlags || undefined,
+      // Stakeholder linking
+      stakeholderEntityType: args.stakeholderEntityType || undefined,
+      stakeholderEntityId: args.stakeholderEntityId || undefined,
+      // Threading fields
       isThreadStarter: threadResult.isNewThread, // True if new thread
       requiresFollowUp: false, // Default, will be updated if gate triggers
       isParticipantInvolved: args.linkedParticipantId != null, // True if participant linked
@@ -737,6 +770,50 @@ export const getByProperty = query({
       .collect();
 
     return communications;
+  },
+});
+
+// Get communications by stakeholder (for cross-linking on SC/SIL/OT/Contractor detail pages)
+export const getByStakeholder = query({
+  args: {
+    stakeholderEntityType: v.union(
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("occupational_therapist"),
+      v.literal("contractor"),
+      v.literal("participant")
+    ),
+    stakeholderEntityId: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const maxResults = args.limit || 20;
+
+    const communications = await ctx.db
+      .query("communications")
+      .withIndex("by_stakeholder", (q) =>
+        q.eq("stakeholderEntityType", args.stakeholderEntityType)
+         .eq("stakeholderEntityId", args.stakeholderEntityId)
+      )
+      .order("desc")
+      .take(maxResults);
+
+    // Batch fetch participant names for display
+    const participantIds = [...new Set(
+      communications.map((c) => c.linkedParticipantId || c.participantId).filter(Boolean)
+    )];
+    const participants = await Promise.all(participantIds.map((id) => ctx.db.get(id!)));
+    const participantMap = new Map(
+      participants.filter(Boolean).map((p) => [p!._id, `${p!.firstName} ${p!.lastName}`])
+    );
+
+    return communications.map((c) => {
+      const pid = c.linkedParticipantId || c.participantId;
+      return {
+        ...c,
+        participantName: pid ? participantMap.get(pid) || null : null,
+      };
+    });
   },
 });
 

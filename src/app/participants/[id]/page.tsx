@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import CommunicationsHistory from "@/components/CommunicationsHistory";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function ParticipantDetailPage() {
@@ -377,6 +378,11 @@ export default function ParticipantDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Communications History */}
+        <div className="mt-6">
+          <CommunicationsHistory participantId={participantId} />
         </div>
 
         {/* Move In Modal */}

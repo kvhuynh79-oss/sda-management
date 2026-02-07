@@ -7,6 +7,7 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "../../../../components/Header";
+import CommunicationsHistory from "../../../../components/CommunicationsHistory";
 
 const ACCESS_LEVELS = [
   { value: "full", label: "Full Access", color: "green" },
@@ -466,6 +467,13 @@ export default function SILProviderDetailPage() {
               </div>
             )}
           </div>
+        </div>
+        {/* Communications History */}
+        <div className="mt-6">
+          <CommunicationsHistory
+            stakeholderEntityType="sil_provider"
+            stakeholderEntityId={providerId}
+          />
         </div>
       </main>
 

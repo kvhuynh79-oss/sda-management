@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import CommunicationsHistory from "@/components/CommunicationsHistory";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 // Access level options for SIL provider allocation
@@ -313,6 +314,11 @@ export default function PropertyDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Communications History */}
+        <div className="mt-6">
+          <CommunicationsHistory propertyId={propertyId} />
         </div>
 
         {/* Property Media Gallery */}

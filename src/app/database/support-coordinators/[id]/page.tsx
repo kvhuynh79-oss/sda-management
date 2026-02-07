@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import Header from "../../../../components/Header";
+import CommunicationsHistory from "../../../../components/CommunicationsHistory";
 import Link from "next/link";
 
 export default function SupportCoordinatorDetailPage() {
@@ -352,6 +353,14 @@ export default function SupportCoordinatorDetailPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Communications History */}
+        <div className="mt-6">
+          <CommunicationsHistory
+            stakeholderEntityType="support_coordinator"
+            stakeholderEntityId={coordinatorId}
+          />
         </div>
       </main>
 

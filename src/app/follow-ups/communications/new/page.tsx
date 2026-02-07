@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import Header from "@/components/Header";
@@ -10,8 +10,41 @@ import { LoadingScreen } from "@/components/ui";
 import { FormInput, FormSelect, FormTextarea, Button } from "@/components/forms";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
+// Contact types that can be linked to database entities
+const DB_LINKABLE_TYPES = ["support_coordinator", "sil_provider", "ot", "contractor"] as const;
+type DbLinkableType = typeof DB_LINKABLE_TYPES[number];
+
+// Map contactType to stakeholderEntityType for the backend
+const CONTACT_TO_STAKEHOLDER: Record<string, string> = {
+  support_coordinator: "support_coordinator",
+  sil_provider: "sil_provider",
+  ot: "occupational_therapist",
+  contractor: "contractor",
+};
+
+const COMPLIANCE_CATEGORIES = [
+  { value: "none", label: "None" },
+  { value: "routine", label: "Routine" },
+  { value: "incident_related", label: "Incident Related" },
+  { value: "complaint", label: "Complaint" },
+  { value: "safeguarding", label: "Safeguarding" },
+  { value: "plan_review", label: "Plan Review" },
+  { value: "access_request", label: "Access Request" },
+  { value: "quality_audit", label: "Quality Audit" },
+  { value: "advocacy", label: "Advocacy" },
+];
+
+const COMPLIANCE_FLAGS = [
+  { value: "requires_documentation", label: "Requires Documentation" },
+  { value: "time_sensitive", label: "Time Sensitive" },
+  { value: "escalation_required", label: "Escalation Required" },
+  { value: "ndia_reportable", label: "NDIA Reportable" },
+  { value: "legal_hold", label: "Legal Hold" },
+];
+
 export default function NewCommunicationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +63,14 @@ export default function NewCommunicationPage() {
     summary: "",
     linkedParticipantId: "",
     linkedPropertyId: "",
+    complianceCategory: "none" as string,
+    complianceFlags: [] as string[],
   });
+
+  // Track selected DB entity for stakeholder linking
+  const [selectedEntityId, setSelectedEntityId] = useState("");
+  const [isEntityLinked, setIsEntityLinked] = useState(false);
+  const [useManualEntry, setUseManualEntry] = useState(false);
 
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -45,11 +85,158 @@ export default function NewCommunicationPage() {
     }
   }, []);
 
+  // Pre-fill from URL search params (when linked from detail pages)
+  useEffect(() => {
+    const participantId = searchParams.get("participantId");
+    const propertyId = searchParams.get("propertyId");
+    const stakeholderType = searchParams.get("stakeholderType");
+    const stakeholderId = searchParams.get("stakeholderId");
+    const contactType = searchParams.get("contactType");
+
+    if (participantId || propertyId || contactType) {
+      setFormData((prev) => ({
+        ...prev,
+        linkedParticipantId: participantId || prev.linkedParticipantId,
+        linkedPropertyId: propertyId || prev.linkedPropertyId,
+        contactType: (contactType as any) || prev.contactType,
+      }));
+    }
+
+    if (stakeholderType && stakeholderId) {
+      setSelectedEntityId(stakeholderId);
+    }
+  }, [searchParams]);
+
+  // Core data queries
   const participants = useQuery(
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
   const properties = useQuery(api.properties.getAll);
+
+  // Conditional entity queries - only fire when contact type matches
+  const isDbLinkable = DB_LINKABLE_TYPES.includes(formData.contactType as DbLinkableType);
+
+  const supportCoordinators = useQuery(
+    api.supportCoordinators.getAll,
+    formData.contactType === "support_coordinator" ? { status: "active" } : "skip"
+  );
+  const silProviders = useQuery(
+    api.silProviders.getAll,
+    formData.contactType === "sil_provider" ? { status: "active" } : "skip"
+  );
+  const occupationalTherapists = useQuery(
+    api.occupationalTherapists.getAll,
+    formData.contactType === "ot" ? { status: "active" } : "skip"
+  );
+  const contractors = useQuery(
+    api.contractors.getAll,
+    formData.contactType === "contractor" ? {} : "skip"
+  );
+
+  // Build entity options based on selected contact type
+  const entityOptions = useMemo(() => {
+    switch (formData.contactType) {
+      case "support_coordinator":
+        return (supportCoordinators || []).map((sc) => ({
+          value: sc._id,
+          label: `${sc.firstName} ${sc.lastName}${sc.organization ? ` (${sc.organization})` : ""}`,
+          email: sc.email,
+          phone: sc.phone || "",
+          displayName: `${sc.firstName} ${sc.lastName}`,
+        }));
+      case "sil_provider":
+        return (silProviders || []).map((sp) => ({
+          value: sp._id,
+          label: `${sp.companyName}${sp.contactName ? ` - ${sp.contactName}` : ""}`,
+          email: sp.email,
+          phone: sp.phone || "",
+          displayName: sp.contactName || sp.companyName,
+        }));
+      case "ot":
+        return (occupationalTherapists || []).map((ot) => ({
+          value: ot._id,
+          label: `${ot.firstName} ${ot.lastName}${ot.organization ? ` (${ot.organization})` : ""}`,
+          email: ot.email,
+          phone: ot.phone || "",
+          displayName: `${ot.firstName} ${ot.lastName}`,
+        }));
+      case "contractor":
+        return (contractors || []).map((c) => ({
+          value: c._id,
+          label: `${c.companyName}${c.contactName ? ` - ${c.contactName}` : ""}`,
+          email: c.email,
+          phone: c.phone || "",
+          displayName: c.contactName || c.companyName,
+        }));
+      default:
+        return [];
+    }
+  }, [formData.contactType, supportCoordinators, silProviders, occupationalTherapists, contractors]);
+
+  // Handle entity selection - auto-populate contact fields
+  const handleEntitySelect = (entityId: string) => {
+    if (entityId === "__manual__") {
+      setUseManualEntry(true);
+      setSelectedEntityId("");
+      setIsEntityLinked(false);
+      setFormData((prev) => ({
+        ...prev,
+        contactName: "",
+        contactEmail: "",
+        contactPhone: "",
+      }));
+      return;
+    }
+
+    setSelectedEntityId(entityId);
+    setUseManualEntry(false);
+
+    if (!entityId) {
+      setIsEntityLinked(false);
+      setFormData((prev) => ({
+        ...prev,
+        contactName: "",
+        contactEmail: "",
+        contactPhone: "",
+      }));
+      return;
+    }
+
+    const entity = entityOptions.find((e) => e.value === entityId);
+    if (entity) {
+      setIsEntityLinked(true);
+      setFormData((prev) => ({
+        ...prev,
+        contactName: entity.displayName,
+        contactEmail: entity.email,
+        contactPhone: entity.phone,
+      }));
+    }
+  };
+
+  // Reset entity state when contact type changes
+  useEffect(() => {
+    setSelectedEntityId("");
+    setIsEntityLinked(false);
+    setUseManualEntry(false);
+    setFormData((prev) => ({
+      ...prev,
+      contactName: "",
+      contactEmail: "",
+      contactPhone: "",
+    }));
+  }, [formData.contactType]);
+
+  // Handle compliance flag toggle
+  const handleFlagToggle = (flag: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      complianceFlags: prev.complianceFlags.includes(flag)
+        ? prev.complianceFlags.filter((f) => f !== flag)
+        : [...prev.complianceFlags, flag],
+    }));
+  };
 
   const createCommunication = useMutation(api.communications.create);
   const generateUploadUrl = useMutation(api.communications.generateUploadUrl);
@@ -70,8 +257,6 @@ export default function NewCommunicationPage() {
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    // Only set to false if we're leaving the drop zone entirely
-    // Check if the related target is outside the drop zone
     const relatedTarget = e.relatedTarget as Node | null;
     const currentTarget = e.currentTarget;
     if (!currentTarget.contains(relatedTarget)) {
@@ -87,7 +272,6 @@ export default function NewCommunicationPage() {
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
-      // Validate file type matches accepted types
       const acceptedTypes = ["image/", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
       const isAccepted = acceptedTypes.some((type) =>
         type.endsWith("/") ? file.type.startsWith(type) : file.type === type
@@ -127,6 +311,14 @@ export default function NewCommunicationPage() {
         attachmentFileType = attachmentFile.type;
       }
 
+      // Build stakeholder fields
+      const stakeholderEntityType = isEntityLinked && selectedEntityId
+        ? CONTACT_TO_STAKEHOLDER[formData.contactType] as any
+        : undefined;
+      const stakeholderEntityId = isEntityLinked && selectedEntityId
+        ? selectedEntityId
+        : undefined;
+
       // Create communication
       const result = await createCommunication({
         communicationType: formData.communicationType,
@@ -144,6 +336,14 @@ export default function NewCommunicationPage() {
           : undefined,
         linkedPropertyId: formData.linkedPropertyId
           ? (formData.linkedPropertyId as Id<"properties">)
+          : undefined,
+        stakeholderEntityType,
+        stakeholderEntityId,
+        complianceCategory: formData.complianceCategory !== "none"
+          ? formData.complianceCategory as any
+          : undefined,
+        complianceFlags: formData.complianceFlags.length > 0
+          ? formData.complianceFlags as any
           : undefined,
         attachmentStorageId,
         attachmentFileName,
@@ -186,6 +386,9 @@ export default function NewCommunicationPage() {
       </RequireAuth>
     );
   }
+
+  // Show the entity dropdown or free text based on contact type
+  const showEntityDropdown = isDbLinkable && !useManualEntry;
 
   return (
     <RequireAuth>
@@ -262,8 +465,8 @@ export default function NewCommunicationPage() {
             </div>
 
             {/* Contact Details */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Contact Details</h2>
+            <div className="bg-gray-800 rounded-lg p-6" role="group" aria-labelledby="contact-details-heading">
+              <h2 id="contact-details-heading" className="text-lg font-semibold text-white mb-4">Contact Details</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormSelect
@@ -286,36 +489,99 @@ export default function NewCommunicationPage() {
                   ]}
                 />
 
-                <FormInput
-                  label="Contact Name"
-                  required
-                  value={formData.contactName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, contactName: e.target.value })
-                  }
-                  placeholder="Enter contact name"
-                />
+                {/* Conditional: DB-linked dropdown OR free text */}
+                {showEntityDropdown ? (
+                  <FormSelect
+                    label="Select Contact"
+                    required
+                    value={selectedEntityId}
+                    onChange={(e) => handleEntitySelect(e.target.value)}
+                    options={[
+                      { value: "", label: "-- Select from Database --" },
+                      ...entityOptions.map((e) => ({
+                        value: e.value,
+                        label: e.label,
+                      })),
+                      { value: "__manual__", label: "+ Enter manually" },
+                    ]}
+                  />
+                ) : (
+                  <FormInput
+                    label="Contact Name"
+                    required
+                    value={formData.contactName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, contactName: e.target.value })
+                    }
+                    placeholder="Enter contact name"
+                  />
+                )}
 
-                <FormInput
-                  label="Email"
-                  type="email"
-                  value={formData.contactEmail}
-                  onChange={(e) =>
-                    setFormData({ ...formData, contactEmail: e.target.value })
-                  }
-                  placeholder="contact@example.com"
-                />
+                <div className={isEntityLinked ? "opacity-60" : ""}>
+                  <FormInput
+                    label="Email"
+                    type="email"
+                    value={formData.contactEmail}
+                    onChange={(e) =>
+                      !isEntityLinked && setFormData({ ...formData, contactEmail: e.target.value })
+                    }
+                    placeholder="contact@example.com"
+                    readOnly={isEntityLinked}
+                  />
+                </div>
 
-                <FormInput
-                  label="Phone"
-                  type="tel"
-                  value={formData.contactPhone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, contactPhone: e.target.value })
-                  }
-                  placeholder="0400 000 000"
-                />
+                <div className={isEntityLinked ? "opacity-60" : ""}>
+                  <FormInput
+                    label="Phone"
+                    type="tel"
+                    value={formData.contactPhone}
+                    onChange={(e) =>
+                      !isEntityLinked && setFormData({ ...formData, contactPhone: e.target.value })
+                    }
+                    placeholder="0400 000 000"
+                    readOnly={isEntityLinked}
+                  />
+                </div>
               </div>
+
+              {/* Linked entity indicator */}
+              {isEntityLinked && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-700">
+                    Linked to database record
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseManualEntry(true);
+                      setSelectedEntityId("");
+                      setIsEntityLinked(false);
+                      setFormData((prev) => ({
+                        ...prev,
+                        contactName: "",
+                        contactEmail: "",
+                        contactPhone: "",
+                      }));
+                    }}
+                    className="text-xs text-gray-400 hover:text-white underline"
+                  >
+                    Unlink
+                  </button>
+                </div>
+              )}
+
+              {/* Manual entry mode indicator with option to go back to dropdown */}
+              {useManualEntry && isDbLinkable && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setUseManualEntry(false)}
+                    className="text-xs text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Select from database instead
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Content */}
@@ -338,6 +604,46 @@ export default function NewCommunicationPage() {
                   placeholder="Summarize the communication..."
                   rows={5}
                 />
+              </div>
+            </div>
+
+            {/* NDIS Compliance */}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">NDIS Compliance</h2>
+
+              <div className="space-y-4">
+                <FormSelect
+                  label="Compliance Category"
+                  value={formData.complianceCategory}
+                  onChange={(e) =>
+                    setFormData({ ...formData, complianceCategory: e.target.value })
+                  }
+                  options={COMPLIANCE_CATEGORIES}
+                />
+
+                <fieldset>
+                  <legend className="text-sm font-medium text-gray-300 mb-2">
+                    Compliance Flags
+                  </legend>
+                  <div className="space-y-2">
+                    {COMPLIANCE_FLAGS.map((flag) => (
+                      <label
+                        key={flag.value}
+                        className="flex items-center gap-3 cursor-pointer group"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.complianceFlags.includes(flag.value)}
+                          onChange={() => handleFlagToggle(flag.value)}
+                          className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                        />
+                        <span className="text-sm text-gray-300 group-hover:text-white">
+                          {flag.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
               </div>
             </div>
 
@@ -392,7 +698,7 @@ export default function NewCommunicationPage() {
 
               {attachmentFile ? (
                 <div className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
-                  <span className="text-2xl">📎</span>
+                  <span className="text-2xl" aria-hidden="true">📎</span>
                   <div className="flex-1">
                     <p className="text-white text-sm">{attachmentFile.name}</p>
                     <p className="text-gray-400 text-xs">

@@ -12,6 +12,9 @@ interface ThreadViewProps {
   userId: string;
   filterUnread?: boolean;
   filterRequiresAction?: boolean;
+  isSelecting?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -122,7 +125,7 @@ function ThreadMessages({ threadId, userId }: { threadId: string; userId: string
   );
 }
 
-export function ThreadView({ userId, filterUnread, filterRequiresAction }: ThreadViewProps) {
+export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelecting, selectedIds, onToggleSelect }: ThreadViewProps) {
   const [expandedThread, setExpandedThread] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allThreads, setAllThreads] = useState<any[]>([]);
@@ -214,6 +217,19 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction }: Threa
                 thread.hasUnread ? "border-l-4 border-blue-500" : "border-l-4 border-transparent"
               }`}
             >
+              <div className="flex items-start">
+                {isSelecting && onToggleSelect && (
+                  <div className="flex items-center pl-3 pt-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds?.has(thread.threadId) || false}
+                      onChange={() => onToggleSelect(thread.threadId)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                      aria-label={`Select thread: ${thread.subject || "Untitled Thread"}`}
+                    />
+                  </div>
+                )}
               <button
                 onClick={() => handleExpand(thread.threadId)}
                 onKeyDown={(e) => {
@@ -223,7 +239,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction }: Threa
                 }}
                 aria-expanded={isExpanded}
                 aria-label={`${isExpanded ? "Collapse" : "Expand"} thread: ${thread.subject || "Untitled Thread"}, ${thread.messageCount} messages, ${thread.hasUnread ? "unread" : "read"}`}
-                className="w-full text-left p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+                className="flex-1 text-left p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -287,6 +303,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction }: Threa
                 </div>
               </button>
 
+              </div>
               {/* Expanded messages */}
               {isExpanded && (
                 <div className="px-4 pb-4" role="region" aria-label={`Messages in thread: ${thread.subject || "Untitled Thread"}`}>

@@ -15,6 +15,8 @@ import TimelineView from "@/components/communications/TimelineView";
 import StakeholderView from "@/components/communications/StakeholderView";
 import ComplianceView from "@/components/communications/ComplianceView";
 import FilterSidebar, { type CommunicationFilters } from "@/components/communications/FilterSidebar";
+import BulkActionBar from "@/components/communications/BulkActionBar";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
 
 function CommunicationsContent() {
   const router = useRouter();
@@ -61,6 +63,10 @@ function CommunicationsContent() {
     return Object.values(filters).filter((v) => v !== undefined && v !== false).length;
   }, [filters]);
 
+  // Bulk selection
+  const bulkSelection = useBulkSelection<string>();
+  const isSelecting = bulkSelection.hasSelection;
+
   // Stats query
   const stats = useQuery(
     api.communications.getCommunicationDashboardStats,
@@ -86,8 +92,9 @@ function CommunicationsContent() {
   const handleViewChange = useCallback(
     (view: ViewMode) => {
       updateUrl({ view, threadFilter: undefined });
+      bulkSelection.deselectAll();
     },
-    [updateUrl]
+    [updateUrl, bulkSelection]
   );
 
   const handleFilterChange = useCallback(
@@ -174,6 +181,9 @@ function CommunicationsContent() {
                 userId={user.id}
                 filterUnread={threadFilterUnread || undefined}
                 filterRequiresAction={threadFilterAction || undefined}
+                isSelecting={isSelecting}
+                selectedIds={bulkSelection.selectedIds}
+                onToggleSelect={bulkSelection.toggle}
               />
             )}
             {activeView === "timeline" && (
@@ -182,6 +192,9 @@ function CommunicationsContent() {
                 typeFilter={filters.type}
                 dateFrom={filters.dateFrom}
                 dateTo={filters.dateTo}
+                isSelecting={isSelecting}
+                selectedIds={bulkSelection.selectedIds}
+                onToggleSelect={bulkSelection.toggle}
               />
             )}
             {activeView === "stakeholder" && (
@@ -194,10 +207,21 @@ function CommunicationsContent() {
               <ComplianceView
                 userId={user.id}
                 categoryFilter={filters.complianceCategory}
+                isSelecting={isSelecting}
+                selectedIds={bulkSelection.selectedIds}
+                onToggleSelect={bulkSelection.toggle}
               />
             )}
           </div>
         </div>
+
+        {/* Bulk Action Bar */}
+        <BulkActionBar
+          selectedIds={bulkSelection.selectedIds}
+          onDeselectAll={bulkSelection.deselectAll}
+          onActionComplete={bulkSelection.deselectAll}
+          userId={user.id}
+        />
       </main>
     </div>
   );

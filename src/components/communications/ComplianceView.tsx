@@ -12,6 +12,9 @@ interface ComplianceViewProps {
   userId: string;
   categoryFilter?: string;
   onCategoryChange?: (category: string | undefined) => void;
+  isSelecting?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 type ComplianceCategory =
@@ -57,6 +60,9 @@ export function ComplianceView({
   userId,
   categoryFilter,
   onCategoryChange,
+  isSelecting,
+  selectedIds,
+  onToggleSelect,
 }: ComplianceViewProps) {
   const [activeCategory, setActiveCategory] = useState<ComplianceCategory>(
     (categoryFilter as ComplianceCategory) || "all"
@@ -226,6 +232,17 @@ export function ComplianceView({
                 className={`bg-gray-800 rounded-lg p-4 border-l-4 ${catColor.border} hover:bg-gray-700 transition-colors`}
               >
                 <div className="flex items-start justify-between gap-3">
+                  {isSelecting && onToggleSelect && (
+                    <div className="flex items-start pt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds?.has(comm._id) || false}
+                        onChange={() => onToggleSelect(comm._id)}
+                        className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                        aria-label={`Select ${comm.contactName} communication`}
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     {/* Badges row */}
                     <div className="flex flex-wrap items-center gap-1.5 mb-2">

@@ -16,6 +16,9 @@ interface TimelineViewProps {
   dateFrom?: string;
   dateTo?: string;
   onFilterChange?: (filters: { type?: string; dateFrom?: string; dateTo?: string }) => void;
+  isSelecting?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 // Communication type SVG icons
@@ -86,6 +89,9 @@ export function TimelineView({
   dateFrom,
   dateTo,
   onFilterChange,
+  isSelecting,
+  selectedIds,
+  onToggleSelect,
 }: TimelineViewProps) {
   const [localType, setLocalType] = useState(typeFilter || "");
   const [localDateFrom, setLocalDateFrom] = useState(dateFrom || "");
@@ -238,6 +244,17 @@ export function TimelineView({
                     aria-label={`${comm.type.replace(/_/g, " ")} ${comm.direction === "inbound" ? "from" : "to"} ${comm.contactName}${comm.subject ? `: ${comm.subject}` : ""}`}
                   >
                     <div className="flex gap-3">
+                      {isSelecting && onToggleSelect && (
+                        <div className="flex items-start pt-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds?.has(comm._id) || false}
+                            onChange={() => onToggleSelect(comm._id)}
+                            className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                            aria-label={`Select communication with ${comm.contactName}`}
+                          />
+                        </div>
+                      )}
                       <div className="flex-shrink-0 w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
                         <TypeIcon type={comm.type} />
                       </div>

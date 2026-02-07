@@ -20,6 +20,27 @@ const TOTP_CONFIG = {
   period: 30, // 30-second validity window
 };
 
+// Rate limiting configuration
+const RATE_LIMIT = {
+  MAX_ATTEMPTS: 5,       // Maximum failed attempts before lockout
+  LOCKOUT_MS: 15 * 60 * 1000, // 15 minutes lockout
+};
+
+/**
+ * Check if user is locked out from MFA attempts
+ * @returns null if not locked, or remaining lockout message
+ */
+function checkMfaLockout(user: { mfaLockedUntil?: string }): string | null {
+  if (!user.mfaLockedUntil) return null;
+  const lockedUntil = new Date(user.mfaLockedUntil).getTime();
+  const now = Date.now();
+  if (lockedUntil > now) {
+    const remainingMin = Math.ceil((lockedUntil - now) / 60000);
+    return `Account locked. Try again in ${remainingMin} minute${remainingMin !== 1 ? "s" : ""}.`;
+  }
+  return null; // Lockout expired
+}
+
 /**
  * Generate a random backup code (8 characters, alphanumeric)
  */
@@ -144,17 +165,61 @@ export const verifyAndEnableMfa = mutation({
       secret: Secret.fromBase32(user.mfaSecret),
     });
 
+    // Rate limit check
+    const lockoutMsg = checkMfaLockout(user);
+    if (lockoutMsg) {
+      throw new Error(lockoutMsg);
+    }
+
     // Check if code is valid (with 1-step window tolerance for clock skew)
     const delta = totp.validate({ token: args.totpCode, window: 1 });
 
     if (delta === null) {
+      // Track failed attempt
+      const attempts = (user.mfaFailedAttempts || 0) + 1;
+      const patchData: Record<string, any> = {
+        mfaFailedAttempts: attempts,
+        updatedAt: Date.now(),
+      };
+
+      // Lock account after MAX_ATTEMPTS
+      if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
+        patchData.mfaLockedUntil = new Date(Date.now() + RATE_LIMIT.LOCKOUT_MS).toISOString();
+
+        // Audit: lockout
+        await ctx.runMutation(internal.auditLog.log, {
+          userId: args.userId,
+          userEmail: user.email,
+          userName: `${user.firstName} ${user.lastName}`,
+          action: "mfa_lockout",
+          entityType: "user",
+          entityId: args.userId,
+          entityName: `MFA lockout: ${user.email} (${attempts} failed attempts)`,
+          metadata: JSON.stringify({ attempts, lockoutMinutes: 15 }),
+        });
+      }
+
+      await ctx.db.patch(args.userId, patchData);
       throw new Error("Invalid TOTP code. Please try again.");
     }
 
-    // Enable MFA
+    // Enable MFA + reset rate limit counters
     await ctx.db.patch(args.userId, {
       mfaEnabled: true,
+      mfaFailedAttempts: 0,
+      mfaLockedUntil: undefined,
       updatedAt: Date.now(),
+    });
+
+    // Audit: MFA enabled
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "mfa_enabled",
+      entityType: "user",
+      entityId: args.userId,
+      entityName: `MFA enabled: ${user.email}`,
     });
 
     return { success: true, message: "MFA enabled successfully" };
@@ -182,6 +247,12 @@ export const verifyMfaLogin = internalMutation({
       throw new Error("MFA not enabled for this user");
     }
 
+    // Rate limit check
+    const lockoutMsg = checkMfaLockout(user);
+    if (lockoutMsg) {
+      throw new Error(lockoutMsg);
+    }
+
     // First, try TOTP code
     const totp = new TOTP({
       ...TOTP_CONFIG,
@@ -192,7 +263,12 @@ export const verifyMfaLogin = internalMutation({
     const delta = totp.validate({ token: args.code, window: 1 });
 
     if (delta !== null) {
-      // Valid TOTP code
+      // Valid TOTP code - reset failed attempts
+      await ctx.db.patch(args.userId, {
+        mfaFailedAttempts: 0,
+        mfaLockedUntil: undefined,
+        updatedAt: Date.now(),
+      });
       return { success: true, method: "totp" };
     }
 
@@ -204,13 +280,27 @@ export const verifyMfaLogin = internalMutation({
       const codeIndex = user.mfaBackupCodes.indexOf(hashedCode);
 
       if (codeIndex !== -1) {
-        // Valid backup code - remove it (one-time use)
+        // Valid backup code - remove it (one-time use) + reset failed attempts
         const updatedBackupCodes = [...user.mfaBackupCodes];
         updatedBackupCodes.splice(codeIndex, 1);
 
         await ctx.db.patch(args.userId, {
           mfaBackupCodes: updatedBackupCodes,
+          mfaFailedAttempts: 0,
+          mfaLockedUntil: undefined,
           updatedAt: Date.now(),
+        });
+
+        // Audit: backup code used
+        await ctx.runMutation(internal.auditLog.log, {
+          userId: args.userId,
+          userEmail: user.email,
+          userName: `${user.firstName} ${user.lastName}`,
+          action: "mfa_backup_used",
+          entityType: "user",
+          entityId: args.userId,
+          entityName: `MFA backup code used: ${user.email}`,
+          metadata: JSON.stringify({ remainingCodes: updatedBackupCodes.length }),
         });
 
         return {
@@ -221,7 +311,30 @@ export const verifyMfaLogin = internalMutation({
       }
     }
 
-    // Both TOTP and backup code failed
+    // Both TOTP and backup code failed - track failed attempt
+    const attempts = (user.mfaFailedAttempts || 0) + 1;
+    const patchData: Record<string, any> = {
+      mfaFailedAttempts: attempts,
+      updatedAt: Date.now(),
+    };
+
+    if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
+      patchData.mfaLockedUntil = new Date(Date.now() + RATE_LIMIT.LOCKOUT_MS).toISOString();
+
+      // Audit: lockout
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: args.userId,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        action: "mfa_lockout",
+        entityType: "user",
+        entityId: args.userId,
+        entityName: `MFA lockout: ${user.email} (${attempts} failed login attempts)`,
+        metadata: JSON.stringify({ attempts, lockoutMinutes: 15 }),
+      });
+    }
+
+    await ctx.db.patch(args.userId, patchData);
     throw new Error("Invalid MFA code");
   },
 });
@@ -272,12 +385,28 @@ export const disableMfa = mutation({
     // TODO: Verify password if provided (requires bcrypt import)
     // For now, require TOTP verification
 
-    // Disable MFA
+    // Disable MFA + clear rate limit data
     await ctx.db.patch(args.userId, {
       mfaEnabled: false,
       mfaSecret: undefined,
       mfaBackupCodes: undefined,
+      mfaFailedAttempts: undefined,
+      mfaLockedUntil: undefined,
       updatedAt: Date.now(),
+    });
+
+    // Audit: MFA disabled
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.actingUserId,
+      userEmail: actingUser.email,
+      userName: `${actingUser.firstName} ${actingUser.lastName}`,
+      action: "mfa_disabled",
+      entityType: "user",
+      entityId: args.userId,
+      entityName: `MFA disabled: ${user.email}`,
+      metadata: JSON.stringify({
+        disabledBy: args.actingUserId === args.userId ? "self" : "admin",
+      }),
     });
 
     return { success: true, message: "MFA disabled successfully" };
@@ -334,6 +463,17 @@ export const regenerateBackupCodes = action({
     await ctx.runMutation(internal.mfa.updateBackupCodesInternal, {
       userId: args.userId,
       hashedBackupCodes,
+    });
+
+    // Audit: backup codes regenerated
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "mfa_backup_regenerated",
+      entityType: "user",
+      entityId: args.userId,
+      entityName: `MFA backup codes regenerated: ${user.email}`,
     });
 
     return {

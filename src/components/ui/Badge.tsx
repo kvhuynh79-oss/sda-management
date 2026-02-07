@@ -304,3 +304,82 @@ export function DirectionBadge({
     </Badge>
   );
 }
+
+export function ComplianceCategoryBadge({
+  category,
+  size = "sm",
+}: {
+  category: "routine" | "incident_related" | "complaint" | "safeguarding" | "plan_review" | "access_request" | "quality_audit" | "advocacy" | "none";
+  size?: BadgeSize;
+}) {
+  const categoryConfig: Record<string, { variant: BadgeVariant; label: string; icon: string }> = {
+    routine: { variant: "neutral", label: "Routine", icon: "\u2713" },
+    incident_related: { variant: "error", label: "Incident Related", icon: "\u26A0" },
+    complaint: { variant: "warning", label: "Complaint", icon: "\u2709" },
+    safeguarding: { variant: "error", label: "Safeguarding", icon: "\u26D4" },
+    plan_review: { variant: "info", label: "Plan Review", icon: "\u2606" },
+    access_request: { variant: "purple", label: "Access Request", icon: "\u2192" },
+    quality_audit: { variant: "success", label: "Quality Audit", icon: "\u2714" },
+    advocacy: { variant: "cyan", label: "Advocacy", icon: "\u2696" },
+    none: { variant: "neutral", label: "None", icon: "\u2014" },
+  };
+
+  const config = categoryConfig[category] || categoryConfig.none;
+  return (
+    <Badge variant={config.variant} size={size}>
+      <span aria-hidden="true">{config.icon}</span> {config.label}
+    </Badge>
+  );
+}
+
+export function ComplianceFlagBadge({
+  flag,
+  size = "sm",
+}: {
+  flag: "requires_documentation" | "time_sensitive" | "participant_consent" | "ndia_reportable" | "escalation_required" | "legal_hold";
+  size?: BadgeSize;
+}) {
+  const flagConfig: Record<string, { variant: BadgeVariant; label: string; icon: string }> = {
+    requires_documentation: { variant: "warning", label: "Docs Required", icon: "\u2709" },
+    time_sensitive: { variant: "error", label: "Time Sensitive", icon: "\u23F0" },
+    participant_consent: { variant: "info", label: "Consent", icon: "\u2714" },
+    ndia_reportable: { variant: "purple", label: "NDIA Reportable", icon: "\u2691" },
+    escalation_required: { variant: "error", label: "Escalation", icon: "\u26A0" },
+    legal_hold: { variant: "orange", label: "Legal Hold", icon: "\u2696" },
+  };
+
+  const config = flagConfig[flag] || { variant: "neutral" as BadgeVariant, label: flag, icon: "\u2022" };
+  return (
+    <Badge variant={config.variant} size={size}>
+      <span aria-hidden="true">{config.icon}</span> {config.label}
+    </Badge>
+  );
+}
+
+export function StakeholderTypeBadge({
+  type,
+  size = "sm",
+}: {
+  type: "support_coordinator" | "sil_provider" | "ndia" | "occupational_therapist" | "guardian" | "advocate" | "contractor" | "participant" | "family" | "other";
+  size?: BadgeSize;
+}) {
+  const typeConfig: Record<string, { variant: BadgeVariant; label: string }> = {
+    support_coordinator: { variant: "info", label: "Support Coordinator" },
+    sil_provider: { variant: "orange", label: "SIL Provider" },
+    ndia: { variant: "purple", label: "NDIA" },
+    occupational_therapist: { variant: "success", label: "OT" },
+    guardian: { variant: "cyan", label: "Guardian" },
+    advocate: { variant: "warning", label: "Advocate" },
+    contractor: { variant: "neutral", label: "Contractor" },
+    participant: { variant: "info", label: "Participant" },
+    family: { variant: "success", label: "Family" },
+    other: { variant: "neutral", label: "Other" },
+  };
+
+  const config = typeConfig[type] || typeConfig.other;
+  return (
+    <Badge variant={config.variant} size={size}>
+      {config.label}
+    </Badge>
+  );
+}

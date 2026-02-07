@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth } from "./authHelpers";
@@ -10,6 +10,27 @@ import {
   validateOptionalPhone,
   validateOptionalDate,
 } from "./validationHelpers";
+import { encryptField, decryptField, createBlindIndex, isEncrypted } from "./lib/encryption";
+
+// Decrypt sensitive participant fields (handles both encrypted and plaintext for migration)
+async function decryptParticipantFields<T extends Record<string, any>>(p: T): Promise<T> {
+  const [ndisNumber, dateOfBirth, emergencyContactName, emergencyContactPhone, emergencyContactRelation] =
+    await Promise.all([
+      decryptField(p.ndisNumber),
+      decryptField(p.dateOfBirth),
+      decryptField(p.emergencyContactName),
+      decryptField(p.emergencyContactPhone),
+      decryptField(p.emergencyContactRelation),
+    ]);
+  return {
+    ...p,
+    ndisNumber: ndisNumber ?? p.ndisNumber,
+    dateOfBirth: dateOfBirth ?? p.dateOfBirth,
+    emergencyContactName: emergencyContactName ?? p.emergencyContactName,
+    emergencyContactPhone: emergencyContactPhone ?? p.emergencyContactPhone,
+    emergencyContactRelation: emergencyContactRelation ?? p.emergencyContactRelation,
+  };
+}
 
 // Create a new participant
 export const create = mutation({
@@ -45,30 +66,53 @@ export const create = mutation({
     const validatedPhone = validateOptionalPhone(args.phone);
     const validatedMoveInDate = validateOptionalDate(args.moveInDate, "move-in date");
 
-    // Check if NDIS number already exists
-    const existing = await ctx.db
+    // Create blind index for NDIS number duplicate check
+    const ndisBlindIndex = await createBlindIndex(validatedNdis);
+
+    // Check if NDIS number already exists (using blind index for encrypted data)
+    if (ndisBlindIndex) {
+      const existingByIndex = await ctx.db
+        .query("participants")
+        .withIndex("by_ndisNumberIndex", (q) => q.eq("ndisNumberIndex", ndisBlindIndex))
+        .first();
+      if (existingByIndex) {
+        throw new Error("A participant with this NDIS number already exists");
+      }
+    }
+    // Fallback: also check legacy plaintext index (for pre-migration data)
+    const existingPlaintext = await ctx.db
       .query("participants")
       .withIndex("by_ndisNumber", (q) => q.eq("ndisNumber", validatedNdis))
       .first();
-
-    if (existing) {
+    if (existingPlaintext) {
       throw new Error("A participant with this NDIS number already exists");
     }
+
+    // Encrypt sensitive fields
+    const [encNdisNumber, encDateOfBirth, encEmergencyName, encEmergencyPhone, encEmergencyRelation] =
+      await Promise.all([
+        encryptField(validatedNdis),
+        encryptField(args.dateOfBirth),
+        encryptField(args.emergencyContactName),
+        encryptField(args.emergencyContactPhone),
+        encryptField(args.emergencyContactRelation),
+      ]);
 
     const now = Date.now();
     // Use provided status, or default to active if moveInDate is provided, pending_move_in otherwise
     const status = args.status || (validatedMoveInDate ? "active" : "pending_move_in");
 
     const participantId = await ctx.db.insert("participants", {
-      ndisNumber: validatedNdis,
+      ndisNumber: encNdisNumber ?? validatedNdis,
+      ndisNumberIndex: ndisBlindIndex ?? undefined,
       firstName: validatedFirstName,
       lastName: validatedLastName,
-      dateOfBirth: args.dateOfBirth,
+      dateOfBirth: encDateOfBirth ?? args.dateOfBirth,
       email: validatedEmail,
       phone: validatedPhone,
-      emergencyContactName: args.emergencyContactName,
-      emergencyContactPhone: args.emergencyContactPhone,
-      emergencyContactRelation: args.emergencyContactRelation,
+      emergencyContactName: encEmergencyName ?? args.emergencyContactName,
+      emergencyContactPhone: encEmergencyPhone ?? args.emergencyContactPhone,
+      emergencyContactRelation: encEmergencyRelation ?? args.emergencyContactRelation,
       dwellingId: args.dwellingId,
       moveInDate: validatedMoveInDate,
       status,
@@ -93,7 +137,7 @@ export const create = mutation({
       entityType: "participant",
       entityId: participantId,
       entityName: `${args.firstName} ${args.lastName}`,
-      metadata: JSON.stringify({ ndisNumber: args.ndisNumber, status }),
+      metadata: JSON.stringify({ ndisNumberIndex: ndisBlindIndex, status }),
     });
 
     return participantId;
@@ -183,19 +227,22 @@ export const getAll = query({
       plansByParticipant.set(plan.participantId, plan);
     }
 
-    // Build result with pre-fetched data
-    const participantsWithDetails = participants.map((participant) => {
-      const dwelling = dwellingMap.get(participant.dwellingId);
-      const property = dwelling ? propertyMap.get(dwelling.propertyId) : null;
-      const currentPlan = plansByParticipant.get(participant._id);
+    // Build result with pre-fetched data and decrypt sensitive fields
+    const participantsWithDetails = await Promise.all(
+      participants.map(async (participant) => {
+        const dwelling = dwellingMap.get(participant.dwellingId);
+        const property = dwelling ? propertyMap.get(dwelling.propertyId) : null;
+        const currentPlan = plansByParticipant.get(participant._id);
+        const decrypted = await decryptParticipantFields(participant);
 
-      return {
-        ...participant,
-        dwelling,
-        property,
-        currentPlan,
-      };
-    });
+        return {
+          ...decrypted,
+          dwelling,
+          property,
+          currentPlan,
+        };
+      })
+    );
 
     return participantsWithDetails;
   },
@@ -208,6 +255,7 @@ export const getById = query({
     const participant = await ctx.db.get(args.participantId);
     if (!participant) return null;
 
+    const decrypted = await decryptParticipantFields(participant);
     const dwelling = await ctx.db.get(participant.dwellingId);
     const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
@@ -222,7 +270,7 @@ export const getById = query({
       .collect();
 
     return {
-      ...participant,
+      ...decrypted,
       dwelling,
       property,
       plans,
@@ -267,6 +315,30 @@ export const update = mutation({
       if (value !== undefined) {
         filteredUpdates[key] = value;
       }
+    }
+
+    // Encrypt sensitive fields if they are being updated
+    if (filteredUpdates.ndisNumber !== undefined) {
+      const plainNdis = filteredUpdates.ndisNumber as string;
+      const newBlindIndex = await createBlindIndex(plainNdis);
+      filteredUpdates.ndisNumber = await encryptField(plainNdis) ?? plainNdis;
+      filteredUpdates.ndisNumberIndex = newBlindIndex ?? undefined;
+    }
+    if (filteredUpdates.dateOfBirth !== undefined) {
+      const plain = filteredUpdates.dateOfBirth as string;
+      filteredUpdates.dateOfBirth = await encryptField(plain) ?? plain;
+    }
+    if (filteredUpdates.emergencyContactName !== undefined) {
+      const plain = filteredUpdates.emergencyContactName as string;
+      filteredUpdates.emergencyContactName = await encryptField(plain) ?? plain;
+    }
+    if (filteredUpdates.emergencyContactPhone !== undefined) {
+      const plain = filteredUpdates.emergencyContactPhone as string;
+      filteredUpdates.emergencyContactPhone = await encryptField(plain) ?? plain;
+    }
+    if (filteredUpdates.emergencyContactRelation !== undefined) {
+      const plain = filteredUpdates.emergencyContactRelation as string;
+      filteredUpdates.emergencyContactRelation = await encryptField(plain) ?? plain;
     }
 
     await ctx.db.patch(participantId, filteredUpdates);
@@ -385,7 +457,7 @@ export const getByDwelling = query({
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
-    return participants;
+    return Promise.all(participants.map(decryptParticipantFields));
   },
 });
 
@@ -423,9 +495,10 @@ export const getAllPaginated = query({
       result = await defaultQuery.paginate(args.paginationOpts);
     }
 
-    // Enrich with dwelling, property, and plan data
+    // Enrich with dwelling, property, plan data and decrypt sensitive fields
     const enrichedPage = await Promise.all(
       result.page.map(async (participant) => {
+        const decrypted = await decryptParticipantFields(participant);
         const dwelling = await ctx.db.get(participant.dwellingId);
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
@@ -436,7 +509,7 @@ export const getAllPaginated = query({
         const currentPlan = plans.find((p) => p.planStatus === "current");
 
         return {
-          ...participant,
+          ...decrypted,
           dwelling,
           property,
           currentPlan,
@@ -448,5 +521,13 @@ export const getAllPaginated = query({
       ...result,
       page: enrichedPage,
     };
+  },
+});
+
+// Internal raw query for migration (no decryption - returns data as-is)
+export const getAllRaw = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("participants").collect();
   },
 });

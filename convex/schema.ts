@@ -35,6 +35,8 @@ export default defineSchema({
     mfaSecret: v.optional(v.string()), // TOTP secret key (encrypted)
     mfaEnabled: v.optional(v.boolean()), // Whether MFA is enabled for this user
     mfaBackupCodes: v.optional(v.array(v.string())), // Hashed backup codes
+    mfaFailedAttempts: v.optional(v.number()), // Rate limiting: failed TOTP attempts
+    mfaLockedUntil: v.optional(v.string()), // Rate limiting: lockout expiry ISO date
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -71,7 +73,20 @@ export default defineSchema({
       v.literal("login"),
       v.literal("logout"),
       v.literal("export"),
-      v.literal("import")
+      v.literal("import"),
+      v.literal("thread_merge"),
+      v.literal("thread_split"),
+      v.literal("consultation_gate"),
+      v.literal("bulk_mark_read"),
+      v.literal("bulk_categorize"),
+      v.literal("bulk_thread"),
+      v.literal("bulk_flag"),
+      v.literal("mfa_enabled"),
+      v.literal("mfa_disabled"),
+      v.literal("mfa_backup_used"),
+      v.literal("mfa_backup_regenerated"),
+      v.literal("mfa_lockout"),
+      v.literal("data_encrypted")
     ),
     entityType: v.string(), // "property", "participant", "payment", etc.
     entityId: v.optional(v.string()),
@@ -231,6 +246,7 @@ export default defineSchema({
   // Participants table - NDIS participants
   participants: defineTable({
     ndisNumber: v.string(),
+    ndisNumberIndex: v.optional(v.string()), // HMAC blind index for encrypted NDIS number search
     firstName: v.string(),
     lastName: v.string(),
     dateOfBirth: v.optional(v.string()),
@@ -257,6 +273,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_ndisNumber", ["ndisNumber"])
+    .index("by_ndisNumberIndex", ["ndisNumberIndex"])
     .index("by_dwelling", ["dwellingId"])
     .index("by_status", ["status"])
     .index("by_dwelling_status", ["dwellingId", "status"]),
@@ -1731,14 +1748,89 @@ export default defineSchema({
     subject: v.optional(v.string()), // Subject line for emails
     summary: v.string(), // Main notes/summary
 
-    // Linking
-    linkedParticipantId: v.optional(v.id("participants")),
+    // NDIS Compliance (optional until migration complete)
+    complianceCategory: v.optional(v.union(
+      v.literal("routine"),
+      v.literal("incident_related"),
+      v.literal("complaint"),
+      v.literal("safeguarding"),
+      v.literal("plan_review"),
+      v.literal("access_request"),
+      v.literal("quality_audit"),
+      v.literal("advocacy"),
+      v.literal("none")
+    )),
+    complianceFlags: v.optional(v.array(v.union(
+      v.literal("requires_documentation"),
+      v.literal("time_sensitive"),
+      v.literal("escalation_required"),
+      v.literal("ndia_reportable"),
+      v.literal("legal_hold")
+    ))),
+
+    // Threading (optional until migration complete)
+    threadId: v.optional(v.string()),
+    parentCommunicationId: v.optional(v.id("communications")),
+    isThreadStarter: v.optional(v.boolean()), // TODO: Make required after migration
+    threadParticipants: v.optional(v.array(v.string())),
+
+    // Stakeholder linking (DB relationships)
+    stakeholderEntityType: v.optional(v.union(
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("occupational_therapist"),
+      v.literal("contractor"),
+      v.literal("participant")
+    )),
+    stakeholderEntityId: v.optional(v.string()),
+
+    // Consultation Gate (optional until migration complete)
+    requiresFollowUp: v.optional(v.boolean()), // TODO: Make required after migration
+    followUpDueDate: v.optional(v.string()), // YYYY-MM-DD
+    followUpStatus: v.optional(v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("overdue"),
+      v.literal("cancelled")
+    )),
+    consultationOutcome: v.optional(v.union(
+      v.literal("resolved"),
+      v.literal("escalated"),
+      v.literal("pending_participant_response"),
+      v.literal("pending_ndia_response"),
+      v.literal("requires_meeting"),
+      v.literal("documentation_required")
+    )),
+
+    // Participant involvement (optional until migration complete)
+    isParticipantInvolved: v.optional(v.boolean()), // TODO: Make required after migration
+    participantConsentGiven: v.optional(v.boolean()),
+
+    // Multiple attachments (replaces single attachmentStorageId)
+    attachmentStorageIds: v.optional(v.array(v.string())),
+    attachmentMetadata: v.optional(v.array(v.object({
+      fileName: v.string(),
+      fileSize: v.number(),
+      fileType: v.string(),
+      uploadedAt: v.number()
+    }))),
+
+    // Linking - updated naming
+    participantId: v.optional(v.id("participants")), // TODO: Make required after migration - renamed from linkedParticipantId
+    linkedParticipantIds: v.optional(v.array(v.id("participants"))), // Multi-participant communications
     linkedPropertyId: v.optional(v.id("properties")),
 
-    // Optional attachment
-    attachmentStorageId: v.optional(v.id("_storage")),
-    attachmentFileName: v.optional(v.string()),
-    attachmentFileType: v.optional(v.string()),
+    // Legacy fields - kept during migration transition
+    linkedParticipantId: v.optional(v.id("participants")), // DEPRECATED: Use participantId
+    attachmentStorageId: v.optional(v.id("_storage")), // DEPRECATED: Use attachmentStorageIds
+    attachmentFileName: v.optional(v.string()), // DEPRECATED
+    attachmentFileType: v.optional(v.string()), // DEPRECATED
+
+    // Migration tracking
+    migrated_v2: v.optional(v.boolean()),
+
+    // Read tracking
+    readAt: v.optional(v.string()), // ISO string when message was read
 
     // Metadata
     createdBy: v.id("users"),
@@ -1750,7 +1842,29 @@ export default defineSchema({
     .index("by_date", ["communicationDate"])
     .index("by_contactType", ["contactType"])
     .index("by_type", ["communicationType"])
-    .index("by_createdBy", ["createdBy"]),
+    .index("by_createdBy", ["createdBy"])
+    // NEW INDEXES for v2
+    .index("by_thread", ["threadId", "createdAt"])
+    .index("by_participant_compliance", ["participantId", "complianceCategory", "createdAt"])
+    .index("by_stakeholder", ["stakeholderEntityType", "stakeholderEntityId", "createdAt"])
+    .index("by_follow_up", ["requiresFollowUp", "followUpDueDate"]),
+
+  // Thread summaries table - performance cache for thread views
+  threadSummaries: defineTable({
+    threadId: v.string(),
+    participantId: v.id("participants"),
+    startedAt: v.number(),
+    lastActivityAt: v.number(),
+    messageCount: v.number(),
+    participantNames: v.array(v.string()),
+    subject: v.string(),
+    previewText: v.string(),
+    hasUnread: v.boolean(),
+    complianceCategories: v.array(v.string()),
+    requiresAction: v.boolean(),
+  })
+    .index("by_participant_activity", ["participantId", "lastActivityAt"])
+    .index("by_thread", ["threadId"]),
 
   // Tasks table - follow-up tasks and action items
   tasks: defineTable({

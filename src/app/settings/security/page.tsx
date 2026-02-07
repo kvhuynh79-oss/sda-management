@@ -30,7 +30,6 @@ function SecuritySettingsContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
   const [error, setError] = useState("");
   const [copiedCodes, setCopiedCodes] = useState(false);
 
@@ -75,8 +74,8 @@ function SecuritySettingsContent() {
     }
   };
 
-  const handleVerifyMfa = async () => {
-    if (!user || !verificationCode) return;
+  const handleVerifyMfa = async (code: string) => {
+    if (!user) return;
 
     setIsVerifying(true);
     setError("");
@@ -84,14 +83,13 @@ function SecuritySettingsContent() {
     try {
       const result = await verifyAndEnableMfa({
         userId: user.id as Id<"users">,
-        totpCode: verificationCode,
+        totpCode: code,
       });
 
       if (result.success) {
         // Backup codes were stored during setupMfa, show them now
         setShowBackupCodes(true);
         setShowMfaSetup(false);
-        setVerificationCode("");
       } else {
         setError("Invalid verification code. Please try again.");
       }
@@ -106,6 +104,12 @@ function SecuritySettingsContent() {
   const handleDisableMfa = async () => {
     if (!user) return;
 
+    // Require TOTP verification before disabling MFA
+    const totpCode = prompt(
+      "Enter your current authenticator code to disable 2FA:"
+    );
+    if (!totpCode) return;
+
     const confirmed = confirm(
       "Are you sure you want to disable two-factor authentication? This will make your account less secure."
     );
@@ -118,6 +122,7 @@ function SecuritySettingsContent() {
       await disableMfaMutation({
         userId: user.id as Id<"users">,
         actingUserId: user.id as Id<"users">,
+        totpCode: totpCode,
       });
       alert("Two-factor authentication has been disabled.");
     } catch (err) {
@@ -354,7 +359,6 @@ function SecuritySettingsContent() {
                 setShowMfaSetup(false);
                 setMfaSecret("");
                 setQrCodeUrl("");
-                setVerificationCode("");
                 setError("");
               }}
               isVerifying={isVerifying}

@@ -1,7 +1,25 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth } from "./authHelpers";
+import { encryptField, decryptField, isEncrypted } from "./lib/encryption";
+
+// Decrypt sensitive incident fields (handles both encrypted and plaintext for migration)
+async function decryptIncidentFields<T extends Record<string, any>>(i: T): Promise<T> {
+  const [description, witnessNames, immediateActionTaken, followUpNotes] = await Promise.all([
+    decryptField(i.description),
+    decryptField(i.witnessNames),
+    decryptField(i.immediateActionTaken),
+    decryptField(i.followUpNotes),
+  ]);
+  return {
+    ...i,
+    description: description ?? i.description,
+    witnessNames: witnessNames ?? i.witnessNames,
+    immediateActionTaken: immediateActionTaken ?? i.immediateActionTaken,
+    followUpNotes: followUpNotes ?? i.followUpNotes,
+  };
+}
 
 // NDIS Reportable incident types that require Commission notification
 const IMMEDIATE_NOTIFICATION_TYPES = [
@@ -99,9 +117,22 @@ export const create = mutation({
       // Determine if this is an NDIS reportable incident
       const { isReportable, timeframe } = getNdisReportableInfo(args.incidentType);
 
-      // Build base incident data
+      // Encrypt sensitive fields
+      const [encDescription, encWitnessNames, encImmediateAction, encFollowUpNotes] =
+        await Promise.all([
+          encryptField(args.description),
+          encryptField(args.witnessNames),
+          encryptField(args.immediateActionTaken),
+          encryptField(args.followUpNotes),
+        ]);
+
+      // Build base incident data with encrypted fields
       const baseData = {
         ...args,
+        description: encDescription ?? args.description,
+        witnessNames: encWitnessNames ?? args.witnessNames,
+        immediateActionTaken: encImmediateAction ?? args.immediateActionTaken,
+        followUpNotes: encFollowUpNotes ?? args.followUpNotes,
         status: "reported" as const,
         isNdisReportable: isReportable,
         createdAt: now,
@@ -179,9 +210,10 @@ export const getByProperty = query({
       .order("desc")
       .collect();
 
-    // Get participant details for each incident
+    // Get participant details for each incident and decrypt
     const incidentsWithDetails = await Promise.all(
       incidents.map(async (incident) => {
+        const decrypted = await decryptIncidentFields(incident);
         let participant = null;
         if (incident.participantId) {
           participant = await ctx.db.get(incident.participantId);
@@ -191,7 +223,7 @@ export const getByProperty = query({
           dwelling = await ctx.db.get(incident.dwellingId);
         }
         return {
-          ...incident,
+          ...decrypted,
           participant,
           dwelling,
         };
@@ -219,9 +251,10 @@ export const getAll = query({
       incidents = await ctx.db.query("incidents").order("desc").collect();
     }
 
-    // Get details for each incident
+    // Get details for each incident and decrypt
     const incidentsWithDetails = await Promise.all(
       incidents.map(async (incident) => {
+        const decrypted = await decryptIncidentFields(incident);
         const property = await ctx.db.get(incident.propertyId);
         let participant = null;
         if (incident.participantId) {
@@ -232,7 +265,7 @@ export const getAll = query({
           dwelling = await ctx.db.get(incident.dwellingId);
         }
         return {
-          ...incident,
+          ...decrypted,
           property,
           participant,
           dwelling,
@@ -251,6 +284,7 @@ export const getById = query({
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) return null;
 
+    const decrypted = await decryptIncidentFields(incident);
     const property = await ctx.db.get(incident.propertyId);
     let participant = null;
     if (incident.participantId) {
@@ -275,7 +309,7 @@ export const getById = query({
     );
 
     return {
-      ...incident,
+      ...decrypted,
       property,
       participant,
       dwelling,
@@ -364,6 +398,24 @@ export const update = mutation({
       if (value !== undefined) {
         filteredUpdates[key] = value;
       }
+    }
+
+    // Encrypt sensitive fields if they are being updated
+    if (filteredUpdates.description !== undefined) {
+      const plain = filteredUpdates.description as string;
+      filteredUpdates.description = await encryptField(plain) ?? plain;
+    }
+    if (filteredUpdates.witnessNames !== undefined) {
+      const plain = filteredUpdates.witnessNames as string;
+      filteredUpdates.witnessNames = await encryptField(plain) ?? plain;
+    }
+    if (filteredUpdates.immediateActionTaken !== undefined) {
+      const plain = filteredUpdates.immediateActionTaken as string;
+      filteredUpdates.immediateActionTaken = await encryptField(plain) ?? plain;
+    }
+    if (filteredUpdates.followUpNotes !== undefined) {
+      const plain = filteredUpdates.followUpNotes as string;
+      filteredUpdates.followUpNotes = await encryptField(plain) ?? plain;
     }
 
     // If NDIS Commission was notified, clear the overdue flag
@@ -489,12 +541,13 @@ export const getNdisReportable = query({
       incidents = incidents.filter(i => i.ndisNotificationOverdue === true);
     }
 
-    // Enrich with details
+    // Enrich with details and decrypt
     const enriched = await Promise.all(
       incidents.map(async (incident) => {
+        const decrypted = await decryptIncidentFields(incident);
         const property = await ctx.db.get(incident.propertyId);
         const participant = incident.participantId ? await ctx.db.get(incident.participantId) : null;
-        return { ...incident, property, participant };
+        return { ...decrypted, property, participant };
       })
     );
 
@@ -680,5 +733,13 @@ export const deletePhoto = mutation({
       await ctx.db.delete(args.photoId);
     }
     return { success: true };
+  },
+});
+
+// Internal raw query for migration (no decryption - returns data as-is)
+export const getAllRaw = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("incidents").collect();
   },
 });

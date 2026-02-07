@@ -128,7 +128,7 @@ export default function NewCommunicationPage() {
       }
 
       // Create communication
-      const communicationId = await createCommunication({
+      const result = await createCommunication({
         communicationType: formData.communicationType,
         direction: formData.direction,
         communicationDate: formData.communicationDate,
@@ -162,7 +162,7 @@ export default function NewCommunicationPage() {
           linkedParticipantId: formData.linkedParticipantId
             ? (formData.linkedParticipantId as Id<"participants">)
             : undefined,
-          linkedCommunicationId: communicationId,
+          linkedCommunicationId: result.communicationId,
           createdBy: user.id as Id<"users">,
         });
       }

@@ -1,54 +1,80 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { StatCard } from "@/components/ui/StatCard";
+import { FormInput } from "@/components/forms/FormInput";
+import { FormSelect } from "@/components/forms/FormSelect";
+import { formatCurrency, formatDate, formatStatus } from "@/utils/format";
 
-export default function PaymentsPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+const SOURCE_OPTIONS = [
+  { value: "all", label: "All Sources" },
+  { value: "ndia", label: "NDIA Managed" },
+  { value: "plan_manager", label: "Plan Manager" },
+  { value: "self_managed", label: "Self Managed" },
+];
+
+function PaymentsContent() {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Auth state from localStorage (useAuth pattern)
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+
+  // Read user from localStorage on mount
+  useState(() => {
+    const stored = localStorage.getItem("sda_user");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const userId = parsed._id || parsed.id;
+        if (userId) {
+          setUser({ id: userId, role: parsed.role });
+        }
+      } catch {
+        // Invalid data
+      }
+    }
+  });
 
   const payments = useQuery(
     api.payments.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (!storedUser) {
-      router.push("/login");
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-  }, [router]);
+  // Memoize filtered payments
+  const filteredPayments = useMemo(() => {
+    if (!payments) return undefined;
+    return payments.filter((payment) => {
+      const matchesSource = filterSource === "all" || payment.paymentSource === filterSource;
+      const matchesSearch =
+        !searchTerm ||
+        payment.participant?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.participant?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.participant?.ndisNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.paymentReference?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSource && matchesSearch;
+    });
+  }, [payments, filterSource, searchTerm]);
+
+  // Memoize totals
+  const { totalExpected, totalActual, totalVariance } = useMemo(() => {
+    const expected = filteredPayments?.reduce((sum, p) => sum + p.expectedAmount, 0) || 0;
+    const actual = filteredPayments?.reduce((sum, p) => sum + p.actualAmount, 0) || 0;
+    return { totalExpected: expected, totalActual: actual, totalVariance: actual - expected };
+  }, [filteredPayments]);
 
   if (!user) {
-    return <LoadingScreen />;
+    return <LoadingScreen message="Loading..." />;
   }
-
-  // Filter payments
-  const filteredPayments = payments?.filter((payment) => {
-    const matchesSource = filterSource === "all" || payment.paymentSource === filterSource;
-    const matchesSearch =
-      !searchTerm ||
-      payment.participant?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.participant?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.participant?.ndisNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.paymentReference?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesSource && matchesSearch;
-  });
-
-  // Calculate totals
-  const totalExpected = filteredPayments?.reduce((sum, p) => sum + p.expectedAmount, 0) || 0;
-  const totalActual = filteredPayments?.reduce((sum, p) => sum + p.actualAmount, 0) || 0;
-  const totalVariance = totalActual - totalExpected;
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -56,43 +82,47 @@ export default function PaymentsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-white">Payment History</h2>
+            <h1 className="text-2xl font-bold text-white">Payment History</h1>
             <p className="text-gray-400 mt-1">Track and manage SDA payments</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Link
               href="/payments/ndis-export"
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
             >
               NDIS Export
             </Link>
             <Link
               href="/payments/distributions"
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
             >
               Owner Distributions
             </Link>
             <Link
               href="/payments/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               + Record Payment
             </Link>
           </div>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <SummaryCard
-            label="Total Expected"
+          <StatCard
+            title="Total Expected"
             value={formatCurrency(totalExpected)}
             color="blue"
           />
-          <SummaryCard label="Total Received" value={formatCurrency(totalActual)} color="green" />
-          <SummaryCard
-            label="Total Variance"
+          <StatCard
+            title="Total Received"
+            value={formatCurrency(totalActual)}
+            color="green"
+          />
+          <StatCard
+            title="Total Variance"
             value={formatCurrency(totalVariance)}
             color={totalVariance >= 0 ? "green" : "red"}
           />
@@ -101,41 +131,46 @@ export default function PaymentsPage() {
         {/* Filters */}
         <div className="bg-gray-800 rounded-lg p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Search Participant
-              </label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Name, NDIS number, or reference..."
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Payment Source
-              </label>
-              <select
-                value={filterSource}
-                onChange={(e) => setFilterSource(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Sources</option>
-                <option value="ndia">NDIA Managed</option>
-                <option value="plan_manager">Plan Manager</option>
-                <option value="self_managed">Self Managed</option>
-              </select>
-            </div>
+            <FormInput
+              label="Search Participant"
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Name, NDIS number, or reference..."
+            />
+            <FormSelect
+              label="Payment Source"
+              options={SOURCE_OPTIONS}
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value)}
+              placeholder=""
+            />
           </div>
         </div>
 
         {/* Payments List */}
         {payments === undefined ? (
-          <div className="text-gray-400 text-center py-12">Loading payments...</div>
+          <LoadingScreen fullScreen={false} message="Loading payments..." />
         ) : filteredPayments && filteredPayments.length === 0 ? (
-          <EmptyState hasFilters={searchTerm !== "" || filterSource !== "all"} />
+          <EmptyState
+            title={searchTerm || filterSource !== "all" ? "No payments found" : "No payments recorded yet"}
+            description={
+              searchTerm || filterSource !== "all"
+                ? "Try adjusting your filters to see more results"
+                : "Start tracking payments by recording your first payment"
+            }
+            isFiltered={searchTerm !== "" || filterSource !== "all"}
+            action={
+              !(searchTerm || filterSource !== "all")
+                ? { label: "+ Record First Payment", href: "/payments/new" }
+                : undefined
+            }
+            icon={
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+          />
         ) : (
           <div className="bg-gray-800 rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
@@ -189,29 +224,6 @@ export default function PaymentsPage() {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: "blue" | "green" | "red";
-}) {
-  const colorClasses = {
-    blue: "text-blue-400",
-    green: "text-green-400",
-    red: "text-red-400",
-  };
-
-  return (
-    <div className="bg-gray-800 rounded-lg p-6">
-      <p className="text-gray-400 text-sm mb-2">{label}</p>
-      <p className={`text-2xl font-bold ${colorClasses[color]}`}>{value}</p>
-    </div>
-  );
-}
-
 function PaymentRow({ payment }: { payment: any }) {
   const getVarianceColor = (variance: number) => {
     if (variance === 0) return "text-gray-400";
@@ -219,20 +231,16 @@ function PaymentRow({ payment }: { payment: any }) {
     return "text-red-400";
   };
 
-  const formatSource = (source: string) => {
-    return source.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
   return (
     <tr className="hover:bg-gray-700 transition-colors">
       <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-        {payment.paymentDate}
+        {formatDate(payment.paymentDate)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         {payment.participant ? (
           <Link
             href={`/participants/${payment.participant._id}`}
-            className="text-blue-400 hover:text-blue-300 text-sm"
+            className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:underline"
           >
             {payment.participant.firstName} {payment.participant.lastName}
           </Link>
@@ -241,7 +249,7 @@ function PaymentRow({ payment }: { payment: any }) {
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-        {payment.paymentPeriodStart} to {payment.paymentPeriodEnd}
+        {formatDate(payment.paymentPeriodStart)} to {formatDate(payment.paymentPeriodEnd)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-white">
         {formatCurrency(payment.expectedAmount)}
@@ -256,7 +264,7 @@ function PaymentRow({ payment }: { payment: any }) {
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-        {formatSource(payment.paymentSource)}
+        {formatStatus(payment.paymentSource)}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
         {payment.paymentReference || "-"}
@@ -265,41 +273,10 @@ function PaymentRow({ payment }: { payment: any }) {
   );
 }
 
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+export default function PaymentsPage() {
   return (
-    <div className="bg-gray-800 rounded-lg p-12 text-center">
-      <div className="text-gray-400 text-6xl mb-4">💰</div>
-      <h3 className="text-xl font-semibold text-white mb-2">
-        {hasFilters ? "No payments found" : "No payments recorded yet"}
-      </h3>
-      <p className="text-gray-400 mb-6">
-        {hasFilters
-          ? "Try adjusting your filters to see more results"
-          : "Start tracking payments by recording your first payment"}
-      </p>
-      {!hasFilters && (
-        <Link
-          href="/payments/new"
-          className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          + Record First Payment
-        </Link>
-      )}
-    </div>
+    <RequireAuth>
+      <PaymentsContent />
+    </RequireAuth>
   );
-}
-
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-white">Loading...</div>
-    </div>
-  );
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AUD",
-  }).format(amount);
 }

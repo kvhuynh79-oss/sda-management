@@ -9,8 +9,8 @@ interface MfaSetupProps {
   secret: string;
   /** The QR code data URL for scanning */
   qrCodeUrl: string;
-  /** Callback when verification succeeds */
-  onVerified: (backupCodes: string[]) => void;
+  /** Callback when verification succeeds - passes the verification code */
+  onVerified: (verificationCode: string) => void;
   /** Callback to cancel setup */
   onCancel: () => void;
   /** Loading state during verification */
@@ -49,15 +49,8 @@ export function MfaSetup({
       return;
     }
 
-    // The parent component will handle the actual verification
-    // and pass back the backup codes
-    try {
-      // This will be called from the parent with the actual API call
-      // For now, this is a placeholder - parent should handle verification
-      onVerified([]);
-    } catch (err) {
-      setError("Invalid verification code. Please try again.");
-    }
+    // Pass the verification code to parent for API call
+    onVerified(verificationCode);
   };
 
   return (

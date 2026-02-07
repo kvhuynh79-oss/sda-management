@@ -201,9 +201,49 @@ export const TASK_CATEGORY_COLORS = {
   general: "bg-gray-500/20 text-gray-400",
 } as const;
 
+// Compliance category colors
+export const COMPLIANCE_CATEGORY_COLORS = {
+  routine: "bg-gray-500/20 text-gray-400",
+  incident_related: "bg-red-500/20 text-red-400",
+  complaint: "bg-yellow-500/20 text-yellow-400",
+  safeguarding: "bg-red-600/30 text-red-300",
+  plan_review: "bg-blue-500/20 text-blue-400",
+  access_request: "bg-purple-500/20 text-purple-400",
+  quality_audit: "bg-green-500/20 text-green-400",
+  advocacy: "bg-teal-500/20 text-teal-400",
+  none: "bg-gray-500/20 text-gray-400",
+} as const;
+
+// Compliance flag colors
+export const COMPLIANCE_FLAG_COLORS = {
+  requires_documentation: "bg-yellow-500/20 text-yellow-400",
+  time_sensitive: "bg-red-500/20 text-red-400",
+  participant_consent: "bg-blue-500/20 text-blue-400",
+  ndia_reportable: "bg-purple-500/20 text-purple-400",
+  escalation_required: "bg-red-600/30 text-red-300",
+  legal_hold: "bg-orange-500/20 text-orange-400",
+} as const;
+
+// Stakeholder type colors
+export const STAKEHOLDER_TYPE_COLORS = {
+  support_coordinator: "bg-blue-500/20 text-blue-400",
+  sil_provider: "bg-orange-500/20 text-orange-400",
+  ndia: "bg-purple-500/20 text-purple-400",
+  occupational_therapist: "bg-green-500/20 text-green-400",
+  guardian: "bg-teal-500/20 text-teal-400",
+  advocate: "bg-yellow-500/20 text-yellow-400",
+  contractor: "bg-gray-500/20 text-gray-400",
+  participant: "bg-blue-500/20 text-blue-400",
+  family: "bg-green-500/20 text-green-400",
+  other: "bg-gray-500/20 text-gray-400",
+} as const;
+
 // Type exports for new colors
 export type CommunicationType = keyof typeof COMMUNICATION_TYPE_COLORS;
 export type DirectionType = keyof typeof DIRECTION_COLORS;
 export type ContactType = keyof typeof CONTACT_TYPE_COLORS;
 export type TaskStatusType = keyof typeof TASK_STATUS_COLORS;
 export type TaskCategoryType = keyof typeof TASK_CATEGORY_COLORS;
+export type ComplianceCategoryType = keyof typeof COMPLIANCE_CATEGORY_COLORS;
+export type ComplianceFlagType = keyof typeof COMPLIANCE_FLAG_COLORS;
+export type StakeholderType = keyof typeof STAKEHOLDER_TYPE_COLORS;

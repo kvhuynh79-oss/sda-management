@@ -28,9 +28,16 @@ export default function LoginPage() {
   const router = useRouter();
 
   // Sanitize error messages to be user-friendly
-  const getErrorMessage = (err: unknown): string => {
+  const getErrorMessage = (err: unknown, isMfaStep = false): string => {
     if (err instanceof Error) {
       const message = err.message.toLowerCase();
+      // MFA-specific errors - don't sanitize these
+      if (isMfaStep) {
+        if (message.includes("invalid mfa") || message.includes("invalid totp")) {
+          return "Invalid verification code. Please try again.";
+        }
+        return "Verification failed. Please try again.";
+      }
       if (message.includes("invalid") || message.includes("not found")) {
         return "Invalid email or password. Please try again.";
       }
@@ -38,7 +45,9 @@ export default function LoginPage() {
         return "This account has been disabled. Please contact your administrator.";
       }
     }
-    return "Login failed. Please check your credentials and try again.";
+    return isMfaStep
+      ? "Verification failed. Please try again."
+      : "Login failed. Please check your credentials and try again.";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,7 +134,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(getErrorMessage(err, true));
     } finally {
       setIsLoading(false);
     }

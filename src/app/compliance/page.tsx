@@ -2,15 +2,28 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { StatCard } from "@/components/ui/StatCard";
+import { formatDate, formatStatus } from "@/utils/format";
 
-export default function CompliancePage() {
-  const router = useRouter();
+type TabType = "overview" | "certifications" | "insurance" | "complaints" | "incidents";
+
+const TAB_ITEMS: { id: TabType; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "certifications", label: "Certifications" },
+  { id: "insurance", label: "Insurance" },
+  { id: "complaints", label: "Complaints" },
+  { id: "incidents", label: "NDIS Incidents" },
+];
+
+function ComplianceContent() {
   const [user, setUser] = useState<{ role: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "certifications" | "insurance" | "complaints" | "incidents">("overview");
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedGuide, setExpandedGuide] = useState<"incidents" | "complaints" | "certifications" | null>(null);
 
   const certifications = useQuery(api.complianceCertifications.getAll, {});
@@ -21,17 +34,15 @@ export default function CompliancePage() {
   const incidentStats = useQuery(api.incidents.getStats);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("sda_user");
-    if (!storedUser) {
-      router.push("/login");
-      return;
+    const stored = localStorage.getItem("sda_user");
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        // Invalid data
+      }
     }
-    setUser(JSON.parse(storedUser));
-  }, [router]);
-
-  if (!user) {
-    return <LoadingScreen />;
-  }
+  }, []);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -43,20 +54,11 @@ export default function CompliancePage() {
     return colors[status] || "bg-gray-600";
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-AU", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  // Calculate overall compliance score
-  const calculateComplianceScore = () => {
+  // Memoize compliance score
+  const compliance = useMemo(() => {
     let score = 100;
     let issues = 0;
 
-    // Check certifications
     if (certifications) {
       const expired = certifications.filter(c => c.status === "expired").length;
       const expiringSoon = certifications.filter(c => c.status === "expiring_soon").length;
@@ -65,7 +67,6 @@ export default function CompliancePage() {
       issues += expired + expiringSoon;
     }
 
-    // Check insurance
     if (insuranceCoverage) {
       const missing = insuranceCoverage.filter(c => !c.hasCoverage).length;
       const insufficient = insuranceCoverage.filter(c => c.hasCoverage && !c.meetsCoverage).length;
@@ -74,22 +75,22 @@ export default function CompliancePage() {
       issues += missing + insufficient;
     }
 
-    // Check incidents
     if (incidentStats?.ndisReportable) {
       score -= incidentStats.ndisReportable.overdue * 25;
       issues += incidentStats.ndisReportable.overdue;
     }
 
-    // Check complaints
     if (complaintsStats) {
       score -= complaintsStats.overdueAcknowledgments * 10;
       issues += complaintsStats.overdueAcknowledgments;
     }
 
     return { score: Math.max(0, score), issues };
-  };
+  }, [certifications, insuranceCoverage, incidentStats, complaintsStats]);
 
-  const compliance = calculateComplianceScore();
+  if (!user) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -103,11 +104,15 @@ export default function CompliancePage() {
         </div>
 
         {/* Compliance Score Banner */}
-        <div className={`rounded-lg p-6 mb-6 ${
-          compliance.score >= 80 ? "bg-green-900/30 border border-green-600" :
-          compliance.score >= 60 ? "bg-yellow-900/30 border border-yellow-600" :
-          "bg-red-900/30 border border-red-600"
-        }`}>
+        <div
+          role="region"
+          aria-label="Compliance score"
+          className={`rounded-lg p-6 mb-6 ${
+            compliance.score >= 80 ? "bg-green-900/30 border border-green-600" :
+            compliance.score >= 60 ? "bg-yellow-900/30 border border-yellow-600" :
+            "bg-red-900/30 border border-red-600"
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-white">Compliance Score</h2>
@@ -134,178 +139,188 @@ export default function CompliancePage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {[
-            { id: "overview", label: "Overview" },
-            { id: "certifications", label: "Certifications" },
-            { id: "insurance", label: "Insurance" },
-            { id: "complaints", label: "Complaints" },
-            { id: "incidents", label: "NDIS Incidents" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div
+          role="tablist"
+          aria-label="Compliance sections"
+          className="flex gap-2 mb-6 overflow-x-auto pb-2"
+        >
+          {TAB_ITEMS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                id={`tab-${tab.id}`}
+                aria-selected={isActive}
+                aria-controls={`panel-${tab.id}`}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Certifications Card */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Certifications</h3>
-              {!certifications ? (
-                <p className="text-gray-400">Loading...</p>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Current</span>
-                      <span className="text-green-400">{certifications.filter(c => c.status === "current").length}</span>
+          <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Certifications Card */}
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Certifications</h3>
+                {!certifications ? (
+                  <LoadingScreen fullScreen={false} message="Loading..." />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Current</span>
+                        <span className="text-green-400">{certifications.filter(c => c.status === "current").length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Expiring Soon</span>
+                        <span className="text-yellow-400">{certifications.filter(c => c.status === "expiring_soon").length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Expired</span>
+                        <span className="text-red-400">{certifications.filter(c => c.status === "expired").length}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Expiring Soon</span>
-                      <span className="text-yellow-400">{certifications.filter(c => c.status === "expiring_soon").length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Expired</span>
-                      <span className="text-red-400">{certifications.filter(c => c.status === "expired").length}</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab("certifications")}
-                    className="mt-4 text-blue-400 hover:text-blue-300 text-sm"
-                  >
-                    View all certifications →
-                  </button>
-                </>
-              )}
-            </div>
+                    <button
+                      onClick={() => setActiveTab("certifications")}
+                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      View all certifications →
+                    </button>
+                  </>
+                )}
+              </div>
 
-            {/* Insurance Card */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Insurance Coverage</h3>
-              {!insuranceCoverage ? (
-                <p className="text-gray-400">Loading...</p>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    {insuranceCoverage.map((coverage) => (
-                      <div key={coverage.type} className="flex justify-between text-sm">
-                        <span className="text-gray-400 truncate">{coverage.name.split("(")[0].trim()}</span>
-                        <span className={coverage.meetsCoverage ? "text-green-400" : coverage.hasCoverage ? "text-yellow-400" : "text-red-400"}>
-                          {coverage.meetsCoverage ? "✓" : coverage.hasCoverage ? "⚠" : "✗"}
+              {/* Insurance Card */}
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Insurance Coverage</h3>
+                {!insuranceCoverage ? (
+                  <LoadingScreen fullScreen={false} message="Loading..." />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {insuranceCoverage.map((coverage) => (
+                        <div key={coverage.type} className="flex justify-between text-sm">
+                          <span className="text-gray-400 truncate">{coverage.name.split("(")[0].trim()}</span>
+                          <span className={coverage.meetsCoverage ? "text-green-400" : coverage.hasCoverage ? "text-yellow-400" : "text-red-400"}>
+                            {coverage.meetsCoverage ? "✓" : coverage.hasCoverage ? "⚠" : "✗"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("insurance")}
+                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      View all policies →
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Complaints Card */}
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Complaints</h3>
+                {!complaintsStats ? (
+                  <LoadingScreen fullScreen={false} message="Loading..." />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Open</span>
+                        <span className="text-white">{complaintsStats.byStatus.received + complaintsStats.byStatus.acknowledged + complaintsStats.byStatus.under_investigation}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Overdue Acknowledgments</span>
+                        <span className={complaintsStats.overdueAcknowledgments > 0 ? "text-red-400" : "text-green-400"}>
+                          {complaintsStats.overdueAcknowledgments}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setActiveTab("insurance")}
-                    className="mt-4 text-blue-400 hover:text-blue-300 text-sm"
-                  >
-                    View all policies →
-                  </button>
-                </>
-              )}
-            </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Escalated to Commission</span>
+                        <span className="text-orange-400">{complaintsStats.escalatedToCommission}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("complaints")}
+                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      View all complaints →
+                    </button>
+                  </>
+                )}
+              </div>
 
-            {/* Complaints Card */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Complaints</h3>
-              {!complaintsStats ? (
-                <p className="text-gray-400">Loading...</p>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Open</span>
-                      <span className="text-white">{complaintsStats.byStatus.received + complaintsStats.byStatus.acknowledged + complaintsStats.byStatus.under_investigation}</span>
+              {/* NDIS Incidents Card */}
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">NDIS Reportable</h3>
+                {!incidentStats ? (
+                  <LoadingScreen fullScreen={false} message="Loading..." />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Total Reportable</span>
+                        <span className="text-white">{incidentStats.ndisReportable.total}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Pending Notification</span>
+                        <span className="text-yellow-400">{incidentStats.ndisReportable.pending}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Overdue</span>
+                        <span className={incidentStats.ndisReportable.overdue > 0 ? "text-red-400 font-bold" : "text-green-400"}>
+                          {incidentStats.ndisReportable.overdue}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Overdue Acknowledgments</span>
-                      <span className={complaintsStats.overdueAcknowledgments > 0 ? "text-red-400" : "text-green-400"}>
-                        {complaintsStats.overdueAcknowledgments}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Escalated to Commission</span>
-                      <span className="text-orange-400">{complaintsStats.escalatedToCommission}</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab("complaints")}
-                    className="mt-4 text-blue-400 hover:text-blue-300 text-sm"
-                  >
-                    View all complaints →
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* NDIS Incidents Card */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">NDIS Reportable</h3>
-              {!incidentStats ? (
-                <p className="text-gray-400">Loading...</p>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Total Reportable</span>
-                      <span className="text-white">{incidentStats.ndisReportable.total}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Pending Notification</span>
-                      <span className="text-yellow-400">{incidentStats.ndisReportable.pending}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Overdue</span>
-                      <span className={incidentStats.ndisReportable.overdue > 0 ? "text-red-400 font-bold" : "text-green-400"}>
-                        {incidentStats.ndisReportable.overdue}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab("incidents")}
-                    className="mt-4 text-blue-400 hover:text-blue-300 text-sm"
-                  >
-                    View reportable incidents →
-                  </button>
-                </>
-              )}
+                    <button
+                      onClick={() => setActiveTab("incidents")}
+                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
+                      View reportable incidents →
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {/* Certifications Tab */}
         {activeTab === "certifications" && (
-          <div className="space-y-6">
+          <div role="tabpanel" id="panel-certifications" aria-labelledby="tab-certifications" className="space-y-6">
             {/* Certifications Guide */}
             <div className="bg-gray-800 rounded-lg p-4">
               <button
                 onClick={() => setExpandedGuide(expandedGuide === "certifications" ? null : "certifications")}
-                className="w-full flex items-center justify-between"
+                aria-expanded={expandedGuide === "certifications"}
+                aria-controls="guide-certifications"
+                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">📋</span>
+                  <span className="text-xl" aria-hidden="true">📋</span>
                   <span className="text-white font-medium">NDIS Certifications Guide</span>
                 </div>
-                <span className="text-gray-400">{expandedGuide === "certifications" ? "▼" : "▶"}</span>
+                <span className="text-gray-400" aria-hidden="true">{expandedGuide === "certifications" ? "▼" : "▶"}</span>
               </button>
 
               {expandedGuide === "certifications" && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
+                <div id="guide-certifications" className="mt-4 pt-4 border-t border-gray-700">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-red-300 font-semibold mb-2">🏢 Organisation-Level (Required)</h4>
+                      <h4 className="text-red-300 font-semibold mb-2">Organisation-Level (Required)</h4>
                       <div className="space-y-2">
                         <div className="bg-gray-700/50 rounded-lg p-2">
                           <p className="text-white font-medium text-sm">NDIS Practice Standards</p>
@@ -318,7 +333,7 @@ export default function CompliancePage() {
                       </div>
                     </div>
                     <div>
-                      <h4 className="text-yellow-300 font-semibold mb-2">🏠 Property-Level</h4>
+                      <h4 className="text-yellow-300 font-semibold mb-2">Property-Level</h4>
                       <div className="space-y-2">
                         <div className="bg-gray-700/50 rounded-lg p-2">
                           <p className="text-white font-medium text-sm">SDA Design Standard Certification</p>
@@ -336,16 +351,16 @@ export default function CompliancePage() {
                     </div>
                   </div>
                   <div className="mt-4">
-                    <h4 className="text-green-300 font-semibold mb-2">👤 Worker Requirements</h4>
+                    <h4 className="text-green-300 font-semibold mb-2">Worker Requirements</h4>
                     <div className="bg-gray-700/50 rounded-lg p-2">
                       <p className="text-white font-medium text-sm">NDIS Worker Screening Check</p>
                       <p className="text-gray-400 text-xs">Renewal: 5 years | All workers with participant contact</p>
-                      <p className="text-yellow-300 text-xs mt-1">⚠️ Workers cannot start until clearance received!</p>
+                      <p className="text-yellow-300 text-xs mt-1">Workers cannot start until clearance received!</p>
                     </div>
                   </div>
-                  <div className="mt-4 p-3 bg-red-900/30 rounded-lg">
+                  <div className="mt-4 p-3 bg-red-900/30 rounded-lg" role="alert">
                     <h4 className="text-red-200 font-semibold mb-1">Non-Compliance Consequences</h4>
-                    <p className="text-red-300 text-sm">Registration suspension/revocation • Civil penalties up to $93,900 • Banning orders</p>
+                    <p className="text-red-300 text-sm">Registration suspension/revocation - Civil penalties up to $93,900 - Banning orders</p>
                   </div>
                 </div>
               )}
@@ -356,158 +371,180 @@ export default function CompliancePage() {
                 <h2 className="text-lg font-semibold text-white">Compliance Certifications</h2>
                 <Link
                   href="/compliance/certifications/new"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   + Add Certification
                 </Link>
               </div>
 
               {!certifications ? (
-              <p className="text-gray-400">Loading...</p>
-            ) : certifications.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">No certifications recorded yet</p>
-            ) : (
-              <div className="space-y-4">
-                {certifications.map((cert) => (
-                  <div key={cert._id} className="bg-gray-700 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2 py-0.5 rounded text-xs text-white ${getStatusColor(cert.status)}`}>
-                            {cert.status.replace(/_/g, " ").toUpperCase()}
-                          </span>
-                          <span className="text-gray-400 text-xs">
-                            {cert.certificationType.replace(/_/g, " ").toUpperCase()}
-                          </span>
+                <LoadingScreen fullScreen={false} message="Loading certifications..." />
+              ) : certifications.length === 0 ? (
+                <EmptyState
+                  title="No certifications recorded"
+                  description="Add your first compliance certification to track its status."
+                  action={{ label: "+ Add Certification", href: "/compliance/certifications/new" }}
+                  icon={
+                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  }
+                />
+              ) : (
+                <div className="space-y-4">
+                  {certifications.map((cert) => (
+                    <div key={cert._id} className="bg-gray-700 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded text-xs text-white ${getStatusColor(cert.status)}`}>
+                              {formatStatus(cert.status)}
+                            </span>
+                            <span className="text-gray-400 text-xs">
+                              {formatStatus(cert.certificationType)}
+                            </span>
+                          </div>
+                          <h3 className="text-white font-medium">{cert.certificationName}</h3>
+                          {cert.certifyingBody && (
+                            <p className="text-gray-400 text-sm">Certified by: {cert.certifyingBody}</p>
+                          )}
+                          {cert.property && (
+                            <p className="text-gray-400 text-sm">Property: {cert.property.propertyName || cert.property.addressLine1}</p>
+                          )}
                         </div>
-                        <h3 className="text-white font-medium">{cert.certificationName}</h3>
-                        {cert.certifyingBody && (
-                          <p className="text-gray-400 text-sm">Certified by: {cert.certifyingBody}</p>
-                        )}
-                        {cert.property && (
-                          <p className="text-gray-400 text-sm">Property: {cert.property.propertyName || cert.property.addressLine1}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-gray-400 text-sm">Expires</p>
-                        <p className={`font-medium ${
-                          cert.status === "expired" ? "text-red-400" :
-                          cert.status === "expiring_soon" ? "text-yellow-400" :
-                          "text-white"
-                        }`}>
-                          {formatDate(cert.expiryDate)}
-                        </p>
+                        <div className="text-right">
+                          <p className="text-gray-400 text-sm">Expires</p>
+                          <p className={`font-medium ${
+                            cert.status === "expired" ? "text-red-400" :
+                            cert.status === "expiring_soon" ? "text-yellow-400" :
+                            "text-white"
+                          }`}>
+                            {formatDate(cert.expiryDate)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Insurance Tab */}
         {activeTab === "insurance" && (
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-white">Insurance Policies</h2>
-              <Link
-                href="/compliance/insurance/new"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
-              >
-                + Add Policy
-              </Link>
-            </div>
+          <div role="tabpanel" id="panel-insurance" aria-labelledby="tab-insurance">
+            <div className="bg-gray-800 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-white">Insurance Policies</h2>
+                <Link
+                  href="/compliance/insurance/new"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  + Add Policy
+                </Link>
+              </div>
 
-            {/* Required Coverage Check */}
-            {insuranceCoverage && (
-              <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-                <h3 className="text-white font-medium mb-3">Required Coverage Status</h3>
-                <div className="space-y-2">
-                  {insuranceCoverage.map((coverage) => (
-                    <div key={coverage.type} className="flex items-center justify-between">
-                      <span className="text-gray-300">{coverage.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-400 text-sm">
-                          ${(coverage.totalCoverage / 1000000).toFixed(1)}M
-                          {coverage.requiredCoverage > 0 && ` / $${(coverage.requiredCoverage / 1000000).toFixed(0)}M required`}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded text-xs ${
-                          coverage.meetsCoverage ? "bg-green-600 text-white" :
-                          coverage.hasCoverage ? "bg-yellow-600 text-black" :
-                          "bg-red-600 text-white"
-                        }`}>
-                          {coverage.meetsCoverage ? "Met" : coverage.hasCoverage ? "Insufficient" : "Missing"}
-                        </span>
+              {/* Required Coverage Check */}
+              {insuranceCoverage && (
+                <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+                  <h3 className="text-white font-medium mb-3">Required Coverage Status</h3>
+                  <div className="space-y-2">
+                    {insuranceCoverage.map((coverage) => (
+                      <div key={coverage.type} className="flex items-center justify-between">
+                        <span className="text-gray-300">{coverage.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 text-sm">
+                            ${(coverage.totalCoverage / 1000000).toFixed(1)}M
+                            {coverage.requiredCoverage > 0 && ` / $${(coverage.requiredCoverage / 1000000).toFixed(0)}M required`}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            coverage.meetsCoverage ? "bg-green-600 text-white" :
+                            coverage.hasCoverage ? "bg-yellow-600 text-black" :
+                            "bg-red-600 text-white"
+                          }`}>
+                            {coverage.meetsCoverage ? "Met" : coverage.hasCoverage ? "Insufficient" : "Missing"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!insurancePolicies ? (
+                <LoadingScreen fullScreen={false} message="Loading policies..." />
+              ) : insurancePolicies.length === 0 ? (
+                <EmptyState
+                  title="No insurance policies recorded"
+                  description="Add your first insurance policy to track coverage."
+                  action={{ label: "+ Add Policy", href: "/compliance/insurance/new" }}
+                  icon={
+                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  }
+                />
+              ) : (
+                <div className="space-y-4">
+                  {insurancePolicies.map((policy) => (
+                    <div key={policy._id} className="bg-gray-700 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded text-xs text-white ${getStatusColor(policy.status)}`}>
+                              {formatStatus(policy.status)}
+                            </span>
+                            <span className="text-gray-400 text-xs">
+                              {formatStatus(policy.insuranceType)}
+                            </span>
+                          </div>
+                          <h3 className="text-white font-medium">{policy.policyName}</h3>
+                          <p className="text-gray-400 text-sm">Insurer: {policy.insurer}</p>
+                          <p className="text-gray-400 text-sm">Policy #: {policy.policyNumber}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-blue-400 font-medium">
+                            ${(policy.coverageAmount / 1000000).toFixed(1)}M
+                          </p>
+                          <p className="text-gray-400 text-sm">Expires</p>
+                          <p className={`font-medium ${
+                            policy.status === "expired" ? "text-red-400" :
+                            policy.status === "expiring_soon" ? "text-yellow-400" :
+                            "text-white"
+                          }`}>
+                            {formatDate(policy.endDate)}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {!insurancePolicies ? (
-              <p className="text-gray-400">Loading...</p>
-            ) : insurancePolicies.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">No insurance policies recorded yet</p>
-            ) : (
-              <div className="space-y-4">
-                {insurancePolicies.map((policy) => (
-                  <div key={policy._id} className="bg-gray-700 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2 py-0.5 rounded text-xs text-white ${getStatusColor(policy.status)}`}>
-                            {policy.status.replace(/_/g, " ").toUpperCase()}
-                          </span>
-                          <span className="text-gray-400 text-xs">
-                            {policy.insuranceType.replace(/_/g, " ").toUpperCase()}
-                          </span>
-                        </div>
-                        <h3 className="text-white font-medium">{policy.policyName}</h3>
-                        <p className="text-gray-400 text-sm">Insurer: {policy.insurer}</p>
-                        <p className="text-gray-400 text-sm">Policy #: {policy.policyNumber}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-blue-400 font-medium">
-                          ${(policy.coverageAmount / 1000000).toFixed(1)}M
-                        </p>
-                        <p className="text-gray-400 text-sm">Expires</p>
-                        <p className={`font-medium ${
-                          policy.status === "expired" ? "text-red-400" :
-                          policy.status === "expiring_soon" ? "text-yellow-400" :
-                          "text-white"
-                        }`}>
-                          {formatDate(policy.endDate)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
         {/* Complaints Tab */}
         {activeTab === "complaints" && (
-          <div className="space-y-6">
+          <div role="tabpanel" id="panel-complaints" aria-labelledby="tab-complaints" className="space-y-6">
             {/* Complaints Guide */}
             <div className="bg-gray-800 rounded-lg p-4">
               <button
                 onClick={() => setExpandedGuide(expandedGuide === "complaints" ? null : "complaints")}
-                className="w-full flex items-center justify-between"
+                aria-expanded={expandedGuide === "complaints"}
+                aria-controls="guide-complaints"
+                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">📝</span>
+                  <span className="text-xl" aria-hidden="true">📝</span>
                   <span className="text-white font-medium">NDIS Complaints Handling Guide</span>
                 </div>
-                <span className="text-gray-400">{expandedGuide === "complaints" ? "▼" : "▶"}</span>
+                <span className="text-gray-400" aria-hidden="true">{expandedGuide === "complaints" ? "▼" : "▶"}</span>
               </button>
 
               {expandedGuide === "complaints" && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
+                <div id="guide-complaints" className="mt-4 pt-4 border-t border-gray-700">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                     <div className="bg-gray-700/50 rounded-lg p-3 text-center">
                       <p className="text-yellow-400 font-bold text-xl">5 Days</p>
@@ -536,7 +573,7 @@ export default function CompliancePage() {
                       </ol>
                     </div>
                     <div>
-                      <h4 className="text-purple-300 font-semibold mb-2">🤝 Advocacy Requirement</h4>
+                      <h4 className="text-purple-300 font-semibold mb-2">Advocacy Requirement</h4>
                       <p className="text-gray-300 text-sm mb-2">
                         NDIS requires offering access to an <strong>independent advocate</strong>.
                       </p>
@@ -552,7 +589,7 @@ export default function CompliancePage() {
                     <p className="text-gray-300 text-sm">
                       Complainants can escalate if not satisfied, complaint not resolved in time, or involves serious safety concerns.
                     </p>
-                    <p className="text-gray-400 text-xs mt-1">NDIS Commission: 1800 035 544 | <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">www.ndiscommission.gov.au</a></p>
+                    <p className="text-gray-400 text-xs mt-1">NDIS Commission: 1800 035 544 | <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">www.ndiscommission.gov.au</a></p>
                   </div>
                 </div>
               )}
@@ -563,39 +600,32 @@ export default function CompliancePage() {
                 <h2 className="text-lg font-semibold text-white">Complaints Register</h2>
                 <Link
                   href="/compliance/complaints/new"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   + Log Complaint
                 </Link>
               </div>
 
               {!complaintsStats ? (
-              <p className="text-gray-400">Loading...</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-700 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-white">{complaintsStats.total}</p>
-                  <p className="text-gray-400 text-sm">Total Complaints</p>
+                <LoadingScreen fullScreen={false} message="Loading complaints..." />
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <StatCard title="Total Complaints" value={complaintsStats.total} color="blue" />
+                  <StatCard title="Under Investigation" value={complaintsStats.byStatus.under_investigation} color="yellow" />
+                  <StatCard title="Resolved" value={complaintsStats.byStatus.resolved} color="green" />
+                  <StatCard
+                    title="Overdue Ack."
+                    value={complaintsStats.overdueAcknowledgments}
+                    color={complaintsStats.overdueAcknowledgments > 0 ? "red" : "green"}
+                  />
                 </div>
-                <div className="bg-gray-700 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-yellow-400">{complaintsStats.byStatus.under_investigation}</p>
-                  <p className="text-gray-400 text-sm">Under Investigation</p>
-                </div>
-                <div className="bg-gray-700 rounded-lg p-4 text-center">
-                  <p className="text-2xl font-bold text-green-400">{complaintsStats.byStatus.resolved}</p>
-                  <p className="text-gray-400 text-sm">Resolved</p>
-                </div>
-                <div className="bg-gray-700 rounded-lg p-4 text-center">
-                  <p className={`text-2xl font-bold ${complaintsStats.overdueAcknowledgments > 0 ? "text-red-400" : "text-green-400"}`}>
-                    {complaintsStats.overdueAcknowledgments}
-                  </p>
-                  <p className="text-gray-400 text-sm">Overdue Ack.</p>
-                </div>
-              </div>
-            )}
+              )}
 
               <p className="text-gray-400 text-center py-4">
-                <Link href="/compliance/complaints" className="text-blue-400 hover:text-blue-300">
+                <Link
+                  href="/compliance/complaints"
+                  className="text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                >
                   View full complaints register →
                 </Link>
               </p>
@@ -605,26 +635,28 @@ export default function CompliancePage() {
 
         {/* NDIS Incidents Tab */}
         {activeTab === "incidents" && (
-          <div className="space-y-6">
+          <div role="tabpanel" id="panel-incidents" aria-labelledby="tab-incidents" className="space-y-6">
             {/* Incidents Guide */}
             <div className="bg-gray-800 rounded-lg p-4">
               <button
                 onClick={() => setExpandedGuide(expandedGuide === "incidents" ? null : "incidents")}
-                className="w-full flex items-center justify-between"
+                aria-expanded={expandedGuide === "incidents"}
+                aria-controls="guide-incidents"
+                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">🚨</span>
+                  <span className="text-xl" aria-hidden="true">🚨</span>
                   <span className="text-white font-medium">NDIS Incident Reporting Guide</span>
                 </div>
-                <span className="text-gray-400">{expandedGuide === "incidents" ? "▼" : "▶"}</span>
+                <span className="text-gray-400" aria-hidden="true">{expandedGuide === "incidents" ? "▼" : "▶"}</span>
               </button>
 
               {expandedGuide === "incidents" && (
-                <div className="mt-4 pt-4 border-t border-gray-700">
+                <div id="guide-incidents" className="mt-4 pt-4 border-t border-gray-700">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="text-red-300 font-semibold flex items-center gap-2 mb-2">
-                        <span>🚨</span> 24-Hour Notification Required
+                        24-Hour Notification Required
                       </h4>
                       <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
                         <li><strong>Death</strong> - Any death while receiving supports</li>
@@ -637,7 +669,7 @@ export default function CompliancePage() {
                     </div>
                     <div>
                       <h4 className="text-yellow-300 font-semibold flex items-center gap-2 mb-2">
-                        <span>⚠️</span> 5 Business Day Notification
+                        5 Business Day Notification
                       </h4>
                       <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
                         <li><strong>Abuse/neglect concerns</strong> - Suspected</li>
@@ -650,19 +682,19 @@ export default function CompliancePage() {
                   <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
                     <h4 className="text-white font-semibold mb-2">How to Report</h4>
                     <ol className="text-gray-300 text-sm space-y-1 ml-4 list-decimal">
-                      <li>Log into <a href="https://www.ndiscommission.gov.au/providers/provider-portal" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">NDIS Commission Provider Portal</a></li>
+                      <li>Log into <a href="https://www.ndiscommission.gov.au/providers/provider-portal" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">NDIS Commission Provider Portal</a></li>
                       <li>Navigate to &quot;Reportable Incidents&quot;</li>
                       <li>Complete and submit notification</li>
                       <li>Record reference number</li>
                     </ol>
                     <p className="text-gray-400 text-xs mt-2">Phone: 1800 035 544</p>
                   </div>
-                  <div className="mt-4 p-3 border border-red-600 rounded-lg">
+                  <div className="mt-4 p-3 border border-red-600 rounded-lg" role="alert">
                     <h4 className="text-red-200 font-semibold mb-1">Key Reminders</h4>
                     <ul className="text-gray-300 text-sm">
-                      <li>• Timeframes start when you become <strong>aware</strong></li>
-                      <li>• All reportable incidents require <strong>60-day follow-up</strong></li>
-                      <li>• Keep records for <strong>7 years</strong></li>
+                      <li>- Timeframes start when you become <strong>aware</strong></li>
+                      <li>- All reportable incidents require <strong>60-day follow-up</strong></li>
+                      <li>- Keep records for <strong>7 years</strong></li>
                     </ul>
                   </div>
                 </div>
@@ -674,45 +706,32 @@ export default function CompliancePage() {
                 <h2 className="text-lg font-semibold text-white">NDIS Reportable Incidents</h2>
                 <Link
                   href="/incidents/new"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   + Report Incident
                 </Link>
               </div>
 
               {!incidentStats ? (
-                <p className="text-gray-400">Loading...</p>
+                <LoadingScreen fullScreen={false} message="Loading incidents..." />
               ) : (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                    <div className="bg-gray-700 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-white">{incidentStats.ndisReportable.total}</p>
-                      <p className="text-gray-400 text-sm">Total Reportable</p>
-                    </div>
-                    <div className="bg-gray-700 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-red-400">{incidentStats.ndisReportable.immediate}</p>
-                      <p className="text-gray-400 text-sm">24-Hour</p>
-                    </div>
-                    <div className="bg-gray-700 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-orange-400">{incidentStats.ndisReportable.fiveDay}</p>
-                      <p className="text-gray-400 text-sm">5-Day</p>
-                    </div>
-                    <div className="bg-gray-700 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-green-400">{incidentStats.ndisReportable.notified}</p>
-                      <p className="text-gray-400 text-sm">Notified</p>
-                    </div>
-                    <div className="bg-gray-700 rounded-lg p-4 text-center">
-                      <p className={`text-2xl font-bold ${incidentStats.ndisReportable.overdue > 0 ? "text-red-400 animate-pulse" : "text-green-400"}`}>
-                        {incidentStats.ndisReportable.overdue}
-                      </p>
-                      <p className="text-gray-400 text-sm">Overdue</p>
-                    </div>
+                    <StatCard title="Total Reportable" value={incidentStats.ndisReportable.total} color="blue" />
+                    <StatCard title="24-Hour" value={incidentStats.ndisReportable.immediate} color="red" />
+                    <StatCard title="5-Day" value={incidentStats.ndisReportable.fiveDay} color="yellow" />
+                    <StatCard title="Notified" value={incidentStats.ndisReportable.notified} color="green" />
+                    <StatCard
+                      title="Overdue"
+                      value={incidentStats.ndisReportable.overdue}
+                      color={incidentStats.ndisReportable.overdue > 0 ? "red" : "green"}
+                    />
                   </div>
 
                   {incidentStats.ndisReportable.overdue > 0 && (
-                    <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg mb-6">
+                    <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg mb-6" role="alert">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">🚨</span>
+                        <span className="text-2xl" aria-hidden="true">🚨</span>
                         <div>
                           <p className="text-red-200 font-semibold">
                             {incidentStats.ndisReportable.overdue} incident{incidentStats.ndisReportable.overdue > 1 ? "s" : ""} overdue for NDIS Commission notification
@@ -726,7 +745,10 @@ export default function CompliancePage() {
                   )}
 
                   <p className="text-gray-400 text-center py-4">
-                    <Link href="/incidents" className="text-blue-400 hover:text-blue-300">
+                    <Link
+                      href="/incidents"
+                      className="text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    >
                       View all incidents →
                     </Link>
                   </p>
@@ -740,10 +762,10 @@ export default function CompliancePage() {
   );
 }
 
-function LoadingScreen() {
+export default function CompliancePage() {
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="text-white">Loading...</div>
-    </div>
+    <RequireAuth>
+      <ComplianceContent />
+    </RequireAuth>
   );
 }

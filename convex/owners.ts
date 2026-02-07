@@ -1,7 +1,17 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, getUserFullName } from "./authHelpers";
+import { encryptField, decryptField, isEncrypted } from "./lib/encryption";
+
+// Decrypt sensitive owner fields (handles both encrypted and plaintext for migration)
+async function decryptOwnerFields<T extends Record<string, any>>(o: T): Promise<T> {
+  const bankAccountNumber = await decryptField(o.bankAccountNumber);
+  return {
+    ...o,
+    bankAccountNumber: bankAccountNumber ?? o.bankAccountNumber,
+  };
+}
 
 // Create a new owner
 export const create = mutation({
@@ -31,8 +41,13 @@ export const create = mutation({
     const user = await requirePermission(ctx, args.userId, "properties", "create");
     const { userId, ...ownerData } = args;
     const now = Date.now();
+
+    // Encrypt sensitive fields
+    const encBankAccountNumber = await encryptField(ownerData.bankAccountNumber);
+
     const ownerId = await ctx.db.insert("owners", {
       ...ownerData,
+      bankAccountNumber: encBankAccountNumber ?? ownerData.bankAccountNumber,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -61,7 +76,7 @@ export const getAll = query({
       .query("owners")
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
-    return owners;
+    return Promise.all(owners.map(decryptOwnerFields));
   },
 });
 
@@ -69,7 +84,9 @@ export const getAll = query({
 export const getById = query({
   args: { ownerId: v.id("owners") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.ownerId);
+    const owner = await ctx.db.get(args.ownerId);
+    if (!owner) return null;
+    return decryptOwnerFields(owner);
   },
 });
 
@@ -101,12 +118,18 @@ export const update = mutation({
     // Permission check
     await requirePermission(ctx, args.userId, "properties", "update");
     const { ownerId, userId, ...updates } = args;
-    
+
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
         filteredUpdates[key] = value;
       }
+    }
+
+    // Encrypt sensitive fields if being updated
+    if (filteredUpdates.bankAccountNumber !== undefined) {
+      const plain = filteredUpdates.bankAccountNumber as string;
+      filteredUpdates.bankAccountNumber = await encryptField(plain) ?? plain;
     }
 
     await ctx.db.patch(ownerId, filteredUpdates);
@@ -128,5 +151,13 @@ export const remove = mutation({
       updatedAt: Date.now(),
     });
     return { success: true };
+  },
+});
+
+// Internal raw query for migration (no decryption - returns data as-is)
+export const getAllRaw = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("owners").collect();
   },
 });

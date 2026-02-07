@@ -14,6 +14,7 @@
 | **Backend** | Phase 1: Schema | 5 tasks | 5 | 0 | ✅ **COMPLETE** |
 | **Backend** | Phase 2: Threading Engine | 7 tasks | 7 | 0 | ✅ **COMPLETE** |
 | **Backend** | Phase 3: Consultation Gate | 6 tasks | 0 | 0 | ⏳ **READY TO START** |
+| **Frontend** | MFA Security Testing | 5 tasks | 0 | 0 | 🔄 **IN PROGRESS** |
 | **Frontend** | Phase 4: Multi-View UI | 0 tasks | 0 | 0 | ⏳ STANDBY |
 
 **Total Estimated Time:** 120 hours over 6 weeks
@@ -365,12 +366,169 @@
 
 ---
 
-### 🎨 FRONTEND TEAM - Phase 1: Planning & Research (Week 1)
+### 🔒 FRONTEND TEAM - MFA Security Testing (While Backend completes Phase 3)
+
+#### Task S1: MFA Setup Flow Test [🔄 READY TO START] - 2 hours
+**Files:** `src/app/settings/security/page.tsx`, `convex/mfa.ts`
+**Assigned To:** Frontend Window 3
+**Instructions:**
+1. Navigate to `/settings/security` as admin user
+2. Test MFA enable flow:
+   - Click "Enable MFA" → QR code should display
+   - Verify QR code is scannable (use Google Authenticator or Authy)
+   - Enter TOTP code from authenticator app
+   - Verify MFA is marked as enabled
+   - Verify backup codes are displayed (10 codes)
+3. Test error handling:
+   - Enter wrong TOTP code → Should show error
+   - Try enabling MFA as non-admin → Should be rejected
+4. Test accessibility:
+   - Tab through all interactive elements
+   - Screen reader labels on QR code, code input
+   - Focus management after enable/disable
+
+**Deliverables:**
+- [ ] MFA setup works end-to-end
+- [ ] QR code scannable by authenticator app
+- [ ] Backup codes displayed correctly
+- [ ] Error handling works for invalid codes
+- [ ] Non-admin rejection works
+- [ ] Accessibility passes (keyboard nav, ARIA labels)
+
+**Report back when:** COMPLETED with screenshots
+
+---
+
+#### Task S2: MFA Login Flow Test [⏳ READY TO START] - 2 hours
+**Files:** `src/app/login/page.tsx`, `convex/auth.ts`
+**Assigned To:** Frontend Window 3
+**Dependencies:** Task S1 (MFA must be enabled first)
+**Instructions:**
+1. Log out, then log back in with MFA-enabled admin account
+2. Verify login flow:
+   - Enter email/password → Should show MFA code input (NOT dashboard)
+   - Enter correct TOTP code → Should redirect to dashboard
+   - Enter wrong TOTP code → Should show error, stay on MFA screen
+3. Test backup code login:
+   - Log out, log back in
+   - Instead of TOTP code, enter one of the backup codes
+   - Should succeed and show remaining backup codes count
+   - Try same backup code again → Should fail (one-time use)
+4. Test session persistence:
+   - After MFA login, refresh page → Should stay logged in
+   - Check localStorage for `sda_session_token` and `sda_refresh_token`
+
+**Deliverables:**
+- [ ] MFA login flow works (TOTP code required after password)
+- [ ] Wrong TOTP code shows error
+- [ ] Backup code login works
+- [ ] Backup codes are one-time use (second use fails)
+- [ ] Session persists after page refresh
+- [ ] Screenshot of MFA login screen
+
+**Report back when:** COMPLETED with screenshots
+
+---
+
+#### Task S3: MFA Disable & Backup Codes Test [⏳ READY TO START] - 1.5 hours
+**Files:** `src/app/settings/security/page.tsx`, `convex/mfa.ts`
+**Assigned To:** Frontend Window 3
+**Dependencies:** Task S2
+**Instructions:**
+1. Test disable MFA:
+   - Navigate to `/settings/security`
+   - Click "Disable MFA"
+   - Should require TOTP verification before disabling
+   - Enter correct code → MFA disabled
+   - Log out and log in → Should NOT require MFA code
+2. Re-enable MFA, then test backup code regeneration:
+   - Enable MFA again
+   - Click "Regenerate Backup Codes"
+   - Should require TOTP verification
+   - New codes displayed (old codes should NOT work)
+3. Test backup codes remaining count:
+   - Use 2 backup codes to login
+   - Check settings → Should show 8 remaining
+   - Regenerate → Should show 10 new codes
+
+**Deliverables:**
+- [ ] MFA disable works with TOTP verification
+- [ ] After disable, login skips MFA
+- [ ] Backup code regeneration works
+- [ ] Old backup codes invalidated after regeneration
+- [ ] Remaining count displays correctly
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task S4: Security Edge Cases [⏳ READY TO START] - 1.5 hours
+**Files:** Multiple pages
+**Assigned To:** Frontend Window 3
+**Instructions:**
+1. Test session expiry:
+   - Login with MFA
+   - Manually delete `sda_session_token` from localStorage
+   - Refresh page → Should redirect to login
+2. Test concurrent sessions:
+   - Login in Chrome with MFA
+   - Login in incognito/different browser
+   - Both sessions should work independently
+3. Test role-based MFA restrictions:
+   - Login as property_manager → MFA option should NOT appear in settings
+   - Login as staff → MFA option should NOT appear
+   - Only admin accounts should see MFA settings
+4. Test protected routes:
+   - While NOT logged in, navigate to `/settings/security` → Should redirect to login
+   - While logged in as non-admin, navigate to `/admin/audit` → Should be denied
+
+**Deliverables:**
+- [ ] Session expiry redirects to login
+- [ ] Concurrent sessions work independently
+- [ ] MFA restricted to admin accounts only
+- [ ] Protected routes properly secured
+- [ ] No security gaps found (or document any found)
+
+**Report back when:** COMPLETED
+
+---
+
+#### Task S5: MFA Accessibility & Mobile Test [⏳ READY TO START] - 1 hour
+**Files:** `src/app/settings/security/page.tsx`, `src/app/login/page.tsx`
+**Assigned To:** Frontend Window 3
+**Instructions:**
+1. WCAG 2.1 AA checks:
+   - All text contrast ratio >= 4.5:1
+   - Code input fields have proper labels and autocomplete attributes
+   - QR code has alt text describing what it is
+   - Focus indicators visible on all interactive elements
+   - Error messages announced to screen readers (aria-live)
+2. Mobile testing:
+   - Test on mobile viewport (375px width)
+   - QR code should be visible and scannable
+   - Code input should trigger numeric keyboard
+   - Backup codes should be scrollable/copyable
+3. PWA testing:
+   - Test MFA flow in installed PWA mode
+   - Verify offline indicator shows when disconnected
+4. Document any issues found with fix recommendations
+
+**Deliverables:**
+- [ ] WCAG 2.1 AA compliance verified
+- [ ] Mobile responsive design confirmed
+- [ ] PWA compatibility verified
+- [ ] Issues documented with fix recommendations
+
+**Report back when:** COMPLETED
+
+---
+
+### 🎨 FRONTEND TEAM - Phase 4: Planning & Research (After Security Testing)
 
 #### Task F1.1: Review Existing Components [⏳ STANDBY] - 1 hour
 **Files:** `src/components/ui/CommunicationCard.tsx`, `src/app/follow-ups/`
 **Assigned To:** Frontend Window 3
-**Dependencies:** ⚠️ STANDBY until Backend completes schema migration
+**Dependencies:** ⚠️ STANDBY until W3 completes security testing + Backend completes Phase 3
 **Instructions:**
 1. Read and understand current CommunicationCard component
 2. Read follow-ups page implementation
@@ -521,9 +679,9 @@
 
 | Window | Current Task | Status |
 |--------|-------------|--------|
-| W1 | Architect/Coordinator | Active |
-| W2 | Phase 3: Consultation Gate (Tasks 3.1-3.6) | Ready to Start |
-| W3 | Standby - Week 3 | Standby |
+| W1 | Architect/Coordinator + ArchitectUX Phase 4 Planning | Active |
+| W2 | Phase 3: Consultation Gate (Tasks 3.1-3.6) | In Progress |
+| W3 | MFA Security Testing (Tasks S1-S5) | In Progress |
 
 ---
 

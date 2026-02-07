@@ -1,6 +1,28 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { requireAuth } from "./authHelpers";
+
+// Mapping: document type -> certification type
+const DOC_TO_CERT_TYPE: Record<string, string> = {
+  ndis_practice_standards_cert: "ndis_practice_standards",
+  sda_registration_cert: "sda_registration",
+  ndis_worker_screening: "ndis_worker_screening",
+  fire_safety_certificate: "fire_safety",
+  building_compliance_certificate: "building_compliance",
+  sda_design_certificate: "sda_design_standard",
+};
+
+// Mapping: document type -> default certification name
+const DOC_TO_CERT_NAME: Record<string, string> = {
+  ndis_practice_standards_cert: "NDIS Practice Standards Certification",
+  sda_registration_cert: "SDA Provider Registration",
+  ndis_worker_screening: "NDIS Worker Screening Check",
+  fire_safety_certificate: "Fire Safety Certificate",
+  building_compliance_certificate: "Building Compliance Certificate",
+  sda_design_certificate: "SDA Design Standard Certification",
+};
+
+export { DOC_TO_CERT_TYPE };
 
 // Get all certifications with optional filters
 export const getAll = query({
@@ -238,5 +260,88 @@ export const updateStatuses = mutation({
     }
 
     return { updated };
+  },
+});
+
+// Auto-create certification from a document upload (called internally by documents.create)
+export const createFromDocument = internalMutation({
+  args: {
+    documentType: v.string(),
+    documentId: v.id("documents"),
+    storageId: v.id("_storage"),
+    expiryDate: v.string(),
+    propertyId: v.optional(v.id("properties")),
+    dwellingId: v.optional(v.id("dwellings")),
+    isOrganizationWide: v.optional(v.boolean()),
+    description: v.optional(v.string()),
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const certType = DOC_TO_CERT_TYPE[args.documentType];
+    if (!certType) return null; // Not a cert-type document
+
+    // Check for existing certification of the same type to avoid duplicates
+    const existing = await ctx.db
+      .query("complianceCertifications")
+      .withIndex("by_type", (q) => q.eq("certificationType", certType as any))
+      .collect();
+
+    // If property-level, check for same property; if org-wide, check for org-wide match
+    const duplicate = existing.find((cert) => {
+      if (args.propertyId) return cert.propertyId === args.propertyId;
+      if (args.isOrganizationWide) return cert.isOrganizationWide === true;
+      return !cert.propertyId && !cert.isOrganizationWide;
+    });
+
+    if (duplicate) {
+      // Update existing certification with new document link and expiry
+      await ctx.db.patch(duplicate._id, {
+        certificateStorageId: args.storageId,
+        linkedDocumentId: args.documentId,
+        expiryDate: args.expiryDate,
+        updatedAt: Date.now(),
+      });
+
+      // Recalculate status
+      const expiryDate = new Date(args.expiryDate);
+      const today = new Date();
+      const ninetyDaysFromNow = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+      let status: "current" | "expiring_soon" | "expired" = "current";
+      if (expiryDate < today) status = "expired";
+      else if (expiryDate <= ninetyDaysFromNow) status = "expiring_soon";
+      await ctx.db.patch(duplicate._id, { status });
+
+      return duplicate._id;
+    }
+
+    // Calculate status from expiry date
+    const expiryDate = new Date(args.expiryDate);
+    const today = new Date();
+    const ninetyDaysFromNow = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+    let status: "current" | "expiring_soon" | "expired" = "current";
+    if (expiryDate < today) status = "expired";
+    else if (expiryDate <= ninetyDaysFromNow) status = "expiring_soon";
+
+    const now = Date.now();
+    const certName = DOC_TO_CERT_NAME[args.documentType] || "Certificate";
+
+    const certId = await ctx.db.insert("complianceCertifications", {
+      certificationType: certType as any,
+      certificationName: certName,
+      propertyId: args.propertyId,
+      dwellingId: args.dwellingId,
+      isOrganizationWide: args.isOrganizationWide ?? (!args.propertyId && !args.dwellingId),
+      issueDate: new Date().toISOString().split("T")[0],
+      expiryDate: args.expiryDate,
+      certificateStorageId: args.storageId,
+      linkedDocumentId: args.documentId,
+      notes: args.description,
+      status,
+      createdBy: args.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return certId;
   },
 });

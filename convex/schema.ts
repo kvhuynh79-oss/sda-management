@@ -1552,6 +1552,7 @@ export default defineSchema({
     )),
     // Documents
     certificateStorageId: v.optional(v.id("_storage")), // Uploaded certificate
+    linkedDocumentId: v.optional(v.id("documents")), // Auto-linked from document upload
     // Status
     status: v.union(
       v.literal("current"),

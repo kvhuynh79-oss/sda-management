@@ -227,8 +227,11 @@ export default function CommunicationDetailPage() {
               <div>
                 <p className="text-red-400 font-medium">This communication has been deleted</p>
                 <p className="text-red-400/70 text-sm">
-                  Deleted {communication.deletedAt ? new Date(communication.deletedAt).toLocaleString() : ""}
+                  Deleted{communication.deletedAt ? ` on ${new Date(communication.deletedAt).toLocaleDateString()}` : ""}
                 </p>
+                {user.role !== "admin" && (
+                  <p className="text-red-400/60 text-xs mt-1">Contact an admin to restore this communication.</p>
+                )}
               </div>
               {user.role === "admin" && (
                 <button

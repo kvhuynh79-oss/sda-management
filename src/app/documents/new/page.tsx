@@ -186,6 +186,12 @@ export default function NewDocumentPage() {
       return;
     }
 
+    // Validate expiry date for certification documents
+    if (isCertDoc && !formData.expiryDate) {
+      setError("Expiry date is required for compliance certifications");
+      return;
+    }
+
     // Validate that a link is selected based on category (except for organisation-wide)
     if (formData.documentCategory === "participant" && !formData.linkedParticipantId) {
       setError("Please select a participant");
@@ -265,11 +271,17 @@ export default function NewDocumentPage() {
     return acc;
   }, {} as Record<string, Array<{ key: string; label: string; category: string; group: string }>>);
 
-  // Check if selected document type is compliance-related (for showing compliance link)
-  const isComplianceDoc = ["public_liability_insurance", "professional_indemnity_insurance",
-    "workers_compensation_insurance", "ndis_practice_standards_cert", "sda_registration_cert",
+  // Certification types that auto-link to Compliance Dashboard
+  const isCertDoc = ["ndis_practice_standards_cert", "sda_registration_cert",
     "ndis_worker_screening", "fire_safety_certificate", "building_compliance_certificate",
-    "sda_design_certificate", "building_insurance"].includes(formData.documentType);
+    "sda_design_certificate"].includes(formData.documentType);
+
+  // Insurance types (future auto-link)
+  const isInsuranceDoc = ["public_liability_insurance", "professional_indemnity_insurance",
+    "workers_compensation_insurance", "building_insurance"].includes(formData.documentType);
+
+  // Check if selected document type is compliance-related (for showing compliance link)
+  const isComplianceDoc = isCertDoc || isInsuranceDoc;
 
   if (!user) {
     return <LoadingScreen />;
@@ -309,14 +321,20 @@ export default function NewDocumentPage() {
           )}
 
           {/* Compliance Document Notice */}
-          {isComplianceDoc && (
+          {isCertDoc && (
+            <div className="mb-6 p-4 bg-green-900/30 border border-green-600 rounded-lg">
+              <p className="text-green-200 text-sm">
+                <span className="font-semibold">Auto-linked:</span> This certification will automatically appear in the{" "}
+                <Link href="/compliance" className="underline hover:text-white">Compliance Dashboard</Link>.
+                {" "}Make sure to set the <strong>Expiry Date</strong> below.
+              </p>
+            </div>
+          )}
+          {isInsuranceDoc && (
             <div className="mb-6 p-4 bg-blue-900/30 border border-blue-600 rounded-lg">
               <p className="text-blue-200 text-sm">
-                <span className="font-semibold">Tip:</span> This document type will also appear in the{" "}
-                <Link href="/compliance" className="underline hover:text-white">Compliance Dashboard</Link>.
-                For full compliance tracking, consider adding the related record in{" "}
-                <Link href="/compliance/certifications/new" className="underline hover:text-white">Certifications</Link> or{" "}
-                <Link href="/compliance/insurance/new" className="underline hover:text-white">Insurance</Link>.
+                <span className="font-semibold">Tip:</span> For full compliance tracking, also add this in{" "}
+                <Link href="/compliance/insurance/new" className="underline hover:text-white">Insurance Policies</Link>.
               </p>
             </div>
           )}
@@ -592,16 +610,19 @@ export default function NewDocumentPage() {
             {/* Expiry Date */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Expiry Date (Optional)
+                Expiry Date {isCertDoc ? "*" : "(Optional)"}
               </label>
               <input
                 type="date"
+                required={isCertDoc}
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Set an expiry date for documents like insurance, plans, or certificates. You&apos;ll receive alerts before expiry.
+                {isCertDoc
+                  ? "Required for compliance certifications. This date will be tracked in the Compliance Dashboard."
+                  : "Set an expiry date for documents like insurance, plans, or certificates. You\u0027ll receive alerts before expiry."}
               </p>
             </div>
 

@@ -2,6 +2,15 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth } from "./authHelpers";
+import { DOC_TO_CERT_TYPE } from "./complianceCertifications";
+
+// Document types that map to insurance policies (future: auto-link to insurancePolicies table)
+const DOC_TO_INSURANCE_TYPE: Record<string, string> = {
+  public_liability_insurance: "public_liability",
+  professional_indemnity_insurance: "professional_indemnity",
+  building_insurance: "building",
+  workers_compensation_insurance: "workers_compensation",
+};
 
 // Generate upload URL for file
 export const generateUploadUrl = mutation({
@@ -91,6 +100,21 @@ export const create = mutation({
         expiryDate: args.expiryDate,
       }),
     });
+
+    // Auto-create compliance certification if this is a cert-type document with an expiry date
+    if (DOC_TO_CERT_TYPE[args.documentType] && args.expiryDate) {
+      await ctx.runMutation(internal.complianceCertifications.createFromDocument, {
+        documentType: args.documentType,
+        documentId,
+        storageId: args.storageId,
+        expiryDate: args.expiryDate,
+        propertyId: args.linkedPropertyId,
+        dwellingId: args.linkedDwellingId,
+        isOrganizationWide: args.documentCategory === "organisation" ? true : undefined,
+        description: args.description,
+        createdBy: args.uploadedBy,
+      });
+    }
 
     return documentId;
   },

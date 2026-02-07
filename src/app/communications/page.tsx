@@ -25,6 +25,7 @@ function CommunicationsContent() {
 
   // Auth state from localStorage (useAuth pattern)
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+  const [showDeletedItems, setShowDeletedItems] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -79,6 +80,13 @@ function CommunicationsContent() {
   const tasks = useQuery(api.tasks.getAll);
   const taskStats = useQuery(api.tasks.getStats);
   const updateTaskStatus = useMutation(api.tasks.updateStatus);
+
+  // Deleted items (admin only)
+  const deletedCommunications = useQuery(
+    api.communications.getDeletedCommunications,
+    user?.role === "admin" && showDeletedItems ? { userId: user.id as Id<"users"> } : "skip"
+  );
+  const restoreCommunication = useMutation(api.communications.restore);
 
   // Update URL params
   const updateUrl = useCallback(
@@ -175,6 +183,21 @@ function CommunicationsContent() {
     [user, updateTaskStatus]
   );
 
+  const handleRestore = useCallback(
+    async (id: string) => {
+      if (!user) return;
+      try {
+        await restoreCommunication({
+          id: id as Id<"communications">,
+          userId: user.id as Id<"users">,
+        });
+      } catch (error) {
+        console.error("Failed to restore communication:", error);
+      }
+    },
+    [user, restoreCommunication]
+  );
+
   if (!user) {
     return <LoadingScreen message="Loading..." />;
   }
@@ -221,6 +244,75 @@ function CommunicationsContent() {
             tasks: taskStats?.open,
           }}
         />
+
+        {/* Admin: Deleted Items toggle */}
+        {user.role === "admin" && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowDeletedItems(!showDeletedItems)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                showDeletedItems
+                  ? "bg-red-900/30 text-red-400 border border-red-600/50"
+                  : "bg-gray-800 text-gray-400 hover:text-gray-300 border border-gray-700"
+              }`}
+              aria-expanded={showDeletedItems}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Deleted Items
+              {deletedCommunications && deletedCommunications.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-medium bg-red-600 text-white rounded-full">
+                  {deletedCommunications.length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Deleted Items Panel (admin only) */}
+        {showDeletedItems && user.role === "admin" && (
+          <div className="bg-gray-800 border border-red-600/30 rounded-lg p-4">
+            <h2 className="text-sm font-semibold text-red-400 mb-3">Deleted Communications</h2>
+            {deletedCommunications === undefined ? (
+              <p className="text-gray-400 text-sm">Loading...</p>
+            ) : deletedCommunications.length === 0 ? (
+              <p className="text-gray-400 text-sm">No deleted communications.</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {deletedCommunications.map((comm: any) => (
+                  <div
+                    key={comm._id}
+                    className="flex items-center justify-between gap-3 p-3 bg-gray-700/50 rounded-lg"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-gray-300 text-sm font-medium truncate">
+                          {comm.contactName}
+                        </span>
+                        {comm.subject && (
+                          <span className="text-gray-400 text-xs truncate hidden sm:inline">
+                            — {comm.subject}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-400 text-xs">
+                        Deleted {comm.deletedAt ? new Date(comm.deletedAt).toLocaleDateString() : ""}
+                        {comm.deletedByUser ? ` by ${comm.deletedByUser.firstName} ${comm.deletedByUser.lastName}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRestore(comm._id)}
+                      className="flex-shrink-0 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                    >
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Main content area with sidebar */}
         <div className="flex gap-6">

@@ -2,7 +2,7 @@
 
 import { useRef, useCallback } from "react";
 
-export type ViewMode = "thread" | "timeline" | "stakeholder" | "compliance";
+export type ViewMode = "thread" | "timeline" | "stakeholder" | "compliance" | "tasks";
 
 interface ViewToggleProps {
   activeView: ViewMode;
@@ -11,6 +11,7 @@ interface ViewToggleProps {
     threads?: number;
     unread?: number;
     compliance?: number;
+    tasks?: number;
   };
 }
 
@@ -19,6 +20,7 @@ const VIEW_TABS: { key: ViewMode; label: string; countKey?: keyof NonNullable<Vi
   { key: "timeline", label: "Timeline" },
   { key: "stakeholder", label: "Stakeholders" },
   { key: "compliance", label: "Compliance", countKey: "compliance" },
+  { key: "tasks", label: "Tasks", countKey: "tasks" },
 ];
 
 export function ViewToggle({ activeView, onChange, counts }: ViewToggleProps) {

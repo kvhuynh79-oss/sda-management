@@ -11,7 +11,7 @@ import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 import { FormInput } from "../forms/FormInput";
 
-function buildStakeholderFollowUpUrl(stakeholder: any): string {
+function buildStakeholderAddEntryUrl(stakeholder: any): string {
   const params: Record<string, string> = {};
   if (stakeholder.contactType) params.contactType = stakeholder.contactType;
   if (stakeholder.contactName) params.contactName = stakeholder.contactName;
@@ -236,10 +236,10 @@ export function StakeholderView({
                         {/* Follow-up action */}
                         <div className="flex items-center gap-2 mt-2">
                           <Link
-                            href={buildStakeholderFollowUpUrl(stakeholder)}
+                            href={buildStakeholderAddEntryUrl(stakeholder)}
                             className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
                           >
-                            Log Follow-up
+                            Add Entry
                           </Link>
                         </div>
                       </div>

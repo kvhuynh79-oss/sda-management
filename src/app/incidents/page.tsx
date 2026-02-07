@@ -166,12 +166,20 @@ function IncidentCard({ incident }: { incident: any }) {
           <h2 className="text-lg font-semibold text-white">{incident.title}</h2>
           <p className="text-gray-400 text-sm mt-1 line-clamp-2">{incident.description}</p>
         </div>
-        <Link
-          href={`/incidents/${incident._id}`}
-          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-        >
-          View Details
-        </Link>
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <Link
+            href={`/incidents/${incident._id}`}
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            View Details
+          </Link>
+          <Link
+            href={`/follow-ups/communications/new?subject=${encodeURIComponent(`Incident: ${incident.title}`)}&complianceCategory=incident_related${incident.participant ? `&contactName=${encodeURIComponent(`${incident.participant.firstName} ${incident.participant.lastName}`)}` : ""}`}
+            className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded text-sm text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            Add Entry
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 sm:gap-6 text-sm text-gray-400">

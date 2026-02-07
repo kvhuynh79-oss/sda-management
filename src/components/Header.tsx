@@ -15,7 +15,6 @@ interface HeaderProps {
     | "financials"
     | "operations"
     | "communications"
-    | "follow-ups"
     | "database"
     | "incidents"
     | "compliance"
@@ -67,7 +66,6 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/financials", label: "Financials", key: "financials" },
     { href: "/operations", label: "Maintenance", key: "operations" },
     { href: "/communications", label: "Communications", key: "communications" },
-    { href: "/follow-ups", label: "Follow-ups", key: "follow-ups" },
     { href: "/database", label: "Database", key: "database" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/compliance", label: "Compliance", key: "compliance" },

@@ -87,8 +87,8 @@ export default function CommunicationsHistory({
 
   const totalCount = communications?.length || 0;
 
-  // Build the "Log Communication" link with pre-fill params
-  const logCommLink = buildLogCommLink({
+  // Build the "Add Entry" link with pre-fill params
+  const logCommLink = buildAddEntryLink({
     participantId,
     propertyId,
     stakeholderEntityType,
@@ -110,7 +110,7 @@ export default function CommunicationsHistory({
           href={logCommLink}
           className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
         >
-          + Log Communication
+          + Add Entry
         </Link>
       </div>
 
@@ -137,7 +137,7 @@ export default function CommunicationsHistory({
             href={logCommLink}
             className="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
           >
-            Log Communication
+            Add Entry
           </Link>
         </div>
       )}
@@ -206,8 +206,8 @@ export default function CommunicationsHistory({
   );
 }
 
-// Build URL for "Log Communication" with pre-fill params
-function buildLogCommLink(params: {
+// Build URL for "Add Entry" with pre-fill params
+function buildAddEntryLink(params: {
   participantId?: Id<"participants">;
   propertyId?: Id<"properties">;
   stakeholderEntityType?: StakeholderEntityType;

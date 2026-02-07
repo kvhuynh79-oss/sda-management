@@ -9,7 +9,7 @@ import Badge, { ContactTypeBadge } from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 
-function buildFollowUpUrl(comm: any): string {
+function buildAddEntryUrl(comm: any): string {
   const params: Record<string, string> = {};
   if (comm.participantId) params.participantId = comm.participantId;
   if (comm.linkedPropertyId) params.propertyId = comm.linkedPropertyId;
@@ -295,10 +295,10 @@ export function ComplianceView({
                     )}
                     <div className="flex items-center gap-2 mt-2">
                       <Link
-                        href={buildFollowUpUrl(comm)}
+                        href={buildAddEntryUrl(comm)}
                         className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
                       >
-                        Log Follow-up
+                        Add Entry
                       </Link>
                     </div>
                   </div>

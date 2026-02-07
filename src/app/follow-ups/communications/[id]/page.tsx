@@ -126,7 +126,7 @@ export default function CommunicationDetailPage() {
     return (
       <RequireAuth>
         <div className="min-h-screen bg-gray-900">
-          <Header currentPage="follow-ups" />
+          <Header currentPage="communications" />
           <LoadingScreen fullScreen={false} message="Loading communication..." />
         </div>
       </RequireAuth>
@@ -137,7 +137,7 @@ export default function CommunicationDetailPage() {
     return (
       <RequireAuth>
         <div className="min-h-screen bg-gray-900">
-          <Header currentPage="follow-ups" />
+          <Header currentPage="communications" />
           <main className="max-w-3xl mx-auto px-4 py-8 text-center">
             <p className="text-gray-400">Communication not found</p>
             <Link href="/follow-ups" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
@@ -152,7 +152,7 @@ export default function CommunicationDetailPage() {
   return (
     <RequireAuth>
       <div className="min-h-screen bg-gray-900">
-        <Header currentPage="follow-ups" />
+        <Header currentPage="communications" />
 
         <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Breadcrumb */}

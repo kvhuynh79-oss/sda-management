@@ -4,9 +4,19 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import Link from "next/link";
 import Badge, { CommunicationTypeBadge } from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
+
+function buildThreadAddEntryUrl(thread: any): string {
+  const params: Record<string, string> = {};
+  if (thread.subject) params.subject = thread.subject;
+  if (thread.participantId) params.participantId = thread.participantId;
+  if (thread.contactType) params.contactType = thread.contactType;
+  if (thread.participantNames?.[0]) params.contactName = thread.participantNames[0];
+  return `/follow-ups/communications/new?${new URLSearchParams(params).toString()}`;
+}
 
 interface ThreadViewProps {
   userId: string;
@@ -308,6 +318,17 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelec
               {isExpanded && (
                 <div className="px-4 pb-4" role="region" aria-label={`Messages in thread: ${thread.subject || "Untitled Thread"}`}>
                   <ThreadMessages threadId={thread.threadId} userId={userId} />
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <Link
+                      href={buildThreadAddEntryUrl(thread)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Entry
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

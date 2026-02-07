@@ -174,7 +174,7 @@ function IncidentCard({ incident }: { incident: any }) {
             View Details
           </Link>
           <Link
-            href={`/follow-ups/communications/new?subject=${encodeURIComponent(`Incident: ${incident.title}`)}&complianceCategory=incident_related${incident.participant ? `&contactName=${encodeURIComponent(`${incident.participant.firstName} ${incident.participant.lastName}`)}` : ""}`}
+            href={`/follow-ups/communications/new?subject=${encodeURIComponent(`Incident: ${incident.title}`)}&complianceCategory=incident_related&linkedIncidentId=${incident._id}${incident.participantId ? `&participantId=${incident.participantId}` : ""}${incident.propertyId ? `&propertyId=${incident.propertyId}` : ""}${incident.participant ? `&contactName=${encodeURIComponent(`${incident.participant.firstName} ${incident.participant.lastName}`)}` : ""}`}
             className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded text-sm text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             Add Entry

@@ -65,6 +65,7 @@ export default function NewCommunicationPage() {
     linkedPropertyId: "",
     complianceCategory: "none" as string,
     complianceFlags: [] as string[],
+    linkedIncidentId: "",
   });
 
   // Track selected DB entity for stakeholder linking
@@ -92,13 +93,25 @@ export default function NewCommunicationPage() {
     const stakeholderType = searchParams.get("stakeholderType");
     const stakeholderId = searchParams.get("stakeholderId");
     const contactType = searchParams.get("contactType");
+    const contactName = searchParams.get("contactName");
+    const contactEmail = searchParams.get("contactEmail");
+    const contactPhone = searchParams.get("contactPhone");
+    const subject = searchParams.get("subject");
+    const complianceCategory = searchParams.get("complianceCategory");
+    const linkedIncidentId = searchParams.get("linkedIncidentId");
 
-    if (participantId || propertyId || contactType) {
+    if (participantId || propertyId || contactType || contactName || subject || complianceCategory || linkedIncidentId) {
       setFormData((prev) => ({
         ...prev,
         linkedParticipantId: participantId || prev.linkedParticipantId,
         linkedPropertyId: propertyId || prev.linkedPropertyId,
         contactType: (contactType as any) || prev.contactType,
+        contactName: contactName || prev.contactName,
+        contactEmail: contactEmail || prev.contactEmail,
+        contactPhone: contactPhone || prev.contactPhone,
+        subject: subject || prev.subject,
+        complianceCategory: complianceCategory || prev.complianceCategory,
+        linkedIncidentId: linkedIncidentId || prev.linkedIncidentId,
       }));
     }
 
@@ -336,6 +349,9 @@ export default function NewCommunicationPage() {
           : undefined,
         linkedPropertyId: formData.linkedPropertyId
           ? (formData.linkedPropertyId as Id<"properties">)
+          : undefined,
+        linkedIncidentId: formData.linkedIncidentId
+          ? (formData.linkedIncidentId as Id<"incidents">)
           : undefined,
         stakeholderEntityType,
         stakeholderEntityId,

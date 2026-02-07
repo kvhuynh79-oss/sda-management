@@ -723,7 +723,7 @@
 | Window | Current Task | Status |
 |--------|-------------|--------|
 | W1 | Architect/Coordinator - Phase 4 Planning | Active |
-| W2 | Phase 4B COMPLETE - All backend queries deployed | Done |
+| W2 | Phase 6B: Bulk Operations (Tasks 6B.1-6B.6) | In Progress |
 | W3 | MFA Security Testing (Tasks S1-S5) | In Progress |
 
 ---

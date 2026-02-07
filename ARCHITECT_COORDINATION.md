@@ -21,10 +21,11 @@
 | **Frontend** | MFA Security Testing | 5 tasks | 5 | 0 | ✅ **COMPLETE** (Grade: B+) |
 | **Frontend** | Phase 4F: Multi-View UI | 8 tasks | 8 | 0 | ✅ **COMPLETE** |
 | **Frontend** | Phase 5F + 7: Polish & Accessibility | 7 tasks | 7 | 0 | ✅ **COMPLETE** |
+| **Frontend** | Frontend Refactoring (4 pages) | 8 tasks | 8 | 0 | ✅ **COMPLETE** |
 
 **Total Estimated Time:** 120 hours over 6 weeks
 **CommunicationsLog Refactor:** ✅ **ALL PHASES COMPLETE** (51 tasks)
-**Current Work:** Field-Level Encryption (Security Roadmap #3)
+**Current Work:** Field-Level Encryption (W2) + Inspection PDF Reports (W3)
 
 ## 🎯 CURRENT MILESTONE: Field-Level Encryption for NDIS Compliance
 
@@ -831,7 +832,7 @@
 |--------|-------------|--------|
 | W1 | Architect/Coordinator | Active |
 | W2 | Field-Level Encryption (Tasks ENC-1 to ENC-7) | In Progress |
-| W3 | ✅ CommunicationsLog COMPLETE (20 tasks) - Awaiting Assignment | Ready |
+| W3 | Inspection PDF Reports (Tasks PDF-1 to PDF-6) | In Progress |
 
 ---
 

@@ -2222,3 +2222,63 @@ export const getByParticipantThreaded = query({
     return { threads: activeThreads };
   },
 });
+
+/**
+ * v1.5: Soft-delete all communications for a given contact name
+ * Used by StakeholderView to remove an entire stakeholder's comms
+ */
+export const deleteByContactName = mutation({
+  args: {
+    userId: v.id("users"),
+    contactName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requirePermission(ctx, args.userId, "communications", "delete");
+
+    // Find all active communications for this contact name (case-insensitive)
+    const allComms = await ctx.db.query("communications").collect();
+    const targetComms = allComms.filter(
+      (c) =>
+        c.contactName.toLowerCase() === args.contactName.toLowerCase() &&
+        !c.isDeleted
+    );
+
+    if (targetComms.length === 0) {
+      throw new Error("No communications found for this contact");
+    }
+
+    const now = Date.now();
+    const threadIds = new Set<string>();
+
+    // Soft-delete each communication
+    for (const comm of targetComms) {
+      await ctx.db.patch(comm._id, {
+        isDeleted: true,
+        deletedAt: now,
+        deletedBy: args.userId,
+        updatedAt: now,
+      });
+      if (comm.threadId) {
+        threadIds.add(comm.threadId);
+      }
+    }
+
+    // Regenerate thread summaries for affected threads
+    for (const threadId of threadIds) {
+      await regenerateThreadSummary(ctx, threadId);
+    }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "delete",
+      entityType: "communication",
+      entityId: targetComms[0]._id,
+      entityName: `Bulk delete: ${targetComms.length} communications for ${args.contactName}`,
+    });
+
+    return { deletedCount: targetComms.length };
+  },
+});

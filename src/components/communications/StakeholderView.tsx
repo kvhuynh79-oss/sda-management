@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Link from "next/link";
@@ -30,6 +30,7 @@ interface StakeholderViewProps {
   contactTypeFilter?: string;
   searchName?: string;
   onFilterChange?: (filters: { contactType?: string; searchName?: string }) => void;
+  userRole?: string;
 }
 
 const CONTACT_TYPE_LABELS: Record<string, string> = {
@@ -77,10 +78,14 @@ export function StakeholderView({
   contactTypeFilter,
   searchName,
   onFilterChange,
+  userRole,
 }: StakeholderViewProps) {
   const [localSearch, setLocalSearch] = useState(searchName || "");
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevItems, setPrevItems] = useState<any[]>([]);
+  const [deletingContact, setDeletingContact] = useState<string | null>(null);
+  const deleteByContactName = useMutation(api.communications.deleteByContactName);
+  const canDelete = userRole === "admin" || userRole === "property_manager";
 
   const data = useQuery(api.communications.getStakeholderView, {
     userId: userId as Id<"users">,
@@ -117,6 +122,27 @@ export function StakeholderView({
       onFilterChange?.({ contactType: contactTypeFilter, searchName: e.target.value || undefined });
     },
     [contactTypeFilter, onFilterChange]
+  );
+
+  const handleDeleteContact = useCallback(
+    async (contactName: string) => {
+      if (!confirm(`Delete all communications with "${contactName}"? This can be restored by an admin.`)) return;
+      setDeletingContact(contactName);
+      try {
+        await deleteByContactName({
+          userId: userId as Id<"users">,
+          contactName,
+        });
+        setCursor(undefined);
+        setPrevItems([]);
+      } catch (error) {
+        console.error("Failed to delete:", error);
+        alert("Failed to delete communications.");
+      } finally {
+        setDeletingContact(null);
+      }
+    },
+    [deleteByContactName, userId]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -241,6 +267,16 @@ export function StakeholderView({
                           >
                             Add Entry
                           </Link>
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeleteContact(stakeholder.contactName)}
+                              disabled={deletingContact === stakeholder.contactName}
+                              className="text-xs text-red-400 hover:text-red-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700 disabled:opacity-50"
+                              aria-label={`Delete all communications with ${stakeholder.contactName}`}
+                            >
+                              {deletingContact === stakeholder.contactName ? "Deleting..." : "Delete"}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

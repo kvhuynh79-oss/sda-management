@@ -249,12 +249,14 @@ function CommunicationsContent() {
                 isSelecting={isSelecting}
                 selectedIds={bulkSelection.selectedIds}
                 onToggleSelect={bulkSelection.toggle}
+                userRole={user.role}
               />
             )}
             {activeView === "stakeholder" && (
               <StakeholderView
                 userId={user.id}
                 contactTypeFilter={filters.contactType}
+                userRole={user.role}
               />
             )}
             {activeView === "compliance" && (
@@ -264,6 +266,7 @@ function CommunicationsContent() {
                 isSelecting={isSelecting}
                 selectedIds={bulkSelection.selectedIds}
                 onToggleSelect={bulkSelection.toggle}
+                userRole={user.role}
               />
             )}
             {activeView === "tasks" && (

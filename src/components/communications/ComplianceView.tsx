@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Link from "next/link";
@@ -32,6 +32,7 @@ interface ComplianceViewProps {
   isSelecting?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
+  userRole?: string;
 }
 
 type ComplianceCategory =
@@ -80,6 +81,7 @@ export function ComplianceView({
   isSelecting,
   selectedIds,
   onToggleSelect,
+  userRole,
 }: ComplianceViewProps) {
   const [activeCategory, setActiveCategory] = useState<ComplianceCategory>(
     (categoryFilter as ComplianceCategory) || "all"
@@ -87,6 +89,9 @@ export function ComplianceView({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevItems, setPrevItems] = useState<any[]>([]);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteCommunication = useMutation(api.communications.remove);
+  const canDelete = userRole === "admin" || userRole === "property_manager";
 
   const data = useQuery(api.communications.getComplianceView, {
     userId: userId as Id<"users">,
@@ -130,6 +135,25 @@ export function ComplianceView({
       }
     },
     [handleCategoryChange]
+  );
+
+  const handleDelete = useCallback(
+    async (commId: string, contactName: string) => {
+      if (!confirm(`Delete this communication with "${contactName}"? It can be restored by an admin.`)) return;
+      setDeletingId(commId);
+      try {
+        await deleteCommunication({
+          id: commId as Id<"communications">,
+          userId: userId as Id<"users">,
+        });
+      } catch (error) {
+        console.error("Failed to delete:", error);
+        alert("Failed to delete communication.");
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [deleteCommunication, userId]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -300,6 +324,16 @@ export function ComplianceView({
                       >
                         Add Entry
                       </Link>
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(comm._id, comm.contactName)}
+                          disabled={deletingId === comm._id}
+                          className="text-xs text-red-400 hover:text-red-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700 disabled:opacity-50"
+                          aria-label={`Delete communication with ${comm.contactName}`}
+                        >
+                          {deletingId === comm._id ? "..." : "Delete"}
+                        </button>
+                      )}
                     </div>
                   </div>
 

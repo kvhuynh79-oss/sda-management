@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Link from "next/link";
@@ -36,6 +36,7 @@ interface TimelineViewProps {
   isSelecting?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
+  userRole?: string;
 }
 
 // Communication type SVG icons
@@ -109,12 +110,16 @@ export function TimelineView({
   isSelecting,
   selectedIds,
   onToggleSelect,
+  userRole,
 }: TimelineViewProps) {
   const [localType, setLocalType] = useState(typeFilter || "");
   const [localDateFrom, setLocalDateFrom] = useState(dateFrom || "");
   const [localDateTo, setLocalDateTo] = useState(dateTo || "");
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevItems, setPrevItems] = useState<any[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteCommunication = useMutation(api.communications.remove);
+  const canDelete = userRole === "admin" || userRole === "property_manager";
 
   const data = useQuery(api.communications.getTimelineView, {
     userId: userId as Id<"users">,
@@ -168,6 +173,25 @@ export function TimelineView({
       onFilterChange?.({ type: localType || undefined, dateFrom: localDateFrom || undefined, dateTo: e.target.value || undefined });
     },
     [localType, localDateFrom, onFilterChange]
+  );
+
+  const handleDelete = useCallback(
+    async (commId: string, contactName: string) => {
+      if (!confirm(`Delete this communication with "${contactName}"? It can be restored by an admin.`)) return;
+      setDeletingId(commId);
+      try {
+        await deleteCommunication({
+          id: commId as Id<"communications">,
+          userId: userId as Id<"users">,
+        });
+      } catch (error) {
+        console.error("Failed to delete:", error);
+        alert("Failed to delete communication.");
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [deleteCommunication, userId]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -301,6 +325,16 @@ export function TimelineView({
                           >
                             Add Entry
                           </Link>
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDelete(comm._id, comm.contactName)}
+                              disabled={deletingId === comm._id}
+                              className="text-xs text-red-400 hover:text-red-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700 disabled:opacity-50"
+                              aria-label={`Delete communication with ${comm.contactName}`}
+                            >
+                              {deletingId === comm._id ? "..." : "Delete"}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

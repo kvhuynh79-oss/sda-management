@@ -58,6 +58,7 @@ function CommunicationsContent() {
   // Thread-specific filters
   const threadFilterUnread = searchParams.get("threadFilter") === "unread";
   const threadFilterAction = searchParams.get("threadFilter") === "action";
+  const threadStatus = (searchParams.get("threadStatus") as "active" | "completed" | "archived") || "active";
 
   // Active filter count
   const activeFilterCount = useMemo(() => {
@@ -231,6 +232,9 @@ function CommunicationsContent() {
                 userId={user.id}
                 filterUnread={threadFilterUnread || undefined}
                 filterRequiresAction={threadFilterAction || undefined}
+                statusFilter={threadStatus}
+                onStatusChange={(status) => updateUrl({ threadStatus: status === "active" ? undefined : status })}
+                userRole={user.role}
                 isSelecting={isSelecting}
                 selectedIds={bulkSelection.selectedIds}
                 onToggleSelect={bulkSelection.toggle}

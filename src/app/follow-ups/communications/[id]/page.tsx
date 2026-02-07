@@ -17,7 +17,7 @@ export default function CommunicationDetailPage() {
   const router = useRouter();
   const communicationId = params.id as string;
 
-  const [user, setUser] = useState<{ id: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -39,7 +39,8 @@ export default function CommunicationDetailPage() {
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsed = JSON.parse(storedUser);
+      setUser({ id: parsed._id || parsed.id, role: parsed.role });
     }
   }, []);
 
@@ -107,18 +108,32 @@ export default function CommunicationDetailPage() {
     }
   };
 
+  const restoreCommunication = useMutation(api.communications.restore);
+
   const handleDelete = async () => {
     if (!user || !communication) return;
-    if (!confirm("Are you sure you want to delete this communication log?")) return;
+    if (!confirm("Are you sure you want to delete this communication? It can be restored by an admin.")) return;
 
     try {
       await deleteCommunication({
         id: communication._id,
         userId: user.id as Id<"users">,
       });
-      router.push("/follow-ups");
+      router.push("/communications");
     } catch (error) {
       console.error("Failed to delete communication:", error);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!user || !communication) return;
+    try {
+      await restoreCommunication({
+        id: communication._id,
+        userId: user.id as Id<"users">,
+      });
+    } catch (error) {
+      console.error("Failed to restore:", error);
     }
   };
 
@@ -205,6 +220,26 @@ export default function CommunicationDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Deleted banner */}
+          {communication.isDeleted && (
+            <div className="bg-red-900/30 border border-red-600/50 rounded-lg p-4 flex items-center justify-between mb-4">
+              <div>
+                <p className="text-red-400 font-medium">This communication has been deleted</p>
+                <p className="text-red-400/70 text-sm">
+                  Deleted {communication.deletedAt ? new Date(communication.deletedAt).toLocaleString() : ""}
+                </p>
+              </div>
+              {user.role === "admin" && (
+                <button
+                  onClick={handleRestore}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                >
+                  Restore
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Content */}
           <div className="space-y-6">
@@ -407,12 +442,14 @@ export default function CommunicationDetailPage() {
             )}
 
             {/* Danger Zone */}
-            <div className="bg-gray-800 rounded-lg p-6 border border-red-600/30">
-              <h2 className="text-lg font-semibold text-red-400 mb-4">Danger Zone</h2>
-              <Button variant="danger" onClick={handleDelete}>
-                Delete Communication
-              </Button>
-            </div>
+            {!communication.isDeleted && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-red-600/30">
+                <h2 className="text-lg font-semibold text-red-400 mb-4">Danger Zone</h2>
+                <Button variant="danger" onClick={handleDelete}>
+                  Delete Communication
+                </Button>
+              </div>
+            )}
           </div>
         </main>
       </div>

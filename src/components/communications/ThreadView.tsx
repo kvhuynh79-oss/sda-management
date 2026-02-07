@@ -18,10 +18,15 @@ function buildThreadAddEntryUrl(thread: any): string {
   return `/follow-ups/communications/new?${new URLSearchParams(params).toString()}`;
 }
 
+type ThreadStatus = "active" | "completed" | "archived" | "all";
+
 interface ThreadViewProps {
   userId: string;
   filterUnread?: boolean;
   filterRequiresAction?: boolean;
+  statusFilter?: ThreadStatus;
+  onStatusChange?: (status: "active" | "completed" | "archived") => void;
+  userRole?: string;
   isSelecting?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
@@ -93,11 +98,28 @@ function TypeIcon({ type }: { type: string }) {
   }
 }
 
-function ThreadMessages({ threadId, userId }: { threadId: string; userId: string }) {
+function ThreadMessages({ threadId, userId, userRole }: { threadId: string; userId: string; userRole?: string }) {
   const data = useQuery(api.communications.getThreadMessages, {
     userId: userId as Id<"users">,
     threadId,
   });
+  const deleteCommunication = useMutation(api.communications.remove);
+  const canDelete = userRole === "admin" || userRole === "property_manager";
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: string, contactName: string) => {
+      if (!confirm(`Delete this communication from ${contactName}? It can be restored by an admin.`)) return;
+      try {
+        await deleteCommunication({
+          id: messageId as Id<"communications">,
+          userId: userId as Id<"users">,
+        });
+      } catch (error) {
+        console.error("Failed to delete communication:", error);
+      }
+    },
+    [deleteCommunication, userId]
+  );
 
   if (!data) {
     return (
@@ -112,7 +134,7 @@ function ThreadMessages({ threadId, userId }: { threadId: string; userId: string
       {data.messages.map((msg) => (
         <div
           key={msg._id}
-          className="flex gap-3 p-3 bg-gray-900/50 rounded-lg"
+          className="flex gap-3 p-3 bg-gray-900/50 rounded-lg group/msg"
         >
           <TypeIcon type={msg.type} />
           <div className="flex-1 min-w-0">
@@ -129,13 +151,30 @@ function ThreadMessages({ threadId, userId }: { threadId: string; userId: string
             )}
             <p className="text-sm text-gray-400 mt-0.5">{msg.summary}</p>
           </div>
+          {canDelete && (
+            <button
+              onClick={() => handleDeleteMessage(msg._id, msg.contactName)}
+              className="opacity-0 group-hover/msg:opacity-100 flex-shrink-0 p-1.5 text-gray-400 hover:text-red-400 rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:opacity-100"
+              aria-label={`Delete message from ${msg.contactName}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
         </div>
       ))}
     </div>
   );
 }
 
-export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelecting, selectedIds, onToggleSelect }: ThreadViewProps) {
+const STATUS_TABS: { key: ThreadStatus; label: string }[] = [
+  { key: "active", label: "Active" },
+  { key: "completed", label: "Completed" },
+  { key: "archived", label: "Archived" },
+];
+
+export function ThreadView({ userId, filterUnread, filterRequiresAction, statusFilter, onStatusChange, userRole, isSelecting, selectedIds, onToggleSelect }: ThreadViewProps) {
   const [expandedThread, setExpandedThread] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allThreads, setAllThreads] = useState<any[]>([]);
@@ -146,9 +185,11 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelec
     cursor,
     filterUnread,
     filterRequiresAction,
+    statusFilter: statusFilter || "active",
   });
 
   const markRead = useMutation(api.communications.markThreadRead);
+  const updateThreadStatus = useMutation(api.communications.updateThreadStatus);
 
   // Merge paginated results
   const threads = cursor ? [...allThreads, ...(data?.threads || [])] : (data?.threads || []);
@@ -181,6 +222,21 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelec
     }
   }, [data, threads]);
 
+  const handleThreadStatusUpdate = useCallback(
+    async (threadId: string, status: "active" | "completed" | "archived") => {
+      try {
+        await updateThreadStatus({
+          userId: userId as Id<"users">,
+          threadId,
+          status,
+        });
+      } catch (error) {
+        console.error("Failed to update thread status:", error);
+      }
+    },
+    [updateThreadStatus, userId]
+  );
+
   if (!data) {
     return <LoadingScreen fullScreen={false} message="Loading threads..." />;
   }
@@ -212,6 +268,36 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelec
       id="panel-thread"
       aria-labelledby="tab-thread"
     >
+      {/* Status filter tabs */}
+      <div
+        role="radiogroup"
+        aria-label="Thread status filter"
+        className="flex gap-1 mb-4 bg-gray-800 rounded-lg p-1"
+      >
+        {STATUS_TABS.map((tab) => {
+          const isActive = (statusFilter || "active") === tab.key;
+          return (
+            <button
+              key={tab.key}
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => {
+                onStatusChange?.(tab.key as "active" | "completed" | "archived");
+                setCursor(undefined);
+                setAllThreads([]);
+              }}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                isActive
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div role="list" aria-live="polite" aria-relevant="additions removals" className="space-y-2">
         {threads.map((thread) => {
           const isExpanded = expandedThread === thread.threadId;
@@ -287,6 +373,12 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelec
                           Action Required
                         </Badge>
                       )}
+                      {thread.status === "completed" && (
+                        <Badge variant="success" size="xs">Completed</Badge>
+                      )}
+                      {thread.status === "archived" && (
+                        <Badge variant="neutral" size="xs">Archived</Badge>
+                      )}
                     </div>
                   </div>
 
@@ -317,8 +409,8 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelec
               {/* Expanded messages */}
               {isExpanded && (
                 <div className="px-4 pb-4" role="region" aria-label={`Messages in thread: ${thread.subject || "Untitled Thread"}`}>
-                  <ThreadMessages threadId={thread.threadId} userId={userId} />
-                  <div className="mt-3 pt-3 border-t border-gray-700">
+                  <ThreadMessages threadId={thread.threadId} userId={userId} userRole={userRole} />
+                  <div className="mt-3 pt-3 border-t border-gray-700 flex flex-wrap items-center gap-2">
                     <Link
                       href={buildThreadAddEntryUrl(thread)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -328,6 +420,44 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, isSelec
                       </svg>
                       Add Entry
                     </Link>
+
+                    {/* Thread status actions */}
+                    {(!thread.status || thread.status === "active") && (
+                      <>
+                        <button
+                          onClick={() => handleThreadStatusUpdate(thread.threadId, "completed")}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                          aria-label={`Mark thread "${thread.subject || "Untitled Thread"}" as completed`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Complete
+                        </button>
+                        <button
+                          onClick={() => handleThreadStatusUpdate(thread.threadId, "archived")}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                          aria-label={`Archive thread "${thread.subject || "Untitled Thread"}"`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                          </svg>
+                          Archive
+                        </button>
+                      </>
+                    )}
+                    {(thread.status === "completed" || thread.status === "archived") && (
+                      <button
+                        onClick={() => handleThreadStatusUpdate(thread.threadId, "active")}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        aria-label={`Reactivate thread "${thread.subject || "Untitled Thread"}"`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reactivate
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
 // Type for audit log actions
-export type AuditAction = "create" | "update" | "delete" | "view" | "login" | "logout" | "export" | "import" | "thread_merge" | "thread_split" | "consultation_gate" | "bulk_mark_read" | "bulk_categorize" | "bulk_thread" | "bulk_flag" | "mfa_enabled" | "mfa_disabled" | "mfa_backup_used" | "mfa_backup_regenerated" | "mfa_lockout" | "data_encrypted";
+export type AuditAction = "create" | "update" | "delete" | "view" | "login" | "logout" | "export" | "import" | "thread_merge" | "thread_split" | "consultation_gate" | "bulk_mark_read" | "bulk_categorize" | "bulk_thread" | "bulk_flag" | "mfa_enabled" | "mfa_disabled" | "mfa_backup_used" | "mfa_backup_regenerated" | "mfa_lockout" | "data_encrypted" | "restore" | "thread_status_change";
 
 /**
  * Calculate SHA-256 hash of audit log entry for hash chain
@@ -109,7 +109,9 @@ export const log = internalMutation({
       v.literal("mfa_backup_used"),
       v.literal("mfa_backup_regenerated"),
       v.literal("mfa_lockout"),
-      v.literal("data_encrypted")
+      v.literal("data_encrypted"),
+      v.literal("restore"),
+      v.literal("thread_status_change")
     ),
     entityType: v.string(),
     entityId: v.optional(v.string()),
@@ -188,7 +190,9 @@ export const createLog = mutation({
       v.literal("mfa_backup_used"),
       v.literal("mfa_backup_regenerated"),
       v.literal("mfa_lockout"),
-      v.literal("data_encrypted")
+      v.literal("data_encrypted"),
+      v.literal("restore"),
+      v.literal("thread_status_change")
     ),
     entityType: v.string(),
     entityId: v.optional(v.string()),

@@ -401,7 +401,7 @@ export const update = mutation({
   },
 });
 
-// Delete a communication
+// Soft-delete a communication (preserves data for audit trail)
 export const remove = mutation({
   args: {
     id: v.id("communications"),
@@ -415,12 +415,22 @@ export const remove = mutation({
       throw new Error("Communication not found");
     }
 
-    // Delete attachment if exists
-    if (communication.attachmentStorageId) {
-      await ctx.storage.delete(communication.attachmentStorageId);
+    if (communication.isDeleted) {
+      throw new Error("Communication already deleted");
     }
 
-    await ctx.db.delete(args.id);
+    // Soft delete - mark as deleted but preserve data
+    await ctx.db.patch(args.id, {
+      isDeleted: true,
+      deletedAt: Date.now(),
+      deletedBy: args.userId,
+      updatedAt: Date.now(),
+    });
+
+    // Regenerate thread summary if part of a thread
+    if (communication.threadId) {
+      await regenerateThreadSummary(ctx, communication.threadId);
+    }
 
     // Audit log
     await ctx.runMutation(internal.auditLog.log, {
@@ -445,14 +455,15 @@ async function regenerateThreadSummary(
   ctx: any,
   threadId: string
 ): Promise<void> {
-  // Fetch all communications in thread
+  // Fetch all non-deleted communications in thread
   const threadComms = await ctx.db
     .query("communications")
     .withIndex("by_thread", (q: any) => q.eq("threadId", threadId))
     .collect();
+  const activeThreadComms = threadComms.filter((c: any) => !c.isDeleted);
 
-  if (threadComms.length === 0) {
-    // Thread is empty - delete summary if exists
+  if (activeThreadComms.length === 0) {
+    // Thread has no active communications - delete summary if exists
     const existingSummary = await ctx.db
       .query("threadSummaries")
       .withIndex("by_thread", (q: any) => q.eq("threadId", threadId))
@@ -464,23 +475,23 @@ async function regenerateThreadSummary(
     return;
   }
 
-  // Calculate summary data
-  const sortedComms = threadComms.sort((a: any, b: any) => a.createdAt - b.createdAt);
+  // Calculate summary data from active (non-deleted) communications
+  const sortedComms = activeThreadComms.sort((a: any, b: any) => a.createdAt - b.createdAt);
   const firstComm = sortedComms[0];
   const lastComm = sortedComms[sortedComms.length - 1];
 
   // Collect unique participant names
-  const participantNames = [...new Set(threadComms.map((c: any) => c.contactName))];
+  const participantNames = [...new Set(activeThreadComms.map((c: any) => c.contactName))];
 
   // Collect compliance categories
   const complianceCategories = [...new Set(
-    threadComms
+    activeThreadComms
       .map((c: any) => c.complianceCategory)
       .filter(Boolean)
   )];
 
   // Check if any communication requires action
-  const requiresAction = threadComms.some((c: any) => c.requiresFollowUp === true);
+  const requiresAction = activeThreadComms.some((c: any) => c.requiresFollowUp === true);
 
   // Update or create summary
   const existingSummary = await ctx.db
@@ -493,7 +504,7 @@ async function regenerateThreadSummary(
     participantId: firstComm.participantId || firstComm.linkedParticipantId,
     startedAt: firstComm.createdAt,
     lastActivityAt: lastComm.createdAt,
-    messageCount: threadComms.length,
+    messageCount: activeThreadComms.length,
     participantNames,
     subject: firstComm.subject || `${firstComm.communicationType} with ${firstComm.contactName}`,
     previewText: lastComm.summary.substring(0, 100),
@@ -677,6 +688,7 @@ export const getAll = query({
     const communications = await ctx.db
       .query("communications")
       .order("desc")
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
 
     // Collect unique IDs for batch fetching
@@ -753,6 +765,7 @@ export const getByParticipant = query({
     const communications = await ctx.db
       .query("communications")
       .withIndex("by_participant", (q) => q.eq("linkedParticipantId", args.participantId))
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .order("desc")
       .collect();
 
@@ -767,6 +780,7 @@ export const getByProperty = query({
     const communications = await ctx.db
       .query("communications")
       .withIndex("by_property", (q) => q.eq("linkedPropertyId", args.propertyId))
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .order("desc")
       .collect();
 
@@ -796,6 +810,7 @@ export const getByStakeholder = query({
         q.eq("stakeholderEntityType", args.stakeholderEntityType)
          .eq("stakeholderEntityId", args.stakeholderEntityId)
       )
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .order("desc")
       .take(maxResults);
 
@@ -825,6 +840,7 @@ export const getByIncident = query({
     const communications = await ctx.db
       .query("communications")
       .withIndex("by_linked_incident", (q) => q.eq("linkedIncidentId", args.incidentId))
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .order("desc")
       .collect();
 
@@ -841,6 +857,7 @@ export const getRecent = query({
     const communications = await ctx.db
       .query("communications")
       .order("desc")
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .take(limit);
 
     // Batch fetch participants
@@ -1040,16 +1057,23 @@ export const getThreadedView = query({
     cursor: v.optional(v.string()),
     filterUnread: v.optional(v.boolean()),
     filterRequiresAction: v.optional(v.boolean()),
+    statusFilter: v.optional(v.union(v.literal("active"), v.literal("completed"), v.literal("archived"), v.literal("all"))),
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
 
     const limit = args.limit || 20;
+    const statusFilter = args.statusFilter || "active";
 
     // Read from threadSummaries for performance
     let allSummaries = await ctx.db
       .query("threadSummaries")
       .collect();
+
+    // Filter by status (undefined treated as "active")
+    if (statusFilter !== "all") {
+      allSummaries = allSummaries.filter(s => (s.status || "active") === statusFilter);
+    }
 
     // Filter by unread
     if (args.filterUnread) {
@@ -1087,6 +1111,7 @@ export const getThreadedView = query({
         complianceCategories: s.complianceCategories,
         requiresAction: s.requiresAction,
         participantId: s.participantId,
+        status: s.status || "active",
       })),
       nextCursor: hasMore ? String(page[page.length - 1].lastActivityAt) : null,
     };
@@ -1108,11 +1133,12 @@ export const getThreadMessages = query({
 
     const limit = args.limit || 50;
 
-    // Get messages in thread sorted by createdAt ASC (oldest first)
-    const messages = await ctx.db
+    // Get messages in thread sorted by createdAt ASC (oldest first), exclude deleted
+    const allMessages = await ctx.db
       .query("communications")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .collect();
+    const messages = allMessages.filter(m => !m.isDeleted);
 
     // Sort ASC (oldest first) and limit
     messages.sort((a, b) => a.createdAt - b.createdAt);
@@ -1168,10 +1194,11 @@ export const getTimelineView = query({
 
     const limit = args.limit || 50;
 
-    // Get all communications
+    // Get all non-deleted communications
     let comms = await ctx.db
       .query("communications")
       .order("desc")
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
 
     // Date range filtering
@@ -1247,9 +1274,10 @@ export const getStakeholderView = query({
 
     const limit = args.limit || 20;
 
-    // Get all communications
+    // Get all non-deleted communications
     let comms = await ctx.db
       .query("communications")
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
 
     // Filter by contact type
@@ -1351,10 +1379,11 @@ export const getComplianceView = query({
 
     const limit = args.limit || 50;
 
-    // Get all communications
+    // Get all non-deleted communications
     let comms = await ctx.db
       .query("communications")
       .order("desc")
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
 
     // Default: exclude "routine" and "none" categories
@@ -1513,23 +1542,27 @@ export const getCommunicationDashboardStats = query({
 
     // Thread stats from summaries (fast - small table)
     const summaries = await ctx.db.query("threadSummaries").collect();
-    const totalThreads = summaries.length;
-    const unreadThreads = summaries.filter(s => s.hasUnread).length;
-    const requiresActionCount = summaries.filter(s => s.requiresAction).length;
+    const activeSummaries = summaries.filter(s => (s.status || "active") === "active");
+    const totalThreads = activeSummaries.length;
+    const unreadThreads = activeSummaries.filter(s => s.hasUnread).length;
+    const requiresActionCount = activeSummaries.filter(s => s.requiresAction).length;
+    const completedThreads = summaries.filter(s => s.status === "completed").length;
+    const archivedThreads = summaries.filter(s => s.status === "archived").length;
 
-    // Compliance breakdown from summaries
+    // Compliance breakdown from active summaries
     const complianceBreakdown: Record<string, number> = {};
-    for (const s of summaries) {
+    for (const s of activeSummaries) {
       for (const cat of s.complianceCategories) {
         complianceBreakdown[cat] = (complianceBreakdown[cat] || 0) + 1;
       }
     }
 
-    // Recent activity (last 24 hours) - query communications
+    // Recent activity (last 24 hours) - query non-deleted communications
     const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
     const recentComms = await ctx.db
       .query("communications")
       .order("desc")
+      .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
     const recentActivity = recentComms.filter(c => c.createdAt >= twentyFourHoursAgo).length;
 
@@ -1541,6 +1574,8 @@ export const getCommunicationDashboardStats = query({
       totalThreads,
       unreadThreads,
       requiresAction: requiresActionCount,
+      completedThreads,
+      archivedThreads,
       complianceBreakdown,
       recentActivity,
       stakeholderCount,
@@ -1972,5 +2007,218 @@ export const bulkAddFlags = mutation({
     });
 
     return { updatedCount, gateTriggeredCount };
+  },
+});
+
+// ============================================================
+// PHASE v1.5: SOFT DELETE, THREAD STATUS, PARTICIPANT THREADING
+// ============================================================
+
+/**
+ * v1.5: Restore a soft-deleted communication (admin only)
+ */
+export const restore = mutation({
+  args: {
+    id: v.id("communications"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requirePermission(ctx, args.userId, "communications", "delete");
+
+    // Admin-only
+    if (user.role !== "admin") {
+      throw new Error("Only admins can restore deleted communications");
+    }
+
+    const communication = await ctx.db.get(args.id);
+    if (!communication) {
+      throw new Error("Communication not found");
+    }
+
+    if (!communication.isDeleted) {
+      throw new Error("Communication is not deleted");
+    }
+
+    // Restore
+    await ctx.db.patch(args.id, {
+      isDeleted: undefined,
+      deletedAt: undefined,
+      deletedBy: undefined,
+      updatedAt: Date.now(),
+    });
+
+    // Regenerate thread summary
+    if (communication.threadId) {
+      await regenerateThreadSummary(ctx, communication.threadId);
+    }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "restore",
+      entityType: "communication",
+      entityId: args.id,
+      entityName: `Restored: ${communication.communicationType} - ${communication.contactName}`,
+      metadata: JSON.stringify({
+        previousDeletedAt: communication.deletedAt,
+        previousDeletedBy: communication.deletedBy,
+      }),
+    });
+  },
+});
+
+/**
+ * v1.5: Update thread status (active/completed/archived)
+ */
+export const updateThreadStatus = mutation({
+  args: {
+    userId: v.id("users"),
+    threadId: v.string(),
+    status: v.union(v.literal("active"), v.literal("completed"), v.literal("archived")),
+  },
+  handler: async (ctx, args) => {
+    const user = await requirePermission(ctx, args.userId, "communications", "update");
+
+    const summary = await ctx.db
+      .query("threadSummaries")
+      .withIndex("by_thread", (q: any) => q.eq("threadId", args.threadId))
+      .first();
+
+    if (!summary) {
+      throw new Error("Thread not found");
+    }
+
+    const previousStatus = summary.status || "active";
+
+    await ctx.db.patch(summary._id, {
+      status: args.status,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "thread_status_change",
+      entityType: "communication",
+      entityName: `Thread "${summary.subject}" status: ${previousStatus} → ${args.status}`,
+      metadata: JSON.stringify({
+        threadId: args.threadId,
+        previousStatus,
+        newStatus: args.status,
+      }),
+    });
+  },
+});
+
+/**
+ * v1.5: Get deleted communications (admin only)
+ */
+export const getDeletedCommunications = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requirePermission(ctx, args.userId, "communications", "view");
+
+    // Get user and check admin
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "admin") {
+      return [];
+    }
+
+    const deleted = await ctx.db
+      .query("communications")
+      .order("desc")
+      .filter((q) => q.eq(q.field("isDeleted"), true))
+      .collect();
+
+    // Batch fetch deletedBy user names
+    const deletedByIds = [...new Set(deleted.map(c => c.deletedBy).filter(Boolean))];
+    const deletedByUsers = await Promise.all(deletedByIds.map(id => ctx.db.get(id!)));
+    const deletedByMap = new Map(
+      deletedByUsers.filter(Boolean).map(u => [u!._id, `${u!.firstName} ${u!.lastName}`])
+    );
+
+    return deleted.map(c => ({
+      _id: c._id,
+      communicationType: c.communicationType,
+      contactName: c.contactName,
+      subject: c.subject,
+      summary: c.summary,
+      deletedAt: c.deletedAt,
+      deletedByName: c.deletedBy ? deletedByMap.get(c.deletedBy) || "Unknown" : "Unknown",
+      threadId: c.threadId,
+      createdAt: c.createdAt,
+    }));
+  },
+});
+
+/**
+ * v1.5: Get communications grouped by thread for a participant
+ * Used on participant detail pages for collapsible thread sections
+ */
+export const getByParticipantThreaded = query({
+  args: {
+    participantId: v.id("participants"),
+  },
+  handler: async (ctx, args) => {
+    // Get all thread summaries for this participant
+    const summaries = await ctx.db
+      .query("threadSummaries")
+      .withIndex("by_participant_activity", (q: any) =>
+        q.eq("participantId", args.participantId)
+      )
+      .collect();
+
+    // For each thread, get active (non-deleted) messages
+    const threads = await Promise.all(
+      summaries.map(async (summary) => {
+        const messages = await ctx.db
+          .query("communications")
+          .withIndex("by_thread", (q: any) => q.eq("threadId", summary.threadId))
+          .collect();
+
+        const activeMessages = messages
+          .filter((m: any) => !m.isDeleted)
+          .sort((a: any, b: any) => a.createdAt - b.createdAt);
+
+        if (activeMessages.length === 0) return null;
+
+        return {
+          threadId: summary.threadId,
+          subject: summary.subject,
+          status: summary.status || "active",
+          lastActivityAt: summary.lastActivityAt,
+          messageCount: activeMessages.length,
+          participantNames: summary.participantNames,
+          contactName: activeMessages[0]?.contactName || "Unknown",
+          complianceCategories: summary.complianceCategories,
+          requiresAction: summary.requiresAction,
+          messages: activeMessages.map((m: any) => ({
+            _id: m._id,
+            communicationType: m.communicationType,
+            type: m.communicationType,
+            direction: m.direction,
+            contactName: m.contactName,
+            subject: m.subject,
+            summary: m.summary,
+            createdAt: m.createdAt,
+            communicationDate: m.communicationDate,
+            communicationTime: m.communicationTime,
+            complianceCategory: m.complianceCategory,
+          })),
+        };
+      })
+    );
+
+    // Filter out null (threads with all deleted messages) and sort by lastActivityAt DESC
+    const activeThreads = threads
+      .filter(Boolean)
+      .sort((a: any, b: any) => b.lastActivityAt - a.lastActivityAt);
+
+    return { threads: activeThreads };
   },
 });

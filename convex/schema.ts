@@ -86,7 +86,9 @@ export default defineSchema({
       v.literal("mfa_backup_used"),
       v.literal("mfa_backup_regenerated"),
       v.literal("mfa_lockout"),
-      v.literal("data_encrypted")
+      v.literal("data_encrypted"),
+      v.literal("restore"),
+      v.literal("thread_status_change")
     ),
     entityType: v.string(), // "property", "participant", "payment", etc.
     entityId: v.optional(v.string()),
@@ -1833,6 +1835,11 @@ export default defineSchema({
     // Read tracking
     readAt: v.optional(v.string()), // ISO string when message was read
 
+    // Soft delete
+    isDeleted: v.optional(v.boolean()),
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("users")),
+
     // Metadata
     createdBy: v.id("users"),
     createdAt: v.number(),
@@ -1849,7 +1856,8 @@ export default defineSchema({
     .index("by_participant_compliance", ["participantId", "complianceCategory", "createdAt"])
     .index("by_stakeholder", ["stakeholderEntityType", "stakeholderEntityId", "createdAt"])
     .index("by_follow_up", ["requiresFollowUp", "followUpDueDate"])
-    .index("by_linked_incident", ["linkedIncidentId"]),
+    .index("by_linked_incident", ["linkedIncidentId"])
+    .index("by_isDeleted", ["isDeleted"]),
 
   // Thread summaries table - performance cache for thread views
   threadSummaries: defineTable({
@@ -1864,9 +1872,11 @@ export default defineSchema({
     hasUnread: v.boolean(),
     complianceCategories: v.array(v.string()),
     requiresAction: v.boolean(),
+    status: v.optional(v.union(v.literal("active"), v.literal("completed"), v.literal("archived"))),
   })
     .index("by_participant_activity", ["participantId", "lastActivityAt"])
-    .index("by_thread", ["threadId"]),
+    .index("by_thread", ["threadId"])
+    .index("by_status_activity", ["status", "lastActivityAt"]),
 
   // Tasks table - follow-up tasks and action items
   tasks: defineTable({

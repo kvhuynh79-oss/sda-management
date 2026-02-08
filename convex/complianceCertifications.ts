@@ -91,8 +91,11 @@ export const getById = query({
 
     const property = cert.propertyId ? await ctx.db.get(cert.propertyId) : null;
     const dwelling = cert.dwellingId ? await ctx.db.get(cert.dwellingId) : null;
+    const certificateUrl = cert.certificateStorageId
+      ? await ctx.storage.getUrl(cert.certificateStorageId)
+      : null;
 
-    return { ...cert, property, dwelling };
+    return { ...cert, property, dwelling, certificateUrl };
   },
 });
 
@@ -235,7 +238,7 @@ export const remove = mutation({
 });
 
 // Update all certification statuses (run periodically via cron)
-export const updateStatuses = mutation({
+export const updateStatuses = internalMutation({
   args: {},
   handler: async (ctx) => {
     const certifications = await ctx.db.query("complianceCertifications").collect();
@@ -343,5 +346,24 @@ export const createFromDocument = internalMutation({
     });
 
     return certId;
+  },
+});
+
+// Dashboard stats for compliance certifications widget
+export const getDashboardStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const certs = await ctx.db.query("complianceCertifications").collect();
+    const now = new Date();
+    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    return {
+      total: certs.length,
+      expired: certs.filter((c) => c.status === "expired").length,
+      expiringSoon: certs.filter((c) => {
+        const exp = new Date(c.expiryDate);
+        return exp > now && exp <= thirtyDays;
+      }).length,
+    };
   },
 });

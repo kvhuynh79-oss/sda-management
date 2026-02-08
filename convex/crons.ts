@@ -69,6 +69,14 @@ crons.monthly(
 // SECURITY & COMPLIANCE CRON JOBS
 // ============================================
 
+// Update compliance certification statuses daily at 1 AM UTC
+// Auto-transitions: current → expiring_soon → expired
+crons.daily(
+  "update-certification-statuses",
+  { hourUTC: 1, minuteUTC: 0 },
+  internal.complianceCertifications.updateStatuses
+);
+
 // Verify audit log hash chain integrity daily at 3 AM UTC
 // This ensures immutability of audit records for NDIS 7-year retention compliance
 // Any tampering with audit logs will be detected and reported

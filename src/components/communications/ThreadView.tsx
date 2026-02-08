@@ -241,34 +241,13 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
     return <LoadingScreen fullScreen={false} message="Loading threads..." />;
   }
 
-  if (threads.length === 0) {
-    return (
-      <EmptyState
-        title="No threads found"
-        description={
-          filterUnread
-            ? "All caught up! No unread threads."
-            : filterRequiresAction
-              ? "No threads requiring action."
-              : "Start a conversation to see threads here."
-        }
-        isFiltered={!!filterUnread || !!filterRequiresAction}
-        icon={
-          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-        }
-      />
-    );
-  }
-
   return (
     <div
       role="tabpanel"
       id="panel-thread"
       aria-labelledby="tab-thread"
     >
-      {/* Status filter tabs */}
+      {/* Status filter tabs - always visible so user can switch back */}
       <div
         role="radiogroup"
         aria-label="Thread status filter"
@@ -298,6 +277,29 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
         })}
       </div>
 
+      {threads.length === 0 ? (
+        <EmptyState
+          title="No threads found"
+          description={
+            filterUnread
+              ? "All caught up! No unread threads."
+              : filterRequiresAction
+                ? "No threads requiring action."
+                : statusFilter === "completed"
+                  ? "No completed threads yet. Mark active threads as complete to see them here."
+                  : statusFilter === "archived"
+                    ? "No archived threads. Archive threads you no longer need to see them here."
+                    : "Start a conversation to see threads here."
+          }
+          isFiltered={!!filterUnread || !!filterRequiresAction || (!!statusFilter && statusFilter !== "active")}
+          icon={
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+          }
+        />
+      ) : (
+      <>
       <div role="list" aria-live="polite" aria-relevant="additions removals" className="space-y-2">
         {threads.map((thread) => {
           const isExpanded = expandedThread === thread.threadId;
@@ -476,6 +478,8 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
             Load More Threads
           </button>
         </div>
+      )}
+      </>
       )}
     </div>
   );

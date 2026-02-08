@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@types/bcryptjs": "^2.4.6",
     "@types/qrcode": "^1.5.6",

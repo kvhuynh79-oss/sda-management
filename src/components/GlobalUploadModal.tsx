@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Id } from "../../convex/_generated/dataModel";
@@ -133,6 +133,12 @@ export default function GlobalUploadModal({
   const [vendor, setVendor] = useState("");
   const [isPaid, setIsPaid] = useState(false);
 
+  // AI Analysis state
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
+  const [aiConfidence, setAiConfidence] = useState<"high" | "medium" | "low" | null>(null);
+  const [uploadedStorageId, setUploadedStorageId] = useState<Id<"_storage"> | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Queries
@@ -145,6 +151,9 @@ export default function GlobalUploadModal({
   // Mutations
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createDocument = useMutation(api.documents.create);
+
+  // AI Analysis action
+  const analyzeDocumentAction = useAction(api.aiDocumentAnalysis.analyzeDocument);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -163,6 +172,10 @@ export default function GlobalUploadModal({
       setShowInvoiceFields(false);
       setError("");
       setIsDragOver(false);
+      setIsAnalyzing(false);
+      setAiFilledFields(new Set());
+      setAiConfidence(null);
+      setUploadedStorageId(null);
     }
   }, [isOpen, prefillCategory, prefillEntityId]);
 
@@ -265,6 +278,96 @@ export default function GlobalUploadModal({
       .join(" ");
   };
 
+  // AI Analysis handler
+  const handleAIAnalysis = async () => {
+    if (!selectedFile || !user) return;
+
+    setIsAnalyzing(true);
+    setError("");
+
+    try {
+      // First, upload the file temporarily to get a storageId
+      const uploadUrl = await generateUploadUrl();
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": selectedFile.type },
+        body: selectedFile,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file for analysis");
+      }
+
+      const { storageId } = await uploadResponse.json();
+      setUploadedStorageId(storageId as Id<"_storage">);
+
+      // Call AI analysis action
+      const result = await analyzeDocumentAction({
+        storageId: storageId as Id<"_storage">,
+        fileName: selectedFile.name,
+        fileType: selectedFile.type,
+      });
+
+      // Track which fields were filled by AI
+      const filledFields = new Set<string>();
+
+      // Auto-populate fields from AI result
+      if (result.documentType) {
+        setDocumentType(result.documentType as DocumentType);
+        filledFields.add("documentType");
+      }
+
+      if (result.category) {
+        setCategory(result.category as DocumentCategory);
+        filledFields.add("category");
+      }
+
+      if (result.description) {
+        setDescription(result.description);
+        filledFields.add("description");
+      }
+
+      if (result.invoiceNumber) {
+        setInvoiceNumber(result.invoiceNumber);
+        filledFields.add("invoiceNumber");
+      }
+
+      if (result.invoiceDate) {
+        setInvoiceDate(result.invoiceDate);
+        filledFields.add("invoiceDate");
+      }
+
+      if (result.invoiceAmount) {
+        setInvoiceAmount(result.invoiceAmount.toString());
+        filledFields.add("invoiceAmount");
+      }
+
+      if (result.vendor) {
+        setVendor(result.vendor);
+        filledFields.add("vendor");
+      }
+
+      if (result.expiryDate) {
+        setExpiryDate(result.expiryDate);
+        filledFields.add("expiryDate");
+      }
+
+      setAiFilledFields(filledFields);
+      setAiConfidence(result.confidence || "medium");
+
+      // Show success message
+      const fieldsCount = filledFields.size;
+      setError(`✓ AI analyzed document! ${fieldsCount} field${fieldsCount > 1 ? 's' : ''} auto-filled. Please review and edit if needed.`);
+
+    } catch (err) {
+      console.error("AI analysis error:", err);
+      const errorMessage = err instanceof Error ? err.message : "AI analysis failed. Please try again or fill in the fields manually.";
+      setError(errorMessage);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Validate form
   const isFormValid = (): boolean => {
     if (!selectedFile || !category || !user) return false;
@@ -285,21 +388,30 @@ export default function GlobalUploadModal({
     setError("");
 
     try {
-      // Step 1: Generate upload URL
-      const uploadUrl = await generateUploadUrl();
+      // Use already-uploaded storageId if AI analysis was run, otherwise upload now
+      let storageId: Id<"_storage">;
 
-      // Step 2: Upload file to storage
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": selectedFile.type },
-        body: selectedFile,
-      });
+      if (uploadedStorageId) {
+        // File already uploaded during AI analysis
+        storageId = uploadedStorageId;
+      } else {
+        // Step 1: Generate upload URL
+        const uploadUrl = await generateUploadUrl();
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file");
+        // Step 2: Upload file to storage
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": selectedFile.type },
+          body: selectedFile,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload file");
+        }
+
+        const result = await uploadResponse.json();
+        storageId = result.storageId as Id<"_storage">;
       }
-
-      const { storageId } = await uploadResponse.json();
 
       // Step 3: Create document record
       const documentData: any = {
@@ -426,6 +538,65 @@ export default function GlobalUploadModal({
             </div>
           </div>
 
+          {/* AI Analysis Button */}
+          {selectedFile && !category && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={handleAIAnalysis}
+                disabled={isAnalyzing}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-lg transition-all font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    <span>Analyzing document...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+                      />
+                    </svg>
+                    <span>Analyze with AI</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* AI Confidence Badge */}
+          {aiConfidence && (
+            <div className="flex items-center justify-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                aiConfidence === "high"
+                  ? "bg-green-500/20 text-green-400 border border-green-500"
+                  : aiConfidence === "medium"
+                  ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500"
+                  : "bg-red-500/20 text-red-400 border border-red-500"
+              }`}>
+                AI Confidence: {aiConfidence.toUpperCase()}
+              </span>
+            </div>
+          )}
+
           {/* Category Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -544,12 +715,26 @@ export default function GlobalUploadModal({
           {/* Document Type */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              Document Type
+              Document Type {aiFilledFields.has("documentType") && (
+                <span className="ml-2 text-xs text-blue-400">✨ AI-filled</span>
+              )}
             </label>
             <select
               value={documentType}
-              onChange={(e) => setDocumentType(e.target.value as DocumentType)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setDocumentType(e.target.value as DocumentType);
+                // Remove AI-filled indicator when user manually edits
+                if (aiFilledFields.has("documentType")) {
+                  const newFields = new Set(aiFilledFields);
+                  newFields.delete("documentType");
+                  setAiFilledFields(newFields);
+                }
+              }}
+              className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                aiFilledFields.has("documentType")
+                  ? "border-2 border-blue-500 bg-blue-500/10"
+                  : "border border-gray-600"
+              }`}
             >
               {getDocumentTypeOptions().map((type) => (
                 <option key={type} value={type}>
@@ -584,13 +769,26 @@ export default function GlobalUploadModal({
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              Description (Optional)
+              Description (Optional) {aiFilledFields.has("description") && (
+                <span className="ml-2 text-xs text-blue-400">✨ AI-filled</span>
+              )}
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                if (aiFilledFields.has("description")) {
+                  const newFields = new Set(aiFilledFields);
+                  newFields.delete("description");
+                  setAiFilledFields(newFields);
+                }
+              }}
               rows={3}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                aiFilledFields.has("description")
+                  ? "border-2 border-blue-500 bg-blue-500/10"
+                  : "border border-gray-600"
+              }`}
               placeholder="Add notes about this document..."
             />
           </div>
@@ -603,12 +801,26 @@ export default function GlobalUploadModal({
                 {category === "organisation" && (
                   <span className="text-red-400 ml-1">*</span>
                 )}
+                {aiFilledFields.has("expiryDate") && (
+                  <span className="ml-2 text-xs text-blue-400">✨ AI-filled</span>
+                )}
               </label>
               <input
                 type="date"
                 value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  setExpiryDate(e.target.value);
+                  if (aiFilledFields.has("expiryDate")) {
+                    const newFields = new Set(aiFilledFields);
+                    newFields.delete("expiryDate");
+                    setAiFilledFields(newFields);
+                  }
+                }}
+                className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  aiFilledFields.has("expiryDate")
+                    ? "border-2 border-blue-500 bg-blue-500/10"
+                    : "border border-gray-600"
+                }`}
               />
             </div>
           )}
@@ -620,32 +832,60 @@ export default function GlobalUploadModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Invoice Number
+                    Invoice Number {aiFilledFields.has("invoiceNumber") && (
+                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                    )}
                   </label>
                   <input
                     type="text"
                     value={invoiceNumber}
-                    onChange={(e) => setInvoiceNumber(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => {
+                      setInvoiceNumber(e.target.value);
+                      if (aiFilledFields.has("invoiceNumber")) {
+                        const newFields = new Set(aiFilledFields);
+                        newFields.delete("invoiceNumber");
+                        setAiFilledFields(newFields);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      aiFilledFields.has("invoiceNumber")
+                        ? "border-2 border-blue-500 bg-blue-500/10"
+                        : "border border-gray-600"
+                    }`}
                     placeholder="INV-12345"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Invoice Date
+                    Invoice Date {aiFilledFields.has("invoiceDate") && (
+                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                    )}
                   </label>
                   <input
                     type="date"
                     value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => {
+                      setInvoiceDate(e.target.value);
+                      if (aiFilledFields.has("invoiceDate")) {
+                        const newFields = new Set(aiFilledFields);
+                        newFields.delete("invoiceDate");
+                        setAiFilledFields(newFields);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      aiFilledFields.has("invoiceDate")
+                        ? "border-2 border-blue-500 bg-blue-500/10"
+                        : "border border-gray-600"
+                    }`}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Amount
+                    Amount {aiFilledFields.has("invoiceAmount") && (
+                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                    )}
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-gray-400">$</span>
@@ -653,8 +893,19 @@ export default function GlobalUploadModal({
                       type="number"
                       step="0.01"
                       value={invoiceAmount}
-                      onChange={(e) => setInvoiceAmount(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => {
+                        setInvoiceAmount(e.target.value);
+                        if (aiFilledFields.has("invoiceAmount")) {
+                          const newFields = new Set(aiFilledFields);
+                          newFields.delete("invoiceAmount");
+                          setAiFilledFields(newFields);
+                        }
+                      }}
+                      className={`w-full pl-8 pr-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        aiFilledFields.has("invoiceAmount")
+                          ? "border-2 border-blue-500 bg-blue-500/10"
+                          : "border border-gray-600"
+                      }`}
                       placeholder="0.00"
                     />
                   </div>
@@ -662,13 +913,26 @@ export default function GlobalUploadModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Vendor
+                    Vendor {aiFilledFields.has("vendor") && (
+                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                    )}
                   </label>
                   <input
                     type="text"
                     value={vendor}
-                    onChange={(e) => setVendor(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => {
+                      setVendor(e.target.value);
+                      if (aiFilledFields.has("vendor")) {
+                        const newFields = new Set(aiFilledFields);
+                        newFields.delete("vendor");
+                        setAiFilledFields(newFields);
+                      }
+                    }}
+                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      aiFilledFields.has("vendor")
+                        ? "border-2 border-blue-500 bg-blue-500/10"
+                        : "border border-gray-600"
+                    }`}
                     placeholder="Vendor name"
                   />
                 </div>

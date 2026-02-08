@@ -10,6 +10,7 @@
 
 import type * as aiAnalytics from "../aiAnalytics.js";
 import type * as aiChatbot from "../aiChatbot.js";
+import type * as aiDocumentAnalysis from "../aiDocumentAnalysis.js";
 import type * as aiDocuments from "../aiDocuments.js";
 import type * as aiParsing from "../aiParsing.js";
 import type * as aiTools from "../aiTools.js";
@@ -86,6 +87,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   aiAnalytics: typeof aiAnalytics;
   aiChatbot: typeof aiChatbot;
+  aiDocumentAnalysis: typeof aiDocumentAnalysis;
   aiDocuments: typeof aiDocuments;
   aiParsing: typeof aiParsing;
   aiTools: typeof aiTools;

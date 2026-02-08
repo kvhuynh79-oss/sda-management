@@ -17,7 +17,9 @@ export type AlertType =
   | "ndis_notification_overdue"
   | "vacancy_notification_overdue"
   | "certification_expiry"
-  | "insurance_expiry";
+  | "insurance_expiry"
+  | "complaint_acknowledgment_overdue"
+  | "new_website_complaint";
 
 export type AlertSeverity = "critical" | "warning" | "info";
 
@@ -382,6 +384,62 @@ export async function generateCertificationExpiryAlerts(
   return alertsCreated;
 }
 
+// Generate alerts for complaint acknowledgment deadlines
+export async function generateComplaintAcknowledgmentAlerts(
+  ctx: MutationCtx,
+  todayStr: string
+): Promise<number> {
+  const complaints = await ctx.db.query("complaints").collect();
+  const now = new Date();
+  let alertsCreated = 0;
+
+  // Get existing active complaint alerts to avoid duplicates
+  const existingAlerts = await ctx.db
+    .query("alerts")
+    .withIndex("by_status_alertType", (q) =>
+      q.eq("status", "active").eq("alertType", "complaint_acknowledgment_overdue")
+    )
+    .collect();
+  const existingTitles = new Set(existingAlerts.map((a) => a.title));
+
+  for (const complaint of complaints) {
+    // Only check unacknowledged complaints in "received" status
+    if (complaint.status !== "received" || complaint.acknowledgedDate) continue;
+
+    const dueDate = complaint.acknowledgmentDueDate
+      ? new Date(complaint.acknowledgmentDueDate)
+      : new Date(new Date(complaint.receivedDate).getTime() + 24 * 60 * 60 * 1000);
+
+    if (now <= dueDate) continue; // Not yet overdue
+
+    const hoursOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60));
+    const refNumber = complaint.referenceNumber || complaint._id;
+    const title = `Complaint ${refNumber} - Acknowledgment Overdue`;
+
+    if (existingTitles.has(title)) continue;
+
+    const categoryLabel = complaint.category.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+    const alertId = await createAlertIfNotExists(ctx, {
+      alertType: "complaint_acknowledgment_overdue",
+      severity: "critical",
+      title,
+      message: `Complaint ${refNumber} (${categoryLabel}) has not been acknowledged. ${hoursOverdue} hours overdue. Complainant: ${complaint.complainantName || "Anonymous"}.`,
+      linkedPropertyId: complaint.propertyId,
+      linkedParticipantId: complaint.participantId,
+      triggerDate: todayStr,
+      dueDate: complaint.acknowledgmentDueDate || dueDate.toISOString(),
+    });
+
+    if (alertId) {
+      alertsCreated++;
+      existingTitles.add(title);
+    }
+  }
+
+  return alertsCreated;
+}
+
 // Run all alert generators
 export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success: boolean; alertsCreated: number }> {
   const { todayStr } = getDateStrings();
@@ -393,6 +451,7 @@ export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success
   alertsCreated += await generateMaintenanceAlerts(ctx, todayStr);
   alertsCreated += await generatePreventativeScheduleAlerts(ctx, todayStr);
   alertsCreated += await generateCertificationExpiryAlerts(ctx, todayStr);
+  alertsCreated += await generateComplaintAcknowledgmentAlerts(ctx, todayStr);
 
   return { success: true, alertsCreated };
 }

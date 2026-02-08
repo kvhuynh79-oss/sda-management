@@ -2392,3 +2392,98 @@ export const autoCreateForIncident = internalMutation({
     return communicationId;
   },
 });
+
+export const autoCreateForComplaint = internalMutation({
+  args: {
+    complaintId: v.id("complaints"),
+    referenceNumber: v.string(),
+    description: v.string(),
+    category: v.string(),
+    severity: v.string(),
+    complainantName: v.string(),
+    propertyId: v.optional(v.id("properties")),
+    participantId: v.optional(v.id("participants")),
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Get the user who created the complaint
+    const user = await ctx.db.get(args.createdBy);
+    if (!user) return;
+
+    const contactName = args.complainantName;
+
+    // Build compliance flags
+    const complianceFlags: ("ndia_reportable" | "requires_documentation" | "time_sensitive" | "escalation_required" | "legal_hold")[] = [
+      "requires_documentation",
+      "time_sensitive",
+    ];
+
+    // Create a new thread for this complaint
+    const threadId = `thread_complaint_${args.complaintId}_${now}`;
+
+    // Truncate description for summary (max 500 chars)
+    const summary = `[Auto-created from complaint] ${args.description.substring(0, 500)}`;
+    const categoryLabel = args.category.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+    // Create the communication entry
+    const communicationId = await ctx.db.insert("communications", {
+      communicationType: "other" as const,
+      direction: "received" as const,
+      communicationDate: new Date().toISOString().split("T")[0],
+      contactType: "other" as const,
+      contactName,
+      subject: `Complaint ${args.referenceNumber}: ${categoryLabel}`,
+      summary,
+      linkedPropertyId: args.propertyId,
+      linkedParticipantId: args.participantId,
+      complianceCategory: "complaint" as const,
+      complianceFlags,
+      createdBy: args.createdBy,
+      isThreadStarter: true,
+      requiresFollowUp: true,
+      isParticipantInvolved: args.participantId != null,
+      threadId,
+      participantId: args.participantId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create thread summary if participant is linked
+    if (args.participantId) {
+      await ctx.db.insert("threadSummaries", {
+        threadId,
+        participantId: args.participantId,
+        startedAt: now,
+        lastActivityAt: now,
+        messageCount: 1,
+        participantNames: [contactName],
+        subject: `Complaint ${args.referenceNumber}: ${categoryLabel}`,
+        previewText: summary.substring(0, 100),
+        hasUnread: true,
+        complianceCategories: ["complaint"],
+        requiresAction: true,
+      });
+    }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "communication",
+      entityId: communicationId,
+      entityName: `Auto-created from complaint: ${args.referenceNumber}`,
+      metadata: JSON.stringify({
+        autoCreated: true,
+        complaintId: args.complaintId,
+        category: args.category,
+        severity: args.severity,
+      }),
+    });
+
+    return communicationId;
+  },
+});

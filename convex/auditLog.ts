@@ -79,6 +79,7 @@ export type AuditEntityType =
   | "ownerPayment"
   | "communication"
   | "task"
+  | "complaint"
   | "system";
 
 // Internal mutation for logging - used by other mutations

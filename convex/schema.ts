@@ -37,6 +37,9 @@ export default defineSchema({
     mfaBackupCodes: v.optional(v.array(v.string())), // Hashed backup codes
     mfaFailedAttempts: v.optional(v.number()), // Rate limiting: failed TOTP attempts
     mfaLockedUntil: v.optional(v.string()), // Rate limiting: lockout expiry ISO date
+    // Login rate limiting fields
+    loginFailedAttempts: v.optional(v.number()), // Failed password attempts
+    loginLockedUntil: v.optional(v.number()), // Lockout expiry timestamp (ms)
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -648,7 +651,10 @@ export default defineSchema({
       v.literal("ndis_notification_overdue"), // Reportable incident notification overdue
       v.literal("vacancy_notification_overdue"), // NDIA vacancy notification overdue (5 business days)
       v.literal("certification_expiry"), // Compliance certification expiring
-      v.literal("insurance_expiry") // Insurance policy expiring
+      v.literal("insurance_expiry"), // Insurance policy expiring
+      // Complaint alerts
+      v.literal("complaint_acknowledgment_overdue"), // Complaint not acknowledged within 24hrs
+      v.literal("new_website_complaint") // New complaint from website
     ),
     severity: v.union(
       v.literal("critical"),
@@ -1701,6 +1707,26 @@ export default defineSchema({
     // Learnings
     systemicIssueIdentified: v.optional(v.boolean()),
     correctiveActionsTaken: v.optional(v.string()),
+    // Compliance reference & intake tracking
+    referenceNumber: v.optional(v.string()), // CMP-20260208-A7X3
+    source: v.optional(v.union(
+      v.literal("website"),
+      v.literal("phone"),
+      v.literal("email"),
+      v.literal("in_person"),
+      v.literal("internal")
+    )),
+    preferredContactMethod: v.optional(v.union(
+      v.literal("email"),
+      v.literal("phone"),
+      v.literal("letter"),
+      v.literal("sms")
+    )),
+    isLocked: v.optional(v.boolean()), // Lock website-submitted records
+    acknowledgmentDueDate: v.optional(v.string()), // ISO date - 24hr from receipt
+    procedurePdfOpenedAt: v.optional(v.number()),
+    procedurePdfOpenedBy: v.optional(v.id("users")),
+    linkedCommunicationId: v.optional(v.id("communications")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1708,7 +1734,10 @@ export default defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_status", ["status"])
     .index("by_category", ["category"])
-    .index("by_severity", ["severity"]),
+    .index("by_severity", ["severity"])
+    .index("by_referenceNumber", ["referenceNumber"])
+    .index("by_source", ["source"])
+    .index("by_acknowledgmentDueDate", ["acknowledgmentDueDate"]),
 
   // ============================================
   // COMMUNICATIONS & TASKS TABLES

@@ -77,6 +77,14 @@ crons.daily(
   internal.complianceCertifications.updateStatuses
 );
 
+// Check for overdue complaint acknowledgments daily at 2 AM UTC
+// Internal 24-hour SLA (exceeds NDIS 5 business day requirement)
+crons.daily(
+  "check-complaint-acknowledgments",
+  { hourUTC: 2, minuteUTC: 0 },
+  internal.complaints.checkOverdueAcknowledgments
+);
+
 // Verify audit log hash chain integrity daily at 3 AM UTC
 // This ensures immutability of audit records for NDIS 7-year retention compliance
 // Any tampering with audit logs will be detected and reported

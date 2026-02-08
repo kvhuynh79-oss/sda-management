@@ -164,7 +164,7 @@ export default function NewPaymentPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Participant Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Participant *
               </label>
               <select
@@ -188,7 +188,7 @@ export default function NewPaymentPage() {
             {selectedParticipant?.currentPlan && (
               <div className="p-4 bg-gray-700 rounded-lg">
                 <p className="text-sm text-gray-300 mb-2">Current Plan Details</p>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Monthly Amount:</span>
                     <span className="text-white ml-2">
@@ -208,7 +208,7 @@ export default function NewPaymentPage() {
 
             {/* Payment Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Payment Date *
               </label>
               <input
@@ -221,9 +221,9 @@ export default function NewPaymentPage() {
             </div>
 
             {/* Payment Period */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Period Start *
                 </label>
                 <input
@@ -237,7 +237,7 @@ export default function NewPaymentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Period End *
                 </label>
                 <input
@@ -253,9 +253,9 @@ export default function NewPaymentPage() {
             </div>
 
             {/* Amounts */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Expected Amount ($) *
                 </label>
                 <input
@@ -270,7 +270,7 @@ export default function NewPaymentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Actual Amount ($) *
                 </label>
                 <input
@@ -308,7 +308,7 @@ export default function NewPaymentPage() {
 
             {/* Payment Source */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Payment Source *
               </label>
               <select
@@ -329,9 +329,9 @@ export default function NewPaymentPage() {
             </div>
 
             {/* Payment Method & Reference */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Payment Method
                 </label>
                 <input
@@ -345,7 +345,7 @@ export default function NewPaymentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Payment Reference
                 </label>
                 <input
@@ -362,7 +362,7 @@ export default function NewPaymentPage() {
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

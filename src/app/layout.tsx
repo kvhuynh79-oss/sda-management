@@ -17,15 +17,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Better Living Solutions",
-    template: "%s | Better Living Solutions",
+    default: "MySDAManager",
+    template: "%s | MySDAManager",
   },
   description: "Specialist Disability Accommodation Property Management System",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "BLS SDA",
+    title: "MySDAManager",
   },
   formatDetection: {
     telephone: true,

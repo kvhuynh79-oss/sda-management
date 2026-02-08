@@ -500,9 +500,9 @@ export default function MaintenanceRequestDetailPage() {
 
           {/* Status & Priority (Edit Mode) */}
           {isEditing && (
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as MaintenanceStatus })}
@@ -519,7 +519,7 @@ export default function MaintenanceRequestDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Priority</label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
@@ -536,7 +536,7 @@ export default function MaintenanceRequestDetailPage() {
 
           {/* Description */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Description</h3>
+            <h3 className="text-sm font-medium text-gray-300 mb-1">Description</h3>
             {isEditing ? (
               <textarea
                 value={formData.description}
@@ -702,7 +702,7 @@ export default function MaintenanceRequestDetailPage() {
           {/* Contractor Details (from accepted quote or manual entry) */}
           <div className="border-t border-gray-700 pt-6 mb-6">
             <h3 className="text-lg font-semibold text-white mb-4">Contractor Information</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-gray-400 text-sm">Contractor Name</p>
                 {isEditing ? (
@@ -735,7 +735,7 @@ export default function MaintenanceRequestDetailPage() {
           {/* Costs */}
           <div className="border-t border-gray-700 pt-6 mb-6">
             <h3 className="text-lg font-semibold text-white mb-4">Costs</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <p className="text-gray-400 text-sm">Quoted Amount</p>
                 {isEditing ? (
@@ -788,7 +788,7 @@ export default function MaintenanceRequestDetailPage() {
           {request.status === "completed" && (
             <div className="border-t border-gray-700 pt-6 mb-6">
               <h3 className="text-lg font-semibold text-white mb-4">Warranty Information</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <p className="text-gray-400 text-sm">Warranty Period</p>
                   <p className="text-white">
@@ -964,7 +964,7 @@ export default function MaintenanceRequestDetailPage() {
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-gray-300 mb-1">Contact Phone</label>
                     <input
@@ -984,7 +984,7 @@ export default function MaintenanceRequestDetailPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-gray-300 mb-1">Quote Amount ($) *</label>
                     <input
@@ -1005,7 +1005,7 @@ export default function MaintenanceRequestDetailPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-gray-300 mb-1">Valid Until</label>
                     <input
@@ -1094,7 +1094,7 @@ export default function MaintenanceRequestDetailPage() {
                     <option value="Other">Other</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-gray-300 mb-1">Actual Cost ($)</label>
                     <input

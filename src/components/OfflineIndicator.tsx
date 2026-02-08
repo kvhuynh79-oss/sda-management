@@ -18,7 +18,7 @@ export function OfflineIndicator() {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="fixed top-0 left-0 right-0 z-50" role="status" aria-live="polite">
       {/* Offline Banner */}
       {!isOnline && (
         <div className="bg-yellow-600 text-white px-4 py-3">

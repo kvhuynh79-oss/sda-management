@@ -404,7 +404,7 @@ function OwnerStep({
       ) : (
         <>
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Owner Type</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Owner Type</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { value: "self", label: "Self (I own it)" },
@@ -430,67 +430,67 @@ function OwnerStep({
           {ownerType !== "self" && (
             <div className="space-y-4">
               {ownerType === "individual" ? (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">First Name</label>
                     <input
                       type="text"
                       value={ownerData.firstName}
                       onChange={(e) => setOwnerData({ ...ownerData, firstName: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Last Name</label>
                     <input
                       type="text"
                       value={ownerData.lastName}
                       onChange={(e) => setOwnerData({ ...ownerData, lastName: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                     />
                   </div>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     {ownerType === "company" ? "Company Name" : "Trust Name"}
                   </label>
                   <input
                     type="text"
                     value={ownerData.companyName}
                     onChange={(e) => setOwnerData({ ...ownerData, companyName: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={ownerData.email}
                   onChange={(e) => setOwnerData({ ...ownerData, email: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
                   <input
                     type="tel"
                     value={ownerData.phone}
                     onChange={(e) => setOwnerData({ ...ownerData, phone: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">ABN (optional)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">ABN (optional)</label>
                   <input
                     type="text"
                     value={ownerData.abn}
                     onChange={(e) => setOwnerData({ ...ownerData, abn: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   />
                 </div>
               </div>
@@ -500,35 +500,35 @@ function OwnerStep({
                 <h4 className="text-sm font-medium text-gray-200 mb-4">Bank Details (for payment distributions)</h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Account Name</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Account Name</label>
                     <input
                       type="text"
                       value={ownerData.bankAccountName}
                       onChange={(e) => setOwnerData({ ...ownerData, bankAccountName: e.target.value })}
                       placeholder="e.g., John Smith or ABC Pty Ltd"
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">BSB</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">BSB</label>
                       <input
                         type="text"
                         value={ownerData.bankBsb}
                         onChange={(e) => setOwnerData({ ...ownerData, bankBsb: e.target.value })}
                         placeholder="e.g., 062-000"
                         maxLength={7}
-                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Account Number</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Account Number</label>
                       <input
                         type="text"
                         value={ownerData.bankAccountNumber}
                         onChange={(e) => setOwnerData({ ...ownerData, bankAccountNumber: e.target.value })}
                         placeholder="e.g., 12345678"
-                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
                       />
                     </div>
                   </div>
@@ -566,7 +566,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-1">
             Property Name (optional)
           </label>
           <input
@@ -574,23 +574,23 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             value={propertyData.propertyName}
             onChange={(e) => setPropertyData({ ...propertyData, propertyName: e.target.value })}
             placeholder="e.g., Sunrise House"
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Street Address *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Street Address *</label>
           <input
             type="text"
             value={propertyData.addressLine1}
             onChange={(e) => setPropertyData({ ...propertyData, addressLine1: e.target.value })}
             required
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-1">
             Address Line 2 (optional)
           </label>
           <input
@@ -598,27 +598,27 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             value={propertyData.addressLine2}
             onChange={(e) => setPropertyData({ ...propertyData, addressLine2: e.target.value })}
             placeholder="Unit, suite, etc."
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Suburb *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Suburb *</label>
             <input
               type="text"
               value={propertyData.suburb}
               onChange={(e) => setPropertyData({ ...propertyData, suburb: e.target.value })}
               required
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">State *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">State *</label>
             <select
               value={propertyData.state}
               onChange={(e) => setPropertyData({ ...propertyData, state: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             >
               {["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"].map((state) => (
                 <option key={state} value={state}>{state}</option>
@@ -626,25 +626,25 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Postcode *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Postcode *</label>
             <input
               type="text"
               value={propertyData.postcode}
               onChange={(e) => setPropertyData({ ...propertyData, postcode: e.target.value })}
               required
               maxLength={4}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
         </div>
 
         {/* Property Status */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Property Status</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Property Status</label>
           <select
             value={propertyData.propertyStatus}
             onChange={(e) => setPropertyData({ ...propertyData, propertyStatus: e.target.value as any })}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           >
             <option value="active">Active (Operational SDA)</option>
             <option value="under_construction">Under Construction</option>
@@ -655,12 +655,12 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
         {/* Conditional fields based on status */}
         {propertyData.propertyStatus === "under_construction" && (
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Expected Completion Date</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Expected Completion Date</label>
             <input
               type="date"
               value={propertyData.expectedCompletionDate}
               onChange={(e) => setPropertyData({ ...propertyData, expectedCompletionDate: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
         )}
@@ -668,7 +668,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
 
         {ownerType !== "self" && (
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Revenue Share % (Investor)
             </label>
             <input
@@ -678,13 +678,13 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
               placeholder="e.g., 80"
               min="0"
               max="100"
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
             />
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-1">
             Management Fee %
           </label>
           <input
@@ -694,18 +694,18 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             placeholder="e.g., 30"
             min="0"
             max="100"
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
           />
           <p className="text-gray-400 text-xs mt-1">% kept as management fee for owner distributions</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Notes (optional)</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Notes (optional)</label>
           <textarea
             value={propertyData.notes}
             onChange={(e) => setPropertyData({ ...propertyData, notes: e.target.value })}
             rows={3}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           />
         </div>
       </div>
@@ -741,7 +741,7 @@ function SilProviderStep({
       <div className="space-y-4">
         {/* SIL Provider Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">SIL Provider *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">SIL Provider *</label>
           <select
             value={propertyData.silProviderId}
             onChange={(e) => {
@@ -755,7 +755,7 @@ function SilProviderStep({
                 silContactEmail: provider?.email || propertyData.silContactEmail,
               });
             }}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           >
             <option value="">Select a SIL Provider...</option>
             {silProviders.map((provider: any) => (
@@ -773,11 +773,11 @@ function SilProviderStep({
 
         {/* Service Scope */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Service Scope *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Service Scope *</label>
           <select
             value={propertyData.silServiceScope}
             onChange={(e) => setPropertyData({ ...propertyData, silServiceScope: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           >
             <option value="maintenance_and_incidents">Maintenance & Incidents</option>
             <option value="maintenance_only">Maintenance Only</option>
@@ -788,23 +788,23 @@ function SilProviderStep({
         </div>
 
         {/* Contract Dates */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Contract Start Date</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Contract Start Date</label>
             <input
               type="date"
               value={propertyData.silContractStartDate}
               onChange={(e) => setPropertyData({ ...propertyData, silContractStartDate: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Contract End Date</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Contract End Date</label>
             <input
               type="date"
               value={propertyData.silContractEndDate}
               onChange={(e) => setPropertyData({ ...propertyData, silContractEndDate: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
             <p className="text-gray-400 text-xs mt-1">Leave blank if ongoing</p>
           </div>
@@ -812,14 +812,14 @@ function SilProviderStep({
 
         {/* Monthly Fee */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Monthly Management Fee ($)</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Monthly Management Fee ($)</label>
           <input
             type="number"
             value={propertyData.silMonthlyFee}
             onChange={(e) => setPropertyData({ ...propertyData, silMonthlyFee: e.target.value })}
             placeholder="e.g., 500"
             min="0"
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
           />
           <p className="text-gray-400 text-xs mt-1">Fee charged to SIL provider for managing this property</p>
         </div>
@@ -829,34 +829,34 @@ function SilProviderStep({
           <h4 className="text-sm font-medium text-gray-200 mb-4">Property Contact at SIL Provider</h4>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Contact Name</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Contact Name</label>
               <input
                 type="text"
                 value={propertyData.silContactName}
                 onChange={(e) => setPropertyData({ ...propertyData, silContactName: e.target.value })}
                 placeholder="Primary contact for this property"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
                 <input
                   type="tel"
                   value={propertyData.silContactPhone}
                   onChange={(e) => setPropertyData({ ...propertyData, silContactPhone: e.target.value })}
                   placeholder="e.g., 0400 000 000"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={propertyData.silContactEmail}
                   onChange={(e) => setPropertyData({ ...propertyData, silContactEmail: e.target.value })}
                   placeholder="contact@provider.com"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
                 />
               </div>
             </div>
@@ -928,8 +928,8 @@ function SilProviderStep({
               ) : (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Owner Type</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Owner Type</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
                         { value: "individual", label: "Individual" },
                         { value: "company", label: "Company" },
@@ -951,7 +951,7 @@ function SilProviderStep({
                   </div>
 
                   {ownerType === "individual" ? (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">First Name</label>
                         <input
@@ -985,7 +985,7 @@ function SilProviderStep({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
                       <input
@@ -1063,9 +1063,9 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Name</label>
                 <input
                   type="text"
                   value={dwelling.dwellingName}
@@ -1074,7 +1074,7 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Type</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Type</label>
                 <select
                   value={dwelling.dwellingType}
                   onChange={(e) => updateDwelling(index, "dwellingType", e.target.value)}
@@ -1087,7 +1087,7 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Bedrooms</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Bedrooms</label>
                 <input
                   type="number"
                   value={dwelling.bedrooms}
@@ -1098,7 +1098,7 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
               </div>
               {!isSilProperty && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Max Participants</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Max Participants</label>
                   <input
                     type="number"
                     value={dwelling.maxParticipants}
@@ -1111,7 +1111,7 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
               {!isSilProperty && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">SDA Design Category</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">SDA Design Category</label>
                     <select
                       value={dwelling.sdaDesignCategory}
                       onChange={(e) => updateDwelling(index, "sdaDesignCategory", e.target.value)}
@@ -1124,7 +1124,7 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Building Type</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Building Type</label>
                     <select
                       value={dwelling.sdaBuildingType}
                       onChange={(e) => updateDwelling(index, "sdaBuildingType", e.target.value)}
@@ -1135,7 +1135,7 @@ function DwellingsStep({ dwellings, addDwelling, removeDwelling, updateDwelling,
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Registration Date</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Registration Date</label>
                     <input
                       type="date"
                       value={dwelling.registrationDate}

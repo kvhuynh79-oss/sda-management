@@ -322,9 +322,9 @@ function NewMaintenanceRequestContent() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Property & Dwelling Selection */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Property *
                 </label>
                 <select
@@ -345,7 +345,7 @@ function NewMaintenanceRequestContent() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Dwelling *
                 </label>
                 <select
@@ -368,9 +368,9 @@ function NewMaintenanceRequestContent() {
             </div>
 
             {/* Request Type & Category */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Request Type *
                 </label>
                 <select
@@ -389,7 +389,7 @@ function NewMaintenanceRequestContent() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Category *
                 </label>
                 <select
@@ -438,7 +438,7 @@ function NewMaintenanceRequestContent() {
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Title *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Title *</label>
               <input
                 type="text"
                 required
@@ -451,7 +451,7 @@ function NewMaintenanceRequestContent() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Description *
               </label>
               <textarea
@@ -465,9 +465,9 @@ function NewMaintenanceRequestContent() {
             </div>
 
             {/* Reported By & Date */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Reported By
                 </label>
                 <input
@@ -479,7 +479,7 @@ function NewMaintenanceRequestContent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Reported Date *
                 </label>
                 <input
@@ -495,9 +495,9 @@ function NewMaintenanceRequestContent() {
             {/* Contractor Details */}
             <div className="border-t border-gray-700 pt-6">
               <h3 className="text-lg font-semibold text-white mb-4">Contractor Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Contractor Name
                   </label>
                   <input
@@ -509,7 +509,7 @@ function NewMaintenanceRequestContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Contractor Contact
                   </label>
                   <input
@@ -524,7 +524,7 @@ function NewMaintenanceRequestContent() {
                 </div>
               </div>
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Quoted Amount ($)
                 </label>
                 <input
@@ -540,7 +540,7 @@ function NewMaintenanceRequestContent() {
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Additional Notes
               </label>
               <textarea

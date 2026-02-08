@@ -555,7 +555,7 @@ export default function InspectionDetailPage() {
                                     {inspection.status !== "completed" && (
                                       <button
                                         onClick={() => handleDeletePhoto(photo._id)}
-                                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                                       >
                                         ✕
                                       </button>
@@ -625,7 +625,7 @@ export default function InspectionDetailPage() {
                     {inspection.status !== "completed" && (
                       <button
                         onClick={() => handleDeletePhoto(photo._id)}
-                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       >
                         ✕
                       </button>
@@ -700,7 +700,7 @@ export default function InspectionDetailPage() {
                   onChange={(e) => setAdditionalComments(e.target.value)}
                   placeholder="Any final observations or recommendations..."
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -742,7 +742,7 @@ export default function InspectionDetailPage() {
                   <select
                     value={newItemCategory}
                     onChange={(e) => setNewItemCategory(e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select a category...</option>
                     {sortedCategories.map((cat) => (
@@ -765,7 +765,7 @@ export default function InspectionDetailPage() {
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
                       placeholder="e.g., Pool Area, Outdoor Furniture..."
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 )}
@@ -780,7 +780,7 @@ export default function InspectionDetailPage() {
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     placeholder="e.g., Check pool pump working..."
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>

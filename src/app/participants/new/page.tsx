@@ -222,100 +222,100 @@ function ParticipantDetailsStep({ data, setData, onNext }: any) {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">NDIS Number *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">NDIS Number *</label>
           <input
             type="text"
             value={data.ndisNumber}
             onChange={(e) => setData({ ...data, ndisNumber: e.target.value })}
             placeholder="e.g., 431234567"
             required
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">First Name *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">First Name *</label>
             <input
               type="text"
               value={data.firstName}
               onChange={(e) => setData({ ...data, firstName: e.target.value })}
               required
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Last Name *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Last Name *</label>
             <input
               type="text"
               value={data.lastName}
               onChange={(e) => setData({ ...data, lastName: e.target.value })}
               required
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Date of Birth</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Date of Birth</label>
             <input
               type="date"
               value={data.dateOfBirth}
               onChange={(e) => setData({ ...data, dateOfBirth: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
             <input
               type="tel"
               value={data.phone}
               onChange={(e) => setData({ ...data, phone: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
           <input
             type="email"
             value={data.email}
             onChange={(e) => setData({ ...data, email: e.target.value })}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           />
         </div>
 
         <div className="border-t border-gray-700 pt-4 mt-4">
           <h4 className="text-lg font-medium text-white mb-4">Emergency Contact</h4>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Name</label>
               <input
                 type="text"
                 value={data.emergencyContactName}
                 onChange={(e) => setData({ ...data, emergencyContactName: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
               <input
                 type="tel"
                 value={data.emergencyContactPhone}
                 onChange={(e) => setData({ ...data, emergencyContactPhone: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Relationship</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Relationship</label>
               <input
                 type="text"
                 value={data.emergencyContactRelation}
                 onChange={(e) => setData({ ...data, emergencyContactRelation: e.target.value })}
                 placeholder="e.g., Parent, Sibling"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
             </div>
           </div>
@@ -325,40 +325,40 @@ function ParticipantDetailsStep({ data, setData, onNext }: any) {
           <h4 className="text-lg font-medium text-white mb-4">Support Details</h4>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">SIL Provider</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">SIL Provider</label>
               <input
                 type="text"
                 value={data.silProviderName}
                 onChange={(e) => setData({ ...data, silProviderName: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Support Coordinator</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Support Coordinator</label>
                 <input
                   type="text"
                   value={data.supportCoordinatorName}
                   onChange={(e) => setData({ ...data, supportCoordinatorName: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">SC Email</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">SC Email</label>
                 <input
                   type="email"
                   value={data.supportCoordinatorEmail}
                   onChange={(e) => setData({ ...data, supportCoordinatorEmail: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">SC Phone</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">SC Phone</label>
                 <input
                   type="tel"
                   value={data.supportCoordinatorPhone}
                   onChange={(e) => setData({ ...data, supportCoordinatorPhone: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 />
               </div>
             </div>
@@ -390,14 +390,14 @@ function DwellingSelectionStep({
 
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Property *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Property *</label>
           <select
             value={selectedPropertyId || ""}
             onChange={(e) => {
               setSelectedPropertyId(e.target.value || null);
               setSelectedDwellingId(null);
             }}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           >
             <option value="">Select a property...</option>
             {properties.map((property: any) => (
@@ -410,7 +410,7 @@ function DwellingSelectionStep({
 
         {selectedPropertyId && dwellings && (
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Dwelling *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Dwelling *</label>
             <div className="space-y-3">
               {dwellings.map((dwelling: any) => {
                 const availableSpaces = dwelling.maxParticipants - dwelling.currentOccupancy;
@@ -458,12 +458,12 @@ function DwellingSelectionStep({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Move-in Date *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Move-in Date *</label>
           <input
             type="date"
             value={moveInDate}
             onChange={(e) => setMoveInDate(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
           />
         </div>
       </div>
@@ -493,47 +493,47 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
       <h3 className="text-xl font-semibold text-white mb-6">NDIS Plan Details</h3>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Plan Start Date *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Plan Start Date *</label>
             <input
               type="date"
               value={data.planStartDate}
               onChange={(e) => setData({ ...data, planStartDate: e.target.value })}
               required
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Plan End Date *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Plan End Date *</label>
             <input
               type="date"
               value={data.planEndDate}
               onChange={(e) => setData({ ...data, planEndDate: e.target.value })}
               required
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">SDA Eligibility Type</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">SDA Eligibility Type</label>
             <select
               value={data.sdaEligibilityType}
               onChange={(e) => setData({ ...data, sdaEligibilityType: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             >
               <option value="standard">Standard</option>
               <option value="higher_needs">Higher Needs</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Design Category</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Design Category</label>
             <select
               value={data.sdaDesignCategory}
               onChange={(e) => setData({ ...data, sdaDesignCategory: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             >
               <option value="improved_liveability">Improved Liveability</option>
               <option value="fully_accessible">Fully Accessible</option>
@@ -543,24 +543,24 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Building Type</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Building Type</label>
             <select
               value={data.sdaBuildingType}
               onChange={(e) => setData({ ...data, sdaBuildingType: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             >
               <option value="new_build">New Build</option>
               <option value="existing">Existing</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Funding Management</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Funding Management</label>
             <select
               value={data.fundingManagementType}
               onChange={(e) => setData({ ...data, fundingManagementType: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
             >
               <option value="ndia_managed">NDIA Managed</option>
               <option value="plan_managed">Plan Managed</option>
@@ -572,9 +572,9 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
         {data.fundingManagementType === "plan_managed" && (
           <div className="bg-gray-700/50 rounded-lg p-4 space-y-4">
             <h4 className="text-white font-medium">Plan Manager Details</h4>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Name</label>
                 <input
                   type="text"
                   value={data.planManagerName}
@@ -583,7 +583,7 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={data.planManagerEmail}
@@ -592,7 +592,7 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
                 <input
                   type="tel"
                   value={data.planManagerPhone}
@@ -606,9 +606,9 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
 
         <div className="border-t border-gray-700 pt-4 mt-4">
           <h4 className="text-lg font-medium text-white mb-4">SDA Funding</h4>
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Monthly SDA Amount ($) *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Monthly SDA Amount ($) *</label>
               <input
                 type="number"
                 value={data.monthlySdaAmount}
@@ -616,23 +616,23 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 placeholder="e.g., 3758.42"
                 step="0.01"
                 required
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
               <p className="text-xs text-gray-400 mt-1">From NDIS plan funding schedule</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Annual Budget ($) *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Annual Budget ($) *</label>
               <input
                 type="number"
                 value={data.annualSdaBudget}
                 onChange={(e) => setData({ ...data, annualSdaBudget: e.target.value })}
                 placeholder="e.g., 45101"
                 required
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Claim Day of Month</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Claim Day of Month</label>
               <input
                 type="number"
                 min="1"
@@ -640,29 +640,29 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
                 value={data.claimDay}
                 onChange={(e) => setData({ ...data, claimDay: e.target.value })}
                 placeholder="e.g., 19"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
               <p className="text-xs text-gray-400 mt-1">Day when claims are due (1-31)</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Rent Contribution ($)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Rent Contribution ($)</label>
               <input
                 type="number"
                 value={data.reasonableRentContribution}
                 onChange={(e) => setData({ ...data, reasonableRentContribution: e.target.value })}
                 placeholder="Optional"
                 step="0.01"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Contribution Frequency</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Contribution Frequency</label>
               <select
                 value={data.rentContributionFrequency}
                 onChange={(e) => setData({ ...data, rentContributionFrequency: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
               >
                 <option value="weekly">Weekly</option>
                 <option value="fortnightly">Fortnightly</option>

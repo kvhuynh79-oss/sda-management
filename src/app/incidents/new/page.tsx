@@ -342,9 +342,9 @@ export default function NewIncidentPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Property & Dwelling */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Property *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Property *</label>
                 <select
                   required
                   value={formData.propertyId}
@@ -368,7 +368,7 @@ export default function NewIncidentPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Dwelling</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Dwelling</label>
                 <select
                   value={formData.dwellingId}
                   onChange={(e) => setFormData({ ...formData, dwellingId: e.target.value })}
@@ -387,7 +387,7 @@ export default function NewIncidentPage() {
 
             {/* Participant (optional) */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Related Participant (optional)
               </label>
               <select
@@ -406,9 +406,9 @@ export default function NewIncidentPage() {
             </div>
 
             {/* Incident Type & Severity */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Incident Type *
                 </label>
                 <select
@@ -475,7 +475,7 @@ export default function NewIncidentPage() {
             {["death", "serious_injury", "unauthorized_restrictive_practice", "sexual_assault", "sexual_misconduct", "staff_assault"].includes(formData.incidentType) && (
               <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">🚨</span>
+                  <svg className="w-7 h-7 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
                   <div>
                     <h4 className="text-red-200 font-semibold">NDIS Reportable Incident - 24 Hour Notification Required</h4>
                     <p className="text-red-300 text-sm mt-1">
@@ -493,7 +493,7 @@ export default function NewIncidentPage() {
             {["abuse_neglect", "unlawful_conduct", "unexplained_injury", "missing_participant"].includes(formData.incidentType) && (
               <div className="p-4 bg-yellow-900/50 border border-yellow-600 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">⚠️</span>
+                  <svg className="w-7 h-7 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
                   <div>
                     <h4 className="text-yellow-200 font-semibold">NDIS Reportable Incident - 5 Business Day Notification Required</h4>
                     <p className="text-yellow-300 text-sm mt-1">
@@ -510,7 +510,7 @@ export default function NewIncidentPage() {
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Title *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Title *</label>
               <input
                 type="text"
                 required
@@ -523,7 +523,7 @@ export default function NewIncidentPage() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Description *</label>
               <textarea
                 required
                 value={formData.description}
@@ -535,9 +535,9 @@ export default function NewIncidentPage() {
             </div>
 
             {/* Date, Time, Location */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Incident Date *
                 </label>
                 <input
@@ -549,7 +549,7 @@ export default function NewIncidentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Incident Time
                 </label>
                 <input
@@ -560,7 +560,7 @@ export default function NewIncidentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Location</label>
                 <input
                   type="text"
                   value={formData.location}
@@ -573,7 +573,7 @@ export default function NewIncidentPage() {
 
             {/* Witnesses */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Witness Names
               </label>
               <input
@@ -587,7 +587,7 @@ export default function NewIncidentPage() {
 
             {/* Immediate Action Taken */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Immediate Action Taken
               </label>
               <textarea
@@ -622,7 +622,7 @@ export default function NewIncidentPage() {
 
                 {formData.followUpRequired && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Follow-up Notes
                     </label>
                     <textarea
@@ -651,7 +651,7 @@ export default function NewIncidentPage() {
 
                 {formData.reportedToNdis && (
                   <div className="w-1/3">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       NDIS Report Date
                     </label>
                     <input

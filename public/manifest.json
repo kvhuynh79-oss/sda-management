@@ -1,7 +1,8 @@
 {
-  "name": "Better Living Solutions - SDA Management",
-  "short_name": "BLS SDA",
+  "name": "MySDAManager - SDA Property Management",
+  "short_name": "MySDAManager",
   "description": "Specialist Disability Accommodation Property Management System",
+  "id": "/dashboard",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#111827",

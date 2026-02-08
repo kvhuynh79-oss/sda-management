@@ -249,7 +249,7 @@ export default function EditPropertyPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-gray-300 text-sm mb-1">Suburb *</label>
                   <input
@@ -385,7 +385,7 @@ export default function EditPropertyPage() {
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-gray-300 text-sm mb-1">BSB</label>
                     <input
@@ -430,7 +430,7 @@ export default function EditPropertyPage() {
                   <div key={dwelling._id} className="bg-gray-700 rounded-lg p-4">
                     <h3 className="text-white font-medium mb-4 bg-blue-900/50 px-3 py-2 rounded">{fullDwellingAddress}</h3>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                       <div>
                         <label className="block text-gray-300 text-sm mb-1">Dwelling Number</label>
                         <input
@@ -501,7 +501,7 @@ export default function EditPropertyPage() {
 
                     {/* SDA-specific fields - only show for non-SIL properties */}
                     {formData.propertyStatus !== "sil_property" && (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-gray-300 text-sm mb-1">SDA Design Category</label>
                           <select

@@ -106,7 +106,7 @@ export default function NewPreventativeSchedulePage() {
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 space-y-6">
           {/* Property Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Property <span className="text-red-400">*</span>
             </label>
             <select
@@ -130,7 +130,7 @@ export default function NewPreventativeSchedulePage() {
           {/* Dwelling Selection (Optional) */}
           {selectedPropertyId && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Dwelling (Optional - leave blank for entire property)
               </label>
               <select
@@ -150,7 +150,7 @@ export default function NewPreventativeSchedulePage() {
 
           {/* Task Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Task Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -165,7 +165,7 @@ export default function NewPreventativeSchedulePage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -177,7 +177,7 @@ export default function NewPreventativeSchedulePage() {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Category <span className="text-red-400">*</span>
             </label>
             <select
@@ -202,9 +202,9 @@ export default function NewPreventativeSchedulePage() {
           </div>
 
           {/* Frequency Type and Interval */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Frequency Type <span className="text-red-400">*</span>
               </label>
               <select
@@ -226,7 +226,7 @@ export default function NewPreventativeSchedulePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Every (Interval) <span className="text-red-400">*</span>
               </label>
               <input
@@ -246,7 +246,7 @@ export default function NewPreventativeSchedulePage() {
 
           {/* Next Due Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Next Due Date <span className="text-red-400">*</span>
             </label>
             <input
@@ -260,7 +260,7 @@ export default function NewPreventativeSchedulePage() {
 
           {/* Estimated Cost */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Estimated Cost</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Estimated Cost</label>
             <input
               type="number"
               step="0.01"
@@ -274,7 +274,7 @@ export default function NewPreventativeSchedulePage() {
 
           {/* Contractor Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Contractor Name
             </label>
             <input
@@ -288,7 +288,7 @@ export default function NewPreventativeSchedulePage() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

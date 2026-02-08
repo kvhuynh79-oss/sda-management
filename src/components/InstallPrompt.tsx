@@ -77,7 +77,7 @@ export default function InstallPrompt() {
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-white font-semibold mb-1">Install BLS SDA App</h3>
+          <h3 className="text-white font-semibold mb-1">Install MySDAManager</h3>
           <p className="text-gray-400 text-sm truncate">
             {isIOS
               ? "Tap share, then 'Add to Home Screen'"

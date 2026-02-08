@@ -44,13 +44,14 @@ function CertificationsContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const certifications = useQuery(api.complianceCertifications.getAll, {
+  const certifications = useQuery(api.complianceCertifications.getAll, user ? {
+    userId: user.id as Id<"users">,
     certificationType: filterType || undefined,
     status: filterStatus || undefined,
     propertyId: filterProperty ? (filterProperty as Id<"properties">) : undefined,
-  });
-  const expiringSoon = useQuery(api.complianceCertifications.getExpiringSoon);
-  const properties = useQuery(api.properties.getAll);
+  } : "skip");
+  const expiringSoon = useQuery(api.complianceCertifications.getExpiringSoon, user ? { userId: user.id as Id<"users"> } : "skip");
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const removeCert = useMutation(api.complianceCertifications.remove);
 
   useEffect(() => {
@@ -65,7 +66,7 @@ function CertificationsContent() {
   }, []);
 
   // Compute stats from the unfiltered data
-  const allCerts = useQuery(api.complianceCertifications.getAll, {});
+  const allCerts = useQuery(api.complianceCertifications.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   const stats = useMemo(() => {
     if (!allCerts) return null;

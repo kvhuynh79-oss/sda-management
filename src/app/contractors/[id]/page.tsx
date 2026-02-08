@@ -39,8 +39,8 @@ export default function ContractorDetailPage() {
     setUserId(user.id as Id<"users">);
   }, [router]);
 
-  const contractor = useQuery(api.contractors.getById, { contractorId });
-  const jobHistory = useQuery(api.contractors.getJobHistory, { contractorId });
+  const contractor = useQuery(api.contractors.getById, userId ? { contractorId, userId } : "skip");
+  const jobHistory = useQuery(api.contractors.getJobHistory, userId ? { contractorId, userId } : "skip");
   const updateContractor = useMutation(api.contractors.update);
 
   if (contractor === undefined) {

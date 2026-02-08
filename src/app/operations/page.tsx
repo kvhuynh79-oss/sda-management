@@ -239,7 +239,7 @@ function OperationsContent() {
         {/* Tab Content */}
         {activeTab === "maintenance" && (
           <div role="tabpanel" id="panel-maintenance" aria-labelledby="tab-maintenance">
-            <MaintenanceTab />
+            <MaintenanceTab userId={user.id} />
           </div>
         )}
         {activeTab === "inspections" && (
@@ -249,7 +249,7 @@ function OperationsContent() {
         )}
         {activeTab === "schedule" && (
           <div role="tabpanel" id="panel-schedule" aria-labelledby="tab-schedule">
-            <ScheduleTab />
+            <ScheduleTab userId={user.id} />
           </div>
         )}
       </main>
@@ -260,14 +260,14 @@ function OperationsContent() {
 // ============================================
 // MAINTENANCE TAB
 // ============================================
-function MaintenanceTab() {
+function MaintenanceTab({ userId }: { userId: string }) {
   const [filterStatus, setFilterStatus] = useState<string>("open");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const allRequests = useQuery(api.maintenanceRequests.getAll);
-  const stats = useQuery(api.maintenanceRequests.getStats);
+  const allRequests = useQuery(api.maintenanceRequests.getAll, { userId: userId as Id<"users"> });
+  const stats = useQuery(api.maintenanceRequests.getStats, { userId: userId as Id<"users"> });
 
   const filteredRequests = useMemo(() => {
     if (!allRequests) return undefined;
@@ -432,8 +432,8 @@ function InspectionsTab({ userId }: { userId: string }) {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: Id<"inspections">; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const inspections = useQuery(api.inspections.getInspections, {});
-  const templates = useQuery(api.inspections.getTemplates, {});
+  const inspections = useQuery(api.inspections.getInspections, { userId: userId as Id<"users"> });
+  const templates = useQuery(api.inspections.getTemplates, { userId: userId as Id<"users"> });
   const seedBLSTemplate = useMutation(api.inspections.seedBLSTemplate);
   const deleteInspection = useMutation(api.inspections.deleteInspection);
 
@@ -611,14 +611,14 @@ function InspectionsTab({ userId }: { userId: string }) {
 // ============================================
 // SCHEDULE TAB
 // ============================================
-function ScheduleTab() {
+function ScheduleTab({ userId }: { userId: string }) {
   const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const allSchedules = useQuery(api.preventativeSchedule.getAll);
-  const stats = useQuery(api.preventativeSchedule.getStats);
+  const allSchedules = useQuery(api.preventativeSchedule.getAll, { userId: userId as Id<"users"> });
+  const stats = useQuery(api.preventativeSchedule.getStats, { userId: userId as Id<"users"> });
   const completeSchedule = useMutation(api.preventativeSchedule.complete);
   const removeSchedule = useMutation(api.preventativeSchedule.remove);
 
@@ -629,6 +629,7 @@ function ScheduleTab() {
 
     try {
       await completeSchedule({
+        userId: userId as Id<"users">,
         scheduleId,
         completedDate: today,
         actualCost: actualCost ? parseFloat(actualCost) : undefined,
@@ -645,7 +646,7 @@ function ScheduleTab() {
     const confirmed = await confirmDialog({ title: "Delete Schedule", message: "Are you sure you want to delete this schedule?", variant: "danger", confirmLabel: "Yes" });
     if (!confirmed) return;
     try {
-      await removeSchedule({ scheduleId });
+      await removeSchedule({ userId: userId as Id<"users">, scheduleId });
     } catch (err) {
       console.error("Failed to delete schedule:", err);
       await alertDialog({ title: "Error", message: "Failed to delete schedule." });

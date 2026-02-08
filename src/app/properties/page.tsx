@@ -9,9 +9,12 @@ import BottomNav from "@/components/BottomNav";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState } from "@/components/ui";
 import { OCCUPANCY_COLORS, PROPERTY_STATUS_COLORS } from "@/constants/colors";
+import { useAuth } from "@/hooks/useAuth";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function PropertiesPage() {
-  const properties = useQuery(api.properties.getAll);
+  const { user } = useAuth();
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   return (
     <RequireAuth>

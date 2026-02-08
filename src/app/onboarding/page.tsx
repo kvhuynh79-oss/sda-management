@@ -78,7 +78,7 @@ export default function OnboardingPage() {
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
-  const allDwellings = useQuery(api.dwellings.getAllWithAddresses);
+  const allDwellings = useQuery(api.dwellings.getAllWithAddresses, user ? { userId: user.id as Id<"users"> } : "skip");
   const providerSettings = useQuery(api.providerSettings.get);
   const rrcCalculation = useQuery(api.providerSettings.calculateRrc);
   const updateRrcRates = useMutation(api.providerSettings.updateRrcRates);

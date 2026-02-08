@@ -339,8 +339,8 @@ function ComplaintDetailContent() {
   }, [router]);
 
   // Queries
-  const complaint = useQuery(api.complaints.getById, { complaintId: id });
-  const chainOfCustody = useQuery(api.complaints.getChainOfCustody, { complaintId: id });
+  const complaint = useQuery(api.complaints.getById, user ? { complaintId: id, userId: user.id as Id<"users"> } : "skip");
+  const chainOfCustody = useQuery(api.complaints.getChainOfCustody, user ? { complaintId: id, userId: user.id as Id<"users"> } : "skip");
   const users = useQuery(
     api.auth.getAllUsers,
     user ? { userId: user.id as Id<"users"> } : "skip"

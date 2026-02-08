@@ -74,7 +74,7 @@ export default function NewCertificationPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const createCertification = useMutation(api.complianceCertifications.create);
 
   const [formData, setFormData] = useState({

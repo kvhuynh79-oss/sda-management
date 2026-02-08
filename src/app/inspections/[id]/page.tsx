@@ -48,8 +48,8 @@ export default function InspectionDetailPage() {
   const generalPhotoRef = useRef<HTMLInputElement>(null);
 
   const inspectionId = params.id as Id<"inspections">;
-  const inspection = useQuery(api.inspections.getInspectionById, { inspectionId });
-  const items = useQuery(api.inspections.getItemsByInspection, { inspectionId });
+  const inspection = useQuery(api.inspections.getInspectionById, user ? { userId: user.id as Id<"users">, inspectionId } : "skip");
+  const items = useQuery(api.inspections.getItemsByInspection, user ? { userId: user.id as Id<"users">, inspectionId } : "skip");
   const generalPhotos = useQuery(api.inspections.getGeneralPhotos, { inspectionId });
 
   const updateItemStatus = useMutation(api.inspections.updateItemStatus);

@@ -32,17 +32,20 @@ export default function MaintenanceRequestDetailPage() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showRequestQuoteModal, setShowRequestQuoteModal] = useState(false);
 
-  const request = useQuery(api.maintenanceRequests.getById, { requestId });
-  const photos = useQuery(api.maintenancePhotos.getByMaintenanceRequest, {
+  const request = useQuery(api.maintenanceRequests.getById, user ? { userId: user.id as Id<"users">, requestId } : "skip");
+  const photos = useQuery(api.maintenancePhotos.getByMaintenanceRequest, user ? {
+    userId: user.id as Id<"users">,
     maintenanceRequestId: requestId,
-  });
-  const quotes = useQuery(api.maintenanceQuotes.getByMaintenanceRequest, {
+  } : "skip");
+  const quotes = useQuery(api.maintenanceQuotes.getByMaintenanceRequest, user ? {
+    userId: user.id as Id<"users">,
     maintenanceRequestId: requestId,
-  });
-  const contractors = useQuery(api.contractors.getAll);
-  const quoteRequests = useQuery(api.quoteRequests.getByMaintenanceRequest, {
+  } : "skip");
+  const contractors = useQuery(api.contractors.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const quoteRequests = useQuery(api.quoteRequests.getByMaintenanceRequest, user ? {
+    userId: user.id as Id<"users">,
     maintenanceRequestId: requestId,
-  });
+  } : "skip");
 
   const updateRequest = useMutation(api.maintenanceRequests.update);
   const completeRequest = useMutation(api.maintenanceRequests.completeRequest);
@@ -308,7 +311,7 @@ export default function MaintenanceRequestDetailPage() {
     });
     if (!confirmed) return;
     try {
-      await acceptQuote({ quoteId });
+      await acceptQuote({ userId: user!.id as Id<"users">, quoteId });
     } catch (err) {
       setError("Failed to accept quote");
     }
@@ -317,7 +320,7 @@ export default function MaintenanceRequestDetailPage() {
   const handleRejectQuote = async (quoteId: Id<"maintenanceQuotes">) => {
     const reason = prompt("Reason for rejection (optional):");
     try {
-      await rejectQuote({ quoteId, rejectionReason: reason || undefined });
+      await rejectQuote({ userId: user!.id as Id<"users">, quoteId, rejectionReason: reason || undefined });
     } catch (err) {
       setError("Failed to reject quote");
     }

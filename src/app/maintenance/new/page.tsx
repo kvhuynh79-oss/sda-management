@@ -24,10 +24,10 @@ function NewMaintenanceRequestContent() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [prefilledFromIncident, setPrefilledFromIncident] = useState(false);
 
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const dwellings = useQuery(
     api.dwellings.getByProperty,
-    selectedPropertyId ? { propertyId: selectedPropertyId as Id<"properties"> } : "skip"
+    selectedPropertyId && user ? { propertyId: selectedPropertyId as Id<"properties">, userId: user.id as Id<"users"> } : "skip"
   );
   const createRequest = useMutation(api.maintenanceRequests.create);
   const generateUploadUrl = useMutation(api.maintenancePhotos.generateUploadUrl);

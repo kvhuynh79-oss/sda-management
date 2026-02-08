@@ -111,7 +111,7 @@ const SDA_TEMPLATES = [
 
 export default function ScheduleTemplatesPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string>("");
   const [selectedDwelling, setSelectedDwelling] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
@@ -119,10 +119,10 @@ export default function ScheduleTemplatesPage() {
   const [selectedTemplates, setSelectedTemplates] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(true);
 
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const dwellings = useQuery(
     api.dwellings.getByProperty,
-    selectedProperty ? { propertyId: selectedProperty as Id<"properties"> } : "skip"
+    selectedProperty && user ? { propertyId: selectedProperty as Id<"properties">, userId: user.id as Id<"users"> } : "skip"
   );
 
   const applyTemplates = useMutation(api.preventativeScheduleTemplates.applySDAComplianceTemplates);
@@ -134,7 +134,11 @@ export default function ScheduleTemplatesPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed._id || parsed.id;
+    if (userId) {
+      setUser({ id: userId, role: parsed.role });
+    }
 
     // Set default start date to today
     const today = new Date().toISOString().split("T")[0];

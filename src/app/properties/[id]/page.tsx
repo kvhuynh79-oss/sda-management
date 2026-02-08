@@ -54,11 +54,12 @@ export default function PropertyDetailPage() {
   const { confirm: confirmDialog } = useConfirmDialog();
 
   const propertyId = params.id as Id<"properties">;
-  const property = useQuery(api.properties.getById, { propertyId });
-  const dwellings = useQuery(api.dwellings.getByProperty, { propertyId });
-  const documents = useQuery(api.documents.getByProperty, { propertyId });
+  const userIdTyped = user ? (user.id as Id<"users">) : undefined;
+  const property = useQuery(api.properties.getById, userIdTyped ? { propertyId, userId: userIdTyped } : "skip");
+  const dwellings = useQuery(api.dwellings.getByProperty, userIdTyped ? { propertyId, userId: userIdTyped } : "skip");
+  const documents = useQuery(api.documents.getByProperty, userIdTyped ? { userId: userIdTyped, propertyId } : "skip");
   const propertyMedia = useQuery(api.propertyMedia.getByProperty, { propertyId });
-  const allSilProviders = useQuery(api.silProviders.getAll, { status: "active" });
+  const allSilProviders = useQuery(api.silProviders.getAll, userIdTyped ? { status: "active", userId: userIdTyped } : "skip");
   const removeDwelling = useMutation(api.dwellings.remove);
   const removeDocument = useMutation(api.documents.remove);
   const linkDwellingProvider = useMutation(api.silProviders.linkDwelling);
@@ -313,7 +314,7 @@ export default function PropertyDetailPage() {
                 variant: "danger",
               });
               if (confirmed) {
-                await removeDocument({ id: docId });
+                await removeDocument({ id: docId, userId: userIdTyped! });
               }
             }}
             userRole={user?.role || ""}
@@ -596,7 +597,7 @@ function DwellingCard({
   // Query allocated providers for this dwelling
   const allocatedProviders = useQuery(
     api.silProviders.getProvidersForDwelling,
-    dwelling?._id ? { dwellingId: dwelling._id as Id<"dwellings"> } : "skip"
+    dwelling?._id && userId ? { dwellingId: dwelling._id as Id<"dwellings">, userId } : "skip"
   );
 
   const getOccupancyColor = () => {

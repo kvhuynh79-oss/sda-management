@@ -2,22 +2,25 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
 import { formatStatus, formatFileSize, formatDate } from "@/utils/format";
+import { useAuth } from "@/hooks/useAuth";
 import GlobalUploadModal from "@/components/GlobalUploadModal";
 
 export default function DocumentsPage() {
+  const { user } = useAuth();
   const [filterType, setFilterType] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  const documents = useQuery(api.documents.getAll);
-  const stats = useQuery(api.documents.getStats);
+  const documents = useQuery(api.documents.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const stats = useQuery(api.documents.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
 
   // Memoize filtered documents
   const filteredDocuments = useMemo(() => {

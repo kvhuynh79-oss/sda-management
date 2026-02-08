@@ -42,12 +42,12 @@ export default function TaskDetailPage() {
     }
   }, []);
 
-  const task = useQuery(api.tasks.getById, { id: taskId as Id<"tasks"> });
+  const task = useQuery(api.tasks.getById, user ? { id: taskId as Id<"tasks">, userId: user.id as Id<"users"> } : "skip");
   const participants = useQuery(
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const users = useQuery(
     api.auth.getAllUsers,
     user ? { userId: user.id as Id<"users"> } : "skip"

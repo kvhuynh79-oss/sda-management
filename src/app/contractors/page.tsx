@@ -50,8 +50,8 @@ export default function ContractorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSpecialty, setFilterSpecialty] = useState<string>("all");
 
-  const contractors = useQuery(api.contractors.getAll);
-  const properties = useQuery(api.properties.getAll);
+  const contractors = useQuery(api.contractors.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const createContractor = useMutation(api.contractors.create);
   const updateContractor = useMutation(api.contractors.update);
   const removeContractor = useMutation(api.contractors.remove);
@@ -216,11 +216,12 @@ export default function ContractorsPage() {
             onSave={async (data) => {
               if (editingContractor) {
                 await updateContractor({
+                  userId: user?.id as Id<"users">,
                   contractorId: editingContractor._id,
                   ...data,
                 });
               } else {
-                await createContractor(data);
+                await createContractor({ userId: user?.id as Id<"users">, ...data });
               }
               setShowAddModal(false);
               setEditingContractor(null);

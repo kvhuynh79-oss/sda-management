@@ -2,18 +2,27 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, CommunicationCard } from "@/components/ui";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function CommunicationsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [contactTypeFilter, setContactTypeFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [user, setUser] = useState<{ id: string } | null>(null);
 
-  const communications = useQuery(api.communications.getAll);
+  useEffect(() => {
+    const storedUser = localStorage.getItem("sda_user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const communications = useQuery(api.communications.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   // Filtered communications
   const filteredCommunications = useMemo(() => {

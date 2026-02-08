@@ -77,9 +77,10 @@ export default function OccupationalTherapistsPage() {
     rating: 0,
   });
 
-  const therapists = useQuery(api.occupationalTherapists.getAll, {
+  const therapists = useQuery(api.occupationalTherapists.getAll, userId ? {
+    userId,
     status: statusFilter === "all" ? undefined : statusFilter,
-  });
+  } : "skip");
   const createTherapist = useMutation(api.occupationalTherapists.create);
   const updateTherapist = useMutation(api.occupationalTherapists.update);
   const removeTherapist = useMutation(api.occupationalTherapists.remove);

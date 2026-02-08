@@ -14,7 +14,7 @@ type ReportTab = "financial" | "compliance" | "operational" | "owner";
 
 export default function ReportsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [activeTab, setActiveTab] = useState<ReportTab>("financial");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -86,10 +86,10 @@ export default function ReportsPage() {
       : {}
   );
   const participantPlanStatus = useQuery(api.reports.getParticipantPlanStatus, { daysAhead: 90 });
-  const certStats = useQuery(api.complianceCertifications.getDashboardStats);
+  const certStats = useQuery(api.complianceCertifications.getDashboardStats, user ? { userId: user.id as Id<"users"> } : "skip");
 
   // Properties for filter
-  const properties = useQuery(api.properties.getAll, {});
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -97,7 +97,8 @@ export default function ReportsPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    setUser({ id: parsed.id || parsed._id, role: parsed.role });
 
     const today = new Date();
     const yearStart = new Date(today.getFullYear(), 0, 1);

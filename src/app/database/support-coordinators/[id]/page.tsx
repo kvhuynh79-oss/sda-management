@@ -30,7 +30,7 @@ export default function SupportCoordinatorDetailPage() {
     setUserId(user.id as Id<"users">);
   }, [router]);
 
-  const coordinator = useQuery(api.supportCoordinators.getById, { coordinatorId });
+  const coordinator = useQuery(api.supportCoordinators.getById, userId ? { coordinatorId, userId } : "skip");
   const allParticipants = useQuery(
     api.participants.getAll,
     userId ? { userId } : "skip"

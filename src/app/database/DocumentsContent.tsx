@@ -7,6 +7,8 @@ import Link from "next/link";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
 import { formatStatus, formatFileSize, formatDate } from "@/utils/format";
 import GlobalUploadModal from "@/components/GlobalUploadModal";
+import { useAuth } from "@/hooks/useAuth";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function DocumentsContent() {
   const [filterType, setFilterType] = useState<string>("all");
@@ -14,8 +16,10 @@ export default function DocumentsContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  const documents = useQuery(api.documents.getAll);
-  const stats = useQuery(api.documents.getStats);
+  const { user } = useAuth();
+  const userId = user ? (user.id as Id<"users">) : undefined;
+  const documents = useQuery(api.documents.getAll, userId ? { userId } : "skip");
+  const stats = useQuery(api.documents.getStats, userId ? { userId } : "skip");
 
   // Memoize filtered documents
   const filteredDocuments = useMemo(() => {

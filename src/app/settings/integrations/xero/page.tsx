@@ -41,7 +41,7 @@ export default function XeroSettingsPage() {
   const connection = useQuery(api.xero.getConnection);
 
   // Get our bank accounts
-  const bankAccounts = useQuery(api.bankAccounts.getAll);
+  const bankAccounts = useQuery(api.bankAccounts.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   // Mutations
   const updateSyncSettings = useMutation(api.xero.updateSyncSettings);

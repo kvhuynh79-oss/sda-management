@@ -19,8 +19,9 @@ export default function EditParticipantPage() {
   const [activeTab, setActiveTab] = useState<"participant" | "plan">("participant");
 
   // Load participant data
-  const participant = useQuery(api.participants.getById, { participantId });
-  const allDwellings = useQuery(api.dwellings.getAllWithAddresses);
+  const userIdTyped = user ? (user.id as Id<"users">) : undefined;
+  const participant = useQuery(api.participants.getById, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
+  const allDwellings = useQuery(api.dwellings.getAllWithAddresses, userIdTyped ? { userId: userIdTyped } : "skip");
 
   const updateParticipant = useMutation(api.participants.update);
   const updatePlan = useMutation(api.participantPlans.update);

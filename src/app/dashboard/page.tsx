@@ -10,18 +10,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { LoadingScreen } from "@/components/ui";
 import { SEVERITY_COLORS } from "@/constants/colors";
 import { formatCurrency } from "@/utils/format";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
-  const properties = useQuery(api.properties.getAll);
-  const alertStats = useQuery(api.alerts.getStats);
-  const scheduleStats = useQuery(api.preventativeSchedule.getStats);
-  const upcomingSchedules = useQuery(api.preventativeSchedule.getUpcoming, { limit: 5 });
-  const overdueSchedules = useQuery(api.preventativeSchedule.getOverdue);
-  const activeAlerts = useQuery(api.alerts.getActive);
-  const taskStats = useQuery(api.tasks.getStats);
-  const upcomingTasks = useQuery(api.tasks.getUpcoming, { days: 7 });
-  const certStats = useQuery(api.complianceCertifications.getDashboardStats);
+  const userId = user ? (user.id as Id<"users">) : undefined;
+  const properties = useQuery(api.properties.getAll, userId ? { userId } : "skip");
+  const alertStats = useQuery(api.alerts.getStats, userId ? { userId } : "skip");
+  const scheduleStats = useQuery(api.preventativeSchedule.getStats, userId ? { userId } : "skip");
+  const upcomingSchedules = useQuery(api.preventativeSchedule.getUpcoming, userId ? { userId, limit: 5 } : "skip");
+  const overdueSchedules = useQuery(api.preventativeSchedule.getOverdue, userId ? { userId } : "skip");
+  const activeAlerts = useQuery(api.alerts.getActive, userId ? { userId } : "skip");
+  const taskStats = useQuery(api.tasks.getStats, userId ? { userId } : "skip");
+  const upcomingTasks = useQuery(api.tasks.getUpcoming, userId ? { userId, days: 7 } : "skip");
+  const certStats = useQuery(api.complianceCertifications.getDashboardStats, userId ? { userId } : "skip");
 
   // Memoize property calculations
   const propertyStats = useMemo(() => {

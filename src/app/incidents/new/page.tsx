@@ -27,10 +27,10 @@ export default function NewIncidentPage() {
   const [isOnline, setIsOnline] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const dwellings = useQuery(
     api.dwellings.getByProperty,
-    selectedPropertyId ? { propertyId: selectedPropertyId as Id<"properties"> } : "skip"
+    selectedPropertyId && user ? { propertyId: selectedPropertyId as Id<"properties">, userId: user.id as Id<"users"> } : "skip"
   );
   const participants = useQuery(
     api.participants.getAll,

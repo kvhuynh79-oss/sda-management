@@ -10,14 +10,14 @@ import { Id } from "../../../convex/_generated/dataModel";
 
 export default function PreventativeSchedulePage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const allSchedules = useQuery(api.preventativeSchedule.getAll);
-  const stats = useQuery(api.preventativeSchedule.getStats);
+  const allSchedules = useQuery(api.preventativeSchedule.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const stats = useQuery(api.preventativeSchedule.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const completeSchedule = useMutation(api.preventativeSchedule.complete);
   const removeSchedule = useMutation(api.preventativeSchedule.remove);
 
@@ -27,7 +27,11 @@ export default function PreventativeSchedulePage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed._id || parsed.id;
+    if (userId) {
+      setUser({ id: userId, role: parsed.role });
+    }
   }, [router]);
 
   const handleComplete = async (scheduleId: Id<"preventativeSchedule">) => {
@@ -37,6 +41,7 @@ export default function PreventativeSchedulePage() {
 
     try {
       await completeSchedule({
+        userId: user!.id as Id<"users">,
         scheduleId,
         completedDate: today,
         actualCost: actualCost ? parseFloat(actualCost) : undefined,
@@ -53,7 +58,7 @@ export default function PreventativeSchedulePage() {
     if (!confirm("Are you sure you want to delete this schedule?")) return;
 
     try {
-      await removeSchedule({ scheduleId });
+      await removeSchedule({ userId: user!.id as Id<"users">, scheduleId });
     } catch (err) {
       console.error("Failed to delete schedule:", err);
       alert("Failed to delete schedule");

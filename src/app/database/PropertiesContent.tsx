@@ -6,9 +6,13 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { LoadingScreen, EmptyState } from "@/components/ui";
 import { OCCUPANCY_COLORS, PROPERTY_STATUS_COLORS } from "@/constants/colors";
+import { useAuth } from "@/hooks/useAuth";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function PropertiesContent() {
-  const properties = useQuery(api.properties.getAll);
+  const { user } = useAuth();
+  const userId = user ? (user.id as Id<"users">) : undefined;
+  const properties = useQuery(api.properties.getAll, userId ? { userId } : "skip");
 
   return (
     <>

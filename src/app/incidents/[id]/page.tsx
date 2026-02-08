@@ -34,7 +34,7 @@ export default function IncidentDetailPage() {
     referenceNumber: "",
   });
 
-  const incident = useQuery(api.incidents.getById, { incidentId });
+  const incident = useQuery(api.incidents.getById, user ? { incidentId, userId: user.id as Id<"users"> } : "skip");
   const updateIncident = useMutation(api.incidents.update);
   const resolveIncident = useMutation(api.incidents.resolve);
   const generateUploadUrl = useMutation(api.incidents.generateUploadUrl);

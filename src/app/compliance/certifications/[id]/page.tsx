@@ -84,7 +84,7 @@ function CertificationDetailContent() {
     setUserRole(user.role || "");
   }, [router]);
 
-  const cert = useQuery(api.complianceCertifications.getById, { certificationId: certId });
+  const cert = useQuery(api.complianceCertifications.getById, userId ? { certificationId: certId, userId } : "skip");
   const updateCert = useMutation(api.complianceCertifications.update);
   const removeCert = useMutation(api.complianceCertifications.remove);
 

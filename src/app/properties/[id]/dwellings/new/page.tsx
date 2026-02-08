@@ -17,7 +17,8 @@ export default function NewDwellingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const property = useQuery(api.properties.getById, { propertyId });
+  const userIdTyped = user ? (user.id as Id<"users">) : undefined;
+  const property = useQuery(api.properties.getById, userIdTyped ? { propertyId, userId: userIdTyped } : "skip");
   const createDwelling = useMutation(api.dwellings.create);
 
   const [formData, setFormData] = useState({

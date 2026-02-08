@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -23,17 +24,17 @@ const TAB_ITEMS: { id: TabType; label: string }[] = [
 ];
 
 function ComplianceContent() {
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedGuide, setExpandedGuide] = useState<"incidents" | "complaints" | "certifications" | null>(null);
   const [showSopOverlay, setShowSopOverlay] = useState(false);
 
-  const certifications = useQuery(api.complianceCertifications.getAll, {});
-  const expiringSoonCerts = useQuery(api.complianceCertifications.getExpiringSoon);
+  const certifications = useQuery(api.complianceCertifications.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const expiringSoonCerts = useQuery(api.complianceCertifications.getExpiringSoon, user ? { userId: user.id as Id<"users"> } : "skip");
   const insurancePolicies = useQuery(api.insurancePolicies.getAll, {});
   const insuranceCoverage = useQuery(api.insurancePolicies.checkRequiredCoverage);
-  const complaintsStats = useQuery(api.complaints.getStats);
-  const incidentStats = useQuery(api.incidents.getStats);
+  const complaintsStats = useQuery(api.complaints.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
+  const incidentStats = useQuery(api.incidents.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");

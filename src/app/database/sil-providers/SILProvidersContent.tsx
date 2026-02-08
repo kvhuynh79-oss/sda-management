@@ -64,9 +64,10 @@ export default function SILProvidersContent() {
     rating: 0,
   });
 
-  const providers = useQuery(api.silProviders.getAll, {
+  const providers = useQuery(api.silProviders.getAll, userId ? {
+    userId,
     status: statusFilter === "all" ? undefined : statusFilter,
-  });
+  } : "skip");
   const createProvider = useMutation(api.silProviders.create);
   const updateProvider = useMutation(api.silProviders.update);
   const removeProvider = useMutation(api.silProviders.remove);

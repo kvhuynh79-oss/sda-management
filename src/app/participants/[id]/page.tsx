@@ -25,8 +25,9 @@ export default function ParticipantDetailPage() {
   const { confirm: confirmDialog } = useConfirmDialog();
 
   const participantId = params.id as Id<"participants">;
-  const participant = useQuery(api.participants.getById, { participantId });
-  const documents = useQuery(api.documents.getByParticipant, { participantId });
+  const userIdTyped = user ? (user.id as Id<"users">) : undefined;
+  const participant = useQuery(api.participants.getById, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
+  const documents = useQuery(api.documents.getByParticipant, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
   const moveInMutation = useMutation(api.participants.moveIn);
   const revertToPendingMutation = useMutation(api.participants.revertToPending);
   const removeDocument = useMutation(api.documents.remove);
@@ -339,7 +340,7 @@ export default function ParticipantDetailPage() {
                   variant: "danger",
                 });
                 if (confirmed) {
-                  await removeDocument({ id: docId });
+                  await removeDocument({ id: docId, userId: user!.id as Id<"users"> });
                 }
               }}
               userRole={user?.role || ""}

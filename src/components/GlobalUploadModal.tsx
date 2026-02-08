@@ -142,7 +142,7 @@ export default function GlobalUploadModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Queries
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const participants = useQuery(
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"

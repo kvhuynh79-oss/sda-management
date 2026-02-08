@@ -6,13 +6,16 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Header from "../../components/Header";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function VacanciesPage() {
+  const { user } = useAuth();
+  const userId = user ? (user.id as Id<"users">) : undefined;
   const [selectedDwellingId, setSelectedDwellingId] = useState<Id<"dwellings"> | null>(null);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
 
   const vacancySummary = useQuery(api.vacancyListings.getSummary);
-  const coordinators = useQuery(api.supportCoordinators.getAll, { status: "active" });
+  const coordinators = useQuery(api.supportCoordinators.getAll, userId ? { status: "active", userId } : "skip");
   const upsertListing = useMutation(api.vacancyListings.upsert);
   const notifyCoordinator = useMutation(api.vacancyListings.notifyCoordinator);
 

@@ -520,15 +520,50 @@ worker/
   - Excluded `worker/` from tsconfig to fix ServiceWorker type conflict
   - Added `complaint_resolution_overdue` alert type to schema
 
-## Next Session: Sprint 0 - Stabilization (Start Here)
+- **Sprint 1 & 2 Complete: Multi-Tenant SaaS Foundation (2026-02-08)** ✓ **CRITICAL MILESTONE**
+  - **Sprint 1 - Organizations Infrastructure**:
+    - Created `organizations` table with plan tiers (starter/professional/enterprise)
+    - Added `organizationId` field to `users` table
+    - Built `convex/organizations.ts` with full CRUD (create, update, getById, getBySlug, getAll, getActive, deactivate, reactivate)
+    - Created `requireTenant()` helper in `authHelpers.ts` - extracts user's organizationId for query scoping
+    - Created `convex/seed.ts` with BLS org creation + user backfill scripts (idempotent)
+    - Built `src/contexts/OrganizationContext.tsx` with `useOrganization` hook - plan limits, feature flags
+    - Wired `OrganizationProvider` into `src/app/layout.tsx` (inside ConvexClientProvider)
+  - **Sprint 2 - Query Refactoring for Tenant Isolation**:
+    - Added `organizationId` field to **49 tables** in schema (all tables except users/orgs)
+    - Added `by_organizationId` indexes to all 49 tables for efficient filtering
+    - Refactored **26 backend files** (18 core + 8 supporting):
+      - **Batch 1 (18 files)**: properties, participants, payments, maintenance, contractors, incidents, documents, alerts, inspections, dwellings, owners, preventative, communications (29 functions!), tasks, complaints, auditLog, certifications, quotes
+      - **Batch 2 (8 files)**: supportCoordinators, silProviders, occupationalTherapists, maintenancePhotos, participantPlans, maintenanceQuotes, bankAccounts, bankTransactions
+    - Updated **210+ queries/mutations** for tenant isolation:
+      - All queries require `userId` parameter and filter by `organizationId` using `by_organizationId` index
+      - All mutations add `organizationId` on insert and verify ownership on update/delete
+      - Applied `requireTenant()` pattern consistently across all backend files
+    - Made `auditLog.organizationId` **optional** for backward compatibility (was required, broke 117 TypeScript errors)
+    - Fixed **destructuring errors** in 5 files (forgot to destructure `{ organizationId }` from `requireTenant()`)
+  - **Architecture Pattern**:
+    - Shared Convex database with row-level isolation via `organizationId`
+    - All queries: `ctx.db.query("table").withIndex("by_organizationId", q => q.eq("organizationId", organizationId))`
+    - Child entities inherit `organizationId` from parent (e.g., maintenancePhotos inherits from maintenanceRequest)
+    - Internal mutations skip tenant checks (e.g., `autoCreateForIncident`, `autoCreateForComplaint`)
+  - **Status**:
+    - ✅ Backend: 100% complete - all 26 backend files tenant-scoped
+    - ⏳ Frontend: Pending - 50-100+ pages need `userId` parameter added to `useQuery` calls (next session)
+    - ✅ Build: Backend compiles clean, Convex schema deployed to dev
+  - **Files Modified**: 35 files (30 backend, schema.ts, authHelpers.ts, OrganizationContext.tsx, layout.tsx, seed.ts)
+  - **Commit**: db8ab40 - "Sprint 1 & 2 Complete: Multi-Tenant SaaS Foundation"
+
+## Next Session: Sprint 2 Frontend + Seed Script (Start Here)
 
 ### Immediate Tasks
-1. **Deploy Convex backend**: `npx convex dev` to push complaints schema + functions to dev
-2. **Test complaints flow**: website intake API, detail page (24hr countdown, checklist, chain of custody, SOP-001)
-3. **Test communications**: soft delete, thread archive, incident auto-link
-4. **Test other features**: MFA, offline inspections, BottomNav, lock screen
-5. **Run full build**: `npm run build` must pass with 0 errors
-6. **Push stable v1.6.0 to production**
+1. **Run seed script**: Execute `seedBlsOrganization` mutation to create BLS org and backfill all users with `organizationId`
+2. **Frontend query updates**: Add `userId` parameter to all `useQuery` calls (50-100+ pages)
+   - Pattern: `useQuery(api.properties.getAll, { userId: user._id })` (user from useAuth)
+   - Most common queries: properties.getAll, participants.getAll, payments.getAll, maintenance.getAll, etc.
+   - Use Backend Architect agent to generate list of affected pages, then Frontend Developer agent to update in batches
+3. **Test tenant isolation**: Create 2nd test organization, verify complete data isolation
+4. **Run full build**: `npm run build` must pass with 0 errors
+5. **Deploy to dev**: `npx convex dev` to deploy updated queries
 
 ### SaaS Transformation Plan (Approved 2026-02-08)
 **Full plan:** `.claude/plans/transient-wobbling-floyd.md`

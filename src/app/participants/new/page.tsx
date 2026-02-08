@@ -57,11 +57,12 @@ export default function NewParticipantPage() {
     notes: "",
   });
 
-  const properties = useQuery(api.properties.getAll);
+  const userIdTyped = user ? (user.id as Id<"users">) : undefined;
+  const properties = useQuery(api.properties.getAll, userIdTyped ? { userId: userIdTyped } : "skip");
   const selectedProperty = properties?.find((p) => p._id === selectedPropertyId);
   const dwellings = useQuery(
     api.dwellings.getByProperty,
-    selectedPropertyId ? { propertyId: selectedPropertyId as any } : "skip"
+    selectedPropertyId && userIdTyped ? { propertyId: selectedPropertyId as any, userId: userIdTyped } : "skip"
   );
 
   const createParticipant = useMutation(api.participants.create);

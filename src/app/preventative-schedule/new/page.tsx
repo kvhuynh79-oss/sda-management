@@ -10,13 +10,13 @@ import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NewPreventativeSchedulePage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
 
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const dwellings = useQuery(
     api.dwellings.getByProperty,
-    selectedPropertyId ? { propertyId: selectedPropertyId as Id<"properties"> } : "skip"
+    selectedPropertyId && user ? { propertyId: selectedPropertyId as Id<"properties">, userId: user.id as Id<"users"> } : "skip"
   );
 
   const createSchedule = useMutation(api.preventativeSchedule.create);
@@ -48,7 +48,11 @@ export default function NewPreventativeSchedulePage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed._id || parsed.id;
+    if (userId) {
+      setUser({ id: userId, role: parsed.role });
+    }
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +65,7 @@ export default function NewPreventativeSchedulePage() {
 
     try {
       await createSchedule({
+        userId: user!.id as Id<"users">,
         propertyId: formData.propertyId as Id<"properties">,
         dwellingId: formData.dwellingId
           ? (formData.dwellingId as Id<"dwellings">)

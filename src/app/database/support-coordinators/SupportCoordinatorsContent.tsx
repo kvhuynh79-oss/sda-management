@@ -55,9 +55,10 @@ export default function SupportCoordinatorsContent() {
     rating: 0,
   });
 
-  const coordinators = useQuery(api.supportCoordinators.getAll, {
+  const coordinators = useQuery(api.supportCoordinators.getAll, userId ? {
+    userId,
     status: statusFilter === "all" ? undefined : statusFilter,
-  });
+  } : "skip");
   const createCoordinator = useMutation(api.supportCoordinators.create);
   const updateCoordinator = useMutation(api.supportCoordinators.update);
   const removeCoordinator = useMutation(api.supportCoordinators.remove);

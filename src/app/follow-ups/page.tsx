@@ -28,9 +28,9 @@ export default function FollowUpsPage() {
     }
   }, []);
 
-  const tasks = useQuery(api.tasks.getAll);
-  const taskStats = useQuery(api.tasks.getStats);
-  const recentCommunications = useQuery(api.communications.getRecent, { limit: 10 });
+  const tasks = useQuery(api.tasks.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const taskStats = useQuery(api.tasks.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
+  const recentCommunications = useQuery(api.communications.getRecent, user ? { userId: user.id as Id<"users">, limit: 10 } : "skip");
   const updateTaskStatus = useMutation(api.tasks.updateStatus);
 
   // Filtered tasks

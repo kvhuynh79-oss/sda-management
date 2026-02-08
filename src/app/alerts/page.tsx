@@ -32,8 +32,8 @@ export default function AlertsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("active");
 
-  const allAlerts = useQuery(api.alerts.getAll);
-  const stats = useQuery(api.alerts.getStats);
+  const allAlerts = useQuery(api.alerts.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const stats = useQuery(api.alerts.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const acknowledgeAlert = useMutation(api.alerts.acknowledge);
   const resolveAlert = useMutation(api.alerts.resolve);
   const dismissAlert = useMutation(api.alerts.dismiss);

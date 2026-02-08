@@ -48,7 +48,7 @@ export default function NewTaskPage() {
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const users = useQuery(
     api.auth.getAllUsers,
     user ? { userId: user.id as Id<"users"> } : "skip"

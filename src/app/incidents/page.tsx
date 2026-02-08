@@ -9,6 +9,8 @@ import BottomNav from "@/components/BottomNav";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState } from "@/components/ui";
 import { formatStatus } from "@/utils/format";
+import { useAuth } from "@/hooks/useAuth";
+import { Id } from "../../../convex/_generated/dataModel";
 
 // Severity badge colors
 const SEVERITY_BADGE_COLORS: Record<string, string> = {
@@ -27,11 +29,13 @@ const INCIDENT_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function IncidentsPage() {
+  const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const incidents = useQuery(api.incidents.getAll, {
+  const incidents = useQuery(api.incidents.getAll, user ? {
+    userId: user.id as Id<"users">,
     status: statusFilter === "all" ? undefined : statusFilter,
-  });
+  } : "skip");
 
   const hasFilters = statusFilter !== "all";
 

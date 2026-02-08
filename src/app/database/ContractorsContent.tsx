@@ -41,8 +41,8 @@ export default function ContractorsContent() {
     }
   }, []);
 
-  const contractors = useQuery(api.contractors.getAll);
-  const properties = useQuery(api.properties.getAll);
+  const contractors = useQuery(api.contractors.getAll, userId ? { userId } : "skip");
+  const properties = useQuery(api.properties.getAll, userId ? { userId } : "skip");
   const createContractor = useMutation(api.contractors.create);
   const updateContractor = useMutation(api.contractors.update);
   const removeContractor = useMutation(api.contractors.remove);

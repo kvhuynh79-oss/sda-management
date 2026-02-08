@@ -31,8 +31,9 @@ export default function EditPropertyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const property = useQuery(api.properties.getById, { propertyId });
-  const silProviders = useQuery(api.silProviders.getAll, { status: "active" });
+  const userIdTyped = user ? (user.id as Id<"users">) : undefined;
+  const property = useQuery(api.properties.getById, userIdTyped ? { propertyId, userId: userIdTyped } : "skip");
+  const silProviders = useQuery(api.silProviders.getAll, userIdTyped ? { status: "active", userId: userIdTyped } : "skip");
   const updateProperty = useMutation(api.properties.update);
   const updateDwelling = useMutation(api.dwellings.update);
   const updateOwner = useMutation(api.owners.update);

@@ -33,7 +33,7 @@ export default function OccupationalTherapistDetailPage() {
     setUserId(user.id as Id<"users">);
   }, [router]);
 
-  const therapist = useQuery(api.occupationalTherapists.getById, { otId });
+  const therapist = useQuery(api.occupationalTherapists.getById, userId ? { otId, userId } : "skip");
   const allParticipants = useQuery(
     api.participants.getAll,
     userId ? { userId } : "skip"

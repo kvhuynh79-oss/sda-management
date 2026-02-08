@@ -54,8 +54,8 @@ export default function NewDocumentPage() {
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
-  const properties = useQuery(api.properties.getAll);
-  const owners = useQuery(api.owners.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const owners = useQuery(api.owners.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const createDocument = useMutation(api.documents.create);
@@ -74,8 +74,8 @@ export default function NewDocumentPage() {
   const [selectedPropertyForDwelling, setSelectedPropertyForDwelling] = useState<string>("");
   const dwellings = useQuery(
     api.dwellings.getByProperty,
-    selectedPropertyForDwelling
-      ? { propertyId: selectedPropertyForDwelling as Id<"properties"> }
+    selectedPropertyForDwelling && user
+      ? { propertyId: selectedPropertyForDwelling as Id<"properties">, userId: user.id as Id<"users"> }
       : "skip"
   );
 

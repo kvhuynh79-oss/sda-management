@@ -67,7 +67,7 @@ export default function NewInsurancePage() {
   const [error, setError] = useState("");
   const [showGuidance, setShowGuidance] = useState(true);
 
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const createPolicy = useMutation(api.insurancePolicies.create);
 
   const [formData, setFormData] = useState({

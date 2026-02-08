@@ -32,7 +32,7 @@ export default function BankAccountsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccountWithStats | null>(null);
 
-  const accounts = useQuery(api.bankAccounts.getAll);
+  const accounts = useQuery(api.bankAccounts.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const createAccount = useMutation(api.bankAccounts.create);
   const updateAccount = useMutation(api.bankAccounts.update);
   const removeAccount = useMutation(api.bankAccounts.remove);

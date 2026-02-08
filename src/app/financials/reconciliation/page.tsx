@@ -41,10 +41,10 @@ function ReconciliationContent() {
   const [showImportModal, setShowImportModal] = useState(showImport);
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
 
-  const accounts = useQuery(api.bankAccounts.getAll);
+  const accounts = useQuery(api.bankAccounts.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const transactions = useQuery(
     api.bankTransactions.getAll,
-    selectedAccountId ? { bankAccountId: selectedAccountId as Id<"bankAccounts"> } : {}
+    user ? { userId: user.id as Id<"users">, ...(selectedAccountId ? { bankAccountId: selectedAccountId as Id<"bankAccounts"> } : {}) } : "skip"
   );
   const xeroConnection = useQuery(api.xero.getConnection);
   const importCSV = useMutation(api.bankTransactions.importCSV);
@@ -85,7 +85,7 @@ function ReconciliationContent() {
   const handleAutoMatch = async () => {
     if (!selectedAccountId) return;
     try {
-      const result = await runAutoMatch({ bankAccountId: selectedAccountId as Id<"bankAccounts"> });
+      const result = await runAutoMatch({ userId: user!.id as Id<"users">, bankAccountId: selectedAccountId as Id<"bankAccounts"> });
       alert(`Auto-matched ${result.matched} transactions`);
     } catch (err) {
       console.error("Auto-match failed:", err);
@@ -125,6 +125,7 @@ function ReconciliationContent() {
     if (selectedTransactions.size === 0) return;
     try {
       await bulkCategorize({
+        userId: user!.id as Id<"users">,
         transactionIds: Array.from(selectedTransactions) as Id<"bankTransactions">[],
         category,
       });
@@ -431,10 +432,11 @@ function ReconciliationContent() {
                       isSelected={selectedTransactions.has(tx._id)}
                       onToggleSelect={() => toggleSelect(tx._id)}
                       onCategorize={async (category) => {
-                        await categorize({ transactionId: tx._id, category });
+                        await categorize({ userId: user!.id as Id<"users">, transactionId: tx._id, category });
                       }}
                       onToggleExclude={async () => {
                         await setExcluded({
+                          userId: user!.id as Id<"users">,
                           transactionId: tx._id,
                           excluded: tx.matchStatus !== "excluded"
                         });
@@ -461,7 +463,7 @@ function ReconciliationContent() {
           accounts={accounts || []}
           selectedAccountId={selectedAccountId}
           onClose={() => setShowImportModal(false)}
-          onImport={importCSV}
+          onImport={(args) => importCSV({ ...args, userId: user!.id as Id<"users"> })}
         />
       )}
     </div>

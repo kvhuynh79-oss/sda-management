@@ -37,8 +37,8 @@ function InspectionsContent() {
     }
   }, []);
 
-  const inspections = useQuery(api.inspections.getInspections, {});
-  const templates = useQuery(api.inspections.getTemplates, {});
+  const inspections = useQuery(api.inspections.getInspections, user ? { userId: user.id as Id<"users"> } : "skip");
+  const templates = useQuery(api.inspections.getTemplates, user ? { userId: user.id as Id<"users"> } : "skip");
   const seedBLSTemplate = useMutation(api.inspections.seedBLSTemplate);
   const deleteInspection = useMutation(api.inspections.deleteInspection);
 

@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 type StakeholderEntityType = "support_coordinator" | "sil_provider" | "occupational_therapist" | "contractor" | "participant";
 
@@ -91,30 +92,32 @@ export default function CommunicationsHistory({
   stakeholderEntityId,
   limit = 10,
 }: CommunicationsHistoryProps) {
+  const { user } = useAuth();
+  const userId = user ? (user.id as Id<"users">) : undefined;
   const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null);
 
   // Conditionally call the right query based on props
   const byParticipant = useQuery(
     api.communications.getByParticipant,
-    participantId ? { participantId } : "skip"
+    participantId && userId ? { participantId, userId } : "skip"
   );
 
   const byProperty = useQuery(
     api.communications.getByProperty,
-    propertyId ? { propertyId } : "skip"
+    propertyId && userId ? { propertyId, userId } : "skip"
   );
 
   const byStakeholder = useQuery(
     api.communications.getByStakeholder,
-    stakeholderEntityType && stakeholderEntityId
-      ? { stakeholderEntityType, stakeholderEntityId, limit }
+    stakeholderEntityType && stakeholderEntityId && userId
+      ? { stakeholderEntityType, stakeholderEntityId, limit, userId }
       : "skip"
   );
 
   // Threaded query for participant pages
   const threadedData = useQuery(
     api.communications.getByParticipantThreaded,
-    participantId ? { participantId } : "skip"
+    participantId && userId ? { participantId, userId } : "skip"
   );
 
   // Use threaded view for participant pages when data is available

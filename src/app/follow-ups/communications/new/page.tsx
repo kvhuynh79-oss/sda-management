@@ -125,26 +125,26 @@ export default function NewCommunicationPage() {
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   // Conditional entity queries - only fire when contact type matches
   const isDbLinkable = DB_LINKABLE_TYPES.includes(formData.contactType as DbLinkableType);
 
   const supportCoordinators = useQuery(
     api.supportCoordinators.getAll,
-    formData.contactType === "support_coordinator" ? { status: "active" } : "skip"
+    user && formData.contactType === "support_coordinator" ? { userId: user.id as Id<"users">, status: "active" } : "skip"
   );
   const silProviders = useQuery(
     api.silProviders.getAll,
-    formData.contactType === "sil_provider" ? { status: "active" } : "skip"
+    user && formData.contactType === "sil_provider" ? { userId: user.id as Id<"users">, status: "active" } : "skip"
   );
   const occupationalTherapists = useQuery(
     api.occupationalTherapists.getAll,
-    formData.contactType === "ot" ? { status: "active" } : "skip"
+    user && formData.contactType === "ot" ? { userId: user.id as Id<"users">, status: "active" } : "skip"
   );
   const contractors = useQuery(
     api.contractors.getAll,
-    formData.contactType === "contractor" ? {} : "skip"
+    user && formData.contactType === "contractor" ? { userId: user.id as Id<"users"> } : "skip"
   );
 
   // Build entity options based on selected contact type

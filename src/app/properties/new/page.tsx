@@ -86,8 +86,9 @@ export default function NewPropertyPage() {
     },
   ]);
 
-  const owners = useQuery(api.owners.getAll);
-  const silProviders = useQuery(api.silProviders.getAll, { status: "active" });
+  const userIdTyped = user ? (user.id as Id<"users">) : undefined;
+  const owners = useQuery(api.owners.getAll, userIdTyped ? { userId: userIdTyped } : "skip");
+  const silProviders = useQuery(api.silProviders.getAll, userIdTyped ? { status: "active", userId: userIdTyped } : "skip");
   const createOwner = useMutation(api.owners.create);
   const createProperty = useMutation(api.properties.create);
   const createDwelling = useMutation(api.dwellings.create);

@@ -10,6 +10,8 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
 import { PRIORITY_COLORS, MAINTENANCE_STATUS_COLORS } from "@/constants/colors";
 import { formatStatus, formatCategory, formatCurrency } from "@/utils/format";
+import { useAuth } from "@/hooks/useAuth";
+import { Id } from "../../../convex/_generated/dataModel";
 
 // Priority badge colors (solid backgrounds for badges)
 const PRIORITY_BADGE_COLORS: Record<string, string> = {
@@ -32,13 +34,14 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
 };
 
 export default function MaintenancePage() {
+  const { user } = useAuth();
   const [filterStatus, setFilterStatus] = useState<string>("open");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const allRequests = useQuery(api.maintenanceRequests.getAll);
-  const stats = useQuery(api.maintenanceRequests.getStats);
+  const allRequests = useQuery(api.maintenanceRequests.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const stats = useQuery(api.maintenanceRequests.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
 
   // Memoize filtered requests
   const filteredRequests = useMemo(() => {

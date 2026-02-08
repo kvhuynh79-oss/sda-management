@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
+import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
 import { RequireAuth } from "../../../components/RequireAuth";
 import { LoadingScreen, StatCard } from "../../../components/ui";
@@ -88,14 +89,14 @@ function ComplaintsRegisterContent() {
   }, [router]);
 
   // Queries
-  const complaintsStats = useQuery(api.complaints.getStats);
+  const complaintsStats = useQuery(api.complaints.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const complaints = useQuery(api.complaints.getAll, user?.id ? {
-    userId: user.id as any,
+    userId: user.id as Id<"users">,
     status: statusFilter || undefined,
     category: categoryFilter || undefined,
     severity: severityFilter || undefined,
   } : "skip");
-  const pendingAck = useQuery(api.complaints.getPendingAcknowledgment);
+  const pendingAck = useQuery(api.complaints.getPendingAcknowledgment, user ? { userId: user.id as Id<"users"> } : "skip");
 
   // Client-side filtering for search text and source (not handled by backend)
   const filteredComplaints = useMemo(() => {

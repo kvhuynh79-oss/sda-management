@@ -44,13 +44,13 @@ export default function CommunicationDetailPage() {
     }
   }, []);
 
-  const communication = useQuery(api.communications.getById, { id: communicationId as Id<"communications"> });
-  const relatedTasks = useQuery(api.tasks.getByCommunication, { communicationId: communicationId as Id<"communications"> });
+  const communication = useQuery(api.communications.getById, user ? { id: communicationId as Id<"communications">, userId: user.id as Id<"users"> } : "skip");
+  const relatedTasks = useQuery(api.tasks.getByCommunication, user ? { communicationId: communicationId as Id<"communications">, userId: user.id as Id<"users"> } : "skip");
   const participants = useQuery(
     api.participants.getAll,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   const updateCommunication = useMutation(api.communications.update);
   const deleteCommunication = useMutation(api.communications.remove);

@@ -23,16 +23,16 @@ export default function NewInspectionPage() {
     preparedBy: "",
   });
 
-  const templates = useQuery(api.inspections.getTemplates, {});
-  const properties = useQuery(api.properties.getAll);
+  const templates = useQuery(api.inspections.getTemplates, user ? { userId: user.id as Id<"users"> } : "skip");
+  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const users = useQuery(
     api.auth.getAllUsers,
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
   const dwellings = useQuery(
     api.dwellings.getByProperty,
-    formData.propertyId
-      ? { propertyId: formData.propertyId as Id<"properties"> }
+    formData.propertyId && user
+      ? { propertyId: formData.propertyId as Id<"properties">, userId: user.id as Id<"users"> }
       : "skip"
   );
 

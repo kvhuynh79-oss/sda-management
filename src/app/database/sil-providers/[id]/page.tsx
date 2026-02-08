@@ -38,7 +38,7 @@ export default function SILProviderDetailPage() {
 
   const provider = useQuery(
     api.silProviders.getFullProviderDetails,
-    providerId ? { providerId } : "skip"
+    providerId && userId ? { providerId, userId } : "skip"
   );
   const allUsers = useQuery(
     api.auth.getAllUsers,

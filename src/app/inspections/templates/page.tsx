@@ -13,7 +13,7 @@ export default function InspectionTemplatesPage() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
 
-  const templates = useQuery(api.inspections.getTemplates, { includeInactive: true });
+  const templates = useQuery(api.inspections.getTemplates, user ? { userId: user.id as Id<"users">, includeInactive: true } : "skip");
   const seedBLSTemplate = useMutation(api.inspections.seedBLSTemplate);
   const updateTemplate = useMutation(api.inspections.updateTemplate);
 

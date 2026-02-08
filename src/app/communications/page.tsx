@@ -77,8 +77,8 @@ function CommunicationsContent() {
   );
 
   // Tasks queries (for Tasks tab)
-  const tasks = useQuery(api.tasks.getAll);
-  const taskStats = useQuery(api.tasks.getStats);
+  const tasks = useQuery(api.tasks.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const taskStats = useQuery(api.tasks.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const updateTaskStatus = useMutation(api.tasks.updateStatus);
 
   // Deleted items (admin only)

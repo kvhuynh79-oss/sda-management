@@ -1043,7 +1043,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
   const ownerPayments = useQuery(api.ownerPayments.getAll, {});
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(api.properties.getAll, { userId: userId as Id<"users"> });
   const participants = useQuery(
     api.participants.getAll,
     { userId: userId as Id<"users"> }

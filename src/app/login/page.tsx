@@ -148,13 +148,14 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <Image
               src="/Logo.jpg"
-              alt="Better Living Solutions"
+              alt="MySDAManager"
               width={280}
               height={80}
               className="rounded object-contain"
               priority
             />
           </div>
+          <h2 className="text-xl font-semibold text-white tracking-wide mb-1">MySDAManager</h2>
           <p className="text-gray-400">
             Specialist Disability Accommodation Portal
           </p>
@@ -322,7 +323,10 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-gray-400 text-sm mt-8">
-          SDA Property Management System
+          MySDAManager - Professional SDA Management
+        </p>
+        <p className="text-center text-gray-500 text-xs mt-2">
+          Your data is stored securely in Australia. Built for NDIS compliance.
         </p>
       </div>
 
@@ -396,8 +400,7 @@ export default function LoginPage() {
             </p>
             <div className="pt-2 p-4 bg-gray-700/50 rounded-lg">
               <p className="text-gray-300 text-sm">
-                <strong>Contact:</strong><br />
-                khen@betterlivingsolutions.com.au
+                Please contact your organization administrator to reset your password.
               </p>
             </div>
             <button

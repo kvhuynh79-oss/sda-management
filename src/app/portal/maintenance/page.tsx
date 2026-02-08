@@ -214,7 +214,7 @@ export default function SILProviderMaintenance() {
             {maintenanceRequests.map((request) => (
               <div
                 key={request._id}
-                className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors"
+                className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:bg-gray-700/80 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">

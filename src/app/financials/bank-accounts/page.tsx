@@ -192,7 +192,7 @@ function AccountCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-colors">
+    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors">
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           <span className={`px-3 py-1 text-white text-xs font-semibold rounded-full ${getBankColor(account.bankName)}`}>

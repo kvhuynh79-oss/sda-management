@@ -279,7 +279,7 @@ function ReconciliationContent() {
         <div className="bg-gray-800 rounded-lg p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Bank Account</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Bank Account</label>
               <select
                 value={selectedAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
@@ -294,7 +294,7 @@ function ReconciliationContent() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Match Status</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Match Status</label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -307,7 +307,7 @@ function ReconciliationContent() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Category</label>
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}

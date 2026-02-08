@@ -132,7 +132,7 @@ export default function NewComplaintPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Complainant Type *
                 </label>
                 <select
@@ -155,7 +155,7 @@ export default function NewComplaintPage() {
               {formData.complainantType !== "anonymous" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Complainant Name
                     </label>
                     <input
@@ -167,7 +167,7 @@ export default function NewComplaintPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Contact Details
                     </label>
                     <input
@@ -186,7 +186,7 @@ export default function NewComplaintPage() {
           {/* Related Participant/Property */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Related Participant (if applicable)
               </label>
               <select
@@ -203,7 +203,7 @@ export default function NewComplaintPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Related Property (if applicable)
               </label>
               <select
@@ -224,7 +224,7 @@ export default function NewComplaintPage() {
           {/* Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Date of Complaint *
               </label>
               <input
@@ -237,7 +237,7 @@ export default function NewComplaintPage() {
               <p className="text-gray-400 text-xs mt-1">When the issue occurred or was raised</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Date Received *
               </label>
               <input
@@ -254,7 +254,7 @@ export default function NewComplaintPage() {
           {/* Category & Severity */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Complaint Category *
               </label>
               <select
@@ -311,7 +311,7 @@ export default function NewComplaintPage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Complaint Description *
             </label>
             <textarea

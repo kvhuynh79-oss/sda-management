@@ -7,14 +7,22 @@ import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import SILProviderHeader from "@/components/SILProviderHeader";
 
+const WrenchIcon = () => <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085" /></svg>;
+const BoltIcon = () => <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>;
+const PlugIcon = () => <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" /></svg>;
+const HomeIcon = () => <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>;
+const TreeIcon = () => <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-6m0 0l-3-3m3 3l3-3m-3-3V3m0 0L9 6m3-3l3 3M6.75 21h10.5" /></svg>;
+const ShieldIcon = () => <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>;
+const HammerIcon = () => <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085" /></svg>;
+
 const CATEGORIES = [
-  { value: "plumbing", label: "Plumbing", icon: "🔧" },
-  { value: "electrical", label: "Electrical", icon: "⚡" },
-  { value: "appliances", label: "Appliances", icon: "🔌" },
-  { value: "building", label: "Building/Structure", icon: "🏠" },
-  { value: "grounds", label: "Grounds/Landscaping", icon: "🌳" },
-  { value: "safety", label: "Safety/Security", icon: "🛡️" },
-  { value: "general", label: "General", icon: "🔨" },
+  { value: "plumbing", label: "Plumbing", icon: <WrenchIcon /> },
+  { value: "electrical", label: "Electrical", icon: <BoltIcon /> },
+  { value: "appliances", label: "Appliances", icon: <PlugIcon /> },
+  { value: "building", label: "Building/Structure", icon: <HomeIcon /> },
+  { value: "grounds", label: "Grounds/Landscaping", icon: <TreeIcon /> },
+  { value: "safety", label: "Safety/Security", icon: <ShieldIcon /> },
+  { value: "general", label: "General", icon: <HammerIcon /> },
 ];
 
 export default function NewMaintenancePage() {
@@ -219,7 +227,7 @@ export default function NewMaintenancePage() {
                       : "bg-gray-700 border-gray-600 text-gray-300 hover:border-gray-500"
                   }`}
                 >
-                  <span className="text-2xl block mb-1">{cat.icon}</span>
+                  <div className="block mb-1">{cat.icon}</div>
                   <span className="text-sm">{cat.label}</span>
                 </button>
               ))}

@@ -125,7 +125,7 @@ export default function AlertsPage() {
             <legend className="sr-only">Filter alerts</legend>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Status
                 </label>
                 <select
@@ -142,7 +142,7 @@ export default function AlertsPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="severity-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="severity-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Severity
                 </label>
                 <select
@@ -158,7 +158,7 @@ export default function AlertsPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="type-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="type-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Type
                 </label>
                 <select
@@ -200,7 +200,7 @@ export default function AlertsPage() {
                   ? "Try adjusting your filters to see more results"
                   : "No active alerts at this time"
               }
-              icon={<span className="text-6xl">🔔</span>}
+              icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>}
               isFiltered={hasFilters}
             />
           ) : (
@@ -281,7 +281,7 @@ function AlertCard({
 
   return (
     <article
-      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors border-l-4 border-l-red-600"
+      className="bg-gray-800 rounded-lg p-6 border border-gray-700 border-l-4 border-l-red-600 hover:bg-gray-700/80 transition-colors"
       role="listitem"
     >
       <div className="flex justify-between items-start">

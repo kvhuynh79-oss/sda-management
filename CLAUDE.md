@@ -421,6 +421,20 @@ src/components/
   - Compliance dashboard: certifications stats card with `getDashboardStats` query
   - Reports page: compliance certifications link card
   - Mobile responsiveness fixes for communications and incidents pages
+- **UI/Brand Polish (2026-02-08)** ✓ **PROFESSIONAL SAAS UPGRADE**
+  - **Font Fix**: Activated Geist Sans font (was loading but overridden by Arial in globals.css)
+  - **Brand Unification**: All metadata updated to "MySDAManager" (layout.tsx title, manifest.json, settings page)
+  - **Login Page**: Added MySDAManager branding, trust footer ("Built for NDIS compliance"), removed internal employee email
+  - **Active Nav Indicator**: Blue underline (`border-b-2 border-blue-500`) on current page in Header
+  - **Emoji → SVG Icons**: Replaced 24 emoji icons across 17 files with proper heroicon SVGs
+  - **Dashboard Sections**: 5 semantic sections with headings (Property Portfolio, Tasks, Operations, Quick Actions, Recent Activity)
+  - **Pulsing Badge Fix**: Replaced `animate-pulse` on 6 status badges with static ring glow effect
+  - **Card Border Standardization**: 14 files updated to consistent `border border-gray-700 hover:bg-gray-700/80`
+  - **Input Padding Standardization**: All form inputs normalized to `px-3 py-2` (matching shared FormInput)
+  - **Label Spacing**: 30 files updated from `mb-2` to `mb-1` on form labels
+  - **Header Margins**: Standardized `mb-8` on all page headers (3 pages had `mb-6`)
+  - **Design Tokens Updated**: `COMPONENT_TOKENS.card.base` aligned with new standard
+  - **Build**: 68 pages, 0 errors
 
 ## Next Session Priorities
 1. **Testing needed:**
@@ -458,6 +472,24 @@ See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for full details.
 - Stripe subscription billing
 - Pricing: $250-600/month (match Re-Leased, but FREE onboarding)
 - **Competitor**: Re-Leased ($7,500 year 1) - same annual, save $2,500 on onboarding
+
+### SaaS UI/Brand Blockers (From Brand & UI Audit - 2026-02-08)
+**Must complete before public SaaS launch:**
+1. **Professional MySDAManager Logo** - SVG format, horizontal + icon-only variants. Current logo is BLS company logo (JPG). PWA icons need regeneration.
+2. **Distinctive Brand Color** - Replace default Tailwind blue-500 with unique color (teal or deep blue recommended). Currently 161 inline `bg-blue-600` instances need migrating to shared Button component.
+3. **Privacy Policy page** (`/privacy`) - Legally required under Australian Privacy Act (APP 1.4)
+4. **Terms of Service page** (`/terms`) - Required for any subscription product
+5. **Security Overview page** (`/security`) - Data residency, encryption, NDIS compliance info
+6. **Public Homepage / Landing page** - mysdamanager.com currently goes straight to login
+7. **Pricing page** (`/pricing`) - 3 tiers with feature comparison ($250-600/month)
+8. **Onboarding Wizard** - First-time tenant setup: organization name, ABN, NDIS provider number, first property
+9. **Stripe Billing Integration** - Subscription self-service, plan management
+10. **Organization Settings** - Separate from user settings: org logo, ABN, NDIS provider number
+11. **Branded Email Templates** - Transactional emails via Resend need product branding
+12. **Navigation Redesign** - Group 14 items into 6 dropdown clusters (Portfolio, Operations, Finance, Compliance, Communications, Admin)
+13. **Shared Button Component Adoption** - Migrate 161 inline button instances across 73 files to shared Button component
+14. **Shared Form Component Migration** - Migrate remaining ~26 inline-form pages to FormInput/FormSelect
+15. **Skeleton Loading States** - Replace spinner-only loading with layout-preserving skeleton cards
 
 ### Key Steps
 1. Register company, ABN, trademark

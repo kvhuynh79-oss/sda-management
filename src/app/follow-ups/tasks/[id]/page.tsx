@@ -209,7 +209,7 @@ export default function TaskDetailPage() {
                 <PriorityBadge priority={task.priority} />
                 <TaskCategoryBadge category={task.category} />
                 {task.isOverdue && (
-                  <span className="px-2 py-0.5 rounded text-xs bg-red-600 text-white animate-pulse">
+                  <span className="px-2 py-0.5 rounded text-xs bg-red-600 text-white font-semibold ring-2 ring-red-500/40 ring-offset-1 ring-offset-gray-800">
                     OVERDUE
                   </span>
                 )}

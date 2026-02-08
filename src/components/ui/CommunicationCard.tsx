@@ -91,7 +91,7 @@ export default function CommunicationCard({ communication, compact = false }: Co
             {/* Attachment indicator */}
             {communication.attachmentFileName && (
               <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
-                <span aria-hidden="true">📎</span>
+                <svg className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                 <span>{communication.attachmentFileName}</span>
               </div>
             )}

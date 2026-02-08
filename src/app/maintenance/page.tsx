@@ -107,7 +107,7 @@ export default function MaintenancePage() {
             <legend className="sr-only">Filter maintenance requests</legend>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-1">
                   Search
                 </label>
                 <input
@@ -120,7 +120,7 @@ export default function MaintenancePage() {
                 />
               </div>
               <div>
-                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Status
                 </label>
                 <select
@@ -142,7 +142,7 @@ export default function MaintenancePage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Priority
                 </label>
                 <select
@@ -159,7 +159,7 @@ export default function MaintenancePage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="category-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="category-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Category
                 </label>
                 <select
@@ -200,7 +200,7 @@ export default function MaintenancePage() {
                   ? "Try adjusting your filters to see more results"
                   : "Start tracking maintenance by logging your first request"
               }
-              icon={<span className="text-6xl">🔧</span>}
+              icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085" /></svg>}
               action={
                 !hasFilters
                   ? {
@@ -231,7 +231,7 @@ function RequestCard({ request }: { request: any }) {
       className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
       role="listitem"
     >
-      <article className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer border border-transparent hover:border-gray-600">
+      <article className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors cursor-pointer">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">

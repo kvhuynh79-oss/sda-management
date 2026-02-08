@@ -211,7 +211,7 @@ export default function NewInsurancePage() {
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 space-y-6">
           {/* Insurance Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Insurance Type *
             </label>
             <select
@@ -254,7 +254,7 @@ export default function NewInsurancePage() {
 
           {/* Policy Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Policy Name *
             </label>
             <input
@@ -270,7 +270,7 @@ export default function NewInsurancePage() {
           {/* Insurer & Policy Number */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Insurer *
               </label>
               <input
@@ -283,7 +283,7 @@ export default function NewInsurancePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Policy Number *
               </label>
               <input
@@ -300,7 +300,7 @@ export default function NewInsurancePage() {
           {/* Coverage & Excess */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Coverage Amount * ($)
               </label>
               <input
@@ -319,7 +319,7 @@ export default function NewInsurancePage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Excess Amount ($)
               </label>
               <input
@@ -335,7 +335,7 @@ export default function NewInsurancePage() {
 
           {/* Scope */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Scope
             </label>
             <div className="flex gap-4">
@@ -363,7 +363,7 @@ export default function NewInsurancePage() {
           {/* Property Selection (if not org-wide) */}
           {!formData.isOrganizationWide && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Property
               </label>
               <select
@@ -384,7 +384,7 @@ export default function NewInsurancePage() {
           {/* Dates */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Start Date *
               </label>
               <input
@@ -396,7 +396,7 @@ export default function NewInsurancePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 End Date *
               </label>
               <input
@@ -408,7 +408,7 @@ export default function NewInsurancePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Renewal Date
               </label>
               <input
@@ -423,7 +423,7 @@ export default function NewInsurancePage() {
           {/* Premium & Payment */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Annual Premium ($)
               </label>
               <input
@@ -437,7 +437,7 @@ export default function NewInsurancePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Payment Frequency
               </label>
               <select
@@ -455,7 +455,7 @@ export default function NewInsurancePage() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Notes
             </label>
             <textarea

@@ -147,7 +147,7 @@ export default function PreventativeSchedulePage() {
         <div className="bg-gray-800 rounded-lg p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Search</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Search</label>
               <input
                 type="text"
                 value={searchTerm}
@@ -157,7 +157,7 @@ export default function PreventativeSchedulePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -171,7 +171,7 @@ export default function PreventativeSchedulePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Category</label>
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
@@ -188,7 +188,7 @@ export default function PreventativeSchedulePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Frequency</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Frequency</label>
               <select
                 value={filterFrequency}
                 onChange={(e) => setFilterFrequency(e.target.value)}
@@ -303,7 +303,7 @@ function ScheduleCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
+    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors">
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
@@ -399,7 +399,7 @@ function ScheduleCard({
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <div className="bg-gray-800 rounded-lg p-12 text-center">
-      <div className="text-gray-400 text-6xl mb-4">📅</div>
+      <div className="flex justify-center mb-4"><svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg></div>
       <h3 className="text-xl font-semibold text-white mb-2">
         {hasFilters ? "No schedules found" : "No preventative schedules yet"}
       </h3>

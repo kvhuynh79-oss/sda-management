@@ -310,7 +310,7 @@ function ComplianceContent() {
                 className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xl" aria-hidden="true">📋</span>
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" /></svg>
                   <span className="text-white font-medium">NDIS Certifications Guide</span>
                 </div>
                 <span className="text-gray-400" aria-hidden="true">{expandedGuide === "certifications" ? "▼" : "▶"}</span>
@@ -545,7 +545,7 @@ function ComplianceContent() {
                 className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xl" aria-hidden="true">📝</span>
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                   <span className="text-white font-medium">NDIS Complaints Handling Guide</span>
                 </div>
                 <span className="text-gray-400" aria-hidden="true">{expandedGuide === "complaints" ? "▼" : "▶"}</span>
@@ -653,7 +653,7 @@ function ComplianceContent() {
                 className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xl" aria-hidden="true">🚨</span>
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
                   <span className="text-white font-medium">NDIS Incident Reporting Guide</span>
                 </div>
                 <span className="text-gray-400" aria-hidden="true">{expandedGuide === "incidents" ? "▼" : "▶"}</span>
@@ -739,7 +739,7 @@ function ComplianceContent() {
                   {incidentStats.ndisReportable.overdue > 0 && (
                     <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg mb-6" role="alert">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl" aria-hidden="true">🚨</span>
+                        <svg className="w-7 h-7 text-red-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
                         <div>
                           <p className="text-red-200 font-semibold">
                             {incidentStats.ndisReportable.overdue} incident{incidentStats.ndisReportable.overdue > 1 ? "s" : ""} overdue for NDIS Commission notification

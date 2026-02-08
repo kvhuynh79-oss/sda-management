@@ -71,9 +71,9 @@ export const COMPONENT_TOKENS = {
   // Card styles
   card: {
     bg: "bg-gray-800",
-    bgHover: "hover:bg-gray-700",
-    border: "border-gray-700",
-    borderHover: "hover:border-gray-600",
+    bgHover: "hover:bg-gray-700/80",
+    border: "border border-gray-700",
+    borderHover: "hover:bg-gray-700/80",
     rounded: "rounded-lg",
     padding: "p-6",
     paddingSm: "p-4",

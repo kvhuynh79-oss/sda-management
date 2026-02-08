@@ -64,176 +64,199 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h2 className="text-2xl font-bold text-white mb-8">Dashboard</h2>
 
-        {/* Property Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Link href="/properties?status=active">
-            <DashboardCard
-              title="Active SDA"
-              value={(propertyStats?.activeSdaCount ?? 0).toString()}
-              subtitle="Operational properties"
-              color="green"
-            />
-          </Link>
-          <Link href="/properties?status=sil_property">
-            <DashboardCard
-              title="SIL Properties"
-              value={(propertyStats?.silPropertyCount ?? 0).toString()}
-              subtitle="SIL managed properties"
-              color="orange"
-            />
-          </Link>
-          <Link href="/properties?status=under_construction">
-            <DashboardCard
-              title="Under Construction"
-              value={(propertyStats?.underConstructionCount ?? 0).toString()}
-              subtitle="Properties being built"
-              color="yellow"
-            />
-          </Link>
-          <Link href="/properties?status=planning">
-            <DashboardCard
-              title="Planning Stage"
-              value={(propertyStats?.planningCount ?? 0).toString()}
-              subtitle="Future developments"
-              color="blue"
-            />
-          </Link>
-        </div>
-
-        {/* General Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Link href="/properties">
-            <DashboardCard
-              title="Total Properties"
-              value={(propertyStats?.totalProperties ?? 0).toString()}
-              subtitle={`${propertyStats?.totalDwellings ?? 0} dwellings total`}
-              color="blue"
-            />
-          </Link>
-          <Link href="/participants">
-            <DashboardCard
-              title="Participants"
-              value={(propertyStats?.totalParticipants ?? 0).toString()}
-              subtitle="Active residents"
-              color="green"
-            />
-          </Link>
-          <Link href="/vacancies">
-            <DashboardCard
-              title="Vacancies"
-              value={(propertyStats?.totalVacancies ?? 0).toString()}
-              subtitle="Available spaces"
-              color="yellow"
-            />
-          </Link>
-          <div>
-            <DashboardCard
-              title="Alerts"
-              value={(alertStats?.active || 0).toString()}
-              subtitle={`${alertStats?.critical || 0} critical`}
-              color="red"
-            />
+        {/* Property Portfolio */}
+        <section className="mb-10" aria-labelledby="section-property-portfolio">
+          <h3 id="section-property-portfolio" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            Property Portfolio
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <Link href="/properties?status=active">
+              <DashboardCard
+                title="Active SDA"
+                value={(propertyStats?.activeSdaCount ?? 0).toString()}
+                subtitle="Operational properties"
+                color="green"
+              />
+            </Link>
+            <Link href="/properties?status=sil_property">
+              <DashboardCard
+                title="SIL Properties"
+                value={(propertyStats?.silPropertyCount ?? 0).toString()}
+                subtitle="SIL managed properties"
+                color="orange"
+              />
+            </Link>
+            <Link href="/properties?status=under_construction">
+              <DashboardCard
+                title="Under Construction"
+                value={(propertyStats?.underConstructionCount ?? 0).toString()}
+                subtitle="Properties being built"
+                color="yellow"
+              />
+            </Link>
+            <Link href="/properties?status=planning">
+              <DashboardCard
+                title="Planning Stage"
+                value={(propertyStats?.planningCount ?? 0).toString()}
+                subtitle="Future developments"
+                color="blue"
+              />
+            </Link>
           </div>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Link href="/properties">
+              <DashboardCard
+                title="Total Properties"
+                value={(propertyStats?.totalProperties ?? 0).toString()}
+                subtitle={`${propertyStats?.totalDwellings ?? 0} dwellings total`}
+                color="blue"
+              />
+            </Link>
+            <Link href="/participants">
+              <DashboardCard
+                title="Participants"
+                value={(propertyStats?.totalParticipants ?? 0).toString()}
+                subtitle="Active residents"
+                color="green"
+              />
+            </Link>
+            <Link href="/vacancies">
+              <DashboardCard
+                title="Vacancies"
+                value={(propertyStats?.totalVacancies ?? 0).toString()}
+                subtitle="Available spaces"
+                color="yellow"
+              />
+            </Link>
+            <div>
+              <DashboardCard
+                title="Alerts"
+                value={(alertStats?.active || 0).toString()}
+                subtitle={`${alertStats?.critical || 0} critical`}
+                color="red"
+              />
+            </div>
+          </div>
+        </section>
 
-        {/* Task Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Link href="/follow-ups">
-            <DashboardCard
-              title="Open Tasks"
-              value={(taskStats?.open || 0).toString()}
-              subtitle="Pending follow-ups"
-              color="blue"
-            />
-          </Link>
-          <Link href="/follow-ups?status=pending">
-            <DashboardCard
-              title="Overdue Tasks"
-              value={(taskStats?.overdue || 0).toString()}
-              subtitle="Need attention"
-              color={taskStats?.overdue && taskStats.overdue > 0 ? "red" : "green"}
-            />
-          </Link>
-          <Link href="/follow-ups?priority=urgent">
-            <DashboardCard
-              title="Urgent Tasks"
-              value={(taskStats?.byPriority?.urgent || 0).toString()}
-              subtitle="High priority items"
-              color={taskStats?.byPriority?.urgent && taskStats.byPriority.urgent > 0 ? "orange" : "green"}
-            />
-          </Link>
-          <Link href="/follow-ups?category=funding">
-            <DashboardCard
-              title="Funding Tasks"
-              value={(taskStats?.byCategory?.funding || 0).toString()}
-              subtitle="Funding follow-ups"
-              color="yellow"
-            />
-          </Link>
-        </div>
+        {/* Tasks & Follow-ups */}
+        <section className="mb-10" aria-labelledby="section-tasks">
+          <h3 id="section-tasks" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            Tasks & Follow-ups
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Link href="/follow-ups">
+              <DashboardCard
+                title="Open Tasks"
+                value={(taskStats?.open || 0).toString()}
+                subtitle="Pending follow-ups"
+                color="blue"
+              />
+            </Link>
+            <Link href="/follow-ups?status=pending">
+              <DashboardCard
+                title="Overdue Tasks"
+                value={(taskStats?.overdue || 0).toString()}
+                subtitle="Need attention"
+                color={taskStats?.overdue && taskStats.overdue > 0 ? "red" : "green"}
+              />
+            </Link>
+            <Link href="/follow-ups?priority=urgent">
+              <DashboardCard
+                title="Urgent Tasks"
+                value={(taskStats?.byPriority?.urgent || 0).toString()}
+                subtitle="High priority items"
+                color={taskStats?.byPriority?.urgent && taskStats.byPriority.urgent > 0 ? "orange" : "green"}
+              />
+            </Link>
+            <Link href="/follow-ups?category=funding">
+              <DashboardCard
+                title="Funding Tasks"
+                value={(taskStats?.byCategory?.funding || 0).toString()}
+                subtitle="Funding follow-ups"
+                color="yellow"
+              />
+            </Link>
+          </div>
+        </section>
 
-        {/* Preventative Maintenance Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Link href="/operations?tab=schedule">
-            <DashboardCard
-              title="Overdue Maintenance"
-              value={(scheduleStats?.overdue || 0).toString()}
-              subtitle="Requires immediate attention"
-              color="red"
-            />
-          </Link>
-          <Link href="/operations?tab=schedule">
-            <DashboardCard
-              title="Due Within 7 Days"
-              value={scheduleCalcs.dueWithin7Days.toString()}
-              subtitle="Upcoming scheduled tasks"
-              color="yellow"
-            />
-          </Link>
-          <Link href="/operations?tab=schedule">
-            <DashboardCard
-              title="Due Within 30 Days"
-              value={(scheduleStats?.dueWithin30Days || 0).toString()}
-              subtitle={`Est. ${formatCurrency(scheduleCalcs.estimatedCost30Days)}`}
-              color="blue"
-            />
-          </Link>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-gray-800 rounded-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link href="/participants/new">
-              <QuickActionButton label="Add Participant" />
-            </Link>
-            <Link href="/properties/new">
-              <QuickActionButton label="Add Property" />
-            </Link>
-            <Link href="/maintenance/new">
-              <QuickActionButton label="Log Maintenance" />
-            </Link>
-            <Link href="/financials?tab=claims">
-              <QuickActionButton label="View Claims" />
-            </Link>
-            <Link href="/documents/new">
-              <QuickActionButton label="Upload Document" />
+        {/* Operations */}
+        <section className="mb-10" aria-labelledby="section-operations">
+          <h3 id="section-operations" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            Operations
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link href="/operations?tab=schedule">
+              <DashboardCard
+                title="Overdue Maintenance"
+                value={(scheduleStats?.overdue || 0).toString()}
+                subtitle="Requires immediate attention"
+                color="red"
+              />
             </Link>
             <Link href="/operations?tab=schedule">
-              <QuickActionButton label="View Schedule" />
+              <DashboardCard
+                title="Due Within 7 Days"
+                value={scheduleCalcs.dueWithin7Days.toString()}
+                subtitle="Upcoming scheduled tasks"
+                color="yellow"
+              />
             </Link>
-            <Link href="/follow-ups/tasks/new">
-              <QuickActionButton label="New Task" />
-            </Link>
-            <Link href="/follow-ups/communications/new">
-              <QuickActionButton label="Log Communication" />
+            <Link href="/operations?tab=schedule">
+              <DashboardCard
+                title="Due Within 30 Days"
+                value={(scheduleStats?.dueWithin30Days || 0).toString()}
+                subtitle={`Est. ${formatCurrency(scheduleCalcs.estimatedCost30Days)}`}
+                color="blue"
+              />
             </Link>
           </div>
-        </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="mb-10" aria-labelledby="section-quick-actions">
+          <h3 id="section-quick-actions" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            Quick Actions
+          </h3>
+          <div className="bg-gray-800 rounded-lg p-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Link href="/participants/new">
+                <QuickActionButton label="Add Participant" />
+              </Link>
+              <Link href="/properties/new">
+                <QuickActionButton label="Add Property" />
+              </Link>
+              <Link href="/maintenance/new">
+                <QuickActionButton label="Log Maintenance" />
+              </Link>
+              <Link href="/financials?tab=claims">
+                <QuickActionButton label="View Claims" />
+              </Link>
+              <Link href="/documents/new">
+                <QuickActionButton label="Upload Document" />
+              </Link>
+              <Link href="/operations?tab=schedule">
+                <QuickActionButton label="View Schedule" />
+              </Link>
+              <Link href="/follow-ups/tasks/new">
+                <QuickActionButton label="New Task" />
+              </Link>
+              <Link href="/follow-ups/communications/new">
+                <QuickActionButton label="Log Communication" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Recent Activity */}
+        <section className="mb-10" aria-labelledby="section-recent-activity">
+          <h3 id="section-recent-activity" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+            Recent Activity
+          </h3>
 
         {/* Upcoming Tasks */}
         {upcomingTasks && upcomingTasks.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Upcoming Tasks</h3>
               <Link href="/follow-ups" className="text-blue-400 hover:text-blue-300 text-sm">
@@ -266,7 +289,7 @@ export default function DashboardPage() {
                             {task.priority.toUpperCase()}
                           </span>
                           {task.isOverdue && (
-                            <span className="px-2 py-1 text-white text-xs rounded-full bg-red-600 animate-pulse">
+                            <span className="px-2 py-1 text-white text-xs rounded-full bg-red-600 font-semibold ring-2 ring-red-500/40 ring-offset-1 ring-offset-gray-800">
                               OVERDUE
                             </span>
                           )}
@@ -289,7 +312,7 @@ export default function DashboardPage() {
 
         {/* Upcoming Preventative Maintenance */}
         {upcomingSchedules && upcomingSchedules.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Upcoming Preventative Maintenance</h3>
               <Link href="/operations?tab=schedule" className="text-blue-400 hover:text-blue-300 text-sm">
@@ -341,7 +364,7 @@ export default function DashboardPage() {
 
         {/* Recent Properties */}
         {properties && properties.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Recent Properties</h3>
               <Link href="/properties" className="text-blue-400 hover:text-blue-300 text-sm">
@@ -375,7 +398,7 @@ export default function DashboardPage() {
 
         {/* Compliance Certifications */}
         {certStats && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Compliance Certifications</h3>
               <Link href="/compliance/certifications" className="text-blue-400 hover:text-blue-300 text-sm">
@@ -454,6 +477,7 @@ export default function DashboardPage() {
             <div className="text-gray-400 text-center py-8">No alerts at this time</div>
           )}
         </div>
+        </section>
       </main>
     </div>
   );
@@ -479,7 +503,7 @@ function DashboardCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors cursor-pointer">
+    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors cursor-pointer">
       <div className="flex items-center justify-between mb-4">
         <span className="text-gray-400 text-sm">{title}</span>
         <div className={`w-3 h-3 rounded-full ${colorClasses[color]}`} />

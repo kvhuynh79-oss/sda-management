@@ -494,7 +494,7 @@ export default function IncidentDetailPage() {
           {isEditing && (
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as IncidentStatus })}
@@ -507,7 +507,7 @@ export default function IncidentDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Severity</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Severity</label>
                 <select
                   value={formData.severity}
                   onChange={(e) => setFormData({ ...formData, severity: e.target.value as any })}
@@ -524,7 +524,7 @@ export default function IncidentDetailPage() {
 
           {/* Description */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Description</h3>
+            <h3 className="text-sm font-medium text-gray-300 mb-1">Description</h3>
             {isEditing ? (
               <textarea
                 value={formData.description}
@@ -595,7 +595,7 @@ export default function IncidentDetailPage() {
 
           {/* Immediate Action */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Immediate Action Taken</h3>
+            <h3 className="text-sm font-medium text-gray-300 mb-1">Immediate Action Taken</h3>
             {isEditing ? (
               <textarea
                 value={formData.immediateActionTaken}
@@ -818,7 +818,7 @@ export default function IncidentDetailPage() {
                 {(incident as any).ndisCommissionNotified ? (
                   <div className="p-4 bg-green-900/50 border border-green-600 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">✓</span>
+                      <svg className="w-7 h-7 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       <div>
                         <h4 className="text-green-200 font-semibold">NDIS Commission Notified</h4>
                         <p className="text-green-300 text-sm">
@@ -831,9 +831,9 @@ export default function IncidentDetailPage() {
                     </div>
                   </div>
                 ) : (incident as any).ndisNotificationOverdue ? (
-                  <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg animate-pulse">
+                  <div className="p-4 bg-red-900/50 border-2 border-red-600 rounded-lg ring-2 ring-red-500/40 ring-offset-1 ring-offset-gray-800">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">🚨</span>
+                      <svg className="w-7 h-7 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
                       <div>
                         <h4 className="text-red-200 font-semibold">NOTIFICATION OVERDUE</h4>
                         <p className="text-red-300 text-sm">
@@ -850,7 +850,9 @@ export default function IncidentDetailPage() {
                       : "bg-yellow-900/50 border border-yellow-600"
                   }`}>
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{(incident as any).ndisNotificationTimeframe === "24_hours" ? "🚨" : "⚠️"}</span>
+                      {(incident as any).ndisNotificationTimeframe === "24_hours"
+                        ? <svg className="w-7 h-7 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                        : <svg className="w-7 h-7 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>}
                       <div>
                         <h4 className={`font-semibold ${
                           (incident as any).ndisNotificationTimeframe === "24_hours" ? "text-red-200" : "text-yellow-200"

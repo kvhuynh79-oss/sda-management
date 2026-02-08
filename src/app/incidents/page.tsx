@@ -41,7 +41,7 @@ export default function IncidentsPage() {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-white">Incident Reports</h1>
               <p className="text-gray-400 mt-1 text-sm sm:text-base">Track and manage incident reports</p>
@@ -97,7 +97,7 @@ export default function IncidentsPage() {
                   ? "Try selecting a different status filter"
                   : "Use the button above to report a new incident"
               }
-              icon={<span className="text-6xl">📋</span>}
+              icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>}
               action={
                 !hasFilters
                   ? {
@@ -124,7 +124,7 @@ export default function IncidentsPage() {
 function IncidentCard({ incident }: { incident: any }) {
   return (
     <article
-      className="bg-gray-800 rounded-lg p-4 sm:p-6 hover:bg-gray-700 transition-colors"
+      className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors"
       role="listitem"
     >
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
@@ -147,7 +147,7 @@ function IncidentCard({ incident }: { incident: any }) {
             {incident.isNdisReportable && (
               <>
                 {incident.ndisNotificationOverdue ? (
-                  <span className="px-2 py-1 rounded text-xs bg-red-600 text-white animate-pulse">
+                  <span className="px-2 py-1 rounded text-xs bg-red-600 text-white font-semibold ring-2 ring-red-500/40 ring-offset-1 ring-offset-gray-800">
                     NDIS OVERDUE
                   </span>
                 ) : incident.ndisCommissionNotified ? (

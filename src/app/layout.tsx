@@ -4,6 +4,7 @@ import "./globals.css";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ConfirmDialogProvider } from "@/components/ui/ConfirmDialog";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,7 +63,9 @@ export default function RootLayout({
       >
         <ConvexClientProvider>
           <ThemeProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+            </ToastProvider>
           </ThemeProvider>
         </ConvexClientProvider>
       </body>

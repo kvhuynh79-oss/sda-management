@@ -1972,7 +1972,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
                 <div key={property._id} className="bg-gray-800 rounded-lg overflow-hidden border border-yellow-600/30">
                   <div className="bg-gray-700 px-4 py-3 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full ring-2 ring-yellow-500/40 ring-offset-1 ring-offset-gray-700" />
                       <div>
                         <h4 className="text-white font-medium">{propertyName}</h4>
                         <p className="text-gray-400 text-sm">

@@ -134,7 +134,7 @@ export default function Header({ currentPage }: HeaderProps) {
             aria-current={currentPage === item.key ? "page" : undefined}
             className={`whitespace-nowrap text-sm flex-shrink-0 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1 ${
               currentPage === item.key
-                ? "text-white font-medium"
+                ? "text-white font-medium border-b-2 border-blue-500 pb-1"
                 : "text-gray-400 hover:text-white transition-colors"
             }`}
           >

@@ -1340,7 +1340,7 @@ export default function OnboardingPage() {
 
           {/* Participant Selection */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Select Participant</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Select Participant</label>
             <select
               value={selectedParticipantId}
               onChange={(e) => setSelectedParticipantId(e.target.value)}
@@ -1357,7 +1357,7 @@ export default function OnboardingPage() {
 
           {/* Dwelling Selection for Accommodation Agreement */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Select Dwelling (for Accommodation Agreement)
             </label>
             <select
@@ -1382,7 +1382,7 @@ export default function OnboardingPage() {
 
           {/* Proposed Move-in Date */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Proposed Move-in Date
             </label>
             <input

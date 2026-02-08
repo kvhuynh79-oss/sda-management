@@ -407,7 +407,7 @@ export default function CommunicationDetailPage() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
                 >
-                  <span className="text-2xl">📎</span>
+                  <svg className="w-6 h-6 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                   <div>
                     <p className="text-white font-medium">{communication.attachmentFileName}</p>
                     <p className="text-gray-400 text-sm">Click to download</p>

@@ -195,7 +195,7 @@ export default function NewCertificationPage() {
         <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 space-y-6">
           {/* Certification Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Certification Type *
             </label>
             <select
@@ -243,7 +243,7 @@ export default function NewCertificationPage() {
 
           {/* Certification Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Certification Name *
             </label>
             <input
@@ -258,7 +258,7 @@ export default function NewCertificationPage() {
 
           {/* Scope */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Scope
             </label>
             <div className="flex gap-4">
@@ -286,7 +286,7 @@ export default function NewCertificationPage() {
           {/* Property Selection (if not org-wide) */}
           {!formData.isOrganizationWide && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Property
               </label>
               <select
@@ -307,7 +307,7 @@ export default function NewCertificationPage() {
           {/* Certifying Body & Certificate Number */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Certifying Body
               </label>
               <input
@@ -319,7 +319,7 @@ export default function NewCertificationPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Certificate Number
               </label>
               <input
@@ -335,7 +335,7 @@ export default function NewCertificationPage() {
           {/* Issue & Expiry Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Issue Date *
               </label>
               <input
@@ -347,7 +347,7 @@ export default function NewCertificationPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Expiry Date *
               </label>
               <input
@@ -365,7 +365,7 @@ export default function NewCertificationPage() {
             <h3 className="text-lg font-medium text-white mb-4">Audit Information (Optional)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Last Audit Date
                 </label>
                 <input
@@ -376,7 +376,7 @@ export default function NewCertificationPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Next Audit Date
                 </label>
                 <input
@@ -387,7 +387,7 @@ export default function NewCertificationPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Auditor Name
                 </label>
                 <input
@@ -399,7 +399,7 @@ export default function NewCertificationPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Audit Outcome
                 </label>
                 <select
@@ -419,7 +419,7 @@ export default function NewCertificationPage() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Notes
             </label>
             <textarea

@@ -73,7 +73,7 @@ export default function DocumentsPage() {
             <legend className="sr-only">Filter documents</legend>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-1">
                   Search
                 </label>
                 <input
@@ -86,7 +86,7 @@ export default function DocumentsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="type-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="type-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Document Type
                 </label>
                 <select
@@ -106,7 +106,7 @@ export default function DocumentsPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="category-filter" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="category-filter" className="block text-sm font-medium text-gray-300 mb-1">
                   Category
                 </label>
                 <select
@@ -144,7 +144,7 @@ export default function DocumentsPage() {
                   ? "Try adjusting your filters to see more results"
                   : "Start organizing by uploading your first document"
               }
-              icon={<span className="text-6xl">📄</span>}
+              icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
               action={
                 !hasFilters
                   ? {
@@ -219,7 +219,7 @@ function DocumentCard({ document }: { document: any }) {
 
   return (
     <article
-      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors"
+      className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors"
       role="listitem"
     >
       <div className="flex justify-between items-start">

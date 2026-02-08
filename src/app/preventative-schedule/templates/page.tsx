@@ -236,7 +236,7 @@ export default function ScheduleTemplatesPage() {
           <h3 className="text-lg font-semibold text-white mb-4">Property & Configuration</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Property <span className="text-red-400">*</span>
               </label>
               <select
@@ -259,7 +259,7 @@ export default function ScheduleTemplatesPage() {
 
             {selectedProperty && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Dwelling (Optional)
                 </label>
                 <select
@@ -278,7 +278,7 @@ export default function ScheduleTemplatesPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Start Date <span className="text-red-400">*</span>
               </label>
               <input
@@ -291,7 +291,7 @@ export default function ScheduleTemplatesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Default Contractor (Optional)
               </label>
               <input

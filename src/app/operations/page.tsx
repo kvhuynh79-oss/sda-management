@@ -393,7 +393,7 @@ function MaintenanceCard({ request }: { request: any }) {
   return (
     <Link
       href={`/maintenance/${request._id}`}
-      className="block bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+      className="block bg-gray-800 rounded-lg p-4 border border-gray-700 hover:bg-gray-700/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">

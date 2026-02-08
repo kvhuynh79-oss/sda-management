@@ -358,7 +358,7 @@ export default function OccupationalTherapistsContent() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Areas Covered *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Areas Covered *</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
                   {SYDNEY_REGIONS.map((area) => (
                     <button key={area} type="button" onClick={() => toggleArea(area)} className={`px-3 py-2 text-sm rounded-lg transition-colors ${formData.areas.includes(area) ? "bg-purple-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>{area}</button>
@@ -367,7 +367,7 @@ export default function OccupationalTherapistsContent() {
                 <input type="text" value={formData.customArea} onChange={(e) => setFormData({ ...formData, customArea: e.target.value })} placeholder="Or enter custom area(s)..." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Specializations</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Specializations</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {OT_SPECIALIZATIONS.map((spec) => (
                     <button key={spec} type="button" onClick={() => toggleSpecialization(spec)} className={`px-3 py-2 text-sm rounded-lg transition-colors ${formData.specializations.includes(spec) ? "bg-teal-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}>{spec}</button>

@@ -443,7 +443,7 @@ export default function SupportCoordinatorsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Areas Covered *
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">

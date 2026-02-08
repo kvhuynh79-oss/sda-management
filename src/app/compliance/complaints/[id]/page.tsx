@@ -9,6 +9,7 @@ import Header from "../../../../components/Header";
 import RequireAuth from "../../../../components/RequireAuth";
 import { LoadingScreen } from "../../../../components/ui/LoadingScreen";
 import Badge from "../../../../components/ui/Badge";
+import SOP001Overlay from "../../../../components/compliance/SOP001Overlay";
 import Link from "next/link";
 
 // ---------------------------------------------------------------------------
@@ -131,6 +132,31 @@ function formatDateTime(ts: number | string | undefined | null): string {
   } catch {
     return String(ts);
   }
+}
+
+function getResolutionDueColor(complaint: { resolutionDueDate?: string; status: string }) {
+  if (complaint.status === "resolved" || complaint.status === "closed") return "text-gray-400";
+  if (!complaint.resolutionDueDate) return "text-gray-400";
+  const now = new Date();
+  const due = new Date(complaint.resolutionDueDate);
+  const daysRemaining = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysRemaining < 0) return "text-red-400 font-semibold";
+  if (daysRemaining <= 3) return "text-red-400";
+  if (daysRemaining <= 7) return "text-yellow-400";
+  return "text-green-400";
+}
+
+function getResolutionDueLabel(complaint: { resolutionDueDate?: string; status: string; resolutionDate?: string }) {
+  if (complaint.status === "resolved" || complaint.status === "closed") {
+    return complaint.resolutionDate ? formatDate(complaint.resolutionDate) : "Resolved";
+  }
+  if (!complaint.resolutionDueDate) return "N/A";
+  const now = new Date();
+  const due = new Date(complaint.resolutionDueDate);
+  const daysRemaining = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysRemaining < 0) return `${Math.abs(daysRemaining)}d overdue`;
+  if (daysRemaining === 0) return "Due today";
+  return `${daysRemaining}d remaining`;
 }
 
 // ---------------------------------------------------------------------------
@@ -269,6 +295,15 @@ const STAGE_GUIDANCE: Record<string, string> = {
   escalated: "This complaint has been escalated to the NDIS Quality and Safeguards Commission. Follow their direction and provide all requested documentation.",
 };
 
+// Compliance checklist steps for sidebar
+const CHECKLIST_STEPS = [
+  { key: "triage" as const, label: "Triage", description: "Check for Reportable Incidents (abuse/neglect)" },
+  { key: "acknowledge" as const, label: "Acknowledge", description: "Contact complainant within 24 hours" },
+  { key: "investigate" as const, label: "Investigate", description: "Gather evidence from logs & communications" },
+  { key: "resolve" as const, label: "Resolve", description: "Provide written outcome within 21 days" },
+  { key: "close" as const, label: "Close & Improve", description: "Log resolution and review for trends" },
+];
+
 // Audit action colors for chain of custody
 const AUDIT_ACTION_COLORS: Record<string, string> = {
   create: "bg-green-500",
@@ -319,6 +354,7 @@ function ComplaintDetailContent() {
   const escalateMutation = useMutation(api.complaints.escalate);
   const logViewMutation = useMutation(api.complaints.logView);
   const logPdfMutation = useMutation(api.complaints.logProcedurePdfOpened);
+  const updateChecklistStepMutation = useMutation(api.complaints.updateChecklistStep);
 
   // Log view on page load
   const [viewLogged, setViewLogged] = useState(false);
@@ -392,6 +428,8 @@ function ComplaintDetailContent() {
 
   const [closeLoading, setCloseLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showSopOverlay, setShowSopOverlay] = useState(false);
+  const [checklistSaving, setChecklistSaving] = useState<string | null>(null);
 
   // Initialize editable fields from complaint
   useEffect(() => {
@@ -555,6 +593,23 @@ function ComplaintDetailContent() {
     window.open("/documents/complaints-procedure.pdf", "_blank", "noopener,noreferrer");
   }, [user, logPdfMutation, id]);
 
+  const handleChecklistToggle = useCallback(async (step: "triage" | "acknowledge" | "investigate" | "resolve" | "close", currentlyCompleted: boolean) => {
+    if (!user) return;
+    setChecklistSaving(step);
+    try {
+      await updateChecklistStepMutation({
+        userId: user.id as Id<"users">,
+        complaintId: id,
+        step,
+        completed: !currentlyCompleted,
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update checklist");
+    } finally {
+      setChecklistSaving(null);
+    }
+  }, [user, updateChecklistStepMutation, id]);
+
   // Derived values
   const canEdit = user?.role === "admin" || user?.role === "property_manager";
   const daysOpen = complaint
@@ -687,7 +742,7 @@ function ComplaintDetailContent() {
                 </div>
               </div>
             ) : complaint.acknowledgmentDueDate && isOverdue ? (
-              <div className="p-4 bg-red-900/50 border border-red-600 rounded-lg animate-pulse" role="alert" aria-label="Acknowledgment overdue">
+              <div className="p-4 bg-red-900/50 border-2 border-red-600 rounded-lg ring-2 ring-red-500/40 ring-offset-1 ring-offset-gray-800" role="alert" aria-label="Acknowledgment overdue">
                 <div className="flex items-center gap-3">
                   <svg className="w-6 h-6 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -1092,27 +1147,109 @@ function ComplaintDetailContent() {
           <div className="w-full lg:w-80 shrink-0">
             <div className="lg:sticky lg:top-4 space-y-4">
 
-              {/* Procedure PDF Link */}
+              {/* SOP-001 Procedure Button */}
               <div className="bg-gray-800 rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Complaints Procedure</h3>
                 <button
-                  onClick={handleOpenProcedurePdf}
+                  onClick={() => setShowSopOverlay(true)}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  aria-label="Open complaint handling procedure PDF"
+                  aria-label="View full complaint handling procedure SOP-001"
                 >
                   <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <div className="text-left">
-                    <p className="text-sm font-medium">View Procedure PDF</p>
-                    <p className="text-xs text-blue-400/60">Complaint handling guide</p>
+                    <p className="text-sm font-medium">View Full Procedure (SOP-001)</p>
+                    <p className="text-xs text-blue-400/60">5-step NDIS complaint handling</p>
                   </div>
+                </button>
+                <button
+                  onClick={handleOpenProcedurePdf}
+                  className="w-full flex items-center gap-2 mt-2 px-3 py-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 rounded transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label="Download procedure PDF"
+                >
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download PDF version
                 </button>
                 {complaint.procedurePdfOpenedAt && (
                   <p className="text-gray-400 text-xs mt-2">
-                    Last opened: {formatDateTime(complaint.procedurePdfOpenedAt)}
+                    PDF last opened: {formatDateTime(complaint.procedurePdfOpenedAt)}
                   </p>
                 )}
+              </div>
+
+              {/* NDIS Compliance Checklist */}
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-300">NDIS Compliance Checklist</h3>
+                  <span className="text-xs text-gray-400 font-mono">
+                    {CHECKLIST_STEPS.filter(s => complaint.complianceChecklist?.[s.key]).length}/{CHECKLIST_STEPS.length}
+                  </span>
+                </div>
+                {/* Progress indicator */}
+                <div className="w-full h-1.5 bg-gray-700 rounded-full mb-4 overflow-hidden" aria-hidden="true">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${(CHECKLIST_STEPS.filter(s => complaint.complianceChecklist?.[s.key]).length / CHECKLIST_STEPS.length) * 100}%`,
+                    }}
+                  />
+                </div>
+                <div className="space-y-3" role="list" aria-label="NDIS compliance checklist">
+                  {CHECKLIST_STEPS.map((step) => {
+                    const stepData = complaint.complianceChecklist?.[step.key] as { completedAt?: number; completedBy?: string } | undefined;
+                    const isCompleted = !!stepData?.completedAt;
+                    const isSaving = checklistSaving === step.key;
+
+                    return (
+                      <div key={step.key} role="listitem" className="group">
+                        <label
+                          className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
+                            isCompleted
+                              ? "bg-green-900/20 border border-green-600/20"
+                              : "bg-gray-700/30 border border-gray-700/50 hover:border-blue-600/30 hover:bg-gray-700/50"
+                          }`}
+                        >
+                          <div className="pt-0.5 shrink-0">
+                            {isSaving ? (
+                              <div className="w-4 h-4 rounded border-2 border-blue-500 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                              </div>
+                            ) : (
+                              <input
+                                type="checkbox"
+                                checked={isCompleted}
+                                onChange={() => handleChecklistToggle(step.key, isCompleted)}
+                                disabled={!canEdit || isSaving}
+                                className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-2 disabled:opacity-50"
+                                aria-label={`Step: ${step.label} - ${step.description}`}
+                              />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium ${isCompleted ? "text-green-400" : "text-gray-200"}`}>
+                              {step.label}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">{step.description}</p>
+                            {isCompleted && stepData?.completedAt && (
+                              <p className="text-xs text-green-500/70 mt-1 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Completed {formatDateTime(stepData.completedAt)}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Each step is auto-logged to the audit trail when checked.
+                </p>
               </div>
 
               {/* Vertical Progress Bar */}
@@ -1437,6 +1574,9 @@ function ComplaintDetailContent() {
           </div>
         </div>
       )}
+
+      {/* === SOP-001 OVERLAY === */}
+      <SOP001Overlay isOpen={showSopOverlay} onClose={() => setShowSopOverlay(false)} />
     </div>
   );
 }

@@ -638,7 +638,7 @@ export default function NewCommunicationPage() {
                 />
 
                 <fieldset>
-                  <legend className="text-sm font-medium text-gray-300 mb-2">
+                  <legend className="text-sm font-medium text-gray-300 mb-1">
                     Compliance Flags
                   </legend>
                   <div className="space-y-2">
@@ -714,7 +714,7 @@ export default function NewCommunicationPage() {
 
               {attachmentFile ? (
                 <div className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
-                  <span className="text-2xl" aria-hidden="true">📎</span>
+                  <svg className="w-6 h-6 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
                   <div className="flex-1">
                     <p className="text-white text-sm">{attachmentFile.name}</p>
                     <p className="text-gray-400 text-xs">

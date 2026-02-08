@@ -342,7 +342,7 @@ export default function NewDocumentPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* File Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Select File *
               </label>
               <div
@@ -418,7 +418,7 @@ export default function NewDocumentPage() {
 
             {/* Document Type - Grouped */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Document Type *
               </label>
               <select
@@ -441,7 +441,7 @@ export default function NewDocumentPage() {
 
             {/* Category - Auto-selected but can be changed */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Category *
                 <span className="text-gray-400 font-normal ml-2">(auto-selected based on document type)</span>
               </label>
@@ -472,7 +472,7 @@ export default function NewDocumentPage() {
             {/* Linked Entity Selection - Based on Category */}
             {formData.documentCategory === "participant" && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Participant *
                 </label>
                 <select
@@ -495,7 +495,7 @@ export default function NewDocumentPage() {
 
             {formData.documentCategory === "property" && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Property *
                 </label>
                 <select
@@ -519,7 +519,7 @@ export default function NewDocumentPage() {
             {formData.documentCategory === "dwelling" && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Property *
                   </label>
                   <select
@@ -540,7 +540,7 @@ export default function NewDocumentPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Dwelling *
                   </label>
                   <select
@@ -567,7 +567,7 @@ export default function NewDocumentPage() {
 
             {formData.documentCategory === "owner" && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Owner *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Owner *</label>
                 <select
                   required
                   value={formData.linkedOwnerId}
@@ -597,7 +597,7 @@ export default function NewDocumentPage() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -609,7 +609,7 @@ export default function NewDocumentPage() {
 
             {/* Expiry Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Expiry Date {isCertDoc ? "*" : "(Optional)"}
               </label>
               <input

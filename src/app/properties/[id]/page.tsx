@@ -277,7 +277,7 @@ export default function PropertyDetailPage() {
 
               {dwellings.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-gray-400 text-5xl mb-4">🏘️</div>
+                  <div className="flex justify-center mb-4"><svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg></div>
                   <p className="text-gray-400 mb-4">No dwellings added yet</p>
                   <Link
                     href={`/properties/${propertyId}/dwellings/new`}
@@ -637,7 +637,7 @@ function DwellingCard({
               ) : (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Select SIL Provider *
                     </label>
                     <select
@@ -655,7 +655,7 @@ function DwellingCard({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Access Level *
                     </label>
                     <div className="space-y-2">
@@ -691,7 +691,7 @@ function DwellingCard({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Notes (optional)
                     </label>
                     <textarea
@@ -1029,7 +1029,7 @@ function MediaGallery({
             isDragOver ? "border-blue-500 bg-blue-600/10" : "border-gray-700"
           }`}
         >
-          <div className="text-gray-400 text-5xl mb-4">{isDragOver ? "📥" : "📷"}</div>
+          <div className="flex justify-center mb-4">{isDragOver ? <svg className="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3 3m0 0l3-3m-3 3V2.25" /></svg> : <svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>}</div>
           <p className="text-gray-400 mb-2">
             {isDragOver ? "Drop files here" : "No photos or videos yet"}
           </p>

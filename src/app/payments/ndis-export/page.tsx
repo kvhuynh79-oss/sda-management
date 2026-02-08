@@ -321,7 +321,7 @@ export default function NDISExportPage() {
           <h3 className="text-lg font-semibold text-white mb-4">Claim Period</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Supports Delivered From
               </label>
               <input
@@ -332,7 +332,7 @@ export default function NDISExportPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Supports Delivered To
               </label>
               <input

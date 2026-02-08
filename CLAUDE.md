@@ -11,7 +11,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **Email**: Resend API
 - **SMS**: Twilio API
 
-## Current Version: v1.5.0
+## Current Version: v1.6.0
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -29,6 +29,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 13. **Database Management** - Support Coordinators, Contractors, SIL Providers, OTs
 14. **Follow-ups & Tasks** - Track communications (email, SMS, calls) and follow-up tasks for funding, plan approvals
 15. **Communications Hub** - Multi-view communications with threading, compliance tracking, bulk operations, incident auto-linking
+16. **NDIS Complaints Compliance** - Website intake, 24hr countdown, SOP-001 procedure, chain of custody, compliance checklist
 
 ## Project Structure
 ```
@@ -67,7 +68,15 @@ convex/                     # Backend functions
 
 src/components/
 ├── Header.tsx              # Main navigation header
+├── BottomNav.tsx           # Mobile bottom navigation bar
+├── LockScreen.tsx          # Inactivity PIN lock overlay
+├── RequireAuth.tsx         # Auth wrapper with lock screen
+├── PushNotificationPrompt.tsx # Push notification settings UI
+├── ui/ConfirmDialog.tsx    # Styled alert/confirm replacement
 └── ...
+
+worker/
+└── index.ts                # Custom SW push notification handlers
 ```
 
 ## Database Tables (Convex)
@@ -101,6 +110,7 @@ src/components/
 - `otParticipants` - OT-participant relationships
 - `communications` - Communication logs (emails, calls, SMS, meetings)
 - `tasks` - Follow-up tasks linked to participants/communications
+- `pushSubscriptions` - Web Push notification subscriptions per user/device
 
 ## Important Business Context
 
@@ -134,6 +144,9 @@ src/components/
   - `useSession` hook reads from `sda_session_token` + `sda_refresh_token`
   - **CRITICAL**: `RequireAuth` must use `useAuth` to match Dashboard
   - Login stores BOTH formats for backward compatibility
+- **ConfirmDialog**: Use `useConfirmDialog()` instead of browser `alert()`/`confirm()` - available globally via ConfirmDialogProvider
+- **BottomNav**: Add `<BottomNav currentPage="..." />` on mobile-priority pages
+- **Inactivity Lock**: Automatic via `RequireAuth` - all protected routes get PIN lock after inactivity
 - All dates stored as ISO strings (YYYY-MM-DD)
 
 ## Completed Features
@@ -436,13 +449,109 @@ src/components/
   - **Design Tokens Updated**: `COMPONENT_TOKENS.card.base` aligned with new standard
   - **Build**: 68 pages, 0 errors
 
-## Next Session Priorities
-1. **Testing needed:**
-   - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
-   - Test compliance cert auto-creation end-to-end
-2. **Bug fixing** - Continue testing all features
-3. **Field-level encryption** - Encrypt NDIS numbers, DOB, incident descriptions at rest
-4. **Schema migration cleanup** - Make optional communications fields required after data migration
+- **Mobile Audit & PWA Enhancements (2026-02-08)** ✓ **MAJOR MOBILE UX UPDATE**
+  - **Mobile Audit**: Comprehensive audit by Mobile App Builder agent across 8 areas
+  - **Quick Wins (commit c398aa0)**:
+    - Fixed Permissions-Policy header: `camera=(self), geolocation=(self)` (was blocking camera API for inspections)
+    - Responsive grid fixes across 10 form pages (~60 instances of bare `grid-cols-2/3` → `grid-cols-1 sm:grid-cols-2/3`)
+    - 7 route-level loading skeletons (dashboard, incidents, maintenance, properties, inspections, communications, participants)
+    - Branding unified to "MySDAManager" (manifest, install prompt, Apple Web App title)
+    - `aria-live="polite"` added to OfflineIndicator
+    - Photo delete buttons always visible on mobile (`sm:opacity-0 sm:group-hover:opacity-100`)
+    - Manifest `id` field added for stable PWA identity
+  - **Offline Inspection Support**:
+    - `src/lib/inspectionOfflineQueue.ts` - IndexedDB v2 with `pending_inspection_changes` + `cached_inspections` stores
+    - `src/hooks/useInspectionOfflineSync.ts` - Auto-sync on reconnection, 30s periodic check, manual sync
+    - Extends existing `offlineQueue.ts` pattern (DB version upgrade preserves incident queue)
+  - **Web Push Notifications Infrastructure**:
+    - `convex/pushSubscriptions.ts` - VAPID-based push subscription management (subscribe, unsubscribe, send)
+    - `src/hooks/usePushNotifications.ts` - Push API client hook with permission management
+    - `src/components/PushNotificationPrompt.tsx` - Settings UI with toggle, device count, 4 notification categories
+    - `worker/index.ts` - Custom SW push + notification click handlers (auto-built by next-pwa)
+    - Integrated into `/settings/security` page
+    - **Note**: Requires VAPID keys in env vars to fully activate
+  - **ConfirmDialog System** (replaces browser alert/confirm):
+    - `src/components/ui/ConfirmDialog.tsx` - Provider + `useConfirmDialog` hook
+    - `confirm()` returns `Promise<boolean>`, `alert()` returns `Promise<void>`
+    - Variant support: "default" (blue) and "danger" (red)
+    - Focus trap, Escape key, body scroll lock, accessible
+    - `ConfirmDialogProvider` wired into root `layout.tsx`
+    - Replaced ~34 browser alert/confirm calls across 6 pages:
+      - `incidents/[id]` (11), `operations` (6), `inspections/[id]` (6), `maintenance/[id]` (2), `settings` (6), `settings/security` (3)
+  - **Inactivity Lock Screen** (NDIS data protection):
+    - `src/hooks/useInactivityLock.ts` - Tracks mouse/keyboard/touch/scroll activity
+    - `src/components/LockScreen.tsx` - Full-screen PIN overlay with number pad
+    - SHA-256 hashed 4-digit PIN in sessionStorage
+    - 5min timeout (admin) / 15min (other roles), configurable
+    - 5-attempt lockout with forced logout
+    - Integrated into `RequireAuth.tsx` - all protected routes get auto-lock
+  - **Mobile Bottom Navigation**:
+    - `src/components/BottomNav.tsx` - Fixed bottom bar, `md:hidden`
+    - 5 items: Dashboard, Properties, Incidents, Maintenance, Inspections
+    - 56px touch targets, active indicator, safe-area-inset support
+    - Integrated into 5 key pages (dashboard, properties, incidents, maintenance, inspections)
+  - **Build**: 68 pages, 0 errors. Commits: `c398aa0` (quick wins), `a4545c1` (full features)
+
+- **NDIS Complaints Compliance System (2026-02-08)** ✓ **MAJOR COMPLIANCE FEATURE**
+  - **BLS-SOP-001 Document**: Formal 5-step complaints resolution procedure (v2026.1)
+    - 5-step lifecycle: Receipt & Triage, Acknowledgement, Investigation, Resolution, Closing & Learning
+    - Mandatory callouts for Reportable Incidents (24hr NDIS Commission notification)
+    - Compliance contacts: NDIS Commission (1800 035 544), Director BLS
+  - **Backend** (`convex/complaints.ts`):
+    - `submitFromWebsite` - Public mutation for BLS website intake (no auth, CORS-enabled)
+    - `create` - Staff complaints with auto-generated ref numbers (CMP-YYYYMMDD-XXXX)
+    - Full status lifecycle: acknowledge, resolve, escalate, close
+    - `logView`, `logProcedurePdfOpened` - Audit trail for NDIS compliance evidence
+    - `updateChecklistStep` - Interactive SOP-001 checklist with per-step audit logging
+    - `getChainOfCustody` - Filtered audit trail per complaint
+    - `checkOverdueAcknowledgments` / `checkOverdueResolutions` - Cron jobs for deadline enforcement
+    - `notifyStaffOfNewComplaint` - Resend email with HTML template
+    - `autoCreateForComplaint` - Auto-links to Communications module
+  - **Schema**: referenceNumber, source, isLocked, acknowledgmentDueDate, resolutionDueDate, complianceChecklist, 3 new alert types, 3 new indexes
+  - **Frontend**: List page, detail page (2-column with sidebar), new complaint form
+  - **SOP-001 Overlay** (`src/components/compliance/SOP001Overlay.tsx`): Full-screen procedure overlay
+  - **Compliance Dashboard Guide**: Updated with BLS-SOP-001 5-step lifecycle, 24hr acknowledgment
+  - **API Route** (`src/app/api/complaints/submit/route.ts`): POST endpoint for BLS website
+  - **Crons**: `check-complaint-acknowledgments` (2 AM), `check-complaint-resolutions` (2:30 AM)
+  - **Build**: 68 pages, 0 errors
+- **Build Fixes (2026-02-08)** ✓
+  - Fixed `pushSubscriptions.ts` circular type inference
+  - Fixed `Uint8Array` buffer type in push subscription
+  - Excluded `worker/` from tsconfig to fix ServiceWorker type conflict
+  - Added `complaint_resolution_overdue` alert type to schema
+
+## Next Session: Sprint 0 - Stabilization (Start Here)
+
+### Immediate Tasks
+1. **Deploy Convex backend**: `npx convex dev` to push complaints schema + functions to dev
+2. **Test complaints flow**: website intake API, detail page (24hr countdown, checklist, chain of custody, SOP-001)
+3. **Test communications**: soft delete, thread archive, incident auto-link
+4. **Test other features**: MFA, offline inspections, BottomNav, lock screen
+5. **Run full build**: `npm run build` must pass with 0 errors
+6. **Push stable v1.6.0 to production**
+
+### SaaS Transformation Plan (Approved 2026-02-08)
+**Full plan:** `.claude/plans/transient-wobbling-floyd.md`
+
+| Sprint | Duration | Focus | Window Assignment |
+|---|---|---|---|
+| **0** | 1 week | Stabilization & testing | W1: QA, W2: Backend, W3: Frontend |
+| **1** | 2 weeks | Organizations table + tenant context (CRITICAL PATH) | W2: Backend Architect, W3: Frontend Developer |
+| **2** | 2 weeks | Query refactoring for tenant isolation (37+ files) | W2: Backend Architect (x2 batches) |
+| **3** | 2 weeks | Stripe integration + registration + onboarding | W2: Backend, W3: Frontend + UI Designer |
+| **4** | 2 weeks | Brand identity (teal-600) + public website (parallel w/ S2) | W3: Brand Guardian + UI Designer |
+| **5** | 1 week | Navigation redesign (14 items -> 6 clusters) | W3: Frontend Developer + UX Researcher |
+| **6** | 2 weeks | Admin super-dashboard | W2: Backend, W3: Frontend |
+| **7** | 2 weeks | White-label + REST API | W2: Backend, W3: Frontend + Brand Guardian |
+| **8** | 2 weeks | Security audit + performance + launch prep | All windows |
+
+**Timeline:** ~12-14 weeks with parallelization (Sprints 2+4, 3+5 run concurrently)
+
+### Remaining Non-SaaS Tasks
+- Complaints Register PDF Export - jsPDF report for NDIS audit
+- VAPID key setup - Generate and configure push notification keys
+- Remaining alert/confirm replacements - ~30 more browser dialogs
+- Field-level encryption - Encrypt NDIS numbers, DOB at rest
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:
@@ -452,52 +561,59 @@ src/components/
   - Monthly totals with grand total
   - Owner bank details for payment
 
-## Future Roadmap (Priorities)
-1. Security enhancements - ✅ **COMPLETE** (RBAC, audit logging, sessions, validation)
-2. MFA for admin accounts - ✅ **COMPLETE** (TOTP-based, backup codes, Settings UI)
-3. Inspection PDF reports - ✅ **COMPLETE** (jsPDF + autoTable, getInspectionReport query)
-4. Communications v1.5 - ✅ **COMPLETE** (soft delete, thread archive, incident auto-link, delete buttons)
-5. Field-level encryption - Encrypt NDIS numbers, DOB, incident descriptions at rest
-6. Proper authentication (Clerk) - Optional migration from current session system
+## Feature Roadmap
 
-## Phase 2: SaaS Subscription Model (Start: Mid-February 2026)
-**Prerequisite:** Complete 2-3 weeks of testing/debugging current app first.
+### Completed (v1.0-v1.6)
+1. Security enhancements - ✅ (RBAC, audit logging, sessions, validation)
+2. MFA for admin accounts - ✅ (TOTP-based, backup codes, Settings UI)
+3. Inspection PDF reports - ✅ (jsPDF + autoTable, getInspectionReport query)
+4. Communications v1.5 - ✅ (soft delete, thread archive, incident auto-link)
+5. Mobile PWA enhancements - ✅ (bottom nav, lock screen, offline inspections, push infra)
+6. NDIS Complaints Compliance - ✅ (website intake, SOP-001, chain of custody)
 
-See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for full details.
+### Phase 2: SaaS Transformation (Sprint 0-8, ~14 weeks)
+7. Multi-tenant architecture - Sprint 1-2 (organizations table + query isolation)
+8. Stripe billing - Sprint 3 (checkout, webhooks, plan enforcement)
+9. Brand identity - Sprint 4 (teal-600, logo, public website)
+10. Navigation redesign - Sprint 5 (dropdown clusters, command palette)
+11. Admin super-dashboard - Sprint 6 (platform metrics, org management)
+12. White-label + API - Sprint 7 (per-org branding, REST API)
+13. Security audit + launch - Sprint 8 (tenant isolation audit, load testing)
+
+## Phase 2: SaaS Subscription Model (Approved 2026-02-08)
+**Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
+See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.
 
 ### Summary
 - **Brand**: MySDAManager (https://mysdamanager.com - SECURED)
+- **Primary Color**: Teal-600 (#0d9488) - replacing generic blue-500
 - Transform into multi-tenant SaaS for other SDA providers
-- New independent company (Pty Ltd)
-- Stripe subscription billing
-- Pricing: $250-600/month (match Re-Leased, but FREE onboarding)
-- **Competitor**: Re-Leased ($7,500 year 1) - same annual, save $2,500 on onboarding
+- Stripe subscription billing: Starter $250/mo, Professional $450/mo, Enterprise $600/mo
+- **Architecture**: Shared Convex DB with row-level isolation via `organizationId`
 
-### SaaS UI/Brand Blockers (From Brand & UI Audit - 2026-02-08)
-**Must complete before public SaaS launch:**
-1. **Professional MySDAManager Logo** - SVG format, horizontal + icon-only variants. Current logo is BLS company logo (JPG). PWA icons need regeneration.
-2. **Distinctive Brand Color** - Replace default Tailwind blue-500 with unique color (teal or deep blue recommended). Currently 161 inline `bg-blue-600` instances need migrating to shared Button component.
-3. **Privacy Policy page** (`/privacy`) - Legally required under Australian Privacy Act (APP 1.4)
-4. **Terms of Service page** (`/terms`) - Required for any subscription product
-5. **Security Overview page** (`/security`) - Data residency, encryption, NDIS compliance info
-6. **Public Homepage / Landing page** - mysdamanager.com currently goes straight to login
-7. **Pricing page** (`/pricing`) - 3 tiers with feature comparison ($250-600/month)
-8. **Onboarding Wizard** - First-time tenant setup: organization name, ABN, NDIS provider number, first property
-9. **Stripe Billing Integration** - Subscription self-service, plan management
-10. **Organization Settings** - Separate from user settings: org logo, ABN, NDIS provider number
-11. **Branded Email Templates** - Transactional emails via Resend need product branding
-12. **Navigation Redesign** - Group 14 items into 6 dropdown clusters (Portfolio, Operations, Finance, Compliance, Communications, Admin)
-13. **Shared Button Component Adoption** - Migrate 161 inline button instances across 73 files to shared Button component
-14. **Shared Form Component Migration** - Migrate remaining ~26 inline-form pages to FormInput/FormSelect
-15. **Skeleton Loading States** - Replace spinner-only loading with layout-preserving skeleton cards
+### Multi-Tenant Architecture (Sprint 1-2)
+- `organizations` table with plan, Stripe IDs, settings, branding
+- `requireTenant()` helper in authHelpers.ts for all queries
+- `organizationId` field added to ALL 52+ tables
+- BLS seeded as first organization with backfill script
+- **Current readiness**: Only 5/66 tables have `organizationId` (D grade)
+
+### Scaling Plan
+| Scale | Users | Properties | Architecture |
+|---|---|---|---|
+| 1 provider (BLS) | ~5 | ~50 | Single deployment, no isolation needed |
+| 5 providers | ~25 | ~250 | Row-level isolation, basic indexes |
+| 20 providers | ~100 | ~1,000 | Compound indexes, monitor Convex usage |
+| 100 providers | ~500 | ~5,000 | Convex Enterprise, data archival, caching |
 
 ### Key Steps
-1. Register company, ABN, trademark
-2. Implement multi-tenant architecture
-3. Add Stripe billing
-4. Beta launch with 5-10 customers
-5. Public launch
-  - Pricing tiers
+1. Sprint 0: Stabilize v1.6.0 + deploy complaints to Convex
+2. Sprint 1: Organizations table + tenant context (CRITICAL PATH)
+3. Sprint 2: Query refactoring for 37+ backend files
+4. Sprint 3: Stripe + registration + onboarding wizard
+5. Sprint 4-5: Brand + navigation (parallel with above)
+6. Sprint 6-7: Super-admin dashboard + white-label + API
+7. Sprint 8: Security audit + launch
 
 ## Commands
 ```bash
@@ -508,4 +624,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-08
+**Last Updated**: 2026-02-08 (v1.6.0 - SaaS Transformation Plan Approved)

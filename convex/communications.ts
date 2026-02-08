@@ -1010,7 +1010,8 @@ export const suggestThreadMerges = query({
 // Get communications stats
 export const getStats = query({
   handler: async (ctx) => {
-    const communications = await ctx.db.query("communications").collect();
+    const allCommunications = await ctx.db.query("communications").collect();
+    const communications = allCommunications.filter((c) => !c.isDeleted);
 
     const today = new Date().toISOString().split("T")[0];
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];

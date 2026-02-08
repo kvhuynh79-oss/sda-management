@@ -20,6 +20,7 @@ function generateReferenceNumber(): string {
 // Get all complaints with optional filters
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     status: v.optional(v.string()),
     category: v.optional(v.string()),
     severity: v.optional(v.string()),
@@ -27,6 +28,7 @@ export const getAll = query({
     participantId: v.optional(v.id("participants")),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
     let complaints = await ctx.db.query("complaints").collect();
 
     if (args.status) {

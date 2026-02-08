@@ -1,0 +1,117 @@
+
+> sda-management@0.1.0 build
+> next build --webpack
+
+▲ Next.js 16.1.5 (webpack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: C:\Projects\sda-management\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+ ✓ (pwa) Found a custom worker implementation at C:\Projects\sda-management\worker\index.ts.
+ ✓ (pwa) Building the custom worker to C:\Projects\sda-management\public\worker-60756d08bb25f507.js...
+ ○ (pwa) Custom runtimeCaching array found, using it instead of the default one.
+✓ Compiled successfully in 5.7s
+  Running TypeScript ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/68) ...
+  Generating static pages using 19 workers (17/68) 
+  Generating static pages using 19 workers (34/68) 
+  Generating static pages using 19 workers (51/68) 
+✓ Generating static pages using 19 workers (68/68) in 771.4ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin/ai
+├ ○ /admin/audit
+├ ○ /admin/seed
+├ ○ /alerts
+├ ƒ /api/complaints/submit
+├ ƒ /api/xero/callback
+├ ƒ /api/xero/connect
+├ ○ /claims
+├ ○ /communications
+├ ○ /compliance
+├ ○ /compliance/certifications
+├ ƒ /compliance/certifications/[id]
+├ ○ /compliance/certifications/new
+├ ○ /compliance/complaints
+├ ƒ /compliance/complaints/[id]
+├ ○ /compliance/complaints/new
+├ ○ /compliance/insurance/new
+├ ○ /contractors
+├ ƒ /contractors/[id]
+├ ○ /dashboard
+├ ○ /database
+├ ○ /database/occupational-therapists
+├ ƒ /database/occupational-therapists/[id]
+├ ○ /database/sil-providers
+├ ƒ /database/sil-providers/[id]
+├ ○ /database/support-coordinators
+├ ƒ /database/support-coordinators/[id]
+├ ○ /documents
+├ ○ /documents/new
+├ ○ /financials
+├ ○ /financials/bank-accounts
+├ ○ /financials/reconciliation
+├ ○ /follow-ups
+├ ○ /follow-ups/communications
+├ ƒ /follow-ups/communications/[id]
+├ ○ /follow-ups/communications/new
+├ ƒ /follow-ups/tasks/[id]
+├ ○ /follow-ups/tasks/new
+├ ○ /incidents
+├ ƒ /incidents/[id]
+├ ○ /incidents/new
+├ ○ /inspections
+├ ƒ /inspections/[id]
+├ ○ /inspections/new
+├ ○ /inspections/templates
+├ ○ /login
+├ ○ /maintenance
+├ ƒ /maintenance/[id]
+├ ○ /maintenance/new
+├ ○ /onboarding
+├ ○ /operations
+├ ○ /participants
+├ ƒ /participants/[id]
+├ ƒ /participants/[id]/edit
+├ ○ /participants/new
+├ ○ /payments
+├ ○ /payments/distributions
+├ ○ /payments/ndis-export
+├ ○ /payments/new
+├ ○ /portal/dashboard
+├ ○ /portal/incidents
+├ ○ /portal/incidents/new
+├ ○ /portal/maintenance
+├ ○ /portal/maintenance/new
+├ ○ /portal/properties
+├ ○ /preventative-schedule
+├ ○ /preventative-schedule/new
+├ ○ /preventative-schedule/templates
+├ ○ /properties
+├ ƒ /properties/[id]
+├ ƒ /properties/[id]/dwellings/new
+├ ƒ /properties/[id]/edit
+├ ○ /properties/new
+├ ƒ /quote/[token]
+├ ○ /reports
+├ ○ /schedule
+├ ○ /settings
+├ ○ /settings/integrations/xero
+├ ○ /settings/security
+├ ○ /setup
+└ ○ /vacancies
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

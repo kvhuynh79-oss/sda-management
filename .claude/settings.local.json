@@ -44,7 +44,12 @@
       "Bash(if [ -d \"c:\\\\Projects\\\\sda-management\\\\src\\\\app$path\" ])",
       "Bash(else)",
       "Bash(timeout:*)",
-      "Bash(del \"c:\\\\Projects\\\\sda-management\\\\.next\\\\lock\")"
+      "Bash(del \"c:\\\\Projects\\\\sda-management\\\\.next\\\\lock\")",
+      "Bash(npm ci:*)",
+      "Bash(node ./node_modules/convex/bin/main.js:*)",
+      "Bash(node ./node_modules/.bin/next build:*)",
+      "Bash(do curl -s http://localhost:300)",
+      "Bash(tee:*)"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

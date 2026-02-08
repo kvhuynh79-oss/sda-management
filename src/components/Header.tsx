@@ -119,11 +119,11 @@ export default function Header({ currentPage }: HeaderProps) {
       {/* Navigation - scrollable on mobile */}
       <div
         ref={scrollContainerRef}
-        className="overflow-x-scroll scrollbar-hide touch-pan-x"
+        className="overflow-x-scroll scrollbar-hide touch-pan-x max-w-7xl mx-auto"
         style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }}
       >
         <nav
-          className="flex gap-3 sm:gap-4 pb-2 px-4 sm:px-6 lg:px-8 w-max"
+          className="flex gap-3 sm:gap-4 pb-2 px-4 sm:px-6 lg:px-8 min-w-max lg:w-auto lg:justify-center"
           aria-label="Main navigation"
         >
         {navItems.map((item) => (

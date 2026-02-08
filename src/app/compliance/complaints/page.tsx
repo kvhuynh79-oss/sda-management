@@ -89,11 +89,12 @@ function ComplaintsRegisterContent() {
 
   // Queries
   const complaintsStats = useQuery(api.complaints.getStats);
-  const complaints = useQuery(api.complaints.getAll, {
+  const complaints = useQuery(api.complaints.getAll, user?.id ? {
+    userId: user.id as any,
     status: statusFilter || undefined,
     category: categoryFilter || undefined,
     severity: severityFilter || undefined,
-  });
+  } : "skip");
   const pendingAck = useQuery(api.complaints.getPendingAcknowledgment);
 
   // Client-side filtering for search text and source (not handled by backend)

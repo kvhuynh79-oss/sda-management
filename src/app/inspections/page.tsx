@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -377,6 +378,7 @@ function InspectionsContent() {
           </div>
         </div>
       )}
+      <BottomNav currentPage="inspections" />
     </div>
   );
 }

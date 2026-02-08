@@ -117,15 +117,39 @@ function ComplaintsRegisterContent() {
 
   const hasFilters = searchText || statusFilter || categoryFilter || severityFilter || sourceFilter;
 
-  // Acknowledgment due date helper
+  // Next deadline helper — shows acknowledgment deadline OR resolution deadline
   const getDueDateInfo = (complaint: {
     acknowledgmentDueDate?: string;
     acknowledgedDate?: string;
+    resolutionDueDate?: string;
     status: string;
   }) => {
-    if (complaint.acknowledgedDate || complaint.status === "acknowledged" || complaint.status === "resolved" || complaint.status === "closed") {
-      return { color: "text-green-400", label: "Acknowledged" };
+    // Resolved/closed — no deadline
+    if (complaint.status === "resolved" || complaint.status === "closed") {
+      return { color: "text-green-400", label: "Complete" };
     }
+
+    // Acknowledged but not resolved — show resolution deadline
+    if (complaint.acknowledgedDate || complaint.status === "acknowledged" || complaint.status === "under_investigation") {
+      if (!complaint.resolutionDueDate) {
+        return { color: "text-gray-400", label: "N/A" };
+      }
+      const now = new Date();
+      const due = new Date(complaint.resolutionDueDate);
+      const daysRemaining = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysRemaining < 0) {
+        return { color: "text-red-400 font-semibold", label: `${Math.abs(daysRemaining)}d overdue` };
+      }
+      if (daysRemaining <= 3) {
+        return { color: "text-red-400", label: `${daysRemaining}d (resolve)` };
+      }
+      if (daysRemaining <= 7) {
+        return { color: "text-yellow-400", label: `${daysRemaining}d (resolve)` };
+      }
+      return { color: "text-green-400", label: `${daysRemaining}d (resolve)` };
+    }
+
+    // Not acknowledged — show acknowledgment deadline
     if (!complaint.acknowledgmentDueDate) {
       return { color: "text-gray-400", label: "N/A" };
     }
@@ -137,9 +161,9 @@ function ComplaintsRegisterContent() {
       return { color: "text-red-400 font-semibold", label: `${Math.abs(Math.round(hoursRemaining))}h overdue` };
     }
     if (hoursRemaining < 6) {
-      return { color: "text-yellow-400", label: `${Math.round(hoursRemaining)}h remaining` };
+      return { color: "text-yellow-400", label: `${Math.round(hoursRemaining)}h (ack)` };
     }
-    return { color: "text-green-400", label: formatDate(complaint.acknowledgmentDueDate) };
+    return { color: "text-green-400", label: `${Math.round(hoursRemaining)}h (ack)` };
   };
 
   return (
@@ -432,7 +456,7 @@ function ComplaintsRegisterContent() {
                       Status
                     </th>
                     <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-gray-400">
-                      Due Date
+                      Next Deadline
                     </th>
                     <th scope="col" className="text-right px-4 py-3 text-sm font-medium text-gray-400">
                       Actions

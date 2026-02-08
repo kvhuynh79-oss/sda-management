@@ -7,6 +7,7 @@ import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface PendingMedia {
   file: File;
@@ -53,6 +54,7 @@ export default function MaintenanceRequestDetailPage() {
   const rejectQuote = useMutation(api.maintenanceQuotes.rejectQuote);
   const deleteQuote = useMutation(api.maintenanceQuotes.deleteQuote);
   const createAndSendQuoteRequest = useAction(api.quoteRequests.createAndSendEmail);
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
@@ -185,7 +187,13 @@ export default function MaintenanceRequestDetailPage() {
 
   const handleDeleteExistingMedia = async (photoId: Id<"maintenancePhotos">) => {
     if (!user) return;
-    if (!confirm("Are you sure you want to delete this media?")) return;
+    const confirmed = await confirmDialog({
+      title: "Delete Media",
+      message: "Are you sure you want to delete this media?",
+      variant: "danger",
+      confirmLabel: "Yes",
+    });
+    if (!confirmed) return;
     try {
       await deletePhoto({ userId: user.id as Id<"users">, photoId });
     } catch (err) {
@@ -292,7 +300,13 @@ export default function MaintenanceRequestDetailPage() {
   };
 
   const handleAcceptQuote = async (quoteId: Id<"maintenanceQuotes">) => {
-    if (!confirm("Accept this quote and award the work to this contractor?")) return;
+    const confirmed = await confirmDialog({
+      title: "Accept Quote",
+      message: "Accept this quote and award the work to this contractor?",
+      variant: "danger",
+      confirmLabel: "Yes",
+    });
+    if (!confirmed) return;
     try {
       await acceptQuote({ quoteId });
     } catch (err) {

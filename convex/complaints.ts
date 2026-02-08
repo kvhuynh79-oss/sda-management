@@ -782,6 +782,68 @@ export const checkOverdueAcknowledgments = internalMutation({
   },
 });
 
+// Check for overdue resolutions (21 business days / ~30 calendar days)
+export const checkOverdueResolutions = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const complaints = await ctx.db.query("complaints").collect();
+    const now = Date.now();
+    let updated = 0;
+
+    const activeStatuses = ["received", "acknowledged", "under_investigation"];
+
+    for (const complaint of complaints) {
+      if (!activeStatuses.includes(complaint.status)) continue;
+      if (complaint.resolutionOverdue) continue;
+
+      let isOverdue = false;
+      if (complaint.resolutionDueDate) {
+        isOverdue = now > new Date(complaint.resolutionDueDate).getTime();
+      } else {
+        // Fallback: 30 calendar days from received date
+        const receivedDate = new Date(complaint.receivedDate);
+        const dueDate = new Date(receivedDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+        isOverdue = now > dueDate.getTime();
+      }
+
+      if (isOverdue) {
+        await ctx.db.patch(complaint._id, {
+          resolutionOverdue: true,
+          updatedAt: now,
+        });
+
+        // Create alert for overdue resolution
+        const alertExists = await ctx.db.query("alerts")
+          .filter(q =>
+            q.and(
+              q.eq(q.field("alertType"), "complaint_resolution_overdue"),
+              q.eq(q.field("title"), `Complaint resolution overdue: ${complaint.referenceNumber || complaint._id}`),
+              q.neq(q.field("status"), "resolved")
+            )
+          )
+          .first();
+
+        if (!alertExists) {
+          const today = new Date().toISOString().split("T")[0];
+          await ctx.db.insert("alerts", {
+            alertType: "complaint_resolution_overdue",
+            title: `Complaint resolution overdue: ${complaint.referenceNumber || complaint._id}`,
+            message: `Complaint ${complaint.referenceNumber || ""} has not been resolved within the 21-business-day timeframe. Category: ${complaint.category}, Severity: ${complaint.severity}.`,
+            severity: (complaint.severity === "critical" || complaint.severity === "high") ? "critical" as const : "warning" as const,
+            status: "active",
+            triggerDate: today,
+            createdAt: now,
+          });
+        }
+
+        updated++;
+      }
+    }
+
+    return { updated };
+  },
+});
+
 // Get chain of custody audit trail for a specific complaint (NDIS compliance)
 export const getChainOfCustody = query({
   args: { complaintId: v.id("complaints") },

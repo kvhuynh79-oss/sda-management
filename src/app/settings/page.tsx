@@ -7,6 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Header from "@/components/Header";
 import { useTheme } from "@/components/ThemeProvider";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 
 type UserRole = "admin" | "property_manager" | "staff" | "accountant" | "sil_provider";
@@ -32,6 +33,7 @@ const emptyUserForm: UserFormData = {
 export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; role: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -107,10 +109,10 @@ export default function SettingsPage() {
         userId: user.id as Id<"users">,
         ...formData,
       });
-      alert("Notification settings saved successfully!");
+      await alertDialog({ title: "Success", message: "Notification settings saved successfully!" });
     } catch (error) {
       console.error("Error saving preferences:", error);
-      alert("Failed to save settings. Please try again.");
+      await alertDialog({ title: "Error", message: "Failed to save settings. Please try again." });
     } finally {
       setIsSaving(false);
     }
@@ -220,7 +222,7 @@ export default function SettingsPage() {
       });
     } catch (error) {
       console.error("Error toggling user status:", error);
-      alert("Failed to update user status");
+      await alertDialog({ title: "Error", message: "Failed to update user status" });
     }
   };
 
@@ -228,7 +230,7 @@ export default function SettingsPage() {
     if (!user) return;
 
     if (!newPassword) {
-      alert("Please enter a new password");
+      await alertDialog({ title: "Notice", message: "Please enter a new password" });
       return;
     }
     try {
@@ -239,10 +241,10 @@ export default function SettingsPage() {
       });
       setShowResetPassword(null);
       setNewPassword("");
-      alert("Password reset successfully");
+      await alertDialog({ title: "Success", message: "Password reset successfully" });
     } catch (error) {
       console.error("Error resetting password:", error);
-      alert("Failed to reset password");
+      await alertDialog({ title: "Error", message: "Failed to reset password" });
     }
   };
 

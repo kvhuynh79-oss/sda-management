@@ -5,6 +5,7 @@ const withPWA = withPWAInit({
   dest: "public",
   register: true,
   disable: process.env.NODE_ENV === "development",
+  customWorkerSrc: "worker",
   workboxOptions: {
     skipWaiting: true,
     clientsClaim: true,

@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState } from "@/components/ui";
 import { formatStatus } from "@/utils/format";
@@ -116,6 +117,7 @@ export default function IncidentsPage() {
             </div>
           )}
         </main>
+        <BottomNav currentPage="incidents" />
       </div>
     </RequireAuth>
   );

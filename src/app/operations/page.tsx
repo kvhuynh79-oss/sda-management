@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo, Suspense, useRef, useCallback } from "rea
 import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
@@ -426,6 +427,7 @@ function MaintenanceCard({ request }: { request: any }) {
 // INSPECTIONS TAB
 // ============================================
 function InspectionsTab({ userId }: { userId: string }) {
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: Id<"inspections">; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -438,10 +440,10 @@ function InspectionsTab({ userId }: { userId: string }) {
   const handleSeedTemplate = async () => {
     try {
       await seedBLSTemplate({ createdBy: userId as Id<"users"> });
-      alert("BLS Template created successfully!");
+      await alertDialog({ title: "Notice", message: "BLS Template created successfully!" });
     } catch (error) {
       console.error("Error seeding template:", error);
-      alert("Error creating template. It may already exist.");
+      await alertDialog({ title: "Error", message: "Error creating template. It may already exist." });
     }
   };
 
@@ -453,7 +455,7 @@ function InspectionsTab({ userId }: { userId: string }) {
       setDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting inspection:", error);
-      alert("Error deleting inspection.");
+      await alertDialog({ title: "Error", message: "Error deleting inspection." });
     } finally {
       setIsDeleting(false);
     }
@@ -610,6 +612,7 @@ function InspectionsTab({ userId }: { userId: string }) {
 // SCHEDULE TAB
 // ============================================
 function ScheduleTab() {
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -634,17 +637,18 @@ function ScheduleTab() {
       });
     } catch (err) {
       console.error("Failed to complete schedule:", err);
-      alert("Failed to mark schedule as completed");
+      await alertDialog({ title: "Error", message: "Failed to mark schedule as completed." });
     }
   };
 
   const handleDelete = async (scheduleId: Id<"preventativeSchedule">) => {
-    if (!confirm("Are you sure you want to delete this schedule?")) return;
+    const confirmed = await confirmDialog({ title: "Delete Schedule", message: "Are you sure you want to delete this schedule?", variant: "danger", confirmLabel: "Yes" });
+    if (!confirmed) return;
     try {
       await removeSchedule({ scheduleId });
     } catch (err) {
       console.error("Failed to delete schedule:", err);
-      alert("Failed to delete schedule");
+      await alertDialog({ title: "Error", message: "Failed to delete schedule." });
     }
   };
 

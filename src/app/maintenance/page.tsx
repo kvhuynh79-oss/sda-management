@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
 import { PRIORITY_COLORS, MAINTENANCE_STATUS_COLORS } from "@/constants/colors";
@@ -219,6 +220,7 @@ export default function MaintenancePage() {
             </div>
           )}
         </main>
+        <BottomNav currentPage="operations" />
       </div>
     </RequireAuth>
   );

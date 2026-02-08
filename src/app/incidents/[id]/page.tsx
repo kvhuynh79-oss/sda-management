@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 interface PendingMedia {
@@ -50,6 +51,8 @@ export default function IncidentDetailPage() {
   const cancelAction = useMutation(api.incidentActions.cancel);
   const removeAction = useMutation(api.incidentActions.remove);
   const linkMaintenanceRequest = useMutation(api.incidentActions.linkMaintenanceRequest);
+
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
@@ -176,7 +179,8 @@ export default function IncidentDetailPage() {
   };
 
   const handleDeleteExistingMedia = async (photoId: Id<"incidentPhotos">) => {
-    if (!confirm("Are you sure you want to delete this media?")) return;
+    const confirmed = await confirmDialog({ title: "Delete Media", message: "Are you sure you want to delete this media?", variant: "danger", confirmLabel: "Yes" });
+    if (!confirmed) return;
     try {
       await deletePhoto({ userId: user!.id as Id<"users">, photoId });
     } catch (err) {
@@ -291,7 +295,8 @@ export default function IncidentDetailPage() {
   };
 
   const handleClose = async () => {
-    if (!confirm("Are you sure you want to close this incident?")) return;
+    const confirmed = await confirmDialog({ title: "Close Incident", message: "Are you sure you want to close this incident?", variant: "danger", confirmLabel: "Yes" });
+    if (!confirmed) return;
     try {
       await updateIncident({
         userId: user!.id as Id<"users">,
@@ -747,7 +752,8 @@ export default function IncidentDetailPage() {
                           </button>
                           <button
                             onClick={async () => {
-                              if (confirm("Are you sure you want to cancel this action?")) {
+                              const confirmed = await confirmDialog({ title: "Cancel Action", message: "Are you sure you want to cancel this action?", variant: "danger", confirmLabel: "Yes" });
+                              if (confirmed) {
                                 await cancelAction({ userId: user!.id as Id<"users">, actionId: action._id });
                               }
                             }}
@@ -790,7 +796,8 @@ export default function IncidentDetailPage() {
                       {action.status === "cancelled" && (
                         <button
                           onClick={async () => {
-                            if (confirm("Are you sure you want to delete this cancelled action?")) {
+                            const confirmed = await confirmDialog({ title: "Delete Action", message: "Are you sure you want to delete this cancelled action?", variant: "danger", confirmLabel: "Yes" });
+                            if (confirmed) {
                               await removeAction({ userId: user!.id as Id<"users">, actionId: action._id });
                             }
                           }}
@@ -1175,7 +1182,7 @@ export default function IncidentDetailPage() {
                 <button
                   onClick={async () => {
                     if (!actionFormData.title.trim()) {
-                      alert("Title is required");
+                      await alertDialog({ title: "Notice", message: "Title is required" });
                       return;
                     }
                     setIsSavingAction(true);
@@ -1191,7 +1198,7 @@ export default function IncidentDetailPage() {
                       });
                       setShowAddActionModal(false);
                     } catch (err: any) {
-                      alert(err.message || "Failed to create action");
+                      await alertDialog({ title: "Error", message: err.message || "Failed to create action" });
                     } finally {
                       setIsSavingAction(false);
                     }
@@ -1247,7 +1254,7 @@ export default function IncidentDetailPage() {
                 <button
                   onClick={async () => {
                     if (!inHouseFormData.assignedTo.trim()) {
-                      alert("Assigned To is required");
+                      await alertDialog({ title: "Notice", message: "Assigned To is required" });
                       return;
                     }
                     setIsSavingAction(true);
@@ -1261,7 +1268,7 @@ export default function IncidentDetailPage() {
                       setShowInHouseModal(false);
                       setSelectedAction(null);
                     } catch (err: any) {
-                      alert(err.message || "Failed to mark as in-house");
+                      await alertDialog({ title: "Error", message: err.message || "Failed to mark as in-house" });
                     } finally {
                       setIsSavingAction(false);
                     }
@@ -1337,7 +1344,7 @@ export default function IncidentDetailPage() {
                       setShowCompleteActionModal(false);
                       setSelectedAction(null);
                     } catch (err: any) {
-                      alert(err.message || "Failed to complete action");
+                      await alertDialog({ title: "Error", message: err.message || "Failed to complete action" });
                     } finally {
                       setIsSavingAction(false);
                     }
@@ -1391,7 +1398,7 @@ export default function IncidentDetailPage() {
                 <button
                   onClick={async () => {
                     if (!ndisNotifyFormData.notificationDate) {
-                      alert("Notification date is required");
+                      await alertDialog({ title: "Notice", message: "Notification date is required" });
                       return;
                     }
                     try {
@@ -1407,7 +1414,7 @@ export default function IncidentDetailPage() {
                         referenceNumber: "",
                       });
                     } catch (err: any) {
-                      alert(err.message || "Failed to record notification");
+                      await alertDialog({ title: "Error", message: err.message || "Failed to record notification" });
                     }
                   }}
                   className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"

@@ -654,7 +654,8 @@ export default defineSchema({
       v.literal("insurance_expiry"), // Insurance policy expiring
       // Complaint alerts
       v.literal("complaint_acknowledgment_overdue"), // Complaint not acknowledged within 24hrs
-      v.literal("new_website_complaint") // New complaint from website
+      v.literal("new_website_complaint"), // New complaint from website
+      v.literal("complaint_resolution_overdue") // Complaint not resolved within 21 days
     ),
     severity: v.union(
       v.literal("critical"),

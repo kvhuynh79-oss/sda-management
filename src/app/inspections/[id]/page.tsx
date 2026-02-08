@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 type ItemStatus = "pending" | "pass" | "fail" | "na";
@@ -60,6 +61,7 @@ export default function InspectionDetailPage() {
   const saveGeneralPhoto = useMutation(api.inspections.saveGeneralPhoto);
   const addCustomItem = useMutation(api.inspections.addCustomItem);
   const deleteCustomItem = useMutation(api.inspections.deleteCustomItem);
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -172,7 +174,7 @@ export default function InspectionDetailPage() {
       });
     } catch (error) {
       console.error("Error uploading photo:", error);
-      alert("Error uploading photo. Please try again.");
+      await alertDialog({ title: "Error", message: "Error uploading photo. Please try again." });
     } finally {
       setUploadingFor(null);
       if (fileInputRef.current) {
@@ -183,7 +185,13 @@ export default function InspectionDetailPage() {
 
   const handleDeletePhoto = async (photoId: Id<"inspectionPhotos">) => {
     if (!user) return;
-    if (confirm("Delete this photo?")) {
+    const confirmed = await confirmDialog({
+      title: "Delete Photo",
+      message: "Delete this photo?",
+      variant: "danger",
+      confirmLabel: "Yes",
+    });
+    if (confirmed) {
       await deletePhoto({ userId: user.id as Id<"users">, photoId });
     }
   };
@@ -213,7 +221,7 @@ export default function InspectionDetailPage() {
       });
     } catch (error) {
       console.error("Error uploading general photo:", error);
-      alert("Error uploading photo. Please try again.");
+      await alertDialog({ title: "Error", message: "Error uploading photo. Please try again." });
     } finally {
       setUploadingGeneral(false);
       if (generalPhotoRef.current) {
@@ -227,7 +235,7 @@ export default function InspectionDetailPage() {
 
     const category = newItemCategory === "__custom__" ? customCategory.trim() : newItemCategory;
     if (!category) {
-      alert("Please select or enter a category");
+      await alertDialog({ title: "Notice", message: "Please select or enter a category" });
       return;
     }
 
@@ -249,13 +257,19 @@ export default function InspectionDetailPage() {
       setExpandedCategory(category);
     } catch (error) {
       console.error("Error adding custom item:", error);
-      alert("Error adding item. Please try again.");
+      await alertDialog({ title: "Error", message: "Error adding item. Please try again." });
     }
   };
 
   const handleDeleteItem = async (itemId: Id<"inspectionItems">) => {
     if (!user) return;
-    if (confirm("Delete this inspection item?")) {
+    const confirmed = await confirmDialog({
+      title: "Delete Item",
+      message: "Delete this inspection item?",
+      variant: "danger",
+      confirmLabel: "Yes",
+    });
+    if (confirmed) {
       await deleteCustomItem({ userId: user.id as Id<"users">, itemId });
     }
   };

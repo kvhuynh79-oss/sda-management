@@ -1279,6 +1279,12 @@ function ComplaintDetailContent() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">Resolution Due</span>
+                    <span className={`text-sm font-mono font-semibold ${getResolutionDueColor(complaint)}`}>
+                      {getResolutionDueLabel(complaint)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-400">Source</span>
                     <span className="text-sm text-white">
                       {complaint.source ? SOURCE_LABELS[complaint.source] || complaint.source : "-"}

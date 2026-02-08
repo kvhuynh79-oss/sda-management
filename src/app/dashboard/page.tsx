@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingScreen } from "@/components/ui";
 import { SEVERITY_COLORS } from "@/constants/colors";
@@ -479,6 +480,7 @@ export default function DashboardPage() {
         </div>
         </section>
       </main>
+      <BottomNav currentPage="dashboard" />
     </div>
   );
 }

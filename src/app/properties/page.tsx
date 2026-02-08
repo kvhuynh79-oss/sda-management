@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState } from "@/components/ui";
 import { OCCUPANCY_COLORS, PROPERTY_STATUS_COLORS } from "@/constants/colors";
@@ -53,6 +54,7 @@ export default function PropertiesPage() {
             </div>
           )}
         </main>
+        <BottomNav currentPage="properties" />
       </div>
     </RequireAuth>
   );

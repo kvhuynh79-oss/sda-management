@@ -8,8 +8,10 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "@/components/Header";
 import Link from "next/link";
 import MfaSetup from "@/components/MfaSetup";
+import PushNotificationPrompt from "@/components/PushNotificationPrompt";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function SecuritySettingsPage() {
   return (
@@ -21,6 +23,7 @@ export default function SecuritySettingsPage() {
 
 function SecuritySettingsContent() {
   const router = useRouter();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; email: string } | null>(null);
   const [showMfaSetup, setShowMfaSetup] = useState(false);
   const [mfaSecret, setMfaSecret] = useState("");
@@ -110,9 +113,12 @@ function SecuritySettingsContent() {
     );
     if (!totpCode) return;
 
-    const confirmed = confirm(
-      "Are you sure you want to disable two-factor authentication? This will make your account less secure."
-    );
+    const confirmed = await confirmDialog({
+      title: "Disable 2FA",
+      message: "Are you sure you want to disable two-factor authentication? This will make your account less secure.",
+      variant: "danger",
+      confirmLabel: "Disable",
+    });
     if (!confirmed) return;
 
     setIsDisabling(true);
@@ -124,7 +130,7 @@ function SecuritySettingsContent() {
         actingUserId: user.id as Id<"users">,
         totpCode: totpCode,
       });
-      alert("Two-factor authentication has been disabled.");
+      await alertDialog({ title: "Success", message: "Two-factor authentication has been disabled." });
     } catch (err) {
       console.error("Error disabling MFA:", err);
       setError("Failed to disable MFA. Please try again.");
@@ -142,9 +148,12 @@ function SecuritySettingsContent() {
     );
     if (!totpCode) return;
 
-    const confirmed = confirm(
-      "Are you sure you want to regenerate backup codes? Your old backup codes will no longer work."
-    );
+    const confirmed = await confirmDialog({
+      title: "Regenerate Backup Codes",
+      message: "Are you sure you want to regenerate backup codes? Your old backup codes will no longer work.",
+      variant: "danger",
+      confirmLabel: "Regenerate",
+    });
     if (!confirmed) return;
 
     setIsGenerating(true);
@@ -450,6 +459,13 @@ function SecuritySettingsContent() {
                 Done
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Push Notifications */}
+        {!showMfaSetup && !showBackupCodes && (
+          <div className="mb-6">
+            <PushNotificationPrompt userId={user ? user.id as Id<"users"> : null} />
           </div>
         )}
 

@@ -10,6 +10,7 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatStatus } from "@/utils/format";
+import SOP001Overlay from "@/components/compliance/SOP001Overlay";
 
 type TabType = "overview" | "certifications" | "insurance" | "complaints" | "incidents";
 
@@ -25,6 +26,7 @@ function ComplianceContent() {
   const [user, setUser] = useState<{ role: string } | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedGuide, setExpandedGuide] = useState<"incidents" | "complaints" | "certifications" | null>(null);
+  const [showSopOverlay, setShowSopOverlay] = useState(false);
 
   const certifications = useQuery(api.complianceCertifications.getAll, {});
   const expiringSoonCerts = useQuery(api.complianceCertifications.getExpiringSoon);
@@ -553,9 +555,25 @@ function ComplianceContent() {
 
               {expandedGuide === "complaints" && (
                 <div id="guide-complaints" className="mt-4 pt-4 border-t border-gray-700">
+                  {/* Document Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-gray-400 text-xs uppercase tracking-wide">BLS-SOP-001 &middot; Version 2026.1</p>
+                      <h3 className="text-white font-semibold">Complaints Management &amp; Resolution</h3>
+                    </div>
+                    <button
+                      onClick={() => setShowSopOverlay(true)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                      View Full Procedure
+                    </button>
+                  </div>
+
+                  {/* Key Timeframes */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                     <div className="bg-gray-700/50 rounded-lg p-3 text-center">
-                      <p className="text-yellow-400 font-bold text-xl">5 Days</p>
+                      <p className="text-red-400 font-bold text-xl">24 Hours</p>
                       <p className="text-gray-300 text-sm">Acknowledge receipt</p>
                     </div>
                     <div className="bg-gray-700/50 rounded-lg p-3 text-center">
@@ -567,40 +585,79 @@ function ComplianceContent() {
                       <p className="text-gray-300 text-sm">Retain records</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-green-300 font-semibold mb-2">Complaint Handling Process</h4>
-                      <ol className="text-gray-300 text-sm space-y-1 ml-4 list-decimal">
-                        <li><strong>Receive</strong> - Log details and date</li>
-                        <li><strong>Acknowledge</strong> - Within 5 business days</li>
-                        <li><strong>Offer Advocacy</strong> - Independent support</li>
-                        <li><strong>Investigate</strong> - Gather facts</li>
-                        <li><strong>Resolve</strong> - Implement outcome</li>
-                        <li><strong>Communicate</strong> - Inform complainant</li>
-                        <li><strong>Review</strong> - Identify improvements</li>
-                      </ol>
-                    </div>
-                    <div>
-                      <h4 className="text-purple-300 font-semibold mb-2">Advocacy Requirement</h4>
-                      <p className="text-gray-300 text-sm mb-2">
-                        NDIS requires offering access to an <strong>independent advocate</strong>.
-                      </p>
-                      <ul className="text-gray-300 text-sm space-y-1 ml-4 list-disc">
-                        <li>Disability Advocacy Network Australia</li>
-                        <li>State/Territory advocacy services</li>
-                        <li>NDIS Appeals support</li>
-                      </ul>
+
+                  {/* 5-Step Resolution Lifecycle */}
+                  <div className="mb-4">
+                    <h4 className="text-green-300 font-semibold mb-3">5-Step Resolution Lifecycle</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-3 bg-gray-700/30 rounded-lg p-3">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center">1</span>
+                        <div>
+                          <p className="text-white font-medium text-sm">Receipt &amp; Initial Triage</p>
+                          <p className="text-gray-400 text-xs">Log complaint in MySDAManager with date, source, category. Assess if it involves a Reportable Incident.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-700/30 rounded-lg p-3">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-green-600 text-white text-sm font-bold flex items-center justify-center">2</span>
+                        <div>
+                          <p className="text-white font-medium text-sm">Acknowledgement</p>
+                          <p className="text-gray-400 text-xs">Contact complainant within 24 hours via their preferred method. Confirm receipt and outline next steps.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-700/30 rounded-lg p-3">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-yellow-600 text-white text-sm font-bold flex items-center justify-center">3</span>
+                        <div>
+                          <p className="text-white font-medium text-sm">Investigation</p>
+                          <p className="text-gray-400 text-xs">Assign investigator. Review relevant documents, interview involved parties, identify root cause. Offer independent advocacy.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-700/30 rounded-lg p-3">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-purple-600 text-white text-sm font-bold flex items-center justify-center">4</span>
+                        <div>
+                          <p className="text-white font-medium text-sm">Resolution &amp; Outcome</p>
+                          <p className="text-gray-400 text-xs">Determine outcome, implement corrective actions. Communicate resolution to the complainant in writing.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 bg-gray-700/30 rounded-lg p-3">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-500 text-white text-sm font-bold flex items-center justify-center">5</span>
+                        <div>
+                          <p className="text-white font-medium text-sm">Closing &amp; Learning</p>
+                          <p className="text-gray-400 text-xs">Confirm satisfaction. Identify systemic improvements. Archive complaint record (retain minimum 7 years).</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
-                    <h4 className="text-white font-semibold mb-1">Escalation to NDIS Commission</h4>
+
+                  {/* Mandatory Alert */}
+                  <div className="mb-4 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
+                    <h4 className="text-red-400 font-semibold text-sm mb-1">Mandatory: Reportable Incidents</h4>
                     <p className="text-gray-300 text-sm">
-                      Complainants can escalate if not satisfied, complaint not resolved in time, or involves serious safety concerns.
+                      If a complaint involves a Reportable Incident, the Director must notify the NDIS Commission within <strong className="text-red-400">24 hours</strong> via the online portal.
                     </p>
-                    <p className="text-gray-400 text-xs mt-1">NDIS Commission: 1800 035 544 | <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">www.ndiscommission.gov.au</a></p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Ref: NDIS (Incident Management and Reportable Incidents) Rules 2018, Section 16
+                    </p>
+                  </div>
+
+                  {/* Compliance Contacts */}
+                  <div className="p-3 bg-gray-700/50 rounded-lg">
+                    <h4 className="text-white font-semibold mb-2 text-sm">Compliance Contacts</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-gray-400 text-xs uppercase">NDIS Quality &amp; Safeguards Commission</p>
+                        <p className="text-white text-sm font-medium">1800 035 544</p>
+                        <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">www.ndiscommission.gov.au</a>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs uppercase">Internal Escalation</p>
+                        <p className="text-white text-sm font-medium">Director, Better Living Solutions</p>
+                        <p className="text-gray-400 text-xs">For complaints unresolved within 21 days or involving serious safety concerns</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
+              <SOP001Overlay isOpen={showSopOverlay} onClose={() => setShowSopOverlay(false)} />
             </div>
 
             <div className="bg-gray-800 rounded-lg p-6">

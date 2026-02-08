@@ -85,6 +85,14 @@ crons.daily(
   internal.complaints.checkOverdueAcknowledgments
 );
 
+// Check for overdue complaint resolutions daily at 2:30 AM UTC
+// NDIS requires resolution within 21 business days (~30 calendar days)
+crons.daily(
+  "check-complaint-resolutions",
+  { hourUTC: 2, minuteUTC: 30 },
+  internal.complaints.checkOverdueResolutions
+);
+
 // Verify audit log hash chain integrity daily at 3 AM UTC
 // This ensures immutability of audit records for NDIS 7-year retention compliance
 // Any tampering with audit logs will be detected and reported

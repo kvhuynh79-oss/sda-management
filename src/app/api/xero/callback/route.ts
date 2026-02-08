@@ -13,7 +13,10 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 // Verify the signed state parameter
 function verifySignedState(state: string): { valid: boolean; userId: string | null; error?: string } {
   try {
-    const secret = process.env.XERO_CLIENT_SECRET || "fallback-secret";
+    const secret = process.env.XERO_CLIENT_SECRET;
+    if (!secret) {
+      return { valid: false, userId: null, error: "XERO_CLIENT_SECRET not configured" };
+    }
 
     // Decode from base64url
     const decoded = Buffer.from(state, "base64url").toString("utf-8");

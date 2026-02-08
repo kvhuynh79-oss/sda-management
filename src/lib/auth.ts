@@ -106,23 +106,21 @@ async function checkAndRefreshToken() {
   }
 
   try {
-    // Decode JWT to get issued date (simple base64 decode)
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const issuedAt = payload.iat * 1000; // Convert to milliseconds
+    // Tokens are UUIDs (not JWTs) so we can't decode them for issue time.
+    // Instead, attempt a refresh on each interval. The server tracks expiry.
+    const result = await refreshAuthToken();
 
-    if (shouldRefreshToken(issuedAt)) {
-      console.log("Token needs refresh, refreshing...");
-      const result = await refreshAuthToken();
-
-      if (result.success) {
-        console.log("Token refreshed successfully");
-      } else {
-        console.warn("Token refresh failed:", result.error);
-        // Clear tokens and force re-login
-        localStorage.removeItem(SESSION_STORAGE_KEY);
-        localStorage.removeItem(REFRESH_STORAGE_KEY);
-        window.location.href = "/login";
-      }
+    if (result.success) {
+      console.log("Token refreshed successfully");
+    } else if (result.error === "No refresh token available") {
+      // No refresh token - user is using legacy auth, skip
+      return;
+    } else {
+      console.warn("Token refresh failed:", result.error);
+      // Clear tokens and force re-login
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem(REFRESH_STORAGE_KEY);
+      window.location.href = "/login";
     }
   } catch (error) {
     console.error("Error checking token:", error);

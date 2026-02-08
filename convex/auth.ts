@@ -204,10 +204,22 @@ export const login = action({
       throw new Error("Account is disabled. Contact your administrator.");
     }
 
+    // Check login rate limiting
+    if (userData.loginLockedUntil && userData.loginLockedUntil > Date.now()) {
+      const remainingMin = Math.ceil((userData.loginLockedUntil - Date.now()) / 60000);
+      throw new Error(`Account temporarily locked. Try again in ${remainingMin} minute${remainingMin !== 1 ? "s" : ""}.`);
+    }
+
     // Verify password with bcrypt
     const isValid = await verifyPassword(args.password, userData.passwordHash);
     if (!isValid) {
+      await ctx.runMutation(internal.auth.trackFailedLogin, { userId: userData._id });
       throw new Error("Invalid email or password");
+    }
+
+    // Reset failed attempts on successful login
+    if (userData.loginFailedAttempts && userData.loginFailedAttempts > 0) {
+      await ctx.runMutation(internal.auth.resetLoginAttempts, { userId: userData._id });
     }
 
     // Update last login and log via internal mutation
@@ -218,6 +230,12 @@ export const login = action({
     return result;
   },
 });
+
+// Login rate limiting
+const LOGIN_RATE_LIMIT = {
+  MAX_ATTEMPTS: 5,
+  LOCKOUT_MS: 15 * 60 * 1000, // 15 minutes
+};
 
 // User data type returned by getUserForLogin
 interface UserForLogin {
@@ -232,6 +250,9 @@ interface UserForLogin {
   // MFA fields
   mfaEnabled?: boolean;
   mfaSecret?: string;
+  // Login rate limiting
+  loginFailedAttempts?: number;
+  loginLockedUntil?: number;
 }
 
 // Internal query to get user for login (includes password hash)
@@ -254,7 +275,41 @@ export const getUserForLogin = internalMutation({
       passwordHash: user.passwordHash,
       isActive: user.isActive,
       silProviderId: user.silProviderId,
+      loginFailedAttempts: user.loginFailedAttempts,
+      loginLockedUntil: user.loginLockedUntil,
     };
+  },
+});
+
+// Internal mutation to track failed login attempt
+export const trackFailedLogin = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return;
+
+    const attempts = (user.loginFailedAttempts || 0) + 1;
+    const patch: Record<string, any> = {
+      loginFailedAttempts: attempts,
+      updatedAt: Date.now(),
+    };
+
+    if (attempts >= LOGIN_RATE_LIMIT.MAX_ATTEMPTS) {
+      patch.loginLockedUntil = Date.now() + LOGIN_RATE_LIMIT.LOCKOUT_MS;
+    }
+
+    await ctx.db.patch(args.userId, patch);
+  },
+});
+
+// Internal mutation to reset login attempts on success
+export const resetLoginAttempts = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      loginFailedAttempts: 0,
+      loginLockedUntil: undefined,
+    });
   },
 });
 
@@ -564,16 +619,38 @@ export const updatePasswordHash = internalMutation({
   },
 });
 
-// Update user email (for testing)
+// Update user email (admin only)
 export const updateUserEmail = mutation({
   args: {
+    actingUserId: v.id("users"),
     userId: v.id("users"),
     newEmail: v.string(),
   },
   handler: async (ctx, args) => {
+    const actingUser = await ctx.db.get(args.actingUserId);
+    if (!actingUser || actingUser.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can update user emails");
+    }
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
     await ctx.db.patch(args.userId, {
       email: args.newEmail.toLowerCase(),
       updatedAt: Date.now(),
+    });
+
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.actingUserId,
+      userEmail: actingUser.email,
+      userName: `${actingUser.firstName} ${actingUser.lastName}`,
+      action: "update",
+      entityType: "user",
+      entityId: args.userId,
+      entityName: targetUser.email,
+      metadata: JSON.stringify({ newEmail: args.newEmail.toLowerCase() }),
     });
 
     return { success: true };
@@ -654,10 +731,22 @@ export const loginWithSession = action({
       throw new Error("Account is disabled. Contact your administrator.");
     }
 
+    // Check login rate limiting
+    if (userData.loginLockedUntil && userData.loginLockedUntil > Date.now()) {
+      const remainingMin = Math.ceil((userData.loginLockedUntil - Date.now()) / 60000);
+      throw new Error(`Account temporarily locked. Try again in ${remainingMin} minute${remainingMin !== 1 ? "s" : ""}.`);
+    }
+
     // Verify password with bcrypt
     const isValid = await verifyPassword(args.password, userData.passwordHash);
     if (!isValid) {
+      await ctx.runMutation(internal.auth.trackFailedLogin, { userId: userData._id });
       throw new Error("Invalid email or password");
+    }
+
+    // Reset failed attempts on successful login
+    if (userData.loginFailedAttempts && userData.loginFailedAttempts > 0) {
+      await ctx.runMutation(internal.auth.resetLoginAttempts, { userId: userData._id });
     }
 
     // Check if MFA is enabled for this user

@@ -414,14 +414,21 @@ src/components/
   - Tested: thread status tabs, deleted items panel, restore flow, all view tabs
   - Tested: participant/property communications history, follow-ups, detail pages
   - All features verified working
+- **Compliance Alerts & Dashboard Integration (2026-02-08)** ✓
+  - Cert expiry alerts in `alertHelpers.ts` (critical for expired, warning for expiring within 30 days)
+  - Duplicate detection by title to prevent alert spam
+  - Dashboard compliance widget: expired/expiring cert counts with link to certifications page
+  - Compliance dashboard: certifications stats card with `getDashboardStats` query
+  - Reports page: compliance certifications link card
+  - Mobile responsiveness fixes for communications and incidents pages
 
 ## Next Session Priorities
-1. **Dashboard Compliance Widget**: Wire `getDashboardStats` query to dashboard page
-2. **Testing needed:**
+1. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
    - Test compliance cert auto-creation end-to-end
-3. **Bug fixing** - Continue testing all features
-4. **Field-level encryption** - Encrypt NDIS numbers, DOB, incident descriptions at rest
+2. **Bug fixing** - Continue testing all features
+3. **Field-level encryption** - Encrypt NDIS numbers, DOB, incident descriptions at rest
+4. **Schema migration cleanup** - Make optional communications fields required after data migration
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:

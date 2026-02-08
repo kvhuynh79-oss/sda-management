@@ -17,7 +17,10 @@ const SCOPES = [
 
 // Create a signed state parameter that can be verified without cookies
 function createSignedState(userId: string | null): string {
-  const secret = process.env.XERO_CLIENT_SECRET || "fallback-secret";
+  const secret = process.env.XERO_CLIENT_SECRET;
+  if (!secret) {
+    throw new Error("XERO_CLIENT_SECRET environment variable is not configured");
+  }
   const timestamp = Date.now();
   const nonce = crypto.randomUUID();
   const data = `${timestamp}:${nonce}:${userId || ""}`;

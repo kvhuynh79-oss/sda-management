@@ -9,8 +9,9 @@ import SupportCoordinatorsContent from "./support-coordinators/SupportCoordinato
 import ContractorsContent from "./ContractorsContent";
 import SILProvidersContent from "./sil-providers/SILProvidersContent";
 import OccupationalTherapistsContent from "./occupational-therapists/OccupationalTherapistsContent";
+import DocumentsContent from "./DocumentsContent";
 
-type TabType = "support-coordinators" | "contractors" | "sil-providers" | "occupational-therapists";
+type TabType = "support-coordinators" | "contractors" | "sil-providers" | "occupational-therapists" | "documents";
 
 function LoadingScreen() {
   return (
@@ -117,6 +118,16 @@ function DatabaseContent() {
             >
               Contractors
             </button>
+            <button
+              onClick={() => handleTabChange("documents")}
+              className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === "documents"
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              Documents
+            </button>
           </nav>
         </div>
 
@@ -125,6 +136,7 @@ function DatabaseContent() {
         {activeTab === "sil-providers" && <SILProvidersContent />}
         {activeTab === "occupational-therapists" && <OccupationalTherapistsContent />}
         {activeTab === "contractors" && <ContractorsContent />}
+        {activeTab === "documents" && <DocumentsContent />}
       </main>
     </div>
   );

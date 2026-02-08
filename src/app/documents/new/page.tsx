@@ -289,7 +289,7 @@ export default function NewDocumentPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Header currentPage="documents" />
+      <Header currentPage="database" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
@@ -302,9 +302,13 @@ export default function NewDocumentPage() {
             </li>
             <li className="text-gray-600">/</li>
             <li>
-              <Link href="/documents" className="text-gray-400 hover:text-white">
-                Documents
+              <Link href="/database?tab=documents" className="text-gray-400 hover:text-white">
+                Database
               </Link>
+            </li>
+            <li className="text-gray-600">/</li>
+            <li>
+              <span className="text-gray-400">Documents</span>
             </li>
             <li className="text-gray-600">/</li>
             <li className="text-white">Upload Document</li>

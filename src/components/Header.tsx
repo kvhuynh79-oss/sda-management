@@ -19,7 +19,6 @@ interface HeaderProps {
     | "database"
     | "incidents"
     | "compliance"
-    | "documents"
     | "onboarding"
     | "reports"
     | "ai"
@@ -71,7 +70,6 @@ export default function Header({ currentPage }: HeaderProps) {
     { href: "/database", label: "Database", key: "database" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/compliance", label: "Compliance", key: "compliance" },
-    { href: "/documents", label: "Documents", key: "documents" },
     { href: "/onboarding", label: "Onboarding", key: "onboarding" },
     { href: "/reports", label: "Reports", key: "reports" },
     { href: "/admin/ai", label: "AI Assistant", key: "ai" },

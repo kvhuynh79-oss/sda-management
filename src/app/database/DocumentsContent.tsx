@@ -4,13 +4,11 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import Header from "@/components/Header";
-import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
 import { formatStatus, formatFileSize, formatDate } from "@/utils/format";
 import GlobalUploadModal from "@/components/GlobalUploadModal";
 
-export default function DocumentsPage() {
+export default function DocumentsContent() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,131 +39,116 @@ export default function DocumentsPage() {
   const hasFilters = searchTerm !== "" || filterType !== "all" || filterCategory !== "all";
 
   return (
-    <RequireAuth>
-      <div className="min-h-screen bg-gray-900">
-        <Header currentPage="database" />
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Page Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Documents</h1>
-              <p className="text-gray-400 mt-1">Manage and organize important files</p>
-            </div>
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Upload Document
-            </button>
-          </div>
-
-          {/* Stats Cards */}
-          {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <StatCard title="Total Documents" value={stats.total} color="blue" />
-              <StatCard title="NDIS Plans" value={stats.byType.ndis_plan || 0} color="green" />
-              <StatCard title="Leases" value={stats.byType.lease || 0} color="yellow" />
-              <StatCard title="Expiring Soon" value={stats.expiringSoon} color="red" />
-            </div>
-          )}
-
-          {/* Filters */}
-          <fieldset className="bg-gray-800 rounded-lg p-4 mb-6">
-            <legend className="sr-only">Filter documents</legend>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-1">
-                  Search
-                </label>
-                <input
-                  id="search"
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Filename, description, linked entity..."
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label htmlFor="type-filter" className="block text-sm font-medium text-gray-300 mb-1">
-                  Document Type
-                </label>
-                <select
-                  id="type-filter"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Types</option>
-                  <option value="ndis_plan">NDIS Plan</option>
-                  <option value="service_agreement">Service Agreement</option>
-                  <option value="lease">Lease</option>
-                  <option value="insurance">Insurance</option>
-                  <option value="compliance">Compliance</option>
-                  <option value="report">Report</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="category-filter" className="block text-sm font-medium text-gray-300 mb-1">
-                  Category
-                </label>
-                <select
-                  id="category-filter"
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Categories</option>
-                  <option value="participant">Participant</option>
-                  <option value="property">Property</option>
-                  <option value="dwelling">Dwelling</option>
-                  <option value="owner">Owner</option>
-                </select>
-              </div>
-            </div>
-          </fieldset>
-
-          {/* Results count */}
-          {documents !== undefined && (
-            <p className="text-sm text-gray-400 mb-4" aria-live="polite">
-              Showing {filteredDocuments.length} of {documents.length} documents
-              {hasFilters && " (filtered)"}
-            </p>
-          )}
-
-          {/* Documents List */}
-          {documents === undefined ? (
-            <LoadingScreen fullScreen={false} message="Loading documents..." />
-          ) : filteredDocuments.length === 0 ? (
-            <EmptyState
-              title={hasFilters ? "No documents found" : "No documents uploaded yet"}
-              description={
-                hasFilters
-                  ? "Try adjusting your filters to see more results"
-                  : "Start organizing by uploading your first document"
-              }
-              icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
-              action={
-                !hasFilters
-                  ? {
-                      label: "+ Upload First Document",
-                      href: "/documents/new",
-                    }
-                  : undefined
-              }
-              isFiltered={hasFilters}
-            />
-          ) : (
-            <div className="space-y-4" role="list" aria-label="Documents list">
-              {filteredDocuments.map((doc) => (
-                <DocumentCard key={doc._id} document={doc} />
-              ))}
-            </div>
-          )}
-        </main>
+    <>
+      {/* Header with Upload Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <p className="text-gray-400 text-sm">Manage and organize important files</p>
+        </div>
+        <button
+          onClick={() => setIsUploadModalOpen(true)}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+        >
+          + Upload Document
+        </button>
       </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <StatCard title="Total Documents" value={stats.total} color="blue" />
+          <StatCard title="NDIS Plans" value={stats.byType.ndis_plan || 0} color="green" />
+          <StatCard title="Leases" value={stats.byType.lease || 0} color="yellow" />
+          <StatCard title="Expiring Soon" value={stats.expiringSoon} color="red" />
+        </div>
+      )}
+
+      {/* Filters */}
+      <fieldset className="bg-gray-800 rounded-lg p-4 mb-6">
+        <legend className="sr-only">Filter documents</legend>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-300 mb-1">
+              Search
+            </label>
+            <input
+              id="search"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Filename, description, linked entity..."
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label htmlFor="type-filter" className="block text-sm font-medium text-gray-300 mb-1">
+              Document Type
+            </label>
+            <select
+              id="type-filter"
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Types</option>
+              <option value="ndis_plan">NDIS Plan</option>
+              <option value="service_agreement">Service Agreement</option>
+              <option value="lease">Lease</option>
+              <option value="insurance">Insurance</option>
+              <option value="compliance">Compliance</option>
+              <option value="report">Report</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="category-filter" className="block text-sm font-medium text-gray-300 mb-1">
+              Category
+            </label>
+            <select
+              id="category-filter"
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Categories</option>
+              <option value="participant">Participant</option>
+              <option value="property">Property</option>
+              <option value="dwelling">Dwelling</option>
+              <option value="owner">Owner</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      {/* Results count */}
+      {documents !== undefined && (
+        <p className="text-sm text-gray-400 mb-4" aria-live="polite">
+          Showing {filteredDocuments.length} of {documents.length} documents
+          {hasFilters && " (filtered)"}
+        </p>
+      )}
+
+      {/* Documents List */}
+      {documents === undefined ? (
+        <LoadingScreen fullScreen={false} message="Loading documents..." />
+      ) : filteredDocuments.length === 0 ? (
+        <EmptyState
+          title={hasFilters ? "No documents found" : "No documents uploaded yet"}
+          description={
+            hasFilters
+              ? "Try adjusting your filters to see more results"
+              : "Start organizing by clicking the Upload Document button above"
+          }
+          icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+          isFiltered={hasFilters}
+        />
+      ) : (
+        <div className="space-y-4" role="list" aria-label="Documents list">
+          {filteredDocuments.map((doc) => (
+            <DocumentCard key={doc._id} document={doc} />
+          ))}
+        </div>
+      )}
 
       {/* Global Upload Modal */}
       <GlobalUploadModal
@@ -176,7 +159,7 @@ export default function DocumentsPage() {
           // Documents will refresh automatically via Convex reactivity
         }}
       />
-    </RequireAuth>
+    </>
   );
 }
 

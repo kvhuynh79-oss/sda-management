@@ -681,15 +681,23 @@ export const updateChecklistStep = mutation({
     if (!complaint) throw new Error("Complaint not found");
 
     const now = Date.now();
-    const existing = complaint.complianceChecklist || {};
+    const existing = complaint.complianceChecklist ?? {
+      triage: undefined,
+      acknowledge: undefined,
+      investigate: undefined,
+      resolve: undefined,
+      close: undefined,
+    };
 
-    // Build updated checklist
-    const updatedChecklist = { ...existing };
-    if (args.completed) {
-      updatedChecklist[args.step] = { completedAt: now, completedBy: args.userId };
-    } else {
-      updatedChecklist[args.step] = undefined;
-    }
+    // Build updated checklist with explicit type
+    const stepValue = args.completed
+      ? { completedAt: now, completedBy: args.userId }
+      : undefined;
+
+    const updatedChecklist = {
+      ...existing,
+      [args.step]: stepValue,
+    };
 
     await ctx.db.patch(args.complaintId, {
       complianceChecklist: updatedChecklist,

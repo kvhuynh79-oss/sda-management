@@ -160,6 +160,10 @@ export const create = mutation({
     const dueDate = new Date(receivedDateObj.getTime() + 24 * 60 * 60 * 1000);
     const acknowledgmentDueDate = dueDate.toISOString();
 
+    // Calculate 21-business-day resolution deadline (~30 calendar days)
+    const resolutionDue = new Date(receivedDateObj.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const resolutionDueDate = resolutionDue.toISOString();
+
     const complaintId = await ctx.db.insert("complaints", {
       ...complaintData,
       receivedBy: userId,
@@ -168,6 +172,8 @@ export const create = mutation({
       referenceNumber,
       acknowledgmentDueDate,
       acknowledgmentOverdue: false,
+      resolutionDueDate,
+      resolutionOverdue: false,
       createdAt: now,
       updatedAt: now,
     });
@@ -237,6 +243,10 @@ export const submitFromWebsite = mutation({
     const dueDate = new Date(now + 24 * 60 * 60 * 1000);
     const acknowledgmentDueDate = dueDate.toISOString();
 
+    // Calculate 21-business-day resolution deadline (~30 calendar days)
+    const resolutionDue = new Date(now + 30 * 24 * 60 * 60 * 1000);
+    const resolutionDueDate = resolutionDue.toISOString();
+
     // Find first admin user to set as receivedBy
     const users = await ctx.db.query("users").collect();
     const adminUser = users.find(u => u.role === "admin");
@@ -259,6 +269,8 @@ export const submitFromWebsite = mutation({
       referenceNumber,
       acknowledgmentDueDate,
       acknowledgmentOverdue: false,
+      resolutionDueDate,
+      resolutionOverdue: false,
       createdAt: now,
       updatedAt: now,
     });
@@ -638,6 +650,71 @@ export const logProcedurePdfOpened = mutation({
       entityName: complaint.referenceNumber || "Complaint",
       metadata: JSON.stringify({ action_detail: "procedure_pdf_opened" }),
     });
+  },
+});
+
+// Update a compliance checklist step (SOP-001) with audit logging
+const CHECKLIST_STEP_LABELS: Record<string, string> = {
+  triage: "Step 1: Triage - Check for Reportable Incidents",
+  acknowledge: "Step 2: Acknowledge - Contact complainant within 24hrs",
+  investigate: "Step 3: Investigate - Gather evidence",
+  resolve: "Step 4: Resolve - Provide written outcome within 21 days",
+  close: "Step 5: Close & Improve - Log resolution and review trends",
+};
+
+export const updateChecklistStep = mutation({
+  args: {
+    userId: v.id("users"),
+    complaintId: v.id("complaints"),
+    step: v.union(
+      v.literal("triage"),
+      v.literal("acknowledge"),
+      v.literal("investigate"),
+      v.literal("resolve"),
+      v.literal("close")
+    ),
+    completed: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAuth(ctx, args.userId);
+    const complaint = await ctx.db.get(args.complaintId);
+    if (!complaint) throw new Error("Complaint not found");
+
+    const now = Date.now();
+    const existing = complaint.complianceChecklist || {};
+
+    // Build updated checklist
+    const updatedChecklist = { ...existing };
+    if (args.completed) {
+      updatedChecklist[args.step] = { completedAt: now, completedBy: args.userId };
+    } else {
+      updatedChecklist[args.step] = undefined;
+    }
+
+    await ctx.db.patch(args.complaintId, {
+      complianceChecklist: updatedChecklist,
+      updatedAt: now,
+    });
+
+    // Audit log - each checklist action is timestamped for NDIS compliance
+    const stepLabel = CHECKLIST_STEP_LABELS[args.step] || args.step;
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: args.userId,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "update",
+      entityType: "complaint",
+      entityId: args.complaintId,
+      entityName: complaint.referenceNumber || "Complaint",
+      metadata: JSON.stringify({
+        action_detail: "compliance_checklist_update",
+        step: args.step,
+        stepLabel,
+        completed: args.completed,
+      }),
+    });
+
+    return { success: true };
   },
 });
 

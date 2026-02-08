@@ -1724,9 +1724,19 @@ export default defineSchema({
     )),
     isLocked: v.optional(v.boolean()), // Lock website-submitted records
     acknowledgmentDueDate: v.optional(v.string()), // ISO date - 24hr from receipt
+    resolutionDueDate: v.optional(v.string()), // ISO date - 21 business days (~30 calendar) from receipt
+    resolutionOverdue: v.optional(v.boolean()),
     procedurePdfOpenedAt: v.optional(v.number()),
     procedurePdfOpenedBy: v.optional(v.id("users")),
     linkedCommunicationId: v.optional(v.id("communications")),
+    // NDIS Compliance Checklist (SOP-001) - tracks staff completion of 5-step procedure
+    complianceChecklist: v.optional(v.object({
+      triage: v.optional(v.object({ completedAt: v.number(), completedBy: v.id("users") })),
+      acknowledge: v.optional(v.object({ completedAt: v.number(), completedBy: v.id("users") })),
+      investigate: v.optional(v.object({ completedAt: v.number(), completedBy: v.id("users") })),
+      resolve: v.optional(v.object({ completedAt: v.number(), completedBy: v.id("users") })),
+      close: v.optional(v.object({ completedAt: v.number(), completedBy: v.id("users") })),
+    })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1737,7 +1747,8 @@ export default defineSchema({
     .index("by_severity", ["severity"])
     .index("by_referenceNumber", ["referenceNumber"])
     .index("by_source", ["source"])
-    .index("by_acknowledgmentDueDate", ["acknowledgmentDueDate"]),
+    .index("by_acknowledgmentDueDate", ["acknowledgmentDueDate"])
+    .index("by_resolutionDueDate", ["resolutionDueDate"]),
 
   // ============================================
   // COMMUNICATIONS & TASKS TABLES
@@ -1967,4 +1978,22 @@ export default defineSchema({
     .index("by_status_dueDate", ["status", "dueDate"])
     .index("by_status_priority", ["status", "priority"])
     .index("by_createdBy", ["createdBy"]),
+
+  // ============================================
+  // PUSH NOTIFICATIONS
+  // ============================================
+
+  // Push subscription records for Web Push notifications
+  pushSubscriptions: defineTable({
+    userId: v.id("users"),
+    endpoint: v.string(),
+    keyP256dh: v.string(),
+    keyAuth: v.string(),
+    userAgent: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_endpoint", ["endpoint"])
+    .index("by_userId_endpoint", ["userId", "endpoint"]),
 });

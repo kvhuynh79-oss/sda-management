@@ -43,7 +43,8 @@
       "Bash(git status:*)",
       "Bash(if [ -d \"c:\\\\Projects\\\\sda-management\\\\src\\\\app$path\" ])",
       "Bash(else)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(del \"c:\\\\Projects\\\\sda-management\\\\.next\\\\lock\")"
     ],
     "additionalDirectories": [
       "c:\\Projects\\sda-management\\src\\app\\properties\\[id]",

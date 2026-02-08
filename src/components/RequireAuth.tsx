@@ -4,6 +4,9 @@ import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../hooks/useAuth";
 import { LoadingScreen } from "./ui/LoadingScreen";
+import { useInactivityLock } from "../hooks/useInactivityLock";
+import { LockScreen } from "./LockScreen";
+import { logout } from "../lib/auth";
 
 interface RequireAuthProps {
   /** Page content to render when authenticated */
@@ -48,6 +51,7 @@ export function RequireAuth({
   // Use useAuth to match Dashboard's auth mechanism (uses sda_user localStorage key)
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { isLocked, unlock, lockNow } = useInactivityLock(user?.role);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -64,6 +68,11 @@ export function RequireAuth({
   // If not authenticated, show loading while redirecting
   if (!user) {
     return <LoadingScreen message="Redirecting to login..." />;
+  }
+
+  // Show lock screen if inactive
+  if (isLocked) {
+    return <LockScreen onUnlock={unlock} onLogout={logout} />;
   }
 
   // Check role restrictions if specified

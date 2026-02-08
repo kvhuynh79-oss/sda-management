@@ -59,6 +59,7 @@ import type * as preventativeScheduleTemplates from "../preventativeScheduleTemp
 import type * as properties from "../properties.js";
 import type * as propertyMedia from "../propertyMedia.js";
 import type * as providerSettings from "../providerSettings.js";
+import type * as pushSubscriptions from "../pushSubscriptions.js";
 import type * as quoteRequests from "../quoteRequests.js";
 import type * as reports from "../reports.js";
 import type * as seedAnneMarie from "../seedAnneMarie.js";
@@ -134,6 +135,7 @@ declare const fullApi: ApiFromModules<{
   properties: typeof properties;
   propertyMedia: typeof propertyMedia;
   providerSettings: typeof providerSettings;
+  pushSubscriptions: typeof pushSubscriptions;
   quoteRequests: typeof quoteRequests;
   reports: typeof reports;
   seedAnneMarie: typeof seedAnneMarie;

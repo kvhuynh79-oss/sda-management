@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireAuth, requirePermission, getUserFullName } from "./authHelpers";
+import { requireAuth, requirePermission, getUserFullName, requireTenant } from "./authHelpers";
 
 // Generate a unique reference number for complaints: CMP-YYYYMMDD-XXXX
 function generateReferenceNumber(): string {
@@ -28,8 +28,9 @@ export const getAll = query({
     participantId: v.optional(v.id("participants")),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
-    let complaints = await ctx.db.query("complaints").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allComplaints = await ctx.db.query("complaints").collect();
+    let complaints = allComplaints.filter(c => c.organizationId === organizationId);
 
     if (args.status) {
       complaints = complaints.filter(c => c.status === args.status);
@@ -64,11 +65,13 @@ export const getAll = query({
 
 // Get complaints requiring acknowledgment (received but not acknowledged within 5 business days)
 export const getPendingAcknowledgment = query({
-  args: {},
-  handler: async (ctx) => {
-    const complaints = await ctx.db.query("complaints")
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allComplaints = await ctx.db.query("complaints")
       .filter(q => q.eq(q.field("status"), "received"))
       .collect();
+    const complaints = allComplaints.filter(c => c.organizationId === organizationId);
 
     const today = new Date();
 
@@ -95,10 +98,17 @@ export const getPendingAcknowledgment = query({
 
 // Get complaint by ID
 export const getById = query({
-  args: { complaintId: v.id("complaints") },
+  args: {
+    userId: v.id("users"),
+    complaintId: v.id("complaints")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) return null;
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
 
     const participant = complaint.participantId ? await ctx.db.get(complaint.participantId) : null;
     const property = complaint.propertyId ? await ctx.db.get(complaint.propertyId) : null;
@@ -151,6 +161,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     // Permission check
     const user = await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { userId, ...complaintData } = args;
     const now = Date.now();
 
@@ -167,6 +178,7 @@ export const create = mutation({
     const resolutionDueDate = resolutionDue.toISOString();
 
     const complaintId = await ctx.db.insert("complaints", {
+      organizationId,
       ...complaintData,
       receivedBy: userId,
       status: "received",
@@ -197,8 +209,10 @@ export const create = mutation({
 });
 
 // Public mutation for website-submitted complaints (NO auth check)
+// SPECIAL CASE: organizationId should be provided via args from website form
 export const submitFromWebsite = mutation({
   args: {
+    organizationId: v.optional(v.string()), // OPTIONAL for backwards compatibility - defaults to first admin's org
     complainantType: v.union(
       v.literal("participant"),
       v.literal("family_carer"),
@@ -251,10 +265,20 @@ export const submitFromWebsite = mutation({
 
     // Find first admin user to set as receivedBy
     const users = await ctx.db.query("users").collect();
-    const adminUser = users.find(u => u.role === "admin");
+    let adminUser = users.find(u => u.role === "admin");
     if (!adminUser) throw new Error("No admin user found to receive complaint");
 
+    // Use organizationId from args, or fall back to admin user's org
+    let organizationId: string = args.organizationId as any;
+    if (!organizationId) {
+      organizationId = adminUser.organizationId as any;
+      if (!organizationId) {
+        throw new Error("Admin user does not have organizationId - cannot route complaint");
+      }
+    }
+
     const complaintId = await ctx.db.insert("complaints", {
+      organizationId: organizationId as any,
       complainantType: args.complainantType,
       complainantName: args.complainantName,
       complainantContact: args.complainantContact,
@@ -439,9 +463,12 @@ export const acknowledge = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) throw new Error("Complaint not found");
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
 
     await ctx.db.patch(args.complaintId, {
       acknowledgedDate: args.acknowledgedDate,
@@ -476,10 +503,13 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { complaintId, userId, ...updates } = args;
     const complaint = await ctx.db.get(complaintId);
     if (!complaint) throw new Error("Complaint not found");
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
 
     // Lock check: if complaint is locked (website-submitted), only allow certain fields
     const allowedLockedFields = new Set([
@@ -526,10 +556,13 @@ export const resolve = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { complaintId, userId, ...resolution } = args;
     const complaint = await ctx.db.get(complaintId);
     if (!complaint) throw new Error("Complaint not found");
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
 
     await ctx.db.patch(complaintId, {
       ...resolution,
@@ -551,9 +584,12 @@ export const escalate = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) throw new Error("Complaint not found");
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
 
     await ctx.db.patch(args.complaintId, {
       escalatedToNdisCommission: true,
@@ -575,9 +611,12 @@ export const close = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) throw new Error("Complaint not found");
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
 
     await ctx.db.patch(args.complaintId, {
       status: "closed",
@@ -856,8 +895,18 @@ export const checkOverdueResolutions = internalMutation({
 
 // Get chain of custody audit trail for a specific complaint (NDIS compliance)
 export const getChainOfCustody = query({
-  args: { complaintId: v.id("complaints") },
+  args: {
+    userId: v.id("users"),
+    complaintId: v.id("complaints")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const complaint = await ctx.db.get(args.complaintId);
+    if (!complaint) throw new Error("Complaint not found");
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
+
     const logs = await ctx.db
       .query("auditLogs")
       .filter(q =>
@@ -885,9 +934,11 @@ export const getChainOfCustody = query({
 
 // Get full complaints register data with enriched fields for reporting
 export const getComplaintsRegisterData = query({
-  args: {},
-  handler: async (ctx) => {
-    const complaints = await ctx.db.query("complaints").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allComplaints = await ctx.db.query("complaints").collect();
+    const complaints = allComplaints.filter(c => c.organizationId === organizationId);
     const now = new Date();
 
     const enriched = await Promise.all(
@@ -926,9 +977,11 @@ export const getComplaintsRegisterData = query({
 
 // Get complaints statistics
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const complaints = await ctx.db.query("complaints").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allComplaints = await ctx.db.query("complaints").collect();
+    const complaints = allComplaints.filter(c => c.organizationId === organizationId);
 
     const stats = {
       total: complaints.length,

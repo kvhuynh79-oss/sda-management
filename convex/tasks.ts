@@ -1,7 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireTenant } from "./authHelpers";
 
 // Create a new task
 export const create = mutation({
@@ -31,10 +31,12 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.createdBy, "tasks", "create");
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
 
     const now = Date.now();
     const taskId = await ctx.db.insert("tasks", {
       ...args,
+      organizationId,
       status: "pending",
       createdAt: now,
       updatedAt: now,
@@ -95,10 +97,16 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, userId, ...updates } = args;
     const user = await requirePermission(ctx, userId, "tasks", "update");
+    const { organizationId } = await requireTenant(ctx, userId);
 
     const existing = await ctx.db.get(id);
     if (!existing) {
       throw new Error("Task not found");
+    }
+
+    // Verify org ownership
+    if (existing.organizationId !== organizationId) {
+      throw new Error("Access denied: Task belongs to different organization");
     }
 
     await ctx.db.patch(id, {
@@ -136,10 +144,16 @@ export const updateStatus = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "tasks", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const task = await ctx.db.get(args.id);
     if (!task) {
       throw new Error("Task not found");
+    }
+
+    // Verify org ownership
+    if (task.organizationId !== organizationId) {
+      throw new Error("Access denied: Task belongs to different organization");
     }
 
     const updates: Record<string, unknown> = {
@@ -180,10 +194,16 @@ export const complete = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "tasks", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const task = await ctx.db.get(args.id);
     if (!task) {
       throw new Error("Task not found");
+    }
+
+    // Verify org ownership
+    if (task.organizationId !== organizationId) {
+      throw new Error("Access denied: Task belongs to different organization");
     }
 
     await ctx.db.patch(args.id, {
@@ -218,10 +238,16 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "tasks", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const task = await ctx.db.get(args.id);
     if (!task) {
       throw new Error("Task not found");
+    }
+
+    // Verify org ownership
+    if (task.organizationId !== organizationId) {
+      throw new Error("Access denied: Task belongs to different organization");
     }
 
     await ctx.db.delete(args.id);
@@ -241,9 +267,12 @@ export const remove = mutation({
 
 // Get all tasks with enriched data
 export const getAll = query({
-  handler: async (ctx) => {
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const tasks = await ctx.db
       .query("tasks")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .order("desc")
       .collect();
 
@@ -287,10 +316,16 @@ export const getAll = query({
 
 // Get task by ID
 export const getById = query({
-  args: { id: v.id("tasks") },
+  args: { id: v.id("tasks"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const task = await ctx.db.get(args.id);
     if (!task) return null;
+
+    // Verify org ownership
+    if (task.organizationId !== organizationId) {
+      throw new Error("Access denied: Task belongs to different organization");
+    }
 
     const [participant, property, communication, createdByUser, assignedToUser, completedByUser] = await Promise.all([
       task.linkedParticipantId ? ctx.db.get(task.linkedParticipantId) : null,
@@ -318,11 +353,13 @@ export const getById = query({
 
 // Get tasks by participant
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: { participantId: v.id("participants"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const tasks = await ctx.db
       .query("tasks")
       .withIndex("by_participant", (q) => q.eq("linkedParticipantId", args.participantId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .order("desc")
       .collect();
 
@@ -337,11 +374,13 @@ export const getByParticipant = query({
 
 // Get tasks by communication
 export const getByCommunication = query({
-  args: { communicationId: v.id("communications") },
+  args: { communicationId: v.id("communications"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const tasks = await ctx.db
       .query("tasks")
       .withIndex("by_communication", (q) => q.eq("linkedCommunicationId", args.communicationId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .order("desc")
       .collect();
 
@@ -353,9 +392,11 @@ export const getByCommunication = query({
 export const getMyTasks = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const tasks = await ctx.db
       .query("tasks")
       .withIndex("by_assignedTo", (q) => q.eq("assignedToUserId", args.userId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .order("desc")
       .collect();
 
@@ -376,17 +417,21 @@ export const getMyTasks = query({
 
 // Get overdue tasks
 export const getOverdue = query({
-  handler: async (ctx) => {
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const today = new Date().toISOString().split("T")[0];
 
     const tasks = await ctx.db
       .query("tasks")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     const inProgressTasks = await ctx.db
       .query("tasks")
       .withIndex("by_status", (q) => q.eq("status", "in_progress"))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     const allActiveTasks = [...tasks, ...inProgressTasks];
@@ -409,8 +454,9 @@ export const getOverdue = query({
 
 // Get upcoming tasks (due within next X days)
 export const getUpcoming = query({
-  args: { days: v.optional(v.number()) },
+  args: { userId: v.id("users"), days: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const days = args.days || 7;
     const today = new Date();
     const futureDate = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
@@ -422,11 +468,13 @@ export const getUpcoming = query({
     const pendingTasks = await ctx.db
       .query("tasks")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     const inProgressTasks = await ctx.db
       .query("tasks")
       .withIndex("by_status", (q) => q.eq("status", "in_progress"))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     const allActiveTasks = [...pendingTasks, ...inProgressTasks];
@@ -451,8 +499,13 @@ export const getUpcoming = query({
 
 // Get task statistics
 export const getStats = query({
-  handler: async (ctx) => {
-    const tasks = await ctx.db.query("tasks").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const today = new Date().toISOString().split("T")[0];
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
@@ -502,6 +555,7 @@ export const getStats = query({
 export const createFollowUpTask = internalMutation({
   args: {
     communicationId: v.id("communications"),
+    organizationId: v.id("organizations"), // Inherit from communication
     userId: v.id("users"), // User who created the communication
     participantId: v.optional(v.id("participants")),
     propertyId: v.optional(v.id("properties")),
@@ -528,7 +582,7 @@ export const createFollowUpTask = internalMutation({
     // Map priority: "normal" → "medium" (tasks don't have "normal")
     const taskPriority: "high" | "medium" | "low" = args.priority === "normal" ? "medium" : args.priority;
 
-    // Create the task
+    // Create the task (inherit organizationId from communication)
     const taskId = await ctx.db.insert("tasks", {
       title,
       description: `Auto-generated from Consultation Gate. See communication ${args.communicationId}`,
@@ -540,6 +594,7 @@ export const createFollowUpTask = internalMutation({
       linkedCommunicationId: args.communicationId,
       assignedToUserId: args.userId, // Assign to communication creator
       createdBy: args.userId,
+      organizationId: args.organizationId, // Inherit from communication
       status: "pending",
       createdAt: now,
       updatedAt: now,

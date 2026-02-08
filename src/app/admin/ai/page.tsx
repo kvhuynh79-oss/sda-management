@@ -73,7 +73,10 @@ function AIAssistantContent() {
   );
 
   // Fetch properties for filing dropdown
-  const properties = useQuery(api.properties.getAll);
+  const properties = useQuery(
+    api.properties.getAll,
+    userId ? { userId } : "skip"
+  );
 
   // Actions and mutations - using V2 tool-based API
   const processQuery = useAction(api.aiChatbot.processUserQueryV2);

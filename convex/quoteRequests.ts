@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, action, internalAction, internalMutation } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 
 // Generate a random token for quote submissions
 function generateToken(): string {
@@ -16,13 +16,19 @@ function generateToken(): string {
 
 // Get quote requests for a maintenance request
 export const getByMaintenanceRequest = query({
-  args: { maintenanceRequestId: v.id("maintenanceRequests") },
+  args: {
+    userId: v.id("users"),
+    maintenanceRequestId: v.id("maintenanceRequests")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const requests = await ctx.db
       .query("quoteRequests")
       .withIndex("by_maintenance_request", (q) =>
         q.eq("maintenanceRequestId", args.maintenanceRequestId)
       )
+      .filter(q => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     // Get contractor details for each request
@@ -41,6 +47,7 @@ export const getByMaintenanceRequest = query({
 });
 
 // Get quote request by token (for public quote submission page)
+// NO TENANT SCOPING - public endpoint accessed by contractors
 export const getByToken = query({
   args: { token: v.string() },
   handler: async (ctx, args) => {
@@ -110,12 +117,13 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.createdBy);
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
     const token = generateToken();
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + args.expiryDays);
 
     const requestId = await ctx.db.insert("quoteRequests", {
+      organizationId,
       maintenanceRequestId: args.maintenanceRequestId,
       contractorId: args.contractorId,
       requestToken: token,
@@ -140,6 +148,7 @@ export const create = mutation({
 });
 
 // Mark quote request as viewed
+// NO TENANT SCOPING - public endpoint accessed by contractors
 export const markViewed = mutation({
   args: { token: v.string() },
   handler: async (ctx, args) => {
@@ -158,6 +167,7 @@ export const markViewed = mutation({
 });
 
 // Submit a quote via public link
+// NO TENANT SCOPING on input, but inherits organizationId from request
 export const submitQuote = mutation({
   args: {
     token: v.string(),
@@ -194,8 +204,12 @@ export const submitQuote = mutation({
       ? new Date(Date.now() + args.validDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
       : undefined;
 
+    // Inherit organizationId from the quote request
+    const organizationId = request.organizationId;
+
     // Create the quote
     const quoteId = await ctx.db.insert("maintenanceQuotes", {
+      organizationId,
       maintenanceRequestId: request.maintenanceRequestId,
       contractorId: request.contractorId,
       contractorName: contractor.companyName,
@@ -252,6 +266,7 @@ export const submitQuote = mutation({
 });
 
 // Decline to quote
+// NO TENANT SCOPING - public endpoint accessed by contractors
 export const declineQuote = mutation({
   args: {
     token: v.string(),
@@ -277,11 +292,14 @@ export const declineQuote = mutation({
 
 // Get all pending quote requests (for admin dashboard)
 export const getPending = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const requests = await ctx.db
       .query("quoteRequests")
       .withIndex("by_status", (q) => q.eq("status", "sent"))
+      .filter(q => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     const requestsWithDetails = await Promise.all(

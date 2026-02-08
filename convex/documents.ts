@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { requireTenant } from "./authHelpers";
 
 // Generate upload URL for file storage
 export const generateUploadUrl = mutation(async (ctx) => {
@@ -31,10 +32,12 @@ export const create = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.uploadedBy);
     const now = Date.now();
 
     const documentId = await ctx.db.insert("documents", {
       ...args,
+      organizationId,
       documentType: args.documentType as any,
       documentCategory: args.documentCategory as any,
       createdAt: now,
@@ -60,6 +63,7 @@ export const create = mutation({
         expiryDate: args.expiryDate,
         propertyId: args.linkedPropertyId,
         createdBy: args.uploadedBy,
+        organizationId,
       });
     }
 
@@ -69,9 +73,13 @@ export const create = mutation({
 
 // Get all documents
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
-    const documents = await ctx.db.query("documents").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const documentsWithDetails = await Promise.all(
       documents.map(async (doc) => {
@@ -104,14 +112,17 @@ export const getAll = query({
 
 // Get documents by participant
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: { userId: v.id("users"), participantId: v.id("participants") },
   handler: async (ctx, args) => {
-    const documents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_participant", (q) =>
         q.eq("linkedParticipantId", args.participantId)
       )
       .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
 
     const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
@@ -126,12 +137,15 @@ export const getByParticipant = query({
 
 // Get documents by property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { userId: v.id("users"), propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    const documents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_property", (q) => q.eq("linkedPropertyId", args.propertyId))
       .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
 
     const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
@@ -146,12 +160,15 @@ export const getByProperty = query({
 
 // Get documents by dwelling
 export const getByDwelling = query({
-  args: { dwellingId: v.id("dwellings") },
+  args: { userId: v.id("users"), dwellingId: v.id("dwellings") },
   handler: async (ctx, args) => {
-    const documents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_dwelling", (q) => q.eq("linkedDwellingId", args.dwellingId))
       .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
 
     const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
@@ -166,12 +183,15 @@ export const getByDwelling = query({
 
 // Get documents by type
 export const getByType = query({
-  args: { documentType: v.string() },
+  args: { userId: v.id("users"), documentType: v.string() },
   handler: async (ctx, args) => {
-    const documents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_documentType", (q) => q.eq("documentType", args.documentType as any))
       .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
 
     const documentsWithDetails = await Promise.all(
       documents.map(async (doc) => {
@@ -198,10 +218,14 @@ export const getByType = query({
 
 // Get document by ID
 export const getById = query({
-  args: { id: v.id("documents") },
+  args: { userId: v.id("users"), id: v.id("documents") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const document = await ctx.db.get(args.id);
     if (!document) return null;
+    if (document.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     const participant = document.linkedParticipantId
       ? await ctx.db.get(document.linkedParticipantId)
@@ -231,6 +255,7 @@ export const getById = query({
 // Update document details
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     id: v.id("documents"),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
@@ -241,7 +266,15 @@ export const update = mutation({
     isPaid: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { id, userId, ...updates } = args;
+
+    const document = await ctx.db.get(id);
+    if (!document) throw new Error("Document not found");
+    if (document.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
+
     await ctx.db.patch(id, {
       ...updates,
       updatedAt: Date.now(),
@@ -251,11 +284,15 @@ export const update = mutation({
 
 // Delete document
 export const remove = mutation({
-  args: { id: v.id("documents") },
+  args: { userId: v.id("users"), id: v.id("documents") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const document = await ctx.db.get(args.id);
     if (!document) {
       throw new Error("Document not found");
+    }
+    if (document.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
     }
 
     // Delete from storage
@@ -268,8 +305,9 @@ export const remove = mutation({
 
 // Get documents expiring soon (within 30 days)
 export const getExpiringSoon = query({
-  args: { daysAhead: v.optional(v.number()) },
+  args: { userId: v.id("users"), daysAhead: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const daysAhead = args.daysAhead || 30;
     const now = new Date();
     const futureDate = new Date();
@@ -278,10 +316,12 @@ export const getExpiringSoon = query({
     const nowStr = now.toISOString().split("T")[0];
     const futureStr = futureDate.toISOString().split("T")[0];
 
-    const documents = await ctx.db
+    const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_expiryDate")
       .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
 
     const expiringDocs = documents.filter((doc) => {
       if (!doc.expiryDate) return false;
@@ -316,8 +356,13 @@ export const getExpiringSoon = query({
 
 // Get document statistics
 export const getStats = query({
-  handler: async (ctx) => {
-    const documents = await ctx.db.query("documents").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const now = new Date().toISOString().split("T")[0];
     const expiringSoon = documents.filter(
@@ -341,10 +386,14 @@ export const getStats = query({
 
 // Get recent documents
 export const getRecent = query({
-  args: { limit: v.optional(v.number()) },
+  args: { userId: v.id("users"), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const limit = args.limit || 10;
-    const documents = await ctx.db.query("documents").collect();
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const documentsWithDetails = await Promise.all(
       documents.map(async (doc) => {
@@ -373,12 +422,15 @@ export const getRecent = query({
 
 // Get invoices by property (invoice, receipt, quote types only)
 export const getInvoicesByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { userId: v.id("users"), propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    const documents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_property", (q) => q.eq("linkedPropertyId", args.propertyId))
       .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
 
     const invoices = documents.filter((doc) =>
       ["invoice", "receipt", "quote"].includes(doc.documentType)
@@ -400,14 +452,17 @@ export const getInvoicesByProperty = query({
 
 // Get invoices by participant
 export const getInvoicesByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: { userId: v.id("users"), participantId: v.id("participants") },
   handler: async (ctx, args) => {
-    const documents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_participant", (q) =>
         q.eq("linkedParticipantId", args.participantId)
       )
       .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
 
     const invoices = documents.filter((doc) =>
       ["invoice", "receipt", "quote"].includes(doc.documentType)
@@ -430,11 +485,16 @@ export const getInvoicesByParticipant = query({
 // Get invoice summary stats
 export const getInvoiceSummary = query({
   args: {
+    userId: v.id("users"),
     propertyId: v.optional(v.id("properties")),
     participantId: v.optional(v.id("participants")),
   },
   handler: async (ctx, args) => {
-    let documents = await ctx.db.query("documents").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    let documents = await ctx.db
+      .query("documents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     // Filter by property or participant if provided
     if (args.propertyId) {

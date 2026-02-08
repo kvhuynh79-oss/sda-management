@@ -1,7 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireTenant } from "./authHelpers";
 import {
   findOrCreateThread,
   THREADING_THRESHOLDS,
@@ -86,6 +86,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.createdBy, "communications", "create");
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
 
     const now = Date.now();
 
@@ -93,12 +94,13 @@ export const create = mutation({
     let threadResult: { threadId: string; isNewThread: boolean; matchScore: number; reason: string };
 
     if (args.linkedParticipantId) {
-      // Fetch recent communications (12-hour window) for same participant
+      // Fetch recent communications (12-hour window) for same participant within org
       const twelveHoursAgo = now - THREADING_THRESHOLDS.TIME_WINDOW_MS;
       const recentComms = await ctx.db
         .query("communications")
         .withIndex("by_participant", (q) => q.eq("linkedParticipantId", args.linkedParticipantId))
         .filter((q) => q.gte(q.field("createdAt"), twelveHoursAgo))
+        .filter((q) => q.eq(q.field("organizationId"), organizationId))
         .collect();
 
       // Map to threading interface
@@ -138,9 +140,10 @@ export const create = mutation({
       };
     }
 
-    // Create communication with thread assignment
+    // Create communication with thread assignment and organizationId
     const communicationId = await ctx.db.insert("communications", {
       ...args,
+      organizationId, // Add tenant isolation
       // NDIS Compliance fields (from form or defaults)
       complianceCategory: args.complianceCategory || ("none" as const),
       complianceFlags: args.complianceFlags || undefined,
@@ -255,6 +258,7 @@ export const create = mutation({
         // Auto-create follow-up task (Task 3.3)
         taskId = await ctx.runMutation(internal.tasks.createFollowUpTask, {
           communicationId,
+          organizationId, // Pass org context to task
           userId: user._id,
           participantId: args.linkedParticipantId,
           propertyId: args.linkedPropertyId,
@@ -374,10 +378,16 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, userId, ...updates } = args;
     const user = await requirePermission(ctx, userId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, userId);
 
     const existing = await ctx.db.get(id);
     if (!existing) {
       throw new Error("Communication not found");
+    }
+
+    // Verify org ownership
+    if (existing.organizationId !== organizationId) {
+      throw new Error("Access denied: Communication belongs to different organization");
     }
 
     await ctx.db.patch(id, {
@@ -409,10 +419,16 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "communications", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const communication = await ctx.db.get(args.id);
     if (!communication) {
       throw new Error("Communication not found");
+    }
+
+    // Verify org ownership
+    if (communication.organizationId !== organizationId) {
+      throw new Error("Access denied: Communication belongs to different organization");
     }
 
     if (communication.isDeleted) {
@@ -533,6 +549,8 @@ export const mergeThreads = mutation({
   handler: async (ctx, args) => {
     // Permission check - admin or property_manager only
     const user = await requirePermission(ctx, args.actingUserId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.actingUserId);
+
     if (user.role !== "admin" && user.role !== "property_manager") {
       throw new Error("Only admins and property managers can merge threads");
     }
@@ -542,14 +560,26 @@ export const mergeThreads = mutation({
       throw new Error("Cannot merge a thread with itself");
     }
 
-    // Fetch all communications from source thread
+    // Fetch all communications from source thread (within org)
     const sourceComms = await ctx.db
       .query("communications")
       .withIndex("by_thread", (q) => q.eq("threadId", args.sourceThreadId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     if (sourceComms.length === 0) {
       throw new Error("Source thread not found or empty");
+    }
+
+    // Verify target thread exists and belongs to same org
+    const targetComms = await ctx.db
+      .query("communications")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.targetThreadId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
+      .first();
+
+    if (!targetComms) {
+      throw new Error("Target thread not found or belongs to different organization");
     }
 
     // Move all communications to target thread
@@ -612,6 +642,8 @@ export const splitThread = mutation({
   handler: async (ctx, args) => {
     // Permission check - admin or property_manager only
     const user = await requirePermission(ctx, args.actingUserId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.actingUserId);
+
     if (user.role !== "admin" && user.role !== "property_manager") {
       throw new Error("Only admins and property managers can split threads");
     }
@@ -620,6 +652,11 @@ export const splitThread = mutation({
     const communication = await ctx.db.get(args.communicationId);
     if (!communication) {
       throw new Error("Communication not found");
+    }
+
+    // Verify org ownership
+    if (communication.organizationId !== organizationId) {
+      throw new Error("Access denied: Communication belongs to different organization");
     }
 
     const oldThreadId = communication.threadId;
@@ -684,9 +721,12 @@ export const splitThread = mutation({
 
 // Get all communications with enriched data
 export const getAll = query({
-  handler: async (ctx) => {
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const communications = await ctx.db
       .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .order("desc")
       .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
@@ -732,10 +772,16 @@ export const getAll = query({
 
 // Get communication by ID
 export const getById = query({
-  args: { id: v.id("communications") },
+  args: { id: v.id("communications"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const communication = await ctx.db.get(args.id);
     if (!communication) return null;
+
+    // Verify org ownership
+    if (communication.organizationId !== organizationId) {
+      throw new Error("Access denied: Communication belongs to different organization");
+    }
 
     const [participant, property, createdByUser] = await Promise.all([
       communication.linkedParticipantId ? ctx.db.get(communication.linkedParticipantId) : null,
@@ -760,12 +806,14 @@ export const getById = query({
 
 // Get communications by participant
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: { participantId: v.id("participants"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const communications = await ctx.db
       .query("communications")
       .withIndex("by_participant", (q) => q.eq("linkedParticipantId", args.participantId))
       .filter((q) => q.neq(q.field("isDeleted"), true))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .order("desc")
       .collect();
 
@@ -775,12 +823,14 @@ export const getByParticipant = query({
 
 // Get communications by property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { propertyId: v.id("properties"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const communications = await ctx.db
       .query("communications")
       .withIndex("by_property", (q) => q.eq("linkedPropertyId", args.propertyId))
       .filter((q) => q.neq(q.field("isDeleted"), true))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .order("desc")
       .collect();
 
@@ -791,6 +841,7 @@ export const getByProperty = query({
 // Get communications by stakeholder (for cross-linking on SC/SIL/OT/Contractor detail pages)
 export const getByStakeholder = query({
   args: {
+    userId: v.id("users"),
     stakeholderEntityType: v.union(
       v.literal("support_coordinator"),
       v.literal("sil_provider"),
@@ -802,6 +853,7 @@ export const getByStakeholder = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const maxResults = args.limit || 20;
 
     const communications = await ctx.db
@@ -811,6 +863,7 @@ export const getByStakeholder = query({
          .eq("stakeholderEntityId", args.stakeholderEntityId)
       )
       .filter((q) => q.neq(q.field("isDeleted"), true))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .order("desc")
       .take(maxResults);
 
@@ -835,12 +888,14 @@ export const getByStakeholder = query({
 
 // Get communications linked to an incident
 export const getByIncident = query({
-  args: { incidentId: v.id("incidents") },
+  args: { incidentId: v.id("incidents"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const communications = await ctx.db
       .query("communications")
       .withIndex("by_linked_incident", (q) => q.eq("linkedIncidentId", args.incidentId))
       .filter((q) => q.neq(q.field("isDeleted"), true))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .order("desc")
       .collect();
 
@@ -850,12 +905,14 @@ export const getByIncident = query({
 
 // Get recent communications (for dashboard)
 export const getRecent = query({
-  args: { limit: v.optional(v.number()) },
+  args: { userId: v.id("users"), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const limit = args.limit || 10;
 
     const communications = await ctx.db
       .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .order("desc")
       .filter((q) => q.neq(q.field("isDeleted"), true))
       .take(limit);
@@ -880,24 +937,28 @@ export const getRecent = query({
  */
 export const suggestThreadMerges = query({
   args: {
+    userId: v.id("users"),
     participantId: v.optional(v.id("participants")),
     timeWindowDays: v.optional(v.number()), // Default: 7 days for suggestions
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const timeWindow = (args.timeWindowDays || 7) * 24 * 60 * 60 * 1000; // Convert days to ms
     const cutoffTime = Date.now() - timeWindow;
 
-    // Fetch communications in time window
+    // Fetch communications in time window (within org)
     let communications;
     if (args.participantId) {
       communications = await ctx.db
         .query("communications")
         .withIndex("by_participant", (q: any) => q.eq("linkedParticipantId", args.participantId))
         .filter((q: any) => q.gte(q.field("createdAt"), cutoffTime))
+        .filter((q: any) => q.eq(q.field("organizationId"), organizationId))
         .collect();
     } else {
       communications = await ctx.db
         .query("communications")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
         .filter((q: any) => q.gte(q.field("createdAt"), cutoffTime))
         .collect();
     }
@@ -1009,8 +1070,13 @@ export const suggestThreadMerges = query({
 
 // Get communications stats
 export const getStats = query({
-  handler: async (ctx) => {
-    const allCommunications = await ctx.db.query("communications").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allCommunications = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const communications = allCommunications.filter((c) => !c.isDeleted);
 
     const today = new Date().toISOString().split("T")[0];
@@ -1062,14 +1128,25 @@ export const getThreadedView = query({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const limit = args.limit || 20;
     const statusFilter = args.statusFilter || "active";
 
-    // Read from threadSummaries for performance
+    // Read from threadSummaries for performance (filter by org via communication lookup)
+    const allComms = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    const orgThreadIds = new Set(allComms.map(c => c.threadId).filter(Boolean));
+
     let allSummaries = await ctx.db
       .query("threadSummaries")
       .collect();
+
+    // Filter summaries to only org threads
+    allSummaries = allSummaries.filter(s => orgThreadIds.has(s.threadId));
 
     // Filter by status (undefined treated as "active")
     if (statusFilter !== "all") {
@@ -1131,6 +1208,7 @@ export const getThreadMessages = query({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const limit = args.limit || 50;
 
@@ -1138,8 +1216,13 @@ export const getThreadMessages = query({
     const allMessages = await ctx.db
       .query("communications")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
     const messages = allMessages.filter(m => !m.isDeleted);
+
+    if (messages.length === 0) {
+      throw new Error("Thread not found or belongs to different organization");
+    }
 
     // Sort ASC (oldest first) and limit
     messages.sort((a, b) => a.createdAt - b.createdAt);
@@ -1192,12 +1275,14 @@ export const getTimelineView = query({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const limit = args.limit || 50;
 
-    // Get all non-deleted communications
+    // Get all non-deleted communications (within org)
     let comms = await ctx.db
       .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .order("desc")
       .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
@@ -1272,12 +1357,14 @@ export const getStakeholderView = query({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const limit = args.limit || 20;
 
-    // Get all non-deleted communications
+    // Get all non-deleted communications (within org)
     let comms = await ctx.db
       .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
 
@@ -1377,12 +1464,14 @@ export const getComplianceView = query({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const limit = args.limit || 50;
 
-    // Get all non-deleted communications
+    // Get all non-deleted communications (within org)
     let comms = await ctx.db
       .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .order("desc")
       .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
@@ -1479,12 +1568,18 @@ export const markThreadRead = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
-    // Find all unread communications in thread
+    // Find all unread communications in thread (within org)
     const threadComms = await ctx.db
       .query("communications")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
+
+    if (threadComms.length === 0) {
+      throw new Error("Thread not found or belongs to different organization");
+    }
 
     const now = new Date().toISOString();
     let updatedCount = 0;
@@ -1540,9 +1635,19 @@ export const getCommunicationDashboardStats = query({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
-    // Thread stats from summaries (fast - small table)
-    const summaries = await ctx.db.query("threadSummaries").collect();
+    // Get org communications for thread filtering
+    const orgComms = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    const orgThreadIds = new Set(orgComms.map(c => c.threadId).filter(Boolean));
+
+    // Thread stats from summaries (fast - small table), filtered to org threads
+    const allSummaries = await ctx.db.query("threadSummaries").collect();
+    const summaries = allSummaries.filter(s => orgThreadIds.has(s.threadId));
     const activeSummaries = summaries.filter(s => (s.status || "active") === "active");
     const totalThreads = activeSummaries.length;
     const unreadThreads = activeSummaries.filter(s => s.hasUnread).length;
@@ -1558,13 +1663,9 @@ export const getCommunicationDashboardStats = query({
       }
     }
 
-    // Recent activity (last 24 hours) - query non-deleted communications
+    // Recent activity (last 24 hours) - query non-deleted communications (within org)
     const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const recentComms = await ctx.db
-      .query("communications")
-      .order("desc")
-      .filter((q) => q.neq(q.field("isDeleted"), true))
-      .collect();
+    const recentComms = orgComms.filter((c) => !c.isDeleted);
     const recentActivity = recentComms.filter(c => c.createdAt >= twentyFourHoursAgo).length;
 
     // Unique stakeholder count
@@ -1599,6 +1700,7 @@ export const bulkMarkAsRead = mutation({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     // Validate max 100 IDs
     if (args.communicationIds.length === 0) {
@@ -1616,6 +1718,11 @@ export const bulkMarkAsRead = mutation({
     for (const commId of args.communicationIds) {
       const comm = await ctx.db.get(commId);
       if (!comm || comm.readAt) continue; // Skip if already read or not found
+
+      // Verify org ownership
+      if (comm.organizationId !== organizationId) {
+        throw new Error(`Access denied: Communication ${commId} belongs to different organization`);
+      }
 
       await ctx.db.patch(commId, { readAt: now });
       updatedCount++;
@@ -1689,6 +1796,7 @@ export const bulkUpdateCategory = mutation({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     if (args.communicationIds.length === 0) {
       throw new Error("No communication IDs provided");
@@ -1708,6 +1816,11 @@ export const bulkUpdateCategory = mutation({
     for (const commId of args.communicationIds) {
       const comm = await ctx.db.get(commId);
       if (!comm) continue;
+
+      // Verify org ownership
+      if (comm.organizationId !== organizationId) {
+        throw new Error(`Access denied: Communication ${commId} belongs to different organization`);
+      }
 
       const previousCategory = comm.complianceCategory;
 
@@ -1765,6 +1878,7 @@ export const bulkUpdateCategory = mutation({
           // Auto-create follow-up task
           await ctx.runMutation(internal.tasks.createFollowUpTask, {
             communicationId: commId,
+            organizationId, // Pass org context
             userId: args.userId,
             participantId: updatedComm.linkedParticipantId,
             propertyId: updatedComm.linkedPropertyId,
@@ -1815,6 +1929,7 @@ export const bulkAddToThread = mutation({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     if (args.communicationIds.length === 0) {
       throw new Error("No communication IDs provided");
@@ -1823,14 +1938,15 @@ export const bulkAddToThread = mutation({
       throw new Error("Maximum 50 communications per bulk thread operation");
     }
 
-    // Validate target thread exists
-    const targetSummary = await ctx.db
-      .query("threadSummaries")
-      .withIndex("by_thread", (q: any) => q.eq("threadId", args.targetThreadId))
+    // Validate target thread exists and belongs to org
+    const targetThreadComm = await ctx.db
+      .query("communications")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.targetThreadId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .first();
 
-    if (!targetSummary) {
-      throw new Error("Target thread not found");
+    if (!targetThreadComm) {
+      throw new Error("Target thread not found or belongs to different organization");
     }
 
     const now = Date.now();
@@ -1843,6 +1959,11 @@ export const bulkAddToThread = mutation({
     for (const commId of args.communicationIds) {
       const comm = await ctx.db.get(commId);
       if (!comm) continue;
+
+      // Verify org ownership
+      if (comm.organizationId !== organizationId) {
+        throw new Error(`Access denied: Communication ${commId} belongs to different organization`);
+      }
 
       // Track the source thread for summary regeneration
       if (comm.threadId && comm.threadId !== args.targetThreadId) {
@@ -1902,6 +2023,7 @@ export const bulkAddFlags = mutation({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     if (args.communicationIds.length === 0) {
       throw new Error("No communication IDs provided");
@@ -1927,6 +2049,11 @@ export const bulkAddFlags = mutation({
     for (const commId of args.communicationIds) {
       const comm = await ctx.db.get(commId);
       if (!comm) continue;
+
+      // Verify org ownership
+      if (comm.organizationId !== organizationId) {
+        throw new Error(`Access denied: Communication ${commId} belongs to different organization`);
+      }
 
       // Merge flags without duplicates
       const existingFlags = comm.complianceFlags || [];
@@ -1979,6 +2106,7 @@ export const bulkAddFlags = mutation({
 
           await ctx.runMutation(internal.tasks.createFollowUpTask, {
             communicationId: commId,
+            organizationId, // Pass org context
             userId: args.userId,
             participantId: comm.linkedParticipantId,
             propertyId: comm.linkedPropertyId,
@@ -2025,6 +2153,7 @@ export const restore = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "communications", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     // Admin-only
     if (user.role !== "admin") {
@@ -2034,6 +2163,11 @@ export const restore = mutation({
     const communication = await ctx.db.get(args.id);
     if (!communication) {
       throw new Error("Communication not found");
+    }
+
+    // Verify org ownership
+    if (communication.organizationId !== organizationId) {
+      throw new Error("Access denied: Communication belongs to different organization");
     }
 
     if (!communication.isDeleted) {
@@ -2081,6 +2215,18 @@ export const updateThreadStatus = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify thread belongs to org by checking any communication in thread
+    const threadComm = await ctx.db
+      .query("communications")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
+      .first();
+
+    if (!threadComm) {
+      throw new Error("Thread not found or belongs to different organization");
+    }
 
     const summary = await ctx.db
       .query("threadSummaries")
@@ -2088,7 +2234,7 @@ export const updateThreadStatus = mutation({
       .first();
 
     if (!summary) {
-      throw new Error("Thread not found");
+      throw new Error("Thread summary not found");
     }
 
     const previousStatus = summary.status || "active";
@@ -2123,6 +2269,7 @@ export const getDeletedCommunications = query({
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     // Get user and check admin
     const user = await ctx.db.get(args.userId);
@@ -2132,6 +2279,7 @@ export const getDeletedCommunications = query({
 
     const deleted = await ctx.db
       .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .order("desc")
       .filter((q) => q.eq(q.field("isDeleted"), true))
       .collect();
@@ -2164,8 +2312,11 @@ export const getDeletedCommunications = query({
 export const getByParticipantThreaded = query({
   args: {
     participantId: v.id("participants"),
+    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     // Get all thread summaries for this participant
     const summaries = await ctx.db
       .query("threadSummaries")
@@ -2174,12 +2325,13 @@ export const getByParticipantThreaded = query({
       )
       .collect();
 
-    // For each thread, get active (non-deleted) messages
+    // For each thread, get active (non-deleted) messages (within org)
     const threads = await Promise.all(
       summaries.map(async (summary) => {
         const messages = await ctx.db
           .query("communications")
           .withIndex("by_thread", (q: any) => q.eq("threadId", summary.threadId))
+          .filter((q: any) => q.eq(q.field("organizationId"), organizationId))
           .collect();
 
         const activeMessages = messages
@@ -2235,9 +2387,13 @@ export const deleteByContactName = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.userId, "communications", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
-    // Find all active communications for this contact name (case-insensitive)
-    const allComms = await ctx.db.query("communications").collect();
+    // Find all active communications for this contact name (case-insensitive) within org
+    const allComms = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const targetComms = allComms.filter(
       (c) =>
         c.contactName.toLowerCase() === args.contactName.toLowerCase() &&
@@ -2290,6 +2446,7 @@ export const deleteByContactName = mutation({
  */
 export const autoCreateForIncident = internalMutation({
   args: {
+    organizationId: v.id("organizations"), // Inherit from incident
     incidentId: v.id("incidents"),
     incidentTitle: v.string(),
     incidentDescription: v.string(),
@@ -2331,8 +2488,9 @@ export const autoCreateForIncident = internalMutation({
     // Truncate description for summary (max 500 chars)
     const summary = `[Auto-created from incident] ${args.incidentDescription.substring(0, 500)}`;
 
-    // Create the communication entry
+    // Create the communication entry (inherit organizationId)
     const communicationId = await ctx.db.insert("communications", {
+      organizationId: args.organizationId, // Inherit from incident
       communicationType: "other" as const,
       direction: "sent" as const,
       communicationDate: args.incidentDate,
@@ -2396,6 +2554,7 @@ export const autoCreateForIncident = internalMutation({
 
 export const autoCreateForComplaint = internalMutation({
   args: {
+    organizationId: v.optional(v.id("organizations")), // Optional for website submissions
     complaintId: v.id("complaints"),
     referenceNumber: v.string(),
     description: v.string(),
@@ -2428,8 +2587,8 @@ export const autoCreateForComplaint = internalMutation({
     const summary = `[Auto-created from complaint] ${args.description.substring(0, 500)}`;
     const categoryLabel = args.category.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-    // Create the communication entry
-    const communicationId = await ctx.db.insert("communications", {
+    // Create the communication entry (inherit organizationId if present)
+    const insertData: any = {
       communicationType: "other" as const,
       direction: "received" as const,
       communicationDate: new Date().toISOString().split("T")[0],
@@ -2449,7 +2608,14 @@ export const autoCreateForComplaint = internalMutation({
       participantId: args.participantId,
       createdAt: now,
       updatedAt: now,
-    });
+    };
+
+    // Add organizationId if provided (for internal complaints)
+    if (args.organizationId) {
+      insertData.organizationId = args.organizationId;
+    }
+
+    const communicationId = await ctx.db.insert("communications", insertData);
 
     // Create thread summary if participant is linked
     if (args.participantId) {

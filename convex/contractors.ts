@@ -1,16 +1,18 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requirePermission, getUserFullName } from "./authHelpers";
+import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
 
 // Get all contractors
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
-    // Use index for better performance
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    // Use organizationId index for tenant isolation
     const contractors = await ctx.db
       .query("contractors")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     // Get preferred properties for each contractor
@@ -44,10 +46,14 @@ export const getAll = query({
 
 // Get contractor by ID
 export const getById = query({
-  args: { contractorId: v.id("contractors") },
+  args: { userId: v.id("users"), contractorId: v.id("contractors") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const contractor = await ctx.db.get(args.contractorId);
     if (!contractor) return null;
+    if (contractor.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     // Get preferred properties
     const properties = contractor.preferredProperties
@@ -75,26 +81,30 @@ export const getById = query({
 
 // Get contractors by specialty
 export const getBySpecialty = query({
-  args: { specialty: v.string() },
+  args: { userId: v.id("users"), specialty: v.string() },
   handler: async (ctx, args) => {
-    const contractors = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allContractors = await ctx.db
       .query("contractors")
       .withIndex("by_specialty", (q) => q.eq("specialty", args.specialty as any))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
+    const contractors = allContractors.filter(c => c.organizationId === organizationId);
     return contractors;
   },
 });
 
 // Get contractors for a specific property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { userId: v.id("users"), propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    // Use index for better performance
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    // Use organizationId index for tenant isolation
     const allContractors = await ctx.db
       .query("contractors")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     // Filter to contractors who have this property as preferred
@@ -136,11 +146,13 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Permission check
+    // Permission check and get organizationId
     const user = await requirePermission(ctx, args.userId, "contractors", "create");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { userId, ...contractorData } = args;
     const contractorId = await ctx.db.insert("contractors", {
       ...contractorData,
+      organizationId,
       rating: undefined,
       totalJobsCompleted: 0,
       averageResponseTime: undefined,
@@ -198,12 +210,16 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Permission check
+    // Permission check and get organizationId
     await requirePermission(ctx, args.userId, "contractors", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { contractorId, userId, ...updates } = args;
 
     const existing = await ctx.db.get(contractorId);
     if (!existing) throw new Error("Contractor not found");
+    if (existing.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -226,6 +242,14 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Permission check - only admin can delete
     await requirePermission(ctx, args.userId, "contractors", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const contractor = await ctx.db.get(args.contractorId);
+    if (!contractor) throw new Error("Contractor not found");
+    if (contractor.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
+
     await ctx.db.patch(args.contractorId, {
       isActive: false,
       updatedAt: Date.now(),
@@ -235,10 +259,14 @@ export const remove = mutation({
 
 // Get contractor job history
 export const getJobHistory = query({
-  args: { contractorId: v.id("contractors") },
+  args: { userId: v.id("users"), contractorId: v.id("contractors") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const contractor = await ctx.db.get(args.contractorId);
     if (!contractor) return null;
+    if (contractor.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     // Get all quotes by this contractor
     const quotes = await ctx.db

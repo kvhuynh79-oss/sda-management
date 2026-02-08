@@ -1,7 +1,7 @@
 import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
 import { encryptField, decryptField, isEncrypted } from "./lib/encryption";
 
 // Decrypt sensitive incident fields (handles both encrypted and plaintext for migration)
@@ -109,8 +109,9 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     try {
-      // Verify user has permission
+      // Verify user has permission and get organizationId
       const user = await requirePermission(ctx, args.reportedBy, "incidents", "create");
+      const { organizationId } = await requireTenant(ctx, args.reportedBy);
 
       const now = Date.now();
 
@@ -129,6 +130,7 @@ export const create = mutation({
       // Build base incident data with encrypted fields
       const baseData = {
         ...args,
+        organizationId,
         description: encDescription ?? args.description,
         witnessNames: encWitnessNames ?? args.witnessNames,
         immediateActionTaken: encImmediateAction ?? args.immediateActionTaken,
@@ -173,6 +175,7 @@ export const create = mutation({
 
       // Auto-create a linked communication entry for compliance tracking
       await ctx.runMutation(internal.communications.autoCreateForIncident, {
+        organizationId, // Pass org context
         incidentId,
         incidentTitle: args.title,
         incidentDescription: args.description,
@@ -217,13 +220,16 @@ export const create = mutation({
 
 // Get all incidents for a property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { userId: v.id("users"), propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    const incidents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allIncidents = await ctx.db
       .query("incidents")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
       .order("desc")
       .collect();
+
+    const incidents = allIncidents.filter(i => i.organizationId === organizationId);
 
     // Get participant details for each incident and decrypt
     const incidentsWithDetails = await Promise.all(
@@ -252,19 +258,26 @@ export const getByProperty = query({
 // Get all incidents (with optional filters)
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let incidents;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    let allIncidents;
     if (args.status) {
-      incidents = await ctx.db
+      allIncidents = await ctx.db
         .query("incidents")
         .withIndex("by_status", (q) => q.eq("status", args.status as any))
         .order("desc")
         .collect();
     } else {
-      incidents = await ctx.db.query("incidents").order("desc").collect();
+      allIncidents = await ctx.db
+        .query("incidents")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .order("desc")
+        .collect();
     }
+    const incidents = allIncidents.filter(i => i.organizationId === organizationId);
 
     // Get details for each incident and decrypt
     const incidentsWithDetails = await Promise.all(
@@ -294,10 +307,14 @@ export const getAll = query({
 
 // Get incident by ID
 export const getById = query({
-  args: { incidentId: v.id("incidents") },
+  args: { userId: v.id("users"), incidentId: v.id("incidents") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) return null;
+    if (incident.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     const decrypted = await decryptIncidentFields(incident);
     const property = await ctx.db.get(incident.propertyId);
@@ -393,13 +410,17 @@ export const update = mutation({
     resolutionNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission to update incidents
+    // Verify user has permission to update incidents and get organizationId
     const user = await requirePermission(ctx, args.userId, "incidents", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { incidentId, userId, ...updates } = args;
 
     // Capture previous values BEFORE update for audit trail
     const incident = await ctx.db.get(incidentId);
     if (!incident) throw new Error("Incident not found");
+    if (incident.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     const previousValues: Record<string, unknown> = {};
     for (const key of Object.keys(updates)) {
@@ -471,10 +492,14 @@ export const markNdisNotified = mutation({
     referenceNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission to update incidents
+    // Verify user has permission to update incidents and get organizationId
     const user = await requirePermission(ctx, args.userId, "incidents", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) throw new Error("Incident not found");
+    if (incident.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     // Capture the exact timestamp for compliance audit trail
     const notificationTimestamp = new Date().toISOString();
@@ -536,15 +561,19 @@ export const markNdisNotified = mutation({
 // Get all NDIS reportable incidents
 export const getNdisReportable = query({
   args: {
+    userId: v.id("users"),
     notifiedOnly: v.optional(v.boolean()),
     overdueOnly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    let incidents = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    let allIncidents = await ctx.db
       .query("incidents")
       .withIndex("by_isNdisReportable", (q) => q.eq("isNdisReportable", true))
       .order("desc")
       .collect();
+
+    let incidents = allIncidents.filter(i => i.organizationId === organizationId);
 
     if (args.notifiedOnly === true) {
       incidents = incidents.filter(i => i.ndisCommissionNotified === true);
@@ -604,9 +633,14 @@ export const checkOverdueNotifications = mutation({
 
 // Get incident statistics including NDIS reportable
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const incidents = await ctx.db.query("incidents").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allIncidents = await ctx.db
+      .query("incidents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+    const incidents = allIncidents;
 
     const stats = {
       total: incidents.length,
@@ -644,12 +678,16 @@ export const resolve = mutation({
     resolutionNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission to update incidents
+    // Verify user has permission to update incidents and get organizationId
     const user = await requirePermission(ctx, args.resolvedBy, "incidents", "update");
+    const { organizationId } = await requireTenant(ctx, args.resolvedBy);
 
-    // Get incident for audit trail
+    // Get incident for audit trail and verify ownership
     const incident = await ctx.db.get(args.incidentId);
     if (!incident) throw new Error("Incident not found");
+    if (incident.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     const resolvedAt = Date.now();
     const resolvedAtISO = new Date(resolvedAt).toISOString();

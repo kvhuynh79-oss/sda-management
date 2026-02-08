@@ -1,7 +1,7 @@
 import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
 import { paginationArgs } from "./paginationHelpers";
 import {
   validateRequiredString,
@@ -55,6 +55,8 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "participants", "create");
 
@@ -103,6 +105,7 @@ export const create = mutation({
     const status = args.status || (validatedMoveInDate ? "active" : "pending_move_in");
 
     const participantId = await ctx.db.insert("participants", {
+      organizationId, // Multi-tenant: Associate with organization
       ndisNumber: encNdisNumber ?? validatedNdis,
       ndisNumberIndex: ndisBlindIndex ?? undefined,
       firstName: validatedFirstName,
@@ -179,14 +182,20 @@ export const getAll = query({
     userId: v.id("users"), // Required for role-based filtering
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     // Get requesting user for role-based access control
     const requestingUser = await ctx.db.get(args.userId);
     if (!requestingUser) {
       throw new Error("User not found");
     }
 
-    // Fetch all participants and filter in memory (faster than DB filter with negation)
-    const allParticipants = await ctx.db.query("participants").collect();
+    // Fetch participants scoped to organization using index
+    const allParticipants = await ctx.db
+      .query("participants")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     let participants = allParticipants.filter((p) => p.status !== "moved_out");
 
     // Role-based filtering for SIL provider users
@@ -250,10 +259,21 @@ export const getAll = query({
 
 // Get participant by ID with full details
 export const getById = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    participantId: v.id("participants"),
+    userId: v.id("users"), // Required for tenant isolation
+  },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const participant = await ctx.db.get(args.participantId);
     if (!participant) return null;
+
+    // Verify record belongs to user's organization
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
 
     const decrypted = await decryptParticipantFields(participant);
     const dwelling = await ctx.db.get(participant.dwellingId);
@@ -301,12 +321,19 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "participants", "update");
 
     const { participantId, userId, ...updates } = args;
     const participant = await ctx.db.get(participantId);
     if (!participant) throw new Error("Participant not found");
+
+    // Verify record belongs to user's organization
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
 
     const oldDwellingId = participant.dwellingId;
 
@@ -372,9 +399,17 @@ export const revertToPending = mutation({
     participantId: v.id("participants"),
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
     await requirePermission(ctx, args.userId, "participants", "update");
+
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
+
+    // Verify record belongs to user's organization
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
 
     if (participant.status !== "active") {
       throw new Error("Can only revert active participants to pending");
@@ -401,9 +436,17 @@ export const moveIn = mutation({
     moveInDate: v.string(),
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
     await requirePermission(ctx, args.userId, "participants", "update");
+
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
+
+    // Verify record belongs to user's organization
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
 
     if (participant.status !== "pending_move_in") {
       throw new Error("Participant is not in pending move-in status");
@@ -430,9 +473,17 @@ export const moveOut = mutation({
     moveOutDate: v.string(),
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
     await requirePermission(ctx, args.userId, "participants", "update");
+
     const participant = await ctx.db.get(args.participantId);
     if (!participant) throw new Error("Participant not found");
+
+    // Verify record belongs to user's organization
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
 
     await ctx.db.patch(args.participantId, {
       status: "moved_out",
@@ -449,13 +500,23 @@ export const moveOut = mutation({
 
 // Get participants by dwelling
 export const getByDwelling = query({
-  args: { dwellingId: v.id("dwellings") },
+  args: {
+    dwellingId: v.id("dwellings"),
+    userId: v.id("users"), // Required for tenant isolation
+  },
   handler: async (ctx, args) => {
-    const participants = await ctx.db
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Get all participants and filter to organization + dwelling + active
+    const allParticipants = await ctx.db
       .query("participants")
-      .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+
+    const participants = allParticipants.filter(
+      (p) => p.dwellingId === args.dwellingId && p.status === "active"
+    );
 
     return Promise.all(participants.map(decryptParticipantFields));
   },
@@ -464,33 +525,40 @@ export const getByDwelling = query({
 // Get participants with pagination
 export const getAllPaginated = query({
   args: {
+    userId: v.id("users"), // Required for tenant isolation
     ...paginationArgs,
     status: v.optional(v.string()),
     dwellingId: v.optional(v.id("dwellings")),
   },
   handler: async (ctx, args) => {
-    // Build query based on filters
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Build query based on filters - always scope to organizationId first
     let result;
 
     if (args.dwellingId) {
-      // Filter by dwelling
+      // Filter by organization + dwelling
       let dwellingQuery = ctx.db
         .query("participants")
-        .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId!));
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.eq(q.field("dwellingId"), args.dwellingId!));
       if (!args.status) {
         dwellingQuery = dwellingQuery.filter((q) => q.neq(q.field("status"), "moved_out"));
       }
       result = await dwellingQuery.paginate(args.paginationOpts);
     } else if (args.status) {
-      // Filter by status
+      // Filter by organization + status
       const statusQuery = ctx.db
         .query("participants")
-        .withIndex("by_status", (q) => q.eq("status", args.status as any));
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.eq(q.field("status"), args.status as any));
       result = await statusQuery.paginate(args.paginationOpts);
     } else {
-      // Default: exclude moved_out
+      // Default: organization + exclude moved_out
       const defaultQuery = ctx.db
         .query("participants")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
         .filter((q) => q.neq(q.field("status"), "moved_out"));
       result = await defaultQuery.paginate(args.paginationOpts);
     }

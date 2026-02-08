@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 
 // ============================================
 // INSPECTION TEMPLATES
@@ -9,24 +9,40 @@ import { requireAuth } from "./authHelpers";
 // Get all active inspection templates
 export const getTemplates = query({
   args: {
+    userId: v.id("users"),
     includeInactive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     if (args.includeInactive) {
-      return await ctx.db.query("inspectionTemplates").collect();
+      const templates = await ctx.db.query("inspectionTemplates").collect();
+      return templates.filter(t => t.organizationId === organizationId);
     }
     return await ctx.db
       .query("inspectionTemplates")
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .filter(q => q.eq(q.field("organizationId"), organizationId))
       .collect();
   },
 });
 
 // Get a single template by ID
 export const getTemplateById = query({
-  args: { templateId: v.id("inspectionTemplates") },
+  args: {
+    userId: v.id("users"),
+    templateId: v.id("inspectionTemplates")
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.templateId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const template = await ctx.db.get(args.templateId);
+
+    if (!template) return null;
+    if (template.organizationId !== organizationId) {
+      throw new Error("Access denied: Template belongs to different organization");
+    }
+
+    return template;
   },
 });
 
@@ -49,9 +65,10 @@ export const createTemplate = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.createdBy);
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
     const now = Date.now();
     return await ctx.db.insert("inspectionTemplates", {
+      organizationId,
       name: args.name,
       description: args.description,
       categories: args.categories,
@@ -86,7 +103,13 @@ export const updateTemplate = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const template = await ctx.db.get(args.templateId);
+    if (!template) throw new Error("Template not found");
+    if (template.organizationId !== organizationId) {
+      throw new Error("Access denied: Template belongs to different organization");
+    }
+
     const { templateId, userId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, v]) => v !== undefined)
@@ -105,6 +128,7 @@ export const updateTemplate = mutation({
 // Get all inspections with optional filters
 export const getInspections = query({
   args: {
+    userId: v.id("users"),
     propertyId: v.optional(v.id("properties")),
     dwellingId: v.optional(v.id("dwellings")),
     inspectorId: v.optional(v.id("users")),
@@ -118,30 +142,36 @@ export const getInspections = query({
     ),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     let inspections;
 
     if (args.propertyId) {
       inspections = await ctx.db
         .query("inspections")
         .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId!))
+        .filter(q => q.eq(q.field("organizationId"), organizationId))
         .collect();
     } else if (args.dwellingId) {
       inspections = await ctx.db
         .query("inspections")
         .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId!))
+        .filter(q => q.eq(q.field("organizationId"), organizationId))
         .collect();
     } else if (args.inspectorId) {
       inspections = await ctx.db
         .query("inspections")
         .withIndex("by_inspector", (q) => q.eq("inspectorId", args.inspectorId!))
+        .filter(q => q.eq(q.field("organizationId"), organizationId))
         .collect();
     } else if (args.status) {
       inspections = await ctx.db
         .query("inspections")
         .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .filter(q => q.eq(q.field("organizationId"), organizationId))
         .collect();
     } else {
-      inspections = await ctx.db.query("inspections").collect();
+      const allInspections = await ctx.db.query("inspections").collect();
+      inspections = allInspections.filter(i => i.organizationId === organizationId);
     }
 
     // Enrich with related data
@@ -182,10 +212,17 @@ export const getInspections = query({
 
 // Get a single inspection by ID with all items
 export const getInspectionById = query({
-  args: { inspectionId: v.id("inspections") },
+  args: {
+    userId: v.id("users"),
+    inspectionId: v.id("inspections")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const inspection = await ctx.db.get(args.inspectionId);
     if (!inspection) return null;
+    if (inspection.organizationId !== organizationId) {
+      throw new Error("Access denied: Inspection belongs to different organization");
+    }
 
     const template = await ctx.db.get(inspection.templateId);
     const property = await ctx.db.get(inspection.propertyId);
@@ -254,10 +291,13 @@ export const createInspection = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.createdBy);
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
     const template = await ctx.db.get(args.templateId);
     if (!template) {
       throw new Error("Template not found");
+    }
+    if (template.organizationId !== organizationId) {
+      throw new Error("Access denied: Template belongs to different organization");
     }
 
     const now = Date.now();
@@ -270,6 +310,7 @@ export const createInspection = mutation({
 
     // Create the inspection
     const inspectionId = await ctx.db.insert("inspections", {
+      organizationId,
       templateId: args.templateId,
       propertyId: args.propertyId,
       dwellingId: args.dwellingId,
@@ -292,6 +333,7 @@ export const createInspection = mutation({
     for (const category of template.categories) {
       for (const item of category.items) {
         await ctx.db.insert("inspectionItems", {
+          organizationId,
           inspectionId,
           category: category.name,
           itemName: item.name,
@@ -328,7 +370,13 @@ export const updateInspection = mutation({
     inspectorId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) throw new Error("Inspection not found");
+    if (inspection.organizationId !== organizationId) {
+      throw new Error("Access denied: Inspection belongs to different organization");
+    }
+
     const { inspectionId, userId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, v]) => v !== undefined)
@@ -347,7 +395,13 @@ export const startInspection = mutation({
     inspectionId: v.id("inspections"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) throw new Error("Inspection not found");
+    if (inspection.organizationId !== organizationId) {
+      throw new Error("Access denied: Inspection belongs to different organization");
+    }
+
     return await ctx.db.patch(args.inspectionId, {
       status: "in_progress",
       updatedAt: Date.now(),
@@ -363,7 +417,13 @@ export const completeInspection = mutation({
     additionalComments: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) throw new Error("Inspection not found");
+    if (inspection.organizationId !== organizationId) {
+      throw new Error("Access denied: Inspection belongs to different organization");
+    }
+
     const today = new Date().toISOString().split("T")[0];
     return await ctx.db.patch(args.inspectionId, {
       status: "completed",
@@ -381,7 +441,13 @@ export const deleteInspection = mutation({
     inspectionId: v.id("inspections"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) throw new Error("Inspection not found");
+    if (inspection.organizationId !== organizationId) {
+      throw new Error("Access denied: Inspection belongs to different organization");
+    }
+
     // Delete all photos
     const photos = await ctx.db
       .query("inspectionPhotos")
@@ -414,11 +480,16 @@ export const deleteInspection = mutation({
 
 // Get items for an inspection
 export const getItemsByInspection = query({
-  args: { inspectionId: v.id("inspections") },
+  args: {
+    userId: v.id("users"),
+    inspectionId: v.id("inspections")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const items = await ctx.db
       .query("inspectionItems")
       .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .filter(q => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     // Get photos for each item
@@ -627,8 +698,9 @@ export const saveInspectionPhoto = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.uploadedBy);
+    const { organizationId } = await requireTenant(ctx, args.uploadedBy);
     return await ctx.db.insert("inspectionPhotos", {
+      organizationId,
       inspectionId: args.inspectionId,
       inspectionItemId: args.inspectionItemId,
       storageId: args.storageId,
@@ -670,8 +742,9 @@ export const saveGeneralPhoto = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.uploadedBy);
+    const { organizationId } = await requireTenant(ctx, args.uploadedBy);
     return await ctx.db.insert("inspectionPhotos", {
+      organizationId,
       inspectionId: args.inspectionId,
       inspectionItemId: undefined,
       storageId: args.storageId,
@@ -720,10 +793,13 @@ export const addCustomItem = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.createdBy);
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
     const inspection = await ctx.db.get(args.inspectionId);
     if (!inspection) {
       throw new Error("Inspection not found");
+    }
+    if (inspection.organizationId !== organizationId) {
+      throw new Error("Access denied: Inspection belongs to different organization");
     }
 
     // Get all items to determine the next order number
@@ -749,6 +825,7 @@ export const addCustomItem = mutation({
 
     // Create the custom item
     const itemId = await ctx.db.insert("inspectionItems", {
+      organizationId,
       inspectionId: args.inspectionId,
       category: args.category,
       itemName: args.itemName,
@@ -958,11 +1035,14 @@ export const getInspectionReport = query({
 export const seedBLSTemplate = mutation({
   args: { createdBy: v.id("users") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.createdBy);
-    // Check if BLS template already exists
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
+    // Check if BLS template already exists for this organization
     const existing = await ctx.db
       .query("inspectionTemplates")
-      .filter((q) => q.eq(q.field("name"), "BLS Property Inspection"))
+      .filter((q) => q.and(
+        q.eq(q.field("name"), "BLS Property Inspection"),
+        q.eq(q.field("organizationId"), organizationId)
+      ))
       .first();
 
     if (existing) {
@@ -972,6 +1052,7 @@ export const seedBLSTemplate = mutation({
     const now = Date.now();
 
     const blsTemplate = {
+      organizationId,
       name: "BLS Property Inspection",
       description:
         "Better Living Solutions standard property inspection checklist for SDA properties",

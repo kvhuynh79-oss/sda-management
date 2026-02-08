@@ -1,9 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireTenant } from "./authHelpers";
 
 // Create a new preventative maintenance schedule
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     propertyId: v.id("properties"),
     dwellingId: v.optional(v.id("dwellings")),
     taskName: v.string(),
@@ -31,9 +33,12 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { userId, ...scheduleData } = args;
     const now = Date.now();
     const scheduleId = await ctx.db.insert("preventativeSchedule", {
-      ...args,
+      ...scheduleData,
+      organizationId,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -45,9 +50,13 @@ export const create = mutation({
 
 // Get all preventative schedules with property and dwelling details
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
-    const schedules = await ctx.db.query("preventativeSchedule").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const schedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const schedulesWithDetails = await Promise.all(
       schedules.map(async (schedule) => {
@@ -73,11 +82,13 @@ export const getAll = query({
 
 // Get preventative schedules by property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { propertyId: v.id("properties"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const schedules = await ctx.db
       .query("preventativeSchedule")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     const schedulesWithDetails = await Promise.all(
@@ -101,10 +112,16 @@ export const getByProperty = query({
 
 // Get schedule by ID
 export const getById = query({
-  args: { scheduleId: v.id("preventativeSchedule") },
+  args: { scheduleId: v.id("preventativeSchedule"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const schedule = await ctx.db.get(args.scheduleId);
     if (!schedule) return null;
+
+    // Verify org ownership
+    if (schedule.organizationId !== organizationId) {
+      throw new Error("Access denied: Schedule belongs to different organization");
+    }
 
     const property = await ctx.db.get(schedule.propertyId);
     const dwelling = schedule.dwellingId
@@ -122,6 +139,7 @@ export const getById = query({
 // Update preventative schedule
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     scheduleId: v.id("preventativeSchedule"),
     taskName: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -153,7 +171,17 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { scheduleId, ...updates } = args;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { scheduleId, userId, ...updates } = args;
+
+    // Verify org ownership
+    const schedule = await ctx.db.get(scheduleId);
+    if (!schedule) {
+      throw new Error("Schedule not found");
+    }
+    if (schedule.organizationId !== organizationId) {
+      throw new Error("Access denied: Schedule belongs to different organization");
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -169,8 +197,19 @@ export const update = mutation({
 
 // Delete preventative schedule
 export const remove = mutation({
-  args: { scheduleId: v.id("preventativeSchedule") },
+  args: { userId: v.id("users"), scheduleId: v.id("preventativeSchedule") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify org ownership
+    const schedule = await ctx.db.get(args.scheduleId);
+    if (!schedule) {
+      throw new Error("Schedule not found");
+    }
+    if (schedule.organizationId !== organizationId) {
+      throw new Error("Access denied: Schedule belongs to different organization");
+    }
+
     await ctx.db.delete(args.scheduleId);
     return { success: true };
   },
@@ -179,6 +218,7 @@ export const remove = mutation({
 // Mark schedule as completed and calculate next due date
 export const complete = mutation({
   args: {
+    userId: v.id("users"),
     scheduleId: v.id("preventativeSchedule"),
     completedDate: v.string(),
     actualCost: v.optional(v.number()),
@@ -186,8 +226,15 @@ export const complete = mutation({
     createMaintenanceRecord: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const schedule = await ctx.db.get(args.scheduleId);
     if (!schedule) throw new Error("Schedule not found");
+
+    // Verify org ownership
+    if (schedule.organizationId !== organizationId) {
+      throw new Error("Access denied: Schedule belongs to different organization");
+    }
 
     // Calculate next due date based on frequency
     const completedDate = new Date(args.completedDate);
@@ -254,9 +301,13 @@ export const complete = mutation({
 
 // Get schedules due within a certain number of days (for alerts)
 export const getDueSchedules = query({
-  args: { daysAhead: v.number() },
+  args: { userId: v.id("users"), daysAhead: v.number() },
   handler: async (ctx, args) => {
-    const allSchedules = await ctx.db.query("preventativeSchedule").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allSchedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const activeSchedules = allSchedules.filter((s) => s.isActive);
 
     const today = new Date();
@@ -295,10 +346,14 @@ export const getDueSchedules = query({
 
 // Get upcoming schedules (for dashboard/overview)
 export const getUpcoming = query({
-  args: { limit: v.optional(v.number()) },
+  args: { userId: v.id("users"), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const limit = args.limit || 10;
-    const allSchedules = await ctx.db.query("preventativeSchedule").collect();
+    const allSchedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const activeSchedules = allSchedules.filter((s) => s.isActive);
 
     const today = new Date();
@@ -331,9 +386,13 @@ export const getUpcoming = query({
 
 // Get overdue schedules
 export const getOverdue = query({
-  args: {},
-  handler: async (ctx) => {
-    const allSchedules = await ctx.db.query("preventativeSchedule").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allSchedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const activeSchedules = allSchedules.filter((s) => s.isActive);
 
     const today = new Date();
@@ -369,9 +428,13 @@ export const getOverdue = query({
 
 // Get schedule statistics
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const allSchedules = await ctx.db.query("preventativeSchedule").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allSchedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const activeSchedules = allSchedules.filter((s) => s.isActive);
 
     const today = new Date();

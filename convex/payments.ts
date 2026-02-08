@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission } from "./authHelpers";
+import { requirePermission, requireTenant } from "./authHelpers";
 import { z } from "zod";
 
 // Zod schema for payment validation
@@ -47,6 +47,8 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
     // Verify user has permission
     const user = await requirePermission(ctx, args.createdBy, "payments", "create");
 
@@ -98,6 +100,7 @@ export const create = mutation({
 
     // Insert payment
     const paymentId = await ctx.db.insert("payments", {
+      organizationId, // Multi-tenant: Associate with organization
       ...args,
       variance,
       createdAt: now,
@@ -148,6 +151,9 @@ export const getAll = query({
     userId: v.id("users"), // Required for permission check
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     // Admin or accountant permission check
     const requestingUser = await ctx.db.get(args.userId);
     if (!requestingUser) {
@@ -157,7 +163,10 @@ export const getAll = query({
       throw new Error("Access denied: Admin or accountant permission required to view all payments");
     }
 
-    const payments = await ctx.db.query("payments").collect();
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (payments.length === 0) return [];
 
@@ -197,11 +206,18 @@ export const getAll = query({
 
 // Get payments by participant (optimized batch fetch)
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    participantId: v.id("participants"),
+    userId: v.id("users"), // Required for tenant isolation
+  },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const payments = await ctx.db
       .query("payments")
-      .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("participantId"), args.participantId))
       .collect();
 
     if (payments.length === 0) return [];
@@ -234,11 +250,18 @@ export const getByParticipant = query({
 
 // Get payments by plan
 export const getByPlan = query({
-  args: { planId: v.id("participantPlans") },
+  args: {
+    planId: v.id("participantPlans"),
+    userId: v.id("users"), // Required for tenant isolation
+  },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const payments = await ctx.db
       .query("payments")
-      .withIndex("by_plan", (q) => q.eq("planId", args.planId))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("planId"), args.planId))
       .collect();
 
     return payments.sort(

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth, getUserFullName } from "./authHelpers";
+import { requirePermission, requireAuth, getUserFullName, requireTenant } from "./authHelpers";
 
 // Predefined Sydney regions (same as support coordinators)
 export const SYDNEY_REGIONS = [
@@ -57,11 +57,12 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Permission check - staff and above can create
-    const user = await requireAuth(ctx, args.userId);
+    // Permission check and get organizationId
+    const { user, organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
     const providerId = await ctx.db.insert("silProviders", {
+      organizationId,
       companyName: args.companyName,
       contactName: args.contactName,
       email: args.email,
@@ -101,18 +102,24 @@ export const create = mutation({
 // Get all SIL providers
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     let providers;
 
     if (args.status) {
       providers = await ctx.db
         .query("silProviders")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.eq(q.field("status"), args.status!))
         .collect();
     } else {
-      providers = await ctx.db.query("silProviders").collect();
+      providers = await ctx.db
+        .query("silProviders")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
     }
 
     // Get participant counts for each provider
@@ -136,10 +143,17 @@ export const getAll = query({
 
 // Get a single SIL provider by ID
 export const getById = query({
-  args: { providerId: v.id("silProviders") },
+  args: {
+    userId: v.id("users"),
+    providerId: v.id("silProviders")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const provider = await ctx.db.get(args.providerId);
     if (!provider) return null;
+    if (provider.organizationId !== organizationId) {
+      throw new Error("Access denied: provider belongs to different organization");
+    }
 
     // Get linked participants
     const participantLinks = await ctx.db
@@ -177,11 +191,16 @@ export const getById = query({
 
 // Get providers by area
 export const getByArea = query({
-  args: { area: v.string() },
+  args: {
+    userId: v.id("users"),
+    area: v.string()
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const providers = await ctx.db
       .query("silProviders")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
     // Filter by area (case-insensitive partial match)
@@ -219,10 +238,17 @@ export const update = mutation({
     lastContactedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
-    const { providerId, userId, ...updates } = args;
+    // Permission check and org verification
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const provider = await ctx.db.get(args.providerId);
+    if (!provider) {
+      throw new Error("Provider not found");
+    }
+    if (provider.organizationId !== organizationId) {
+      throw new Error("Access denied: provider belongs to different organization");
+    }
 
+    const { providerId, userId, ...updates } = args;
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
@@ -244,6 +270,17 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Permission check - admin only
     await requirePermission(ctx, args.userId, "properties", "delete");
+
+    // Get organizationId and verify ownership
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const provider = await ctx.db.get(args.providerId);
+    if (!provider) {
+      throw new Error("Provider not found");
+    }
+    if (provider.organizationId !== organizationId) {
+      throw new Error("Access denied: provider belongs to different organization");
+    }
+
     // Delete participant links first
     const links = await ctx.db
       .query("silProviderParticipants")
@@ -327,8 +364,19 @@ export const unlinkParticipant = mutation({
 
 // Get providers for a specific participant
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify participant belongs to user's organization
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant || participant.organizationId !== organizationId) {
+      return [];
+    }
+
     const links = await ctx.db
       .query("silProviderParticipants")
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
@@ -350,9 +398,16 @@ export const getByParticipant = query({
 
 // Search SIL providers
 export const search = query({
-  args: { searchTerm: v.string() },
+  args: {
+    userId: v.id("users"),
+    searchTerm: v.string()
+  },
   handler: async (ctx, args) => {
-    const providers = await ctx.db.query("silProviders").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const providers = await ctx.db
+      .query("silProviders")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const term = args.searchTerm.toLowerCase();
 
@@ -443,10 +498,19 @@ export const unlinkProperty = mutation({
 // Get properties for a SIL provider
 export const getPropertiesForProvider = query({
   args: {
+    userId: v.id("users"),
     silProviderId: v.id("silProviders"),
     includeInactive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify provider belongs to user's organization
+    const provider = await ctx.db.get(args.silProviderId);
+    if (!provider || provider.organizationId !== organizationId) {
+      return [];
+    }
+
     let links = await ctx.db
       .query("silProviderProperties")
       .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
@@ -495,8 +559,19 @@ export const getPropertiesForProvider = query({
 
 // Get SIL providers for a property
 export const getProvidersForProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: {
+    userId: v.id("users"),
+    propertyId: v.id("properties")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify property belongs to user's organization
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.organizationId !== organizationId) {
+      return [];
+    }
+
     const links = await ctx.db
       .query("silProviderProperties")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
@@ -519,10 +594,17 @@ export const getProvidersForProperty = query({
 
 // Get provider with all their properties (for detail view)
 export const getByIdWithProperties = query({
-  args: { providerId: v.id("silProviders") },
+  args: {
+    userId: v.id("users"),
+    providerId: v.id("silProviders")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const provider = await ctx.db.get(args.providerId);
     if (!provider) return null;
+    if (provider.organizationId !== organizationId) {
+      throw new Error("Access denied: provider belongs to different organization");
+    }
 
     // Get linked participants
     const participantLinks = await ctx.db
@@ -626,8 +708,19 @@ export const createProviderUser = mutation({
 
 // Get users for a SIL provider
 export const getProviderUsers = query({
-  args: { silProviderId: v.id("silProviders") },
+  args: {
+    userId: v.id("users"),
+    silProviderId: v.id("silProviders")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify provider belongs to user's organization
+    const provider = await ctx.db.get(args.silProviderId);
+    if (!provider || provider.organizationId !== organizationId) {
+      return [];
+    }
+
     // Get all users with sil_provider role and matching silProviderId
     const users = await ctx.db
       .query("users")
@@ -714,8 +807,19 @@ export const unlinkDwelling = mutation({
 
 // Get SIL providers for a dwelling
 export const getProvidersForDwelling = query({
-  args: { dwellingId: v.id("dwellings") },
+  args: {
+    userId: v.id("users"),
+    dwellingId: v.id("dwellings")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify dwelling belongs to user's organization
+    const dwelling = await ctx.db.get(args.dwellingId);
+    if (!dwelling || dwelling.organizationId !== organizationId) {
+      return [];
+    }
+
     const links = await ctx.db
       .query("silProviderDwellings")
       .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
@@ -739,10 +843,19 @@ export const getProvidersForDwelling = query({
 // Get dwellings for a SIL provider
 export const getDwellingsForProvider = query({
   args: {
+    userId: v.id("users"),
     silProviderId: v.id("silProviders"),
     includeInactive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify provider belongs to user's organization
+    const provider = await ctx.db.get(args.silProviderId);
+    if (!provider || provider.organizationId !== organizationId) {
+      return [];
+    }
+
     let links = await ctx.db
       .query("silProviderDwellings")
       .withIndex("by_provider", (q) => q.eq("silProviderId", args.silProviderId))
@@ -783,10 +896,17 @@ export const getDwellingsForProvider = query({
 
 // Get comprehensive provider details including dwellings, participants, and users
 export const getFullProviderDetails = query({
-  args: { providerId: v.id("silProviders") },
+  args: {
+    userId: v.id("users"),
+    providerId: v.id("silProviders")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const provider = await ctx.db.get(args.providerId);
     if (!provider) return null;
+    if (provider.organizationId !== organizationId) {
+      throw new Error("Access denied: provider belongs to different organization");
+    }
 
     // Get dwelling allocations
     const dwellingLinks = await ctx.db
@@ -915,11 +1035,16 @@ export const unlinkUserFromProvider = mutation({
 
 // Get all users that can be linked to a SIL provider (not already linked)
 export const getAvailableUsersForProvider = query({
-  args: {},
-  handler: async (ctx) => {
-    // Get all active users who are not already SIL provider users
+  args: {
+    userId: v.id("users")
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Get all active users in the same organization
     const users = await ctx.db
       .query("users")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 

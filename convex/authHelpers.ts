@@ -129,6 +129,48 @@ export async function requireAuth(
 }
 
 /**
+ * Get tenant context for multi-tenant queries (Sprint 1)
+ * Returns the user's organizationId for row-level tenant isolation
+ *
+ * During migration, organizationId is optional. This function:
+ * - Returns organizationId if user has one (normal flow)
+ * - Throws error if organizationId is required but missing (post-migration)
+ *
+ * Usage in queries:
+ * ```
+ * const { organizationId } = await requireTenant(ctx, args.userId);
+ * const properties = await ctx.db
+ *   .query("properties")
+ *   .withIndex("by_organizationId", q => q.eq("organizationId", organizationId))
+ *   .collect();
+ * ```
+ */
+export async function requireTenant(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">
+): Promise<{ organizationId: Id<"organizations">; user: AuthenticatedUser }> {
+  const user = await requireAuth(ctx, userId);
+
+  const userDoc = await ctx.db.get(userId);
+  if (!userDoc) {
+    throw new Error("User not found");
+  }
+
+  // During Sprint 1 migration, organizationId may be optional
+  // After Sprint 2 (query refactoring), this should always be set
+  if (!userDoc.organizationId) {
+    throw new Error(
+      "User does not belong to an organization. Please contact support to complete your account setup."
+    );
+  }
+
+  return {
+    organizationId: userDoc.organizationId,
+    user,
+  };
+}
+
+/**
  * Verify user has one of the allowed roles
  */
 export async function requireRole(

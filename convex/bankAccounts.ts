@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requirePermission, getUserFullName } from "./authHelpers";
+import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
 
 // Create a new bank account
 export const create = mutation({
@@ -19,9 +19,11 @@ export const create = mutation({
   handler: async (ctx, args) => {
     // Permission check - only admin/accountant can manage bank accounts
     const user = await requirePermission(ctx, args.userId, "payments", "create");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
     const bankAccountId = await ctx.db.insert("bankAccounts", {
+      organizationId,
       accountName: args.accountName,
       bankName: args.bankName,
       bsb: args.bsb,
@@ -53,10 +55,14 @@ export const create = mutation({
 
 // Get all bank accounts
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users")
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const accounts = await ctx.db
       .query("bankAccounts")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
@@ -92,10 +98,17 @@ export const getAll = query({
 
 // Get a single bank account by ID
 export const getById = query({
-  args: { id: v.id("bankAccounts") },
+  args: {
+    userId: v.id("users"),
+    id: v.id("bankAccounts")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const account = await ctx.db.get(args.id);
     if (!account) return null;
+    if (account.organizationId !== organizationId) {
+      throw new Error("Access denied: bank account belongs to different organization");
+    }
 
     // Get transaction stats
     const transactions = await ctx.db
@@ -158,11 +171,15 @@ export const update = mutation({
   handler: async (ctx, args) => {
     // Permission check
     const user = await requirePermission(ctx, args.userId, "payments", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { id, userId, ...updates } = args;
 
     const existing = await ctx.db.get(id);
     if (!existing) {
       throw new Error("Bank account not found");
+    }
+    if (existing.organizationId !== organizationId) {
+      throw new Error("Access denied: bank account belongs to different organization");
     }
 
     const filteredUpdates = Object.fromEntries(
@@ -187,9 +204,14 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Permission check - only admin can delete
     const user = await requirePermission(ctx, args.userId, "payments", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const existing = await ctx.db.get(args.id);
     if (!existing) {
       throw new Error("Bank account not found");
+    }
+    if (existing.organizationId !== organizationId) {
+      throw new Error("Access denied: bank account belongs to different organization");
     }
 
     // Check if there are unreconciled transactions
@@ -238,12 +260,28 @@ export const markReconciled = mutation({
 // Get accounts by type
 export const getByType = query({
   args: {
+    userId: v.id("users"),
     accountType: v.union(v.literal("operating"), v.literal("trust")),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     return await ctx.db
       .query("bankAccounts")
-      .withIndex("by_accountType", (q) => q.eq("accountType", args.accountType))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.and(
+        q.eq(q.field("isActive"), true),
+        q.eq(q.field("accountType"), args.accountType)
+      ))
+      .collect();
+  },
+});
+
+// Internal query for Xero sync (no auth required - used by actions)
+export const getAllInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("bankAccounts")
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
   },
@@ -251,10 +289,14 @@ export const getByType = query({
 
 // Get summary stats for all accounts
 export const getSummary = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users")
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const accounts = await ctx.db
       .query("bankAccounts")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 

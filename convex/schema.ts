@@ -16,6 +16,8 @@ export default defineSchema({
       v.literal("sil_provider") // External SIL provider with restricted access
     ),
     phone: v.optional(v.string()),
+    // Multi-tenant: Organization this user belongs to (optional during migration)
+    organizationId: v.optional(v.id("organizations")),
     // For SIL provider users - links to their provider record
     silProviderId: v.optional(v.id("silProviders")),
     isActive: v.boolean(),
@@ -44,7 +46,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_email", ["email"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Sessions table - server-side session management (replaces localStorage auth)
   sessions: defineTable({
@@ -63,8 +66,44 @@ export default defineSchema({
     .index("by_refreshToken", ["refreshToken"])
     .index("by_expiresAt", ["expiresAt"]),
 
+  // Organizations table - multi-tenant SaaS organizations
+  organizations: defineTable({
+    name: v.string(), // Organization display name (e.g., "Better Living Solutions")
+    slug: v.string(), // URL-safe identifier (e.g., "better-living-solutions")
+    logoUrl: v.optional(v.string()), // Organization logo for white-label branding
+    primaryColor: v.optional(v.string()), // Hex color code for branding (e.g., "#0d9488")
+    plan: v.union(
+      v.literal("starter"),       // $250/mo - 50 properties, 5 users
+      v.literal("professional"),  // $450/mo - 200 properties, 20 users
+      v.literal("enterprise")     // $600/mo - unlimited properties, unlimited users
+    ),
+    stripeCustomerId: v.optional(v.string()), // Stripe customer ID for billing
+    stripeSubscriptionId: v.optional(v.string()), // Stripe subscription ID
+    subscriptionStatus: v.union(
+      v.literal("active"),      // Paid and active
+      v.literal("trialing"),    // In trial period
+      v.literal("past_due"),    // Payment failed
+      v.literal("canceled")     // Subscription canceled
+    ),
+    maxUsers: v.number(),        // Maximum users allowed by plan
+    maxProperties: v.number(),   // Maximum properties allowed by plan
+    settings: v.optional(v.object({
+      timezone: v.optional(v.string()),
+      dateFormat: v.optional(v.string()),
+      currency: v.optional(v.string()),
+      fiscalYearStart: v.optional(v.string()), // ISO date (e.g., "07-01" for July 1)
+      complianceRegion: v.optional(v.string()), // "AU-NSW", "AU-VIC", etc.
+    })),
+    createdAt: v.number(),
+    isActive: v.boolean(),       // Organization active status
+  })
+    .index("by_slug", ["slug"])
+    .index("by_stripeCustomerId", ["stripeCustomerId"])
+    .index("by_isActive", ["isActive"]),
+
   // Audit Logs table - track all user actions for security and compliance
   auditLogs: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this audit log belongs to
     userId: v.id("users"),
     userEmail: v.string(),
     userName: v.string(),
@@ -113,10 +152,12 @@ export default defineSchema({
     .index("by_entityType", ["entityType"])
     .index("by_timestamp", ["timestamp"])
     .index("by_entityType_entityId", ["entityType", "entityId"])
-    .index("by_sequenceNumber", ["sequenceNumber"]),
+    .index("by_sequenceNumber", ["sequenceNumber"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Owners table - property investors/landlords
   owners: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     ownerType: v.union(
       v.literal("individual"),
       v.literal("company"),
@@ -140,10 +181,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_email", ["email"])
-    .index("by_ownerType", ["ownerType"]),
+    .index("by_ownerType", ["ownerType"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Properties table - physical sites/addresses
   properties: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     propertyName: v.optional(v.string()),
     addressLine1: v.string(),
     addressLine2: v.optional(v.string()),
@@ -203,10 +246,12 @@ export default defineSchema({
     .index("by_owner_status", ["ownerId", "propertyStatus"])
     .index("by_state_status", ["state", "propertyStatus"])
     .index("by_silProvider", ["silProviderId"])
-    .index("by_isActive", ["isActive"]),
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Dwellings table - individual living units within a property
   dwellings: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     propertyId: v.id("properties"),
     dwellingName: v.string(),
     dwellingType: v.union(
@@ -246,10 +291,12 @@ export default defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_isActive", ["isActive"])
     .index("by_occupancyStatus", ["occupancyStatus"])
-    .index("by_property_occupancy", ["propertyId", "occupancyStatus"]),
+    .index("by_property_occupancy", ["propertyId", "occupancyStatus"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Participants table - NDIS participants
   participants: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     ndisNumber: v.string(),
     ndisNumberIndex: v.optional(v.string()), // HMAC blind index for encrypted NDIS number search
     firstName: v.string(),
@@ -281,10 +328,12 @@ export default defineSchema({
     .index("by_ndisNumberIndex", ["ndisNumberIndex"])
     .index("by_dwelling", ["dwellingId"])
     .index("by_status", ["status"])
-    .index("by_dwelling_status", ["dwellingId", "status"]),
+    .index("by_dwelling_status", ["dwellingId", "status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Participant Plans table - NDIS plan details
   participantPlans: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     participantId: v.id("participants"),
     planStartDate: v.string(),
     planEndDate: v.string(),
@@ -339,10 +388,12 @@ export default defineSchema({
   })
     .index("by_participant", ["participantId"])
     .index("by_status", ["planStatus"])
-    .index("by_participant_status", ["participantId", "planStatus"]),
+    .index("by_participant_status", ["participantId", "planStatus"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Payments table - SDA payments received
   payments: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     participantId: v.id("participants"),
     planId: v.id("participantPlans"),
     paymentDate: v.string(),
@@ -366,10 +417,12 @@ export default defineSchema({
     .index("by_participant", ["participantId"])
     .index("by_plan", ["planId"])
     .index("by_date", ["paymentDate"])
-    .index("by_participant_date", ["participantId", "paymentDate"]),
+    .index("by_participant_date", ["participantId", "paymentDate"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Claims table - SDA funding claims tracking
   claims: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     participantId: v.id("participants"),
     planId: v.id("participantPlans"),
     claimPeriod: v.string(), // Format: "YYYY-MM" (e.g., "2026-01")
@@ -401,10 +454,12 @@ export default defineSchema({
     .index("by_period", ["claimPeriod"])
     .index("by_status", ["status"])
     .index("by_participant_period", ["participantId", "claimPeriod"])
-    .index("by_participant_status", ["participantId", "status"]),
+    .index("by_participant_status", ["participantId", "status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Maintenance Requests table
   maintenanceRequests: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     dwellingId: v.id("dwellings"),
     requestType: v.union(v.literal("reactive"), v.literal("preventative")),
     category: v.union(
@@ -461,10 +516,12 @@ export default defineSchema({
     .index("by_incident_action", ["incidentActionId"])
     .index("by_contractor", ["assignedContractorId"])
     .index("by_dwelling_status", ["dwellingId", "status"])
-    .index("by_status_priority", ["status", "priority"]),
+    .index("by_status_priority", ["status", "priority"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Maintenance Photos table - photos attached to maintenance requests
   maintenancePhotos: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     maintenanceRequestId: v.id("maintenanceRequests"),
     storageId: v.id("_storage"),
     fileName: v.string(),
@@ -480,10 +537,12 @@ export default defineSchema({
     uploadedBy: v.id("users"),
     createdAt: v.number(),
   })
-    .index("by_maintenance_request", ["maintenanceRequestId"]),
+    .index("by_maintenance_request", ["maintenanceRequestId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Maintenance Quotes table - track multiple quotes per request
   maintenanceQuotes: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     maintenanceRequestId: v.id("maintenanceRequests"),
     contractorId: v.optional(v.id("contractors")), // Link to contractor (optional for backwards compat)
     contractorName: v.string(), // Kept for backwards compatibility
@@ -514,10 +573,12 @@ export default defineSchema({
     .index("by_maintenance_request", ["maintenanceRequestId"])
     .index("by_contractor", ["contractorId"])
     .index("by_status", ["status"])
-    .index("by_maintenance_status", ["maintenanceRequestId", "status"]),
+    .index("by_maintenance_status", ["maintenanceRequestId", "status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Preventative Maintenance Schedule table
   preventativeSchedule: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     propertyId: v.id("properties"),
     dwellingId: v.optional(v.id("dwellings")),
     taskName: v.string(),
@@ -551,10 +612,12 @@ export default defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_nextDueDate", ["nextDueDate"])
     .index("by_property_active", ["propertyId", "isActive"])
-    .index("by_category", ["category"]),
+    .index("by_category", ["category"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Documents table - file uploads
   documents: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
@@ -621,10 +684,12 @@ export default defineSchema({
     .index("by_expiryDate", ["expiryDate"])
     .index("by_participant_type", ["linkedParticipantId", "documentType"])
     .index("by_property_type", ["linkedPropertyId", "documentType"])
-    .index("by_vendor", ["vendor"]),
+    .index("by_vendor", ["vendor"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Provider Settings table - NDIS provider configuration
   providerSettings: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     providerName: v.string(),
     ndisRegistrationNumber: v.string(),
     abn: v.string(),
@@ -641,10 +706,12 @@ export default defineSchema({
     rrcLastUpdated: v.optional(v.string()), // Date RRC rates were last updated
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_organizationId", ["organizationId"]),
 
   // Alerts table - system-generated alerts
   alerts: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     alertType: v.union(
       v.literal("plan_expiry"),
       v.literal("low_funding"),
@@ -701,10 +768,12 @@ export default defineSchema({
     .index("by_status_severity", ["status", "severity"])
     .index("by_status_alertType", ["status", "alertType"])
     .index("by_participant", ["linkedParticipantId"])
-    .index("by_property", ["linkedPropertyId"]),
+    .index("by_property", ["linkedPropertyId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Incidents table - incident reports for properties/participants
   incidents: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     propertyId: v.id("properties"),
     dwellingId: v.optional(v.id("dwellings")),
     participantId: v.optional(v.id("participants")), // Optional - if incident involves specific participant
@@ -776,10 +845,12 @@ export default defineSchema({
     .index("by_severity", ["severity"])
     .index("by_isNdisReportable", ["isNdisReportable"])
     .index("by_property_status", ["propertyId", "status"])
-    .index("by_property_severity", ["propertyId", "severity"]),
+    .index("by_property_severity", ["propertyId", "severity"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Incident Photos table
   incidentPhotos: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     incidentId: v.id("incidents"),
     storageId: v.id("_storage"),
     fileName: v.string(),
@@ -789,10 +860,12 @@ export default defineSchema({
     uploadedBy: v.id("users"),
     createdAt: v.number(),
   })
-    .index("by_incident", ["incidentId"]),
+    .index("by_incident", ["incidentId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Incident Actions table - proposed solutions/remediation for incidents
   incidentActions: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     incidentId: v.id("incidents"),
     title: v.string(),
     description: v.optional(v.string()),
@@ -836,10 +909,12 @@ export default defineSchema({
   })
     .index("by_incident", ["incidentId"])
     .index("by_status", ["status"])
-    .index("by_maintenance_request", ["maintenanceRequestId"]),
+    .index("by_maintenance_request", ["maintenanceRequestId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Inspection Templates table - reusable inspection checklists
   inspectionTemplates: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     name: v.string(), // e.g., "BLS Property Inspection"
     description: v.optional(v.string()),
     categories: v.array(
@@ -858,10 +933,12 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_isActive", ["isActive"]),
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Inspections table - individual inspection records
   inspections: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     templateId: v.id("inspectionTemplates"),
     propertyId: v.id("properties"),
     dwellingId: v.optional(v.id("dwellings")),
@@ -889,10 +966,12 @@ export default defineSchema({
     .index("by_dwelling", ["dwellingId"])
     .index("by_inspector", ["inspectorId"])
     .index("by_status", ["status"])
-    .index("by_scheduledDate", ["scheduledDate"]),
+    .index("by_scheduledDate", ["scheduledDate"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Inspection Items table - each checked item in an inspection
   inspectionItems: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     inspectionId: v.id("inspections"),
     category: v.string(), // Category name from template
     itemName: v.string(), // Item name from template
@@ -910,10 +989,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_inspection", ["inspectionId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Inspection Photos table - photos for inspection items or general photos
   inspectionPhotos: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     inspectionId: v.id("inspections"),
     inspectionItemId: v.optional(v.id("inspectionItems")), // Optional - null for general photos
     storageId: v.id("_storage"),
@@ -926,10 +1007,12 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_inspection", ["inspectionId"])
-    .index("by_item", ["inspectionItemId"]),
+    .index("by_item", ["inspectionItemId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Property Media table - photos and videos for properties
   propertyMedia: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     propertyId: v.id("properties"),
     storageId: v.id("_storage"),
     fileName: v.string(),
@@ -944,10 +1027,12 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_property", ["propertyId"])
-    .index("by_mediaType", ["mediaType"]),
+    .index("by_mediaType", ["mediaType"])
+    .index("by_organizationId", ["organizationId"]),
 
   // AI Conversations table - stores chatbot conversation history
   aiConversations: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     userId: v.id("users"),
     title: v.optional(v.string()),
     messages: v.array(
@@ -962,10 +1047,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_isActive", ["isActive"]),
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Contractors table - trade contractors for maintenance work
   contractors: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     companyName: v.string(),
     contactName: v.optional(v.string()),
     email: v.string(),
@@ -999,10 +1086,12 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_specialty", ["specialty"])
-    .index("by_isActive", ["isActive"]),
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Quote Requests table - tracks emails sent to contractors requesting quotes
   quoteRequests: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     maintenanceRequestId: v.id("maintenanceRequests"),
     contractorId: v.id("contractors"),
     requestToken: v.string(), // Unique token for contractor to submit quote via public link
@@ -1027,10 +1116,12 @@ export default defineSchema({
     .index("by_maintenance_request", ["maintenanceRequestId"])
     .index("by_contractor", ["contractorId"])
     .index("by_token", ["requestToken"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Support Coordinators table - external support coordinators who refer participants
   supportCoordinators: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     firstName: v.string(),
     lastName: v.string(),
     organization: v.optional(v.string()), // Their company/organization
@@ -1052,10 +1143,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_email", ["email"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // SIL Providers table - Supported Independent Living providers
   silProviders: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     companyName: v.string(),
     contactName: v.optional(v.string()),
     email: v.string(),
@@ -1082,10 +1175,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_email", ["email"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // SIL Provider Participant History - links SIL providers to participants
   silProviderParticipants: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     silProviderId: v.id("silProviders"),
     participantId: v.id("participants"),
     relationshipType: v.union(
@@ -1099,11 +1194,13 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_provider", ["silProviderId"])
-    .index("by_participant", ["participantId"]),
+    .index("by_participant", ["participantId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // SIL Provider Properties - links SIL providers to properties they manage/look after
   // NOTE: Deprecated - use silProviderDwellings for dwelling-level allocation
   silProviderProperties: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     silProviderId: v.id("silProviders"),
     propertyId: v.id("properties"),
     accessLevel: v.union(
@@ -1122,11 +1219,13 @@ export default defineSchema({
   })
     .index("by_provider", ["silProviderId"])
     .index("by_property", ["propertyId"])
-    .index("by_isActive", ["isActive"]),
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
 
   // SIL Provider Dwellings - links SIL providers to individual dwellings they manage
   // This allows different SIL providers for different dwellings within the same property
   silProviderDwellings: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     silProviderId: v.id("silProviders"),
     dwellingId: v.id("dwellings"),
     accessLevel: v.union(
@@ -1145,10 +1244,12 @@ export default defineSchema({
   })
     .index("by_provider", ["silProviderId"])
     .index("by_dwelling", ["dwellingId"])
-    .index("by_isActive", ["isActive"]),
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Occupational Therapists table - OTs who work with participants
   occupationalTherapists: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     firstName: v.string(),
     lastName: v.string(),
     organization: v.optional(v.string()), // Practice/company name
@@ -1176,10 +1277,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_email", ["email"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_organizationId", ["organizationId"]),
 
   // OT Participant History - links OTs to participants
   otParticipants: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     occupationalTherapistId: v.id("occupationalTherapists"),
     participantId: v.id("participants"),
     relationshipType: v.union(
@@ -1194,10 +1297,12 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_ot", ["occupationalTherapistId"])
-    .index("by_participant", ["participantId"]),
+    .index("by_participant", ["participantId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Support Coordinator Participant History - links coordinators to participants they've worked with
   supportCoordinatorParticipants: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     supportCoordinatorId: v.id("supportCoordinators"),
     participantId: v.id("participants"),
     relationshipType: v.union(
@@ -1212,10 +1317,12 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_coordinator", ["supportCoordinatorId"])
-    .index("by_participant", ["participantId"]),
+    .index("by_participant", ["participantId"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Vacancy Listings - track where vacancies are advertised
   vacancyListings: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     dwellingId: v.id("dwellings"),
     // Platform listings (manual checklist)
     goNestListed: v.optional(v.boolean()),
@@ -1242,10 +1349,12 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_dwelling", ["dwellingId"])
-    .index("by_status", ["vacancyStatus"]),
+    .index("by_status", ["vacancyStatus"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Owner Payments table - outgoing payments to property owners/landlords
   ownerPayments: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     propertyId: v.id("properties"),
     ownerId: v.id("owners"),
     participantId: v.optional(v.id("participants")), // Which participant the payment relates to
@@ -1275,10 +1384,12 @@ export default defineSchema({
     .index("by_owner", ["ownerId"])
     .index("by_participant", ["participantId"])
     .index("by_payment_date", ["paymentDate"])
-    .index("by_type", ["paymentType"]),
+    .index("by_type", ["paymentType"])
+    .index("by_organizationId", ["organizationId"]),
 
   // AI Processing Queue table - for batch document processing
   aiProcessingQueue: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     storageId: v.id("_storage"),
     fileName: v.string(),
     processingType: v.union(
@@ -1300,7 +1411,8 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
   })
     .index("by_status", ["status"])
-    .index("by_createdBy", ["createdBy"]),
+    .index("by_createdBy", ["createdBy"])
+    .index("by_organizationId", ["organizationId"]),
 
   // ============================================
   // FINANCIAL RECONCILIATION TABLES
@@ -1308,6 +1420,7 @@ export default defineSchema({
 
   // Bank Accounts table - company bank accounts for reconciliation
   bankAccounts: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     accountName: v.string(), // e.g., "Operating Account", "Trust Account"
     bankName: v.string(), // e.g., "ANZ", "Westpac"
     bsb: v.string(),
@@ -1323,7 +1436,6 @@ export default defineSchema({
     lastReconciledDate: v.optional(v.string()),
     lastReconciledBalance: v.optional(v.number()),
     notes: v.optional(v.string()),
-    organizationId: v.optional(v.string()), // Future SaaS multi-tenancy
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1333,6 +1445,7 @@ export default defineSchema({
 
   // Bank Transactions table - imported bank statement transactions
   bankTransactions: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     bankAccountId: v.id("bankAccounts"),
     transactionDate: v.string(), // YYYY-MM-DD
     description: v.string(), // Bank description/narration
@@ -1385,7 +1498,6 @@ export default defineSchema({
       v.union(v.literal("pending"), v.literal("synced"), v.literal("error"))
     ),
     notes: v.optional(v.string()),
-    organizationId: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1400,6 +1512,7 @@ export default defineSchema({
 
   // Expected Payments table - scheduled/expected payments for matching
   expectedPayments: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     paymentType: v.union(
       v.literal("sda_income"), // Expected SDA payment from NDIS/plan manager
       v.literal("rrc_income"), // Expected RRC from participant
@@ -1439,7 +1552,6 @@ export default defineSchema({
     ),
     paymentScheduleId: v.optional(v.id("paymentSchedules")),
     notes: v.optional(v.string()),
-    organizationId: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1454,6 +1566,7 @@ export default defineSchema({
 
   // Payment Schedules table - recurring payment configurations
   paymentSchedules: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     scheduleType: v.union(
       v.literal("owner_disbursement"), // Monthly owner payments
       v.literal("sda_claim") // Expected SDA claim receipts
@@ -1485,7 +1598,6 @@ export default defineSchema({
     autoCreateExpected: v.boolean(), // Auto-create expectedPayments records
     isActive: v.boolean(),
     notes: v.optional(v.string()),
-    organizationId: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1499,6 +1611,7 @@ export default defineSchema({
 
   // Xero Connections table - OAuth credentials for Xero integration
   xeroConnections: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     tenantId: v.string(), // Xero tenant/organization ID
     tenantName: v.string(), // Display name from Xero
     accessToken: v.string(), // Encrypted OAuth access token
@@ -1522,7 +1635,6 @@ export default defineSchema({
     // Sync preferences
     autoSyncEnabled: v.boolean(),
     syncFrequencyMinutes: v.optional(v.number()),
-    organizationId: v.optional(v.string()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -1537,6 +1649,7 @@ export default defineSchema({
 
   // Compliance Certifications table - track NDIS and SDA certifications
   complianceCertifications: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     certificationType: v.union(
       v.literal("ndis_practice_standards"), // NDIS Practice Standards certification (3-year)
       v.literal("ndis_verification_audit"), // Annual verification audit
@@ -1586,10 +1699,12 @@ export default defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_dwelling", ["dwellingId"])
     .index("by_status", ["status"])
-    .index("by_expiryDate", ["expiryDate"]),
+    .index("by_expiryDate", ["expiryDate"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Insurance Policies table - track required insurance policies
   insurancePolicies: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     insuranceType: v.union(
       v.literal("public_liability"), // Minimum $20M for NDIS
       v.literal("professional_indemnity"),
@@ -1638,10 +1753,12 @@ export default defineSchema({
     .index("by_type", ["insuranceType"])
     .index("by_property", ["propertyId"])
     .index("by_status", ["status"])
-    .index("by_endDate", ["endDate"]),
+    .index("by_endDate", ["endDate"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Complaints Register table - NDIS requires complaints management system
   complaints: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     // Complainant details
     complainantType: v.union(
       v.literal("participant"),
@@ -1759,7 +1876,8 @@ export default defineSchema({
     .index("by_referenceNumber", ["referenceNumber"])
     .index("by_source", ["source"])
     .index("by_acknowledgmentDueDate", ["acknowledgmentDueDate"])
-    .index("by_resolutionDueDate", ["resolutionDueDate"]),
+    .index("by_resolutionDueDate", ["resolutionDueDate"])
+    .index("by_organizationId", ["organizationId"]),
 
   // ============================================
   // COMMUNICATIONS & TASKS TABLES
@@ -1767,6 +1885,7 @@ export default defineSchema({
 
   // Communications table - log of all external communications for follow-up tracking
   communications: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     // Communication details
     communicationType: v.union(
       v.literal("email"),
@@ -1909,10 +2028,12 @@ export default defineSchema({
     .index("by_stakeholder", ["stakeholderEntityType", "stakeholderEntityId", "createdAt"])
     .index("by_follow_up", ["requiresFollowUp", "followUpDueDate"])
     .index("by_linked_incident", ["linkedIncidentId"])
-    .index("by_isDeleted", ["isDeleted"]),
+    .index("by_isDeleted", ["isDeleted"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Thread summaries table - performance cache for thread views
   threadSummaries: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     threadId: v.string(),
     participantId: v.id("participants"),
     startedAt: v.number(),
@@ -1928,10 +2049,12 @@ export default defineSchema({
   })
     .index("by_participant_activity", ["participantId", "lastActivityAt"])
     .index("by_thread", ["threadId"])
-    .index("by_status_activity", ["status", "lastActivityAt"]),
+    .index("by_status_activity", ["status", "lastActivityAt"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Tasks table - follow-up tasks and action items
   tasks: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     title: v.string(),
     description: v.optional(v.string()),
 
@@ -1988,7 +2111,8 @@ export default defineSchema({
     .index("by_category", ["category"])
     .index("by_status_dueDate", ["status", "dueDate"])
     .index("by_status_priority", ["status", "priority"])
-    .index("by_createdBy", ["createdBy"]),
+    .index("by_createdBy", ["createdBy"])
+    .index("by_organizationId", ["organizationId"]),
 
   // ============================================
   // PUSH NOTIFICATIONS

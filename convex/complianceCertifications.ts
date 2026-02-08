@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 
 // Mapping: document type -> certification type
 const DOC_TO_CERT_TYPE: Record<string, string> = {
@@ -27,12 +27,15 @@ export { DOC_TO_CERT_TYPE };
 // Get all certifications with optional filters
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     certificationType: v.optional(v.string()),
     status: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
-    let certifications = await ctx.db.query("complianceCertifications").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allCertifications = await ctx.db.query("complianceCertifications").collect();
+    let certifications = allCertifications.filter(c => c.organizationId === organizationId);
 
     if (args.certificationType) {
       certifications = certifications.filter(c => c.certificationType === args.certificationType);
@@ -59,9 +62,11 @@ export const getAll = query({
 
 // Get certifications expiring soon (within 90 days)
 export const getExpiringSoon = query({
-  args: {},
-  handler: async (ctx) => {
-    const certifications = await ctx.db.query("complianceCertifications").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allCertifications = await ctx.db.query("complianceCertifications").collect();
+    const certifications = allCertifications.filter(c => c.organizationId === organizationId);
     const now = new Date();
     const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
@@ -84,10 +89,17 @@ export const getExpiringSoon = query({
 
 // Get certification by ID
 export const getById = query({
-  args: { certificationId: v.id("complianceCertifications") },
+  args: {
+    userId: v.id("users"),
+    certificationId: v.id("complianceCertifications")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const cert = await ctx.db.get(args.certificationId);
     if (!cert) return null;
+    if (cert.organizationId !== organizationId) {
+      throw new Error("Access denied: Certification belongs to different organization");
+    }
 
     const property = cert.propertyId ? await ctx.db.get(cert.propertyId) : null;
     const dwelling = cert.dwellingId ? await ctx.db.get(cert.dwellingId) : null;
@@ -135,7 +147,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { userId, ...certificationData } = args;
     const now = Date.now();
     const expiryDate = new Date(args.expiryDate);
@@ -150,6 +162,7 @@ export const create = mutation({
     }
 
     return await ctx.db.insert("complianceCertifications", {
+      organizationId,
       ...certificationData,
       createdBy: userId,
       status,
@@ -189,10 +202,13 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { certificationId, userId, ...updates } = args;
     const cert = await ctx.db.get(certificationId);
     if (!cert) throw new Error("Certification not found");
+    if (cert.organizationId !== organizationId) {
+      throw new Error("Access denied: Certification belongs to different organization");
+    }
 
     // Recalculate status if expiry date changed
     let status = updates.status;
@@ -231,7 +247,13 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const cert = await ctx.db.get(args.certificationId);
+    if (!cert) throw new Error("Certification not found");
+    if (cert.organizationId !== organizationId) {
+      throw new Error("Access denied: Certification belongs to different organization");
+    }
+
     await ctx.db.delete(args.certificationId);
     return { success: true };
   },
@@ -267,6 +289,7 @@ export const updateStatuses = internalMutation({
 });
 
 // Auto-create certification from a document upload (called internally by documents.create)
+// Inherits organizationId from createdBy user
 export const createFromDocument = internalMutation({
   args: {
     documentType: v.string(),
@@ -278,6 +301,7 @@ export const createFromDocument = internalMutation({
     isOrganizationWide: v.optional(v.boolean()),
     description: v.optional(v.string()),
     createdBy: v.id("users"),
+    organizationId: v.string(), // ADDED: pass organizationId from calling mutation
   },
   handler: async (ctx, args) => {
     const certType = DOC_TO_CERT_TYPE[args.documentType];
@@ -289,8 +313,11 @@ export const createFromDocument = internalMutation({
       .withIndex("by_type", (q) => q.eq("certificationType", certType as any))
       .collect();
 
+    // Filter to same organization
+    const orgCerts = existing.filter(c => c.organizationId === args.organizationId);
+
     // If property-level, check for same property; if org-wide, check for org-wide match
-    const duplicate = existing.find((cert) => {
+    const duplicate = orgCerts.find((cert) => {
       if (args.propertyId) return cert.propertyId === args.propertyId;
       if (args.isOrganizationWide) return cert.isOrganizationWide === true;
       return !cert.propertyId && !cert.isOrganizationWide;
@@ -329,6 +356,7 @@ export const createFromDocument = internalMutation({
     const certName = DOC_TO_CERT_NAME[args.documentType] || "Certificate";
 
     const certId = await ctx.db.insert("complianceCertifications", {
+      organizationId: args.organizationId as any,
       certificationType: certType as any,
       certificationName: certName,
       propertyId: args.propertyId,
@@ -351,9 +379,11 @@ export const createFromDocument = internalMutation({
 
 // Dashboard stats for compliance certifications widget
 export const getDashboardStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const certs = await ctx.db.query("complianceCertifications").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allCerts = await ctx.db.query("complianceCertifications").collect();
+    const certs = allCerts.filter(c => c.organizationId === organizationId);
     const now = new Date();
     const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 

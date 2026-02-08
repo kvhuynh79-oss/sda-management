@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
 import { paginationArgs, DEFAULT_PAGE_SIZE } from "./paginationHelpers";
 
 // Create a new property
@@ -59,12 +59,15 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
     // Verify user has permission to create properties
     const user = await requirePermission(ctx, args.userId, "properties", "create");
 
     const { userId, ...propertyData } = args;
     const now = Date.now();
     const propertyId = await ctx.db.insert("properties", {
+      organizationId, // Multi-tenant: Associate with organization
       ...propertyData,
       isActive: true,
       createdAt: now,
@@ -94,11 +97,17 @@ export const create = mutation({
 
 // Get all properties with owner info
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"), // Required for tenant isolation
+  },
+  handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const properties = await ctx.db
       .query("properties")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     // Batch fetch all owners to avoid N+1 queries (filter out undefined for SIL properties)
@@ -146,10 +155,21 @@ export const getAll = query({
 
 // Get property by ID with full details
 export const getById = query({
-  args: { propertyId: v.id("properties") },
+  args: {
+    propertyId: v.id("properties"),
+    userId: v.id("users"), // Required for tenant isolation
+  },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const property = await ctx.db.get(args.propertyId);
     if (!property) return null;
+
+    // Verify record belongs to user's organization
+    if (property.organizationId !== organizationId) {
+      throw new Error("Access denied: Property belongs to different organization");
+    }
 
     const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
     const dwellings = await ctx.db
@@ -224,6 +244,8 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { propertyId, userId, ...updates } = args;
 
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, userId);
     // Verify user has permission to update properties
     const user = await requirePermission(ctx, userId, "properties", "update");
 
@@ -231,6 +253,11 @@ export const update = mutation({
     const property = await ctx.db.get(propertyId);
     if (!property) {
       throw new Error("Property not found");
+    }
+
+    // Verify record belongs to user's organization
+    if (property.organizationId !== organizationId) {
+      throw new Error("Access denied: Property belongs to different organization");
     }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
@@ -265,6 +292,8 @@ export const remove = mutation({
     userId: v.id("users"), // Required for audit logging
   },
   handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
     // Verify user has permission to delete properties
     const user = await requirePermission(ctx, args.userId, "properties", "delete");
 
@@ -272,6 +301,11 @@ export const remove = mutation({
     const property = await ctx.db.get(args.propertyId);
     if (!property) {
       throw new Error("Property not found");
+    }
+
+    // Verify record belongs to user's organization
+    if (property.organizationId !== organizationId) {
+      throw new Error("Access denied: Property belongs to different organization");
     }
 
     await ctx.db.patch(args.propertyId, {
@@ -303,32 +337,47 @@ export const remove = mutation({
 // Get properties with pagination
 export const getAllPaginated = query({
   args: {
+    userId: v.id("users"), // Required for tenant isolation
     ...paginationArgs,
     status: v.optional(v.string()),
     state: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Build query based on filters
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Build query based on filters - always scope to organizationId first
     let result;
 
     if (args.status) {
-      // Filter by status
+      // Filter by status + organization
       const statusQuery = ctx.db
         .query("properties")
-        .withIndex("by_propertyStatus", (q) => q.eq("propertyStatus", args.status as any))
-        .filter((q) => q.eq(q.field("isActive"), true));
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("isActive"), true),
+            q.eq(q.field("propertyStatus"), args.status as any)
+          )
+        );
       result = await statusQuery.paginate(args.paginationOpts);
     } else if (args.state) {
-      // Filter by state
+      // Filter by state + organization
       const stateQuery = ctx.db
         .query("properties")
-        .withIndex("by_state", (q) => q.eq("state", args.state as any))
-        .filter((q) => q.eq(q.field("isActive"), true));
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("isActive"), true),
+            q.eq(q.field("state"), args.state as any)
+          )
+        );
       result = await stateQuery.paginate(args.paginationOpts);
     } else {
-      // Default: all active properties
+      // Default: all active properties in organization
       const defaultQuery = ctx.db
         .query("properties")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
         .filter((q) => q.eq(q.field("isActive"), true));
       result = await defaultQuery.paginate(args.paginationOpts);
     }

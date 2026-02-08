@@ -1,12 +1,13 @@
 import { mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 import { runAllAlertGenerators, createAlertIfNotExists, type CreateAlertArgs } from "./alertHelpers";
 
 // Create a new alert
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     alertType: v.union(
       v.literal("plan_expiry"),
       v.literal("low_funding"),
@@ -31,20 +32,25 @@ export const create = mutation({
     dueDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Check if similar alert already exists
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { userId, ...alertData } = args;
+
+    // Check if similar alert already exists (within organization)
     const existingAlerts = await ctx.db
       .query("alerts")
       .withIndex("by_alertType", (q) => q.eq("alertType", args.alertType))
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
-    const duplicate = existingAlerts.find((alert) => {
+    const orgAlerts = existingAlerts.filter(a => a.organizationId === organizationId);
+
+    const duplicate = orgAlerts.find((alert) => {
       return (
-        alert.linkedParticipantId === args.linkedParticipantId &&
-        alert.linkedPropertyId === args.linkedPropertyId &&
-        alert.linkedDwellingId === args.linkedDwellingId &&
-        alert.linkedMaintenanceId === args.linkedMaintenanceId &&
-        alert.linkedPlanId === args.linkedPlanId
+        alert.linkedParticipantId === alertData.linkedParticipantId &&
+        alert.linkedPropertyId === alertData.linkedPropertyId &&
+        alert.linkedDwellingId === alertData.linkedDwellingId &&
+        alert.linkedMaintenanceId === alertData.linkedMaintenanceId &&
+        alert.linkedPlanId === alertData.linkedPlanId
       );
     });
 
@@ -54,7 +60,8 @@ export const create = mutation({
 
     const now = Date.now();
     const alertId = await ctx.db.insert("alerts", {
-      ...args,
+      ...alertData,
+      organizationId,
       status: "active",
       createdAt: now,
     });
@@ -81,9 +88,13 @@ export const create = mutation({
 
 // Get all alerts (optimized batch fetch)
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
-    const alerts = await ctx.db.query("alerts").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const alerts = await ctx.db
+      .query("alerts")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (alerts.length === 0) return [];
 
@@ -140,12 +151,15 @@ export const getAll = query({
 
 // Get active alerts only (optimized batch fetch)
 export const getActive = query({
-  args: {},
-  handler: async (ctx) => {
-    const alerts = await ctx.db
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allAlerts = await ctx.db
       .query("alerts")
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
+
+    const alerts = allAlerts.filter(a => a.organizationId === organizationId);
 
     if (alerts.length === 0) return [];
 
@@ -192,15 +206,18 @@ export const getActive = query({
 // Get alerts by severity
 export const getBySeverity = query({
   args: {
+    userId: v.id("users"),
     severity: v.union(v.literal("critical"), v.literal("warning"), v.literal("info")),
   },
   handler: async (ctx, args) => {
-    const alerts = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allAlerts = await ctx.db
       .query("alerts")
       .withIndex("by_severity", (q) => q.eq("severity", args.severity))
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
+    const alerts = allAlerts.filter(a => a.organizationId === organizationId);
     return alerts.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
@@ -208,6 +225,7 @@ export const getBySeverity = query({
 // Get alerts by type (optimized batch fetch)
 export const getByType = query({
   args: {
+    userId: v.id("users"),
     alertType: v.union(
       v.literal("plan_expiry"),
       v.literal("low_funding"),
@@ -221,11 +239,14 @@ export const getByType = query({
     ),
   },
   handler: async (ctx, args) => {
-    const alerts = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allAlerts = await ctx.db
       .query("alerts")
       .withIndex("by_alertType", (q) => q.eq("alertType", args.alertType))
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
+
+    const alerts = allAlerts.filter(a => a.organizationId === organizationId);
 
     if (alerts.length === 0) return [];
 
@@ -322,9 +343,13 @@ export const remove = mutation({
 
 // Get alert statistics
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const allAlerts = await ctx.db.query("alerts").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allAlerts = await ctx.db
+      .query("alerts")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const activeAlerts = allAlerts.filter((a) => a.status === "active");
 
     return {
@@ -432,10 +457,12 @@ export const createOwnerPaymentReminders = internalMutation({
 // Paginated version of getActive for large datasets
 export const getActivePaginated = query({
   args: {
+    userId: v.id("users"),
     cursor: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const limit = args.limit || 25;
 
     const result = await ctx.db
@@ -444,18 +471,25 @@ export const getActivePaginated = query({
       .order("desc")
       .paginate({ numItems: limit, cursor: args.cursor ?? null });
 
-    if (result.page.length === 0) {
+    // Filter results to organization
+    const filteredPage = result.page.filter(a => a.organizationId === organizationId);
+    const filteredResult = {
+      ...result,
+      page: filteredPage,
+    };
+
+    if (filteredPage.length === 0) {
       return {
         page: [],
-        isDone: result.isDone,
-        continueCursor: result.continueCursor,
+        isDone: filteredResult.isDone,
+        continueCursor: filteredResult.continueCursor,
       };
     }
 
     // Batch fetch related data
-    const participantIds = [...new Set(result.page.map((a) => a.linkedParticipantId).filter(Boolean))] as string[];
-    const propertyIds = [...new Set(result.page.map((a) => a.linkedPropertyId).filter(Boolean))] as string[];
-    const dwellingIds = [...new Set(result.page.map((a) => a.linkedDwellingId).filter(Boolean))] as string[];
+    const participantIds = [...new Set(filteredPage.map((a) => a.linkedParticipantId).filter(Boolean))] as string[];
+    const propertyIds = [...new Set(filteredPage.map((a) => a.linkedPropertyId).filter(Boolean))] as string[];
+    const dwellingIds = [...new Set(filteredPage.map((a) => a.linkedDwellingId).filter(Boolean))] as string[];
 
     const [participants, properties, dwellings] = await Promise.all([
       Promise.all(participantIds.map((id) => ctx.db.get(id as any))),
@@ -467,7 +501,7 @@ export const getActivePaginated = query({
     const propertyMap = new Map(properties.filter(Boolean).map((p) => [p!._id, p]));
     const dwellingMap = new Map(dwellings.filter(Boolean).map((d) => [d!._id, d]));
 
-    const alertsWithDetails = result.page.map((alert) => ({
+    const alertsWithDetails = filteredPage.map((alert) => ({
       ...alert,
       participant: alert.linkedParticipantId ? participantMap.get(alert.linkedParticipantId) || null : null,
       property: alert.linkedPropertyId ? propertyMap.get(alert.linkedPropertyId) || null : null,
@@ -486,8 +520,8 @@ export const getActivePaginated = query({
 
     return {
       page: sortedAlerts,
-      isDone: result.isDone,
-      continueCursor: result.continueCursor,
+      isDone: filteredResult.isDone,
+      continueCursor: filteredResult.continueCursor,
     };
   },
 });

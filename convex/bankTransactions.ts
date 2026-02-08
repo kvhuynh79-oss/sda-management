@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { requireTenant } from "./authHelpers";
 
 // CSV Row type for imports
 interface ANZRow {
@@ -21,6 +22,7 @@ interface WestpacRow {
 // Import bank transactions from CSV data
 export const importCSV = mutation({
   args: {
+    userId: v.id("users"),
     bankAccountId: v.id("bankAccounts"),
     bankFormat: v.union(v.literal("anz"), v.literal("westpac")),
     transactions: v.array(
@@ -34,6 +36,17 @@ export const importCSV = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify bank account belongs to user's organization and get its organizationId
+    const bankAccount = await ctx.db.get(args.bankAccountId);
+    if (!bankAccount) {
+      throw new Error("Bank account not found");
+    }
+    if (bankAccount.organizationId !== organizationId) {
+      throw new Error("Access denied: bank account belongs to different organization");
+    }
+
     const now = Date.now();
     const importBatchId = `import_${now}`;
     let imported = 0;
@@ -60,6 +73,7 @@ export const importCSV = mutation({
       }
 
       await ctx.db.insert("bankTransactions", {
+        organizationId,  // Inherit from parent
         bankAccountId: args.bankAccountId,
         transactionDate: tx.date,
         description: tx.description,
@@ -89,6 +103,7 @@ export const importCSV = mutation({
 // Get all transactions for a bank account
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     bankAccountId: v.optional(v.id("bankAccounts")),
     matchStatus: v.optional(
       v.union(
@@ -104,9 +119,16 @@ export const getAll = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     let transactions;
 
     if (args.bankAccountId) {
+      // Verify bank account belongs to user's organization
+      const bankAccount = await ctx.db.get(args.bankAccountId);
+      if (!bankAccount || bankAccount.organizationId !== organizationId) {
+        return [];
+      }
+
       transactions = await ctx.db
         .query("bankTransactions")
         .withIndex("by_bankAccount", (q) =>
@@ -114,7 +136,11 @@ export const getAll = query({
         )
         .collect();
     } else {
-      transactions = await ctx.db.query("bankTransactions").collect();
+      // Get all transactions for user's organization
+      transactions = await ctx.db
+        .query("bankTransactions")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
     }
 
     // Apply filters
@@ -181,21 +207,31 @@ export const getAll = query({
 // Get unmatched transactions
 export const getUnmatched = query({
   args: {
+    userId: v.id("users"),
     bankAccountId: v.optional(v.id("bankAccounts")),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     let transactions;
 
     if (args.bankAccountId) {
+      // Verify bank account belongs to user's organization
+      const bankAccount = await ctx.db.get(args.bankAccountId);
+      if (!bankAccount || bankAccount.organizationId !== organizationId) {
+        return [];
+      }
+
       transactions = await ctx.db
         .query("bankTransactions")
         .withIndex("by_bankAccount", (q) => q.eq("bankAccountId", args.bankAccountId!))
         .filter((q) => q.eq(q.field("matchStatus"), "unmatched"))
         .collect();
     } else {
+      // Get all unmatched transactions for user's organization
       transactions = await ctx.db
         .query("bankTransactions")
-        .withIndex("by_matchStatus", (q) => q.eq("matchStatus", "unmatched"))
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.eq(q.field("matchStatus"), "unmatched"))
         .collect();
     }
 
@@ -219,6 +255,7 @@ export const getUnmatched = query({
 // Manually match a transaction
 export const manualMatch = mutation({
   args: {
+    userId: v.id("users"),
     transactionId: v.id("bankTransactions"),
     matchType: v.union(
       v.literal("payment"),
@@ -242,6 +279,15 @@ export const manualMatch = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const transaction = await ctx.db.get(args.transactionId);
+    if (!transaction) {
+      throw new Error("Transaction not found");
+    }
+    if (transaction.organizationId !== organizationId) {
+      throw new Error("Access denied: transaction belongs to different organization");
+    }
+
     const updates: Record<string, unknown> = {
       matchStatus: "matched" as const,
       updatedAt: Date.now(),
@@ -282,9 +328,19 @@ export const manualMatch = mutation({
 // Unmatch a transaction
 export const unmatch = mutation({
   args: {
+    userId: v.id("users"),
     transactionId: v.id("bankTransactions"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const transaction = await ctx.db.get(args.transactionId);
+    if (!transaction) {
+      throw new Error("Transaction not found");
+    }
+    if (transaction.organizationId !== organizationId) {
+      throw new Error("Access denied: transaction belongs to different organization");
+    }
+
     await ctx.db.patch(args.transactionId, {
       matchStatus: "unmatched",
       matchedPaymentId: undefined,
@@ -303,6 +359,7 @@ export const unmatch = mutation({
 // Categorize a transaction without matching
 export const categorize = mutation({
   args: {
+    userId: v.id("users"),
     transactionId: v.id("bankTransactions"),
     category: v.union(
       v.literal("sda_income"),
@@ -316,6 +373,15 @@ export const categorize = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const transaction = await ctx.db.get(args.transactionId);
+    if (!transaction) {
+      throw new Error("Transaction not found");
+    }
+    if (transaction.organizationId !== organizationId) {
+      throw new Error("Access denied: transaction belongs to different organization");
+    }
+
     await ctx.db.patch(args.transactionId, {
       category: args.category,
       updatedAt: Date.now(),
@@ -328,6 +394,7 @@ export const categorize = mutation({
 // Bulk categorize transactions
 export const bulkCategorize = mutation({
   args: {
+    userId: v.id("users"),
     transactionIds: v.array(v.id("bankTransactions")),
     category: v.union(
       v.literal("sda_income"),
@@ -341,9 +408,14 @@ export const bulkCategorize = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
     for (const id of args.transactionIds) {
+      const transaction = await ctx.db.get(id);
+      if (!transaction || transaction.organizationId !== organizationId) {
+        continue; // Skip transactions not belonging to user's organization
+      }
       await ctx.db.patch(id, {
         category: args.category,
         updatedAt: now,
@@ -357,10 +429,20 @@ export const bulkCategorize = mutation({
 // Exclude transaction from reconciliation
 export const exclude = mutation({
   args: {
+    userId: v.id("users"),
     transactionId: v.id("bankTransactions"),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const transaction = await ctx.db.get(args.transactionId);
+    if (!transaction) {
+      throw new Error("Transaction not found");
+    }
+    if (transaction.organizationId !== organizationId) {
+      throw new Error("Access denied: transaction belongs to different organization");
+    }
+
     await ctx.db.patch(args.transactionId, {
       matchStatus: "excluded",
       notes: args.notes,
@@ -482,20 +564,31 @@ export const autoMatchTransactions = internalMutation({
 // Get transaction summary by category
 export const getSummaryByCategory = query({
   args: {
+    userId: v.id("users"),
     bankAccountId: v.optional(v.id("bankAccounts")),
     dateFrom: v.optional(v.string()),
     dateTo: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     let transactions;
 
     if (args.bankAccountId) {
+      // Verify bank account belongs to user's organization
+      const bankAccount = await ctx.db.get(args.bankAccountId);
+      if (!bankAccount || bankAccount.organizationId !== organizationId) {
+        return {};
+      }
+
       transactions = await ctx.db
         .query("bankTransactions")
         .withIndex("by_bankAccount", (q) => q.eq("bankAccountId", args.bankAccountId!))
         .collect();
     } else {
-      transactions = await ctx.db.query("bankTransactions").collect();
+      transactions = await ctx.db
+        .query("bankTransactions")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
     }
 
     // Apply date filters
@@ -525,9 +618,12 @@ export const getSummaryByCategory = query({
 // Delete all transactions for a batch (undo import)
 export const deleteImportBatch = mutation({
   args: {
+    userId: v.id("users"),
     importBatchId: v.string(),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const transactions = await ctx.db
       .query("bankTransactions")
       .withIndex("by_importBatch", (q) => q.eq("importBatchId", args.importBatchId))
@@ -536,6 +632,10 @@ export const deleteImportBatch = mutation({
     let deleted = 0;
 
     for (const tx of transactions) {
+      // Verify transaction belongs to user's organization
+      if (tx.organizationId !== organizationId) {
+        continue;
+      }
       // Only delete unmatched transactions
       if (tx.matchStatus === "unmatched") {
         await ctx.db.delete(tx._id);
@@ -550,9 +650,18 @@ export const deleteImportBatch = mutation({
 // Public mutation to trigger auto-matching
 export const runAutoMatch = mutation({
   args: {
+    userId: v.id("users"),
     bankAccountId: v.id("bankAccounts"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify bank account belongs to user's organization
+    const bankAccount = await ctx.db.get(args.bankAccountId);
+    if (!bankAccount || bankAccount.organizationId !== organizationId) {
+      return { matched: 0 };
+    }
+
     // Get unmatched transactions
     const transactions = await ctx.db
       .query("bankTransactions")
@@ -658,10 +767,20 @@ export const runAutoMatch = mutation({
 // Include/uninclude a transaction from reconciliation
 export const setExcluded = mutation({
   args: {
+    userId: v.id("users"),
     transactionId: v.id("bankTransactions"),
     excluded: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const transaction = await ctx.db.get(args.transactionId);
+    if (!transaction) {
+      throw new Error("Transaction not found");
+    }
+    if (transaction.organizationId !== organizationId) {
+      throw new Error("Access denied: transaction belongs to different organization");
+    }
+
     await ctx.db.patch(args.transactionId, {
       matchStatus: args.excluded ? "excluded" : "unmatched",
       updatedAt: Date.now(),
@@ -674,11 +793,16 @@ export const setExcluded = mutation({
 // Get suggested matches for a transaction
 export const getSuggestedMatches = query({
   args: {
+    userId: v.id("users"),
     transactionId: v.id("bankTransactions"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const transaction = await ctx.db.get(args.transactionId);
     if (!transaction) return { suggestions: [] };
+    if (transaction.organizationId !== organizationId) {
+      return { suggestions: [] };
+    }
 
     const suggestions: Array<{
       type: string;

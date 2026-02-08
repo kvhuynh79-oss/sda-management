@@ -1,10 +1,22 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { requireTenant } from "./authHelpers";
 
 // Get all quotes for a maintenance request
 export const getByMaintenanceRequest = query({
-  args: { maintenanceRequestId: v.id("maintenanceRequests") },
+  args: {
+    userId: v.id("users"),
+    maintenanceRequestId: v.id("maintenanceRequests")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify maintenance request belongs to user's organization
+    const maintenanceRequest = await ctx.db.get(args.maintenanceRequestId);
+    if (!maintenanceRequest || maintenanceRequest.organizationId !== organizationId) {
+      return [];
+    }
+
     const quotes = await ctx.db
       .query("maintenanceQuotes")
       .withIndex("by_maintenance_request", (q) =>
@@ -19,9 +31,18 @@ export const getByMaintenanceRequest = query({
 
 // Get a single quote by ID
 export const getById = query({
-  args: { quoteId: v.id("maintenanceQuotes") },
+  args: {
+    userId: v.id("users"),
+    quoteId: v.id("maintenanceQuotes")
+  },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.quoteId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const quote = await ctx.db.get(args.quoteId);
+    if (!quote) return null;
+    if (quote.organizationId !== organizationId) {
+      throw new Error("Access denied: quote belongs to different organization");
+    }
+    return quote;
   },
 });
 
@@ -41,10 +62,22 @@ export const addQuote = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
+
+    // Verify maintenance request belongs to user's organization and get its organizationId
+    const maintenanceRequest = await ctx.db.get(args.maintenanceRequestId);
+    if (!maintenanceRequest) {
+      throw new Error("Maintenance request not found");
+    }
+    if (maintenanceRequest.organizationId !== organizationId) {
+      throw new Error("Access denied: maintenance request belongs to different organization");
+    }
+
     const now = Date.now();
 
     // Create the quote
     const quoteId = await ctx.db.insert("maintenanceQuotes", {
+      organizationId,  // Inherit from parent
       maintenanceRequestId: args.maintenanceRequestId,
       contractorName: args.contractorName,
       contractorContact: args.contractorContact,
@@ -77,6 +110,7 @@ export const addQuote = mutation({
 // Update a quote
 export const updateQuote = mutation({
   args: {
+    userId: v.id("users"),
     quoteId: v.id("maintenanceQuotes"),
     contractorName: v.optional(v.string()),
     contractorContact: v.optional(v.string()),
@@ -89,7 +123,16 @@ export const updateQuote = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { quoteId, ...updates } = args;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const quote = await ctx.db.get(args.quoteId);
+    if (!quote) {
+      throw new Error("Quote not found");
+    }
+    if (quote.organizationId !== organizationId) {
+      throw new Error("Access denied: quote belongs to different organization");
+    }
+
+    const { quoteId, userId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, v]) => v !== undefined)
     );
@@ -104,14 +147,20 @@ export const updateQuote = mutation({
 // Accept a quote - this awards the work to that contractor
 export const acceptQuote = mutation({
   args: {
+    userId: v.id("users"),
     quoteId: v.id("maintenanceQuotes"),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    const today = new Date().toISOString().split("T")[0];
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const quote = await ctx.db.get(args.quoteId);
     if (!quote) throw new Error("Quote not found");
+    if (quote.organizationId !== organizationId) {
+      throw new Error("Access denied: quote belongs to different organization");
+    }
+
+    const now = Date.now();
+    const today = new Date().toISOString().split("T")[0];
 
     // Update this quote to accepted
     await ctx.db.patch(args.quoteId, {
@@ -156,10 +205,20 @@ export const acceptQuote = mutation({
 // Reject a quote
 export const rejectQuote = mutation({
   args: {
+    userId: v.id("users"),
     quoteId: v.id("maintenanceQuotes"),
     rejectionReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const quote = await ctx.db.get(args.quoteId);
+    if (!quote) {
+      throw new Error("Quote not found");
+    }
+    if (quote.organizationId !== organizationId) {
+      throw new Error("Access denied: quote belongs to different organization");
+    }
+
     return await ctx.db.patch(args.quoteId, {
       status: "rejected",
       rejectionReason: args.rejectionReason,
@@ -170,16 +229,39 @@ export const rejectQuote = mutation({
 
 // Delete a quote
 export const deleteQuote = mutation({
-  args: { quoteId: v.id("maintenanceQuotes") },
+  args: {
+    userId: v.id("users"),
+    quoteId: v.id("maintenanceQuotes")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const quote = await ctx.db.get(args.quoteId);
+    if (!quote) {
+      throw new Error("Quote not found");
+    }
+    if (quote.organizationId !== organizationId) {
+      throw new Error("Access denied: quote belongs to different organization");
+    }
     await ctx.db.delete(args.quoteId);
   },
 });
 
 // Mark request as awaiting quotes
 export const setAwaitingQuotes = mutation({
-  args: { maintenanceRequestId: v.id("maintenanceRequests") },
+  args: {
+    userId: v.id("users"),
+    maintenanceRequestId: v.id("maintenanceRequests")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const maintenanceRequest = await ctx.db.get(args.maintenanceRequestId);
+    if (!maintenanceRequest) {
+      throw new Error("Maintenance request not found");
+    }
+    if (maintenanceRequest.organizationId !== organizationId) {
+      throw new Error("Access denied: maintenance request belongs to different organization");
+    }
+
     return await ctx.db.patch(args.maintenanceRequestId, {
       status: "awaiting_quotes",
       updatedAt: Date.now(),

@@ -1,7 +1,7 @@
 import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, getUserFullName } from "./authHelpers";
+import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
 import { encryptField, decryptField, isEncrypted } from "./lib/encryption";
 
 // Decrypt sensitive owner fields (handles both encrypted and plaintext for migration)
@@ -39,6 +39,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     // Permission check - requires property create permission (admin/property_manager)
     const user = await requirePermission(ctx, args.userId, "properties", "create");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { userId, ...ownerData } = args;
     const now = Date.now();
 
@@ -47,6 +48,7 @@ export const create = mutation({
 
     const ownerId = await ctx.db.insert("owners", {
       ...ownerData,
+      organizationId,
       bankAccountNumber: encBankAccountNumber ?? ownerData.bankAccountNumber,
       isActive: true,
       createdAt: now,
@@ -70,10 +72,12 @@ export const create = mutation({
 
 // Get all owners
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const owners = await ctx.db
       .query("owners")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
     return Promise.all(owners.map(decryptOwnerFields));
@@ -82,10 +86,17 @@ export const getAll = query({
 
 // Get owner by ID
 export const getById = query({
-  args: { ownerId: v.id("owners") },
+  args: { ownerId: v.id("owners"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const owner = await ctx.db.get(args.ownerId);
     if (!owner) return null;
+
+    // Verify org ownership
+    if (owner.organizationId !== organizationId) {
+      throw new Error("Access denied: Owner belongs to different organization");
+    }
+
     return decryptOwnerFields(owner);
   },
 });
@@ -117,7 +128,17 @@ export const update = mutation({
   handler: async (ctx, args) => {
     // Permission check
     await requirePermission(ctx, args.userId, "properties", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { ownerId, userId, ...updates } = args;
+
+    // Verify org ownership
+    const owner = await ctx.db.get(ownerId);
+    if (!owner) {
+      throw new Error("Owner not found");
+    }
+    if (owner.organizationId !== organizationId) {
+      throw new Error("Access denied: Owner belongs to different organization");
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -146,6 +167,17 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Permission check - only admin can delete
     await requirePermission(ctx, args.userId, "properties", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify org ownership
+    const owner = await ctx.db.get(args.ownerId);
+    if (!owner) {
+      throw new Error("Owner not found");
+    }
+    if (owner.organizationId !== organizationId) {
+      throw new Error("Access denied: Owner belongs to different organization");
+    }
+
     await ctx.db.patch(args.ownerId, {
       isActive: false,
       updatedAt: Date.now(),

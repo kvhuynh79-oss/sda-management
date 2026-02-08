@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 
 // Predefined Sydney regions (same as support coordinators)
 export const SYDNEY_REGIONS = [
@@ -56,11 +56,12 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
+    // Permission check and get organizationId
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
     const otId = await ctx.db.insert("occupationalTherapists", {
+      organizationId,
       firstName: args.firstName,
       lastName: args.lastName,
       organization: args.organization,
@@ -90,18 +91,24 @@ export const create = mutation({
 // Get all OTs
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     let therapists;
 
     if (args.status) {
       therapists = await ctx.db
         .query("occupationalTherapists")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.eq(q.field("status"), args.status!))
         .collect();
     } else {
-      therapists = await ctx.db.query("occupationalTherapists").collect();
+      therapists = await ctx.db
+        .query("occupationalTherapists")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
     }
 
     // Get participant counts for each OT
@@ -125,10 +132,17 @@ export const getAll = query({
 
 // Get a single OT by ID
 export const getById = query({
-  args: { otId: v.id("occupationalTherapists") },
+  args: {
+    userId: v.id("users"),
+    otId: v.id("occupationalTherapists")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const therapist = await ctx.db.get(args.otId);
     if (!therapist) return null;
+    if (therapist.organizationId !== organizationId) {
+      throw new Error("Access denied: therapist belongs to different organization");
+    }
 
     // Get linked participants
     const participantLinks = await ctx.db
@@ -189,10 +203,17 @@ export const update = mutation({
     lastContactedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
-    const { otId, userId, ...updates } = args;
+    // Permission check and org verification
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const therapist = await ctx.db.get(args.otId);
+    if (!therapist) {
+      throw new Error("Therapist not found");
+    }
+    if (therapist.organizationId !== organizationId) {
+      throw new Error("Access denied: therapist belongs to different organization");
+    }
 
+    const { otId, userId, ...updates } = args;
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
@@ -212,8 +233,16 @@ export const remove = mutation({
     otId: v.id("occupationalTherapists"),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
+    // Permission check and org verification
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const therapist = await ctx.db.get(args.otId);
+    if (!therapist) {
+      throw new Error("Therapist not found");
+    }
+    if (therapist.organizationId !== organizationId) {
+      throw new Error("Access denied: therapist belongs to different organization");
+    }
+
     // Delete participant links first
     const links = await ctx.db
       .query("otParticipants")
@@ -307,9 +336,16 @@ export const unlinkParticipant = mutation({
 
 // Search OTs
 export const search = query({
-  args: { searchTerm: v.string() },
+  args: {
+    userId: v.id("users"),
+    searchTerm: v.string()
+  },
   handler: async (ctx, args) => {
-    const therapists = await ctx.db.query("occupationalTherapists").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const therapists = await ctx.db
+      .query("occupationalTherapists")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const term = args.searchTerm.toLowerCase();
 

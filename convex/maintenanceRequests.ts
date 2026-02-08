@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
 import { paginationArgs } from "./paginationHelpers";
 
 // Create a new maintenance request
@@ -37,12 +37,14 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission
+    // Verify user has permission and get organizationId
     const user = await requirePermission(ctx, args.createdBy, "maintenance", "create");
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
 
     const now = Date.now();
     const requestId = await ctx.db.insert("maintenanceRequests", {
       ...args,
+      organizationId,
       status: "reported",
       createdAt: now,
       updatedAt: now,
@@ -70,9 +72,13 @@ export const create = mutation({
 
 // Get all maintenance requests with dwelling and property details
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
-    const requests = await ctx.db.query("maintenanceRequests").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const requests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", q => q.eq("organizationId", organizationId))
+      .collect();
 
     // Batch fetch all dwellings
     const dwellingIds = [...new Set(requests.map((r) => r.dwellingId))];
@@ -118,12 +124,16 @@ export const getAll = query({
 
 // Get maintenance requests by dwelling
 export const getByDwelling = query({
-  args: { dwellingId: v.id("dwellings") },
+  args: { userId: v.id("users"), dwellingId: v.id("dwellings") },
   handler: async (ctx, args) => {
-    const requests = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allRequests = await ctx.db
       .query("maintenanceRequests")
       .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
       .collect();
+
+    // Filter to organization
+    const requests = allRequests.filter(r => r.organizationId === organizationId);
 
     const requestsWithDetails = await Promise.all(
       requests.map(async (request) => {
@@ -141,8 +151,10 @@ export const getByDwelling = query({
 
 // Get maintenance requests by property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { userId: v.id("users"), propertyId: v.id("properties") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     // Get all dwellings for this property
     const dwellings = await ctx.db
       .query("dwellings")
@@ -151,8 +163,11 @@ export const getByProperty = query({
 
     const dwellingIds = dwellings.map((d) => d._id);
 
-    // Get all maintenance requests for these dwellings
-    const allRequests = await ctx.db.query("maintenanceRequests").collect();
+    // Get all maintenance requests for these dwellings (scoped to organization)
+    const allRequests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", q => q.eq("organizationId", organizationId))
+      .collect();
     const requests = allRequests.filter((req) =>
       dwellingIds.includes(req.dwellingId)
     );
@@ -176,10 +191,14 @@ export const getByProperty = query({
 
 // Get maintenance request by ID
 export const getById = query({
-  args: { requestId: v.id("maintenanceRequests") },
+  args: { userId: v.id("users"), requestId: v.id("maintenanceRequests") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const request = await ctx.db.get(args.requestId);
     if (!request) return null;
+    if (request.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     const dwelling = await ctx.db.get(request.dwellingId);
     const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
@@ -240,12 +259,16 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { requestId, userId, ...updates } = args;
 
-    // Verify user has permission to update maintenance requests
+    // Verify user has permission to update maintenance requests and get organizationId
     await requirePermission(ctx, userId, "maintenance", "update");
+    const { organizationId } = await requireTenant(ctx, userId);
 
-    // Get the request for audit logging
+    // Get the request for audit logging and verify ownership
     const request = await ctx.db.get(requestId);
     if (!request) throw new Error("Maintenance request not found");
+    if (request.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -321,10 +344,15 @@ export const completeRequest = mutation({
     warrantyPeriodMonths: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission to update maintenance requests
+    // Verify user has permission to update maintenance requests and get organizationId
     await requirePermission(ctx, args.userId, "maintenance", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found");
+    if (request.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
 
     // Calculate warranty expiry if warranty period provided
     let warrantyExpiryDate: string | undefined;
@@ -358,6 +386,14 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Verify user has permission to delete maintenance requests
     await requirePermission(ctx, args.userId, "maintenance", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const request = await ctx.db.get(args.requestId);
+    if (!request) throw new Error("Maintenance request not found");
+    if (request.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
+
     await ctx.db.delete(args.requestId);
     return { success: true };
   },
@@ -366,6 +402,7 @@ export const remove = mutation({
 // Get requests by status
 export const getByStatus = query({
   args: {
+    userId: v.id("users"),
     status: v.union(
       v.literal("reported"),
       v.literal("awaiting_quotes"),
@@ -378,10 +415,13 @@ export const getByStatus = query({
     ),
   },
   handler: async (ctx, args) => {
-    const requests = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allRequests = await ctx.db
       .query("maintenanceRequests")
       .withIndex("by_status", (q) => q.eq("status", args.status))
       .collect();
+
+    const requests = allRequests.filter(r => r.organizationId === organizationId);
 
     const requestsWithDetails = await Promise.all(
       requests.map(async (request) => {
@@ -403,6 +443,7 @@ export const getByStatus = query({
 // Get requests by priority
 export const getByPriority = query({
   args: {
+    userId: v.id("users"),
     priority: v.union(
       v.literal("urgent"),
       v.literal("high"),
@@ -411,10 +452,13 @@ export const getByPriority = query({
     ),
   },
   handler: async (ctx, args) => {
-    const requests = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allRequests = await ctx.db
       .query("maintenanceRequests")
       .withIndex("by_priority", (q) => q.eq("priority", args.priority))
       .collect();
+
+    const requests = allRequests.filter(r => r.organizationId === organizationId);
 
     const requestsWithDetails = await Promise.all(
       requests.map(async (request) => {
@@ -435,9 +479,10 @@ export const getByPriority = query({
 
 // Get urgent requests (for alerts/dashboard)
 export const getUrgent = query({
-  args: {},
-  handler: async (ctx) => {
-    const urgentRequests = await ctx.db
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allRequests = await ctx.db
       .query("maintenanceRequests")
       .withIndex("by_priority", (q) => q.eq("priority", "urgent"))
       .filter((q) =>
@@ -447,6 +492,8 @@ export const getUrgent = query({
         )
       )
       .collect();
+
+    const urgentRequests = allRequests.filter(r => r.organizationId === organizationId);
 
     const requestsWithDetails = await Promise.all(
       urgentRequests.map(async (request) => {
@@ -467,9 +514,13 @@ export const getUrgent = query({
 
 // Get open requests (not completed or cancelled)
 export const getOpen = query({
-  args: {},
-  handler: async (ctx) => {
-    const allRequests = await ctx.db.query("maintenanceRequests").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allRequests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", q => q.eq("organizationId", organizationId))
+      .collect();
     const openRequests = allRequests.filter(
       (req) => req.status !== "completed" && req.status !== "cancelled"
     );
@@ -503,9 +554,13 @@ export const getOpen = query({
 
 // Get maintenance statistics
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const allRequests = await ctx.db.query("maintenanceRequests").collect();
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allRequests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", q => q.eq("organizationId", organizationId))
+      .collect();
 
     const stats = {
       total: allRequests.length,
@@ -529,10 +584,14 @@ export const getStats = query({
 
 // Get recent maintenance requests (for dashboard)
 export const getRecent = query({
-  args: { limit: v.optional(v.number()) },
+  args: { userId: v.id("users"), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const limit = args.limit || 10;
-    const requests = await ctx.db.query("maintenanceRequests").collect();
+    const requests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", q => q.eq("organizationId", organizationId))
+      .collect();
 
     const requestsWithDetails = await Promise.all(
       requests.map(async (request) => {
@@ -555,12 +614,15 @@ export const getRecent = query({
 
 // Get maintenance requests by contractor
 export const getByContractor = query({
-  args: { contractorId: v.id("contractors") },
+  args: { userId: v.id("users"), contractorId: v.id("contractors") },
   handler: async (ctx, args) => {
-    const requests = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allRequests = await ctx.db
       .query("maintenanceRequests")
       .withIndex("by_contractor", (q) => q.eq("assignedContractorId", args.contractorId))
       .collect();
+
+    const requests = allRequests.filter(r => r.organizationId === organizationId);
 
     const requestsWithDetails = await Promise.all(
       requests.map(async (request) => {
@@ -581,8 +643,10 @@ export const getByContractor = query({
 
 // Get contractors used at a property (for contractor suggestions)
 export const getContractorsUsedAtProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { userId: v.id("users"), propertyId: v.id("properties") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     // Get all dwellings for this property
     const dwellings = await ctx.db
       .query("dwellings")
@@ -591,8 +655,11 @@ export const getContractorsUsedAtProperty = query({
 
     const dwellingIds = new Set(dwellings.map((d) => d._id));
 
-    // Get all maintenance requests with assigned contractors for these dwellings
-    const allRequests = await ctx.db.query("maintenanceRequests").collect();
+    // Get all maintenance requests with assigned contractors for these dwellings (scoped to organization)
+    const allRequests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", q => q.eq("organizationId", organizationId))
+      .collect();
     const relevantRequests = allRequests.filter(
       (req) => dwellingIds.has(req.dwellingId) && req.assignedContractorId
     );
@@ -678,36 +745,53 @@ export const migrateContractorLinks = mutation({
 // Get maintenance requests with pagination
 export const getAllPaginated = query({
   args: {
+    userId: v.id("users"),
     ...paginationArgs,
     status: v.optional(v.string()),
     priority: v.optional(v.string()),
     dwellingId: v.optional(v.id("dwellings")),
   },
   handler: async (ctx, args) => {
-    // Build query based on filters - prioritize most specific filter
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Build query based on filters - use organizationId index first
     let result;
 
     if (args.dwellingId) {
-      // Filter by dwelling (most specific)
+      // Filter by dwelling (fetch all then filter in-memory for org)
       const dwellingQuery = ctx.db
         .query("maintenanceRequests")
         .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId!));
-      result = await dwellingQuery.order("desc").paginate(args.paginationOpts);
+      const allResults = await dwellingQuery.order("desc").paginate(args.paginationOpts);
+      result = {
+        ...allResults,
+        page: allResults.page.filter(r => r.organizationId === organizationId),
+      };
     } else if (args.status) {
-      // Filter by status
+      // Filter by status (fetch all then filter in-memory for org)
       const statusQuery = ctx.db
         .query("maintenanceRequests")
         .withIndex("by_status", (q) => q.eq("status", args.status as any));
-      result = await statusQuery.order("desc").paginate(args.paginationOpts);
+      const allResults = await statusQuery.order("desc").paginate(args.paginationOpts);
+      result = {
+        ...allResults,
+        page: allResults.page.filter(r => r.organizationId === organizationId),
+      };
     } else if (args.priority) {
-      // Filter by priority
+      // Filter by priority (fetch all then filter in-memory for org)
       const priorityQuery = ctx.db
         .query("maintenanceRequests")
         .withIndex("by_priority", (q) => q.eq("priority", args.priority as any));
-      result = await priorityQuery.order("desc").paginate(args.paginationOpts);
+      const allResults = await priorityQuery.order("desc").paginate(args.paginationOpts);
+      result = {
+        ...allResults,
+        page: allResults.page.filter(r => r.organizationId === organizationId),
+      };
     } else {
-      // Default: all requests
-      const defaultQuery = ctx.db.query("maintenanceRequests");
+      // Default: all requests scoped to organization
+      const defaultQuery = ctx.db
+        .query("maintenanceRequests")
+        .withIndex("by_organizationId", q => q.eq("organizationId", organizationId));
       result = await defaultQuery.order("desc").paginate(args.paginationOpts);
     }
 

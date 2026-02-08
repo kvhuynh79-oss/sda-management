@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 import { internal } from "./_generated/api";
 
 // Create a new plan
@@ -38,18 +38,15 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const { user, organizationId } = await requireTenant(ctx, args.userId);
 
-    // Get user details for audit logging
-    const user = await ctx.db.get(args.userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Get participant details for audit logging
+    // Get participant details and verify ownership
     const participant = await ctx.db.get(args.participantId);
     if (!participant) {
       throw new Error("Participant not found");
+    }
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: participant belongs to different organization");
     }
 
     // Mark any existing current plans as expired
@@ -70,6 +67,7 @@ export const create = mutation({
     const { userId, ...planData } = args;
     const planId = await ctx.db.insert("participantPlans", {
       ...planData,
+      organizationId,
       planStatus: "current",
       createdAt: now,
       updatedAt: now,
@@ -100,8 +98,19 @@ export const create = mutation({
 
 // Get plans for a participant
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify participant belongs to user's organization
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant || participant.organizationId !== organizationId) {
+      return [];
+    }
+
     const plans = await ctx.db
       .query("participantPlans")
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
@@ -115,8 +124,19 @@ export const getByParticipant = query({
 
 // Get current plan for a participant
 export const getCurrentPlan = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify participant belongs to user's organization
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant || participant.organizationId !== organizationId) {
+      return null;
+    }
+
     const plan = await ctx.db
       .query("participantPlans")
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
@@ -167,19 +187,16 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx, args.userId);
+    const { user, organizationId } = await requireTenant(ctx, args.userId);
     const { planId, userId, ...updates } = args;
 
-    // Get user details for audit logging
-    const user = await ctx.db.get(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Get current plan for audit logging (BEFORE update)
+    // Get current plan for audit logging (BEFORE update) and verify ownership
     const plan = await ctx.db.get(planId);
     if (!plan) {
       throw new Error("Plan not found");
+    }
+    if (plan.organizationId !== organizationId) {
+      throw new Error("Access denied: plan belongs to different organization");
     }
 
     // Get participant details for audit logging
@@ -250,11 +267,16 @@ export const update = mutation({
 
 // Get all plans expiring soon (for alerts)
 export const getExpiringSoon = query({
-  args: { daysAhead: v.number() },
+  args: {
+    userId: v.id("users"),
+    daysAhead: v.number()
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const plans = await ctx.db
       .query("participantPlans")
-      .withIndex("by_status", (q) => q.eq("planStatus", "current"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("planStatus"), "current"))
       .collect();
 
     const today = new Date();

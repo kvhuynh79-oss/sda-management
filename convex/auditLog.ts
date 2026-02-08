@@ -84,8 +84,10 @@ export type AuditEntityType =
 
 // Internal mutation for logging - used by other mutations
 // Implements hash chain for immutability (NDIS 7-year retention compliance)
+// NOTE: organizationId MUST be passed in from calling mutation
 export const log = internalMutation({
   args: {
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization for audit log (optional during migration)
     userId: v.id("users"),
     userEmail: v.string(),
     userName: v.string(),
@@ -122,14 +124,16 @@ export const log = internalMutation({
     metadata: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Get the most recent audit log entry for hash chain
-    const previousLog = await ctx.db
+    // Get the most recent audit log entry for hash chain (PER ORGANIZATION)
+    // NOTE: Each organization has its own hash chain for audit integrity
+    const allLogs = await ctx.db
       .query("auditLogs")
       .withIndex("by_sequenceNumber")
       .order("desc")
-      .first();
+      .collect();
+    const previousLog = allLogs.find(log => log.organizationId === args.organizationId);
 
-    // Calculate sequence number
+    // Calculate sequence number (per organization)
     const sequenceNumber = previousLog ? (previousLog.sequenceNumber || 0) + 1 : 1;
 
     // Get previous hash for chain (empty string for first entry)
@@ -138,6 +142,7 @@ export const log = internalMutation({
     // Create the entry data (without hash yet)
     const timestamp = Date.now();
     const entryData = {
+      organizationId: args.organizationId,
       userId: args.userId,
       userEmail: args.userEmail,
       userName: args.userName,
@@ -154,7 +159,7 @@ export const log = internalMutation({
     };
 
     // Calculate hash of this entry
-    const currentHash = await hashLogEntry(entryData);
+    const currentHash = await hashLogEntry(entryData as any);
 
     // Insert the log with hash chain
     await ctx.db.insert("auditLogs", {
@@ -167,6 +172,7 @@ export const log = internalMutation({
 
 // Public mutation for logging (used from client-side when needed)
 // Implements hash chain for immutability (NDIS 7-year retention compliance)
+// NOTE: Gets organizationId from user
 export const createLog = mutation({
   args: {
     userId: v.id("users"),
@@ -207,15 +213,20 @@ export const createLog = mutation({
     if (!user) {
       throw new Error("User not found");
     }
+    const organizationId = user.organizationId;
+    if (!organizationId) {
+      throw new Error("User does not have organizationId");
+    }
 
-    // Get the most recent audit log entry for hash chain
-    const previousLog = await ctx.db
+    // Get the most recent audit log entry for hash chain (PER ORGANIZATION)
+    const allLogs = await ctx.db
       .query("auditLogs")
       .withIndex("by_sequenceNumber")
       .order("desc")
-      .first();
+      .collect();
+    const previousLog = allLogs.find(log => log.organizationId === organizationId);
 
-    // Calculate sequence number
+    // Calculate sequence number (per organization)
     const sequenceNumber = previousLog ? (previousLog.sequenceNumber || 0) + 1 : 1;
 
     // Get previous hash for chain (empty string for first entry)
@@ -224,6 +235,7 @@ export const createLog = mutation({
     // Create the entry data (without hash yet)
     const timestamp = Date.now();
     const entryData = {
+      organizationId,
       userId: args.userId,
       userEmail: user.email,
       userName: `${user.firstName} ${user.lastName}`,
@@ -239,7 +251,7 @@ export const createLog = mutation({
     };
 
     // Calculate hash of this entry
-    const currentHash = await hashLogEntry(entryData);
+    const currentHash = await hashLogEntry(entryData as any);
 
     // Insert the log with hash chain
     await ctx.db.insert("auditLogs", {
@@ -272,6 +284,10 @@ export const getAuditLogs = query({
     if (requestingUser.role !== "admin") {
       throw new Error("Access denied: Admin permission required to view audit logs");
     }
+    const organizationId = requestingUser.organizationId;
+    if (!organizationId) {
+      throw new Error("User does not have organizationId");
+    }
 
     const limit = args.limit || 50;
     const offset = args.offset || 0;
@@ -296,9 +312,11 @@ export const getAuditLogs = query({
     }
 
     const allLogs = await logsQuery.collect();
+    // Filter to current organization
+    const orgLogs = allLogs.filter(log => log.organizationId === organizationId);
 
     // Apply additional filters
-    let filteredLogs = allLogs.filter((log) => {
+    let filteredLogs = orgLogs.filter((log) => {
       // Date range filter
       if (args.startDate && log.timestamp < args.startDate) return false;
       if (args.endDate && log.timestamp > args.endDate) return false;
@@ -350,8 +368,13 @@ export const getAuditStats = query({
     if (requestingUser.role !== "admin") {
       throw new Error("Access denied: Admin permission required to view audit statistics");
     }
+    const organizationId = requestingUser.organizationId;
+    if (!organizationId) {
+      throw new Error("User does not have organizationId");
+    }
 
-    const logs = await ctx.db.query("auditLogs").collect();
+    const allLogs = await ctx.db.query("auditLogs").collect();
+    const logs = allLogs.filter(log => log.organizationId === organizationId);
 
     // Filter by date if provided
     const filteredLogs = logs.filter((log) => {
@@ -612,8 +635,13 @@ export const getIntegrityStatus = query({
     if (requestingUser.role !== "admin") {
       throw new Error("Access denied: Admin permission required to view integrity status");
     }
+    const organizationId = requestingUser.organizationId;
+    if (!organizationId) {
+      throw new Error("User does not have organizationId");
+    }
 
-    const totalLogs = await ctx.db.query("auditLogs").collect();
+    const allLogs = await ctx.db.query("auditLogs").collect();
+    const totalLogs = allLogs.filter(log => log.organizationId === organizationId);
     const verifiedLogs = totalLogs.filter(log => log.isIntegrityVerified === true);
     const unverifiedLogs = totalLogs.filter(log => !log.isIntegrityVerified);
 

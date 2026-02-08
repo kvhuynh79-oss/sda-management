@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth, getUserFullName } from "./authHelpers";
+import { requirePermission, requireAuth, getUserFullName, requireTenant } from "./authHelpers";
 import { formatChanges } from "./auditLog";
 
 // Create a new dwelling
@@ -32,12 +32,14 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Permission check
+    // Permission check + tenant context
     const user = await requirePermission(ctx, args.userId, "properties", "create");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { userId, ...dwellingData } = args;
     const now = Date.now();
     const dwellingId = await ctx.db.insert("dwellings", {
       ...dwellingData,
+      organizationId,
       currentOccupancy: 0,
       occupancyStatus: "vacant",
       isActive: true,
@@ -62,12 +64,14 @@ export const create = mutation({
 
 // Get all dwellings for a property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: { propertyId: v.id("properties"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const dwellings = await ctx.db
       .query("dwellings")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
       .filter((q) => q.eq(q.field("isActive"), true))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
       .collect();
 
     // Get participant count for each dwelling
@@ -92,10 +96,16 @@ export const getByProperty = query({
 
 // Get dwelling by ID
 export const getById = query({
-  args: { dwellingId: v.id("dwellings") },
+  args: { dwellingId: v.id("dwellings"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const dwelling = await ctx.db.get(args.dwellingId);
     if (!dwelling) return null;
+
+    // Verify org ownership
+    if (dwelling.organizationId !== organizationId) {
+      throw new Error("Access denied: Dwelling belongs to different organization");
+    }
 
     const property = await ctx.db.get(dwelling.propertyId);
     const participants = await ctx.db
@@ -140,14 +150,20 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Permission check
+    // Permission check + tenant context
     const user = await requirePermission(ctx, args.userId, "properties", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { dwellingId, userId, ...updates } = args;
 
     // Get current dwelling data for audit log
     const dwelling = await ctx.db.get(dwellingId);
     if (!dwelling) {
       throw new Error("Dwelling not found");
+    }
+
+    // Verify org ownership
+    if (dwelling.organizationId !== organizationId) {
+      throw new Error("Access denied: Dwelling belongs to different organization");
     }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
@@ -192,14 +208,21 @@ export const updateOccupancy = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const dwelling = await ctx.db.get(args.dwellingId);
+    if (!dwelling) throw new Error("Dwelling not found");
+
+    // Verify org ownership
+    if (dwelling.organizationId !== organizationId) {
+      throw new Error("Access denied: Dwelling belongs to different organization");
+    }
+
     const participants = await ctx.db
       .query("participants")
       .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
-
-    const dwelling = await ctx.db.get(args.dwellingId);
-    if (!dwelling) throw new Error("Dwelling not found");
 
     // Store previous occupancy for comparison
     const previousOccupancy = dwelling.currentOccupancy;
@@ -263,11 +286,17 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Permission check - only admin can delete
     const user = await requirePermission(ctx, args.userId, "properties", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     // Get dwelling data before deletion for audit log
     const dwelling = await ctx.db.get(args.dwellingId);
     if (!dwelling) {
       throw new Error("Dwelling not found");
+    }
+
+    // Verify org ownership
+    if (dwelling.organizationId !== organizationId) {
+      throw new Error("Access denied: Dwelling belongs to different organization");
     }
 
     await ctx.db.patch(args.dwellingId, {
@@ -297,10 +326,12 @@ export const remove = mutation({
 
 // Get all dwellings with their property addresses (for bulk updates)
 export const getAllWithAddresses = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const dwellings = await ctx.db
       .query("dwellings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
@@ -340,10 +371,20 @@ export const bulkUpdateSdaAmount = mutation({
   },
   handler: async (ctx, args) => {
     await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
     let updatedCount = 0;
 
     for (const update of args.updates) {
+      // Verify org ownership for each dwelling
+      const dwelling = await ctx.db.get(update.dwellingId);
+      if (!dwelling) {
+        throw new Error(`Dwelling not found: ${update.dwellingId}`);
+      }
+      if (dwelling.organizationId !== organizationId) {
+        throw new Error(`Access denied: Dwelling ${update.dwellingId} belongs to different organization`);
+      }
+
       await ctx.db.patch(update.dwellingId, {
         sdaRegisteredAmount: update.sdaRegisteredAmount,
         updatedAt: now,

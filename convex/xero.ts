@@ -627,7 +627,7 @@ export const syncAllBankAccounts = action({
       return { success: false, error: "Xero not connected" };
     }
 
-    // Get all bank accounts
+    // Get all bank accounts (using internal query for action context)
     const bankAccounts: Array<{
       _id: Id<"bankAccounts">;
       accountName: string;
@@ -636,7 +636,7 @@ export const syncAllBankAccounts = action({
       accountNumber: string;
       accountType: "operating" | "trust";
       isActive: boolean;
-    }> = await ctx.runQuery(api.bankAccounts.getAll);
+    }> = await ctx.runQuery(internal.bankAccounts.getAllInternal);
 
     const results: Array<{
       accountId: Id<"bankAccounts">;

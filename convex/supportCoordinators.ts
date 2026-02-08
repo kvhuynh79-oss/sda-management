@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 
 // Predefined Sydney regions
 export const SYDNEY_REGIONS = [
@@ -36,11 +36,12 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
+    // Permission check and get organizationId
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
     const coordinatorId = await ctx.db.insert("supportCoordinators", {
+      organizationId,
       firstName: args.firstName,
       lastName: args.lastName,
       organization: args.organization,
@@ -63,19 +64,23 @@ export const create = mutation({
 // Get all support coordinators
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     let coordinators;
 
     if (args.status) {
       coordinators = await ctx.db
         .query("supportCoordinators")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.eq(q.field("status"), args.status!))
         .collect();
     } else {
       coordinators = await ctx.db
         .query("supportCoordinators")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
         .collect();
     }
 
@@ -100,10 +105,17 @@ export const getAll = query({
 
 // Get a single support coordinator by ID
 export const getById = query({
-  args: { coordinatorId: v.id("supportCoordinators") },
+  args: {
+    userId: v.id("users"),
+    coordinatorId: v.id("supportCoordinators")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const coordinator = await ctx.db.get(args.coordinatorId);
     if (!coordinator) return null;
+    if (coordinator.organizationId !== organizationId) {
+      throw new Error("Access denied: coordinator belongs to different organization");
+    }
 
     // Get linked participants
     const participantLinks = await ctx.db
@@ -143,11 +155,16 @@ export const getById = query({
 
 // Get coordinators by area (for vacancy notifications)
 export const getByArea = query({
-  args: { area: v.string() },
+  args: {
+    userId: v.id("users"),
+    area: v.string()
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const coordinators = await ctx.db
       .query("supportCoordinators")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
     // Filter by area (case-insensitive partial match)
@@ -178,10 +195,17 @@ export const update = mutation({
     lastContactedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
-    const { coordinatorId, userId, ...updates } = args;
+    // Permission check and org verification
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const coordinator = await ctx.db.get(args.coordinatorId);
+    if (!coordinator) {
+      throw new Error("Coordinator not found");
+    }
+    if (coordinator.organizationId !== organizationId) {
+      throw new Error("Access denied: coordinator belongs to different organization");
+    }
 
+    const { coordinatorId, userId, ...updates } = args;
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
@@ -201,8 +225,16 @@ export const remove = mutation({
     coordinatorId: v.id("supportCoordinators"),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
+    // Permission check and org verification
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const coordinator = await ctx.db.get(args.coordinatorId);
+    if (!coordinator) {
+      throw new Error("Coordinator not found");
+    }
+    if (coordinator.organizationId !== organizationId) {
+      throw new Error("Access denied: coordinator belongs to different organization");
+    }
+
     // Delete participant links first
     const links = await ctx.db
       .query("supportCoordinatorParticipants")
@@ -293,8 +325,19 @@ export const unlinkParticipant = mutation({
 
 // Get coordinators for a specific participant
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants")
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify participant belongs to user's organization
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant || participant.organizationId !== organizationId) {
+      return [];
+    }
+
     const links = await ctx.db
       .query("supportCoordinatorParticipants")
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
@@ -316,10 +359,15 @@ export const getByParticipant = query({
 
 // Search coordinators
 export const search = query({
-  args: { searchTerm: v.string() },
+  args: {
+    userId: v.id("users"),
+    searchTerm: v.string()
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const coordinators = await ctx.db
       .query("supportCoordinators")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
 
     const term = args.searchTerm.toLowerCase();

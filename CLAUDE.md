@@ -381,23 +381,47 @@ src/components/
   - **+ New Communication Button**: Added to communications page header
   - **Schema**: Added `isDeleted`/`deletedAt`/`deletedBy` on communications, `status` on threadSummaries, 2 new indexes
   - **Commits**: `3435390` (delete buttons), `8bf16cc` (incident auto-linking), `f1fcb54` (new comm button)
+- **Compliance Certifications Auto-Creation (2026-02-08)** ✓
+  - Auto-create compliance certifications when cert-type documents uploaded
+  - `createFromDocument` internal mutation in `complianceCertifications.ts`
+  - Document-to-cert type mapping (6 cert types: SDA registration, NDIS practice standards, worker screening, fire safety, building compliance, SDA design)
+  - Expiry date required for certification documents
+  - Green auto-linked banner on document upload form
+  - Duplicate detection prevents re-creating existing certifications
+- **Admin Deleted Items UI (2026-02-08)** ✓
+  - Deleted Items toggle button on Communications page (admin only)
+  - Expandable panel showing deleted communications with restore buttons
+  - Improved deleted communication detail page messaging for non-admins
+- **OfflineIndicator Bug Fix (2026-02-08)** ✓
+  - Removed global OfflineIndicator from ConvexClientProvider
+  - Was showing "You are offline" on all pages including login
+  - incidents/new page already had its own instance
+- **Compliance Certifications Management UI (2026-02-08)** ✓
+  - **List Page** (`/compliance/certifications`): Stats row, expiring-soon alerts, filterable table
+    - Filters: type, status, property, search
+    - Status badges (Current/Expiring Soon/Expired/Pending Renewal)
+    - Role-gated delete (admin/property_manager)
+  - **Detail/Edit Page** (`/compliance/certifications/[id]`): Full cert view with inline edit
+    - Certificate download link via `certificateUrl`
+    - Scope display (Org-wide badge or linked property)
+    - Audit outcome badges
+  - **Backend**: `getById` now returns `certificateUrl`, `getDashboardStats` query added
+  - **Cron Job**: `updateStatuses` converted to `internalMutation`, wired to daily cron (1 AM UTC)
+    - Auto-transitions: current → expiring_soon → expired
+  - **ThreadView Bug Fix**: Empty state moved below status filter tabs so users can always switch Active/Completed/Archived
+- **Playwright E2E Testing (2026-02-08)** ✓
+  - 28 screenshots captured across all communications features
+  - Tested: thread status tabs, deleted items panel, restore flow, all view tabs
+  - Tested: participant/property communications history, follow-ups, detail pages
+  - All features verified working
 
 ## Next Session Priorities
-1. **Communications v1.5 Frontend Remaining**:
-   - Admin restore UI (`/follow-ups/communications/[id]` deleted banner + restore button)
-   - Deleted items admin section (uses `getDeletedCommunications` query)
-   - CommunicationsHistory threaded view for participant detail pages (collapsible sections)
-2. **OT + Contractor Detail Pages**:
-   - OT detail page: src/app/database/occupational-therapists/[id]/page.tsx
-   - Contractor detail page: src/app/contractors/[id]/page.tsx
-   - Both include CommunicationsHistory component
-3. **Testing needed:**
+1. **Dashboard Compliance Widget**: Wire `getDashboardStats` query to dashboard page
+2. **Testing needed:**
    - Xero Integration - Connect and sync bank transactions (OAuth fixed, ready to test)
-   - Run test_communications.py functional tests
-   - Test soft delete + restore flow end-to-end
-   - Test incident → communication auto-creation in production
-4. **Bug fixing** - Test all features, fix any issues
-5. **Bulk data entry** - User will upload property/participant data
+   - Test compliance cert auto-creation end-to-end
+3. **Bug fixing** - Continue testing all features
+4. **Field-level encryption** - Encrypt NDIS numbers, DOB, incident descriptions at rest
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:
@@ -445,4 +469,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-02-08

@@ -1,117 +1,64 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth } from "./authHelpers";
-import { DOC_TO_CERT_TYPE } from "./complianceCertifications";
 
-// Document types that map to insurance policies (future: auto-link to insurancePolicies table)
-const DOC_TO_INSURANCE_TYPE: Record<string, string> = {
-  public_liability_insurance: "public_liability",
-  professional_indemnity_insurance: "professional_indemnity",
-  building_insurance: "building",
-  workers_compensation_insurance: "workers_compensation",
-};
-
-// Generate upload URL for file
-export const generateUploadUrl = mutation({
-  args: {
-    userId: v.id("users"),
-  },
-  handler: async (ctx, args) => {
-    // Verify user has permission to create documents
-    await requirePermission(ctx, args.userId, "documents", "create");
-    return await ctx.storage.generateUploadUrl();
-  },
+// Generate upload URL for file storage
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
 });
 
-// Create document record after file is uploaded
+// Create a new document
 export const create = mutation({
   args: {
     fileName: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
     storageId: v.id("_storage"),
-    documentType: v.union(
-      // Participant documents
-      v.literal("ndis_plan"),
-      v.literal("accommodation_agreement"),
-      v.literal("sda_quotation"),
-      v.literal("centrepay_consent"),
-      // Property documents
-      v.literal("lease"),
-      v.literal("fire_safety_certificate"),
-      v.literal("building_compliance_certificate"),
-      v.literal("sda_design_certificate"),
-      // Insurance documents
-      v.literal("public_liability_insurance"),
-      v.literal("professional_indemnity_insurance"),
-      v.literal("building_insurance"),
-      v.literal("workers_compensation_insurance"),
-      // Compliance/Certification documents
-      v.literal("ndis_practice_standards_cert"),
-      v.literal("sda_registration_cert"),
-      v.literal("ndis_worker_screening"),
-      // General
-      v.literal("report"),
-      v.literal("other"),
-      // Legacy
-      v.literal("service_agreement"),
-      v.literal("insurance"),
-      v.literal("compliance")
-    ),
-    documentCategory: v.union(
-      v.literal("participant"),
-      v.literal("property"),
-      v.literal("dwelling"),
-      v.literal("owner"),
-      v.literal("organisation")
-    ),
+    documentType: v.string(),
+    documentCategory: v.string(),
     linkedParticipantId: v.optional(v.id("participants")),
     linkedPropertyId: v.optional(v.id("properties")),
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedOwnerId: v.optional(v.id("owners")),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
+    // Invoice fields
+    invoiceNumber: v.optional(v.string()),
+    invoiceDate: v.optional(v.string()),
+    invoiceAmount: v.optional(v.number()),
+    vendor: v.optional(v.string()),
+    isPaid: v.optional(v.boolean()),
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission
-    const user = await requirePermission(ctx, args.uploadedBy, "documents", "create");
-
     const now = Date.now();
+
     const documentId = await ctx.db.insert("documents", {
       ...args,
+      documentType: args.documentType as any,
+      documentCategory: args.documentCategory as any,
       createdAt: now,
       updatedAt: now,
     });
 
-    // Audit log
-    await ctx.runMutation(internal.auditLog.log, {
-      userId: user._id,
-      userEmail: user.email,
-      userName: `${user.firstName} ${user.lastName}`,
-      action: "create",
-      entityType: "document",
-      entityId: documentId,
-      entityName: args.fileName,
-      metadata: JSON.stringify({
-        documentType: args.documentType,
-        documentCategory: args.documentCategory,
-        expiryDate: args.expiryDate,
-      }),
-    });
+    // If this is a certification document with an expiry date, auto-create/update compliance certification
+    const certificationTypes = [
+      "fire_safety_certificate",
+      "building_compliance_certificate",
+      "ndis_practice_standards_cert",
+      "sda_design_certificate",
+      "sda_registration_cert",
+      "ndis_worker_screening",
+    ];
 
-    // Auto-create compliance certification if this is a cert-type document with an expiry date
-    if (DOC_TO_CERT_TYPE[args.documentType] && args.expiryDate) {
-      await ctx.runMutation(internal.complianceCertifications.createFromDocument, {
-        documentType: args.documentType,
+    if (certificationTypes.includes(args.documentType) && args.expiryDate) {
+      // Call internal mutation to create/update certification
+      await ctx.scheduler.runAfter(0, internal.complianceCertifications.createFromDocument, {
         documentId,
         storageId: args.storageId,
+        documentType: args.documentType as any,
         expiryDate: args.expiryDate,
         propertyId: args.linkedPropertyId,
-        dwellingId: args.linkedDwellingId,
-        isOrganizationWide: args.documentCategory === "organisation" ? true : undefined,
-        description: args.description,
         createdBy: args.uploadedBy,
       });
     }
@@ -120,7 +67,7 @@ export const create = mutation({
   },
 });
 
-// Get all documents with related entity details
+// Get all documents
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
@@ -138,9 +85,6 @@ export const getAll = query({
           ? await ctx.db.get(doc.linkedDwellingId)
           : null;
         const owner = doc.linkedOwnerId ? await ctx.db.get(doc.linkedOwnerId) : null;
-        const uploadedByUser = await ctx.db.get(doc.uploadedBy);
-
-        // Generate download URL
         const downloadUrl = await ctx.storage.getUrl(doc.storageId);
 
         return {
@@ -149,7 +93,6 @@ export const getAll = query({
           property,
           dwelling,
           owner,
-          uploadedByUser,
           downloadUrl,
         };
       })
@@ -170,20 +113,14 @@ export const getByParticipant = query({
       )
       .collect();
 
-    const documentsWithDetails = await Promise.all(
+    const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
-        const uploadedByUser = await ctx.db.get(doc.uploadedBy);
         const downloadUrl = await ctx.storage.getUrl(doc.storageId);
-
-        return {
-          ...doc,
-          uploadedByUser,
-          downloadUrl,
-        };
+        return { ...doc, downloadUrl };
       })
     );
 
-    return documentsWithDetails.sort((a, b) => b.createdAt - a.createdAt);
+    return documentsWithUrls.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -196,20 +133,14 @@ export const getByProperty = query({
       .withIndex("by_property", (q) => q.eq("linkedPropertyId", args.propertyId))
       .collect();
 
-    const documentsWithDetails = await Promise.all(
+    const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
-        const uploadedByUser = await ctx.db.get(doc.uploadedBy);
         const downloadUrl = await ctx.storage.getUrl(doc.storageId);
-
-        return {
-          ...doc,
-          uploadedByUser,
-          downloadUrl,
-        };
+        return { ...doc, downloadUrl };
       })
     );
 
-    return documentsWithDetails.sort((a, b) => b.createdAt - a.createdAt);
+    return documentsWithUrls.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
@@ -217,36 +148,30 @@ export const getByProperty = query({
 export const getByDwelling = query({
   args: { dwellingId: v.id("dwellings") },
   handler: async (ctx, args) => {
-    const allDocuments = await ctx.db.query("documents").collect();
-    const documents = allDocuments.filter(
-      (doc) => doc.linkedDwellingId === args.dwellingId
-    );
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_dwelling", (q) => q.eq("linkedDwellingId", args.dwellingId))
+      .collect();
 
-    const documentsWithDetails = await Promise.all(
+    const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
-        const uploadedByUser = await ctx.db.get(doc.uploadedBy);
         const downloadUrl = await ctx.storage.getUrl(doc.storageId);
-
-        return {
-          ...doc,
-          uploadedByUser,
-          downloadUrl,
-        };
+        return { ...doc, downloadUrl };
       })
     );
 
-    return documentsWithDetails.sort((a, b) => b.createdAt - a.createdAt);
+    return documentsWithUrls.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
 // Get documents by type
 export const getByType = query({
-  args: {
-    documentType: v.string(), // Accept any string to avoid listing all types
-  },
+  args: { documentType: v.string() },
   handler: async (ctx, args) => {
-    const allDocuments = await ctx.db.query("documents").collect();
-    const documents = allDocuments.filter(doc => doc.documentType === args.documentType);
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_documentType", (q) => q.eq("documentType", args.documentType as any))
+      .collect();
 
     const documentsWithDetails = await Promise.all(
       documents.map(async (doc) => {
@@ -256,14 +181,12 @@ export const getByType = query({
         const property = doc.linkedPropertyId
           ? await ctx.db.get(doc.linkedPropertyId)
           : null;
-        const uploadedByUser = await ctx.db.get(doc.uploadedBy);
         const downloadUrl = await ctx.storage.getUrl(doc.storageId);
 
         return {
           ...doc,
           participant,
           property,
-          uploadedByUser,
           downloadUrl,
         };
       })
@@ -275,197 +198,148 @@ export const getByType = query({
 
 // Get document by ID
 export const getById = query({
-  args: { documentId: v.id("documents") },
+  args: { id: v.id("documents") },
   handler: async (ctx, args) => {
-    const doc = await ctx.db.get(args.documentId);
-    if (!doc) return null;
+    const document = await ctx.db.get(args.id);
+    if (!document) return null;
 
-    const participant = doc.linkedParticipantId
-      ? await ctx.db.get(doc.linkedParticipantId)
+    const participant = document.linkedParticipantId
+      ? await ctx.db.get(document.linkedParticipantId)
       : null;
-    const property = doc.linkedPropertyId
-      ? await ctx.db.get(doc.linkedPropertyId)
+    const property = document.linkedPropertyId
+      ? await ctx.db.get(document.linkedPropertyId)
       : null;
-    const dwelling = doc.linkedDwellingId
-      ? await ctx.db.get(doc.linkedDwellingId)
+    const dwelling = document.linkedDwellingId
+      ? await ctx.db.get(document.linkedDwellingId)
       : null;
-    const owner = doc.linkedOwnerId ? await ctx.db.get(doc.linkedOwnerId) : null;
-    const uploadedByUser = await ctx.db.get(doc.uploadedBy);
-    const downloadUrl = await ctx.storage.getUrl(doc.storageId);
+    const owner = document.linkedOwnerId
+      ? await ctx.db.get(document.linkedOwnerId)
+      : null;
+    const downloadUrl = await ctx.storage.getUrl(document.storageId);
 
     return {
-      ...doc,
+      ...document,
       participant,
       property,
       dwelling,
       owner,
-      uploadedByUser,
       downloadUrl,
     };
   },
 });
 
-// Update document metadata
+// Update document details
 export const update = mutation({
   args: {
-    userId: v.id("users"),
-    documentId: v.id("documents"),
-    fileName: v.optional(v.string()),
-    documentType: v.optional(v.string()), // Accept any string to avoid listing all types
+    id: v.id("documents"),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
+    invoiceNumber: v.optional(v.string()),
+    invoiceDate: v.optional(v.string()),
+    invoiceAmount: v.optional(v.number()),
+    vendor: v.optional(v.string()),
+    isPaid: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Verify user has permission to update documents
-    await requirePermission(ctx, args.userId, "documents", "update");
-    const { documentId, userId, ...updates } = args;
+    const { id, ...updates } = args;
+    await ctx.db.patch(id, {
+      ...updates,
+      updatedAt: Date.now(),
+    });
+  },
+});
 
-    const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
-    for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
-        filteredUpdates[key] = value;
-      }
+// Delete document
+export const remove = mutation({
+  args: { id: v.id("documents") },
+  handler: async (ctx, args) => {
+    const document = await ctx.db.get(args.id);
+    if (!document) {
+      throw new Error("Document not found");
     }
 
-    await ctx.db.patch(documentId, filteredUpdates);
-    return { success: true };
+    // Delete from storage
+    await ctx.storage.delete(document.storageId);
+
+    // Delete from database
+    await ctx.db.delete(args.id);
   },
 });
 
-// Delete document (removes file from storage)
-export const remove = mutation({
-  args: {
-    userId: v.id("users"),
-    documentId: v.id("documents"),
-  },
+// Get documents expiring soon (within 30 days)
+export const getExpiringSoon = query({
+  args: { daysAhead: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    // Verify user has permission to delete documents
-    const user = await requirePermission(ctx, args.userId, "documents", "delete");
-    const doc = await ctx.db.get(args.documentId);
-    if (!doc) throw new Error("Document not found");
+    const daysAhead = args.daysAhead || 30;
+    const now = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(now.getDate() + daysAhead);
 
-    // Delete file from storage
-    await ctx.storage.delete(doc.storageId);
+    const nowStr = now.toISOString().split("T")[0];
+    const futureStr = futureDate.toISOString().split("T")[0];
 
-    // Delete document record
-    await ctx.db.delete(args.documentId);
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_expiryDate")
+      .collect();
 
-    // Audit log: Document deleted
-    await ctx.runMutation(internal.auditLog.log, {
-      userId: user._id,
-      userEmail: user.email,
-      userName: `${user.firstName} ${user.lastName}`,
-      action: "delete",
-      entityType: "document",
-      entityId: args.documentId,
-      entityName: doc.fileName,
-      previousValues: JSON.stringify({
-        fileName: doc.fileName,
-        documentType: doc.documentType,
-        documentCategory: doc.documentCategory,
-        expiryDate: doc.expiryDate,
-        linkedParticipantId: doc.linkedParticipantId,
-        linkedPropertyId: doc.linkedPropertyId,
-      }),
-      metadata: JSON.stringify({
-        documentType: doc.documentType,
-        documentCategory: doc.documentCategory,
-        fileSize: doc.fileSize,
-      }),
+    const expiringDocs = documents.filter((doc) => {
+      if (!doc.expiryDate) return false;
+      return doc.expiryDate >= nowStr && doc.expiryDate <= futureStr;
     });
 
-    return { success: true };
-  },
-});
+    const documentsWithDetails = await Promise.all(
+      expiringDocs.map(async (doc) => {
+        const participant = doc.linkedParticipantId
+          ? await ctx.db.get(doc.linkedParticipantId)
+          : null;
+        const property = doc.linkedPropertyId
+          ? await ctx.db.get(doc.linkedPropertyId)
+          : null;
+        const downloadUrl = await ctx.storage.getUrl(doc.storageId);
 
-// Get documents expiring soon (for alerts)
-export const getExpiringSoon = query({
-  args: { daysAhead: v.number() },
-  handler: async (ctx, args) => {
-    const allDocuments = await ctx.db.query("documents").collect();
-    const documentsWithExpiry = allDocuments.filter((doc) => doc.expiryDate);
-
-    const today = new Date();
-    const futureDate = new Date();
-    futureDate.setDate(today.getDate() + args.daysAhead);
-
-    const expiringDocuments = await Promise.all(
-      documentsWithExpiry
-        .filter((doc) => {
-          if (!doc.expiryDate) return false;
-          const expiryDate = new Date(doc.expiryDate);
-          return expiryDate <= futureDate && expiryDate >= today;
-        })
-        .map(async (doc) => {
-          const participant = doc.linkedParticipantId
-            ? await ctx.db.get(doc.linkedParticipantId)
-            : null;
-          const property = doc.linkedPropertyId
-            ? await ctx.db.get(doc.linkedPropertyId)
-            : null;
-          const downloadUrl = await ctx.storage.getUrl(doc.storageId);
-
-          const daysUntilExpiry = doc.expiryDate
-            ? Math.ceil(
-                (new Date(doc.expiryDate).getTime() - today.getTime()) /
-                  (1000 * 60 * 60 * 24)
-              )
-            : 0;
-
-          return {
-            ...doc,
-            participant,
-            property,
-            downloadUrl,
-            daysUntilExpiry,
-          };
-        })
+        return {
+          ...doc,
+          participant,
+          property,
+          downloadUrl,
+        };
+      })
     );
 
-    return expiringDocuments.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+    return documentsWithDetails.sort(
+      (a, b) =>
+        new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime()
+    );
   },
 });
 
 // Get document statistics
 export const getStats = query({
-  args: {},
   handler: async (ctx) => {
-    const allDocuments = await ctx.db.query("documents").collect();
+    const documents = await ctx.db.query("documents").collect();
 
-    const stats = {
-      total: allDocuments.length,
-      byType: {
-        ndis_plan: allDocuments.filter((d) => d.documentType === "ndis_plan")
-          .length,
-        service_agreement: allDocuments.filter(
-          (d) => d.documentType === "service_agreement"
-        ).length,
-        lease: allDocuments.filter((d) => d.documentType === "lease").length,
-        insurance: allDocuments.filter((d) => d.documentType === "insurance")
-          .length,
-        compliance: allDocuments.filter((d) => d.documentType === "compliance")
-          .length,
-        report: allDocuments.filter((d) => d.documentType === "report").length,
-        other: allDocuments.filter((d) => d.documentType === "other").length,
-      },
-      byCategory: {
-        participant: allDocuments.filter(
-          (d) => d.documentCategory === "participant"
-        ).length,
-        property: allDocuments.filter((d) => d.documentCategory === "property")
-          .length,
-        dwelling: allDocuments.filter((d) => d.documentCategory === "dwelling")
-          .length,
-        owner: allDocuments.filter((d) => d.documentCategory === "owner").length,
-      },
-      withExpiry: allDocuments.filter((d) => d.expiryDate).length,
+    const now = new Date().toISOString().split("T")[0];
+    const expiringSoon = documents.filter(
+      (doc) => doc.expiryDate && doc.expiryDate <= now
+    ).length;
+
+    return {
+      total: documents.length,
+      expiringSoon,
+      byType: documents.reduce((acc, doc) => {
+        acc[doc.documentType] = (acc[doc.documentType] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      byCategory: documents.reduce((acc, doc) => {
+        acc[doc.documentCategory] = (acc[doc.documentCategory] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
     };
-
-    return stats;
   },
 });
 
-// Get recent documents (for dashboard)
+// Get recent documents
 export const getRecent = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -494,5 +368,113 @@ export const getRecent = query({
     return documentsWithDetails
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, limit);
+  },
+});
+
+// Get invoices by property (invoice, receipt, quote types only)
+export const getInvoicesByProperty = query({
+  args: { propertyId: v.id("properties") },
+  handler: async (ctx, args) => {
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_property", (q) => q.eq("linkedPropertyId", args.propertyId))
+      .collect();
+
+    const invoices = documents.filter((doc) =>
+      ["invoice", "receipt", "quote"].includes(doc.documentType)
+    );
+
+    const invoicesWithUrls = await Promise.all(
+      invoices.map(async (doc) => {
+        const downloadUrl = await ctx.storage.getUrl(doc.storageId);
+        return { ...doc, downloadUrl };
+      })
+    );
+
+    return invoicesWithUrls.sort((a, b) => {
+      if (!a.invoiceDate || !b.invoiceDate) return b.createdAt - a.createdAt;
+      return new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime();
+    });
+  },
+});
+
+// Get invoices by participant
+export const getInvoicesByParticipant = query({
+  args: { participantId: v.id("participants") },
+  handler: async (ctx, args) => {
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_participant", (q) =>
+        q.eq("linkedParticipantId", args.participantId)
+      )
+      .collect();
+
+    const invoices = documents.filter((doc) =>
+      ["invoice", "receipt", "quote"].includes(doc.documentType)
+    );
+
+    const invoicesWithUrls = await Promise.all(
+      invoices.map(async (doc) => {
+        const downloadUrl = await ctx.storage.getUrl(doc.storageId);
+        return { ...doc, downloadUrl };
+      })
+    );
+
+    return invoicesWithUrls.sort((a, b) => {
+      if (!a.invoiceDate || !b.invoiceDate) return b.createdAt - a.createdAt;
+      return new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime();
+    });
+  },
+});
+
+// Get invoice summary stats
+export const getInvoiceSummary = query({
+  args: {
+    propertyId: v.optional(v.id("properties")),
+    participantId: v.optional(v.id("participants")),
+  },
+  handler: async (ctx, args) => {
+    let documents = await ctx.db.query("documents").collect();
+
+    // Filter by property or participant if provided
+    if (args.propertyId) {
+      documents = documents.filter((doc) => doc.linkedPropertyId === args.propertyId);
+    }
+    if (args.participantId) {
+      documents = documents.filter(
+        (doc) => doc.linkedParticipantId === args.participantId
+      );
+    }
+
+    const invoices = documents.filter((doc) =>
+      ["invoice", "receipt", "quote"].includes(doc.documentType)
+    );
+
+    const totalAmount = invoices.reduce(
+      (sum, inv) => sum + (inv.invoiceAmount || 0),
+      0
+    );
+    const paid = invoices.filter((inv) => inv.isPaid).length;
+    const unpaid = invoices.filter((inv) => !inv.isPaid).length;
+    const paidAmount = invoices
+      .filter((inv) => inv.isPaid)
+      .reduce((sum, inv) => sum + (inv.invoiceAmount || 0), 0);
+    const unpaidAmount = invoices
+      .filter((inv) => !inv.isPaid)
+      .reduce((sum, inv) => sum + (inv.invoiceAmount || 0), 0);
+
+    return {
+      totalInvoices: invoices.length,
+      totalAmount,
+      paid,
+      unpaid,
+      paidAmount,
+      unpaidAmount,
+      byType: {
+        invoice: invoices.filter((inv) => inv.documentType === "invoice").length,
+        receipt: invoices.filter((inv) => inv.documentType === "receipt").length,
+        quote: invoices.filter((inv) => inv.documentType === "quote").length,
+      },
+    };
   },
 });

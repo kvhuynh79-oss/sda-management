@@ -580,6 +580,9 @@ export default defineSchema({
       v.literal("sda_registration_cert"),
       v.literal("ndis_worker_screening"),
       // General
+      v.literal("invoice"),
+      v.literal("receipt"),
+      v.literal("quote"),
       v.literal("report"),
       v.literal("other"),
       // Legacy - kept for backward compatibility
@@ -600,6 +603,12 @@ export default defineSchema({
     linkedOwnerId: v.optional(v.id("owners")),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
+    // Invoice-specific fields
+    invoiceNumber: v.optional(v.string()),
+    invoiceDate: v.optional(v.string()),
+    invoiceAmount: v.optional(v.number()),
+    vendor: v.optional(v.string()),
+    isPaid: v.optional(v.boolean()),
     uploadedBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -611,7 +620,8 @@ export default defineSchema({
     .index("by_category", ["documentCategory"])
     .index("by_expiryDate", ["expiryDate"])
     .index("by_participant_type", ["linkedParticipantId", "documentType"])
-    .index("by_property_type", ["linkedPropertyId", "documentType"]),
+    .index("by_property_type", ["linkedPropertyId", "documentType"])
+    .index("by_vendor", ["vendor"]),
 
   // Provider Settings table - NDIS provider configuration
   providerSettings: defineTable({

@@ -7,6 +7,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import CommunicationsHistory from "@/components/CommunicationsHistory";
+import GlobalUploadModal from "@/components/GlobalUploadModal";
+import Badge from "@/components/ui/Badge";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function ParticipantDetailPage() {
@@ -18,12 +21,15 @@ export default function ParticipantDetailPage() {
   const [moveInDate, setMoveInDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [isMovingIn, setIsMovingIn] = useState(false);
   const [isReverting, setIsReverting] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   const participantId = params.id as Id<"participants">;
   const participant = useQuery(api.participants.getById, { participantId });
   const documents = useQuery(api.documents.getByParticipant, { participantId });
   const moveInMutation = useMutation(api.participants.moveIn);
   const revertToPendingMutation = useMutation(api.participants.revertToPending);
+  const removeDocument = useMutation(api.documents.remove);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -320,37 +326,24 @@ export default function ParticipantDetailPage() {
               </div>
             )}
 
-            {/* Documents */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-white">Documents</h2>
-                <Link
-                  href={`/documents/new?participantId=${participantId}`}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-                >
-                  + Upload Document
-                </Link>
-              </div>
-              {documents && documents.length > 0 ? (
-                <div className="space-y-3">
-                  {documents.slice(0, 5).map((doc) => (
-                    <DocumentCard key={doc._id} document={doc} />
-                  ))}
-                  {documents.length > 5 && (
-                    <Link
-                      href={`/documents?participantId=${participantId}`}
-                      className="block text-center text-blue-400 hover:text-blue-300 text-sm pt-2"
-                    >
-                      View all {documents.length} documents →
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-400">
-                  No documents uploaded yet
-                </div>
-              )}
-            </div>
+            {/* Related Documents */}
+            <RelatedDocuments
+              documents={documents || []}
+              onUploadClick={() => setUploadModalOpen(true)}
+              onDelete={async (docId) => {
+                const confirmed = await confirmDialog({
+                  title: "Delete Document?",
+                  message: "This will permanently delete this document. This action cannot be undone.",
+                  confirmLabel: "Delete",
+                  cancelLabel: "Cancel",
+                  variant: "danger",
+                });
+                if (confirmed) {
+                  await removeDocument({ id: docId });
+                }
+              }}
+              userRole={user?.role || ""}
+            />
 
             {/* Payment History */}
             <div className="bg-gray-800 rounded-lg p-6">
@@ -384,7 +377,17 @@ export default function ParticipantDetailPage() {
         <div className="mt-6">
           <CommunicationsHistory participantId={participantId} />
         </div>
+      </main>
 
+      {/* Upload Modal */}
+      <GlobalUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        prefillCategory="participant"
+        prefillEntityId={participantId}
+      />
+
+      <div>
         {/* Move In Modal */}
         {showMoveInModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -458,52 +461,195 @@ export default function ParticipantDetailPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
 
-function DocumentCard({ document }: { document: any }) {
-  const formatDocType = (type: string) => {
-    return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+function RelatedDocuments({
+  documents,
+  onUploadClick,
+  onDelete,
+  userRole,
+}: {
+  documents: any[];
+  onUploadClick: () => void;
+  onDelete: (docId: Id<"documents">) => Promise<void>;
+  userRole: string;
+}) {
+  const [deletingId, setDeletingId] = useState<Id<"documents"> | null>(null);
+
+  const canDelete = userRole === "admin" || userRole === "property_manager";
+
+  // Group documents by category
+  const invoiceDocs = documents.filter(d => ['invoice', 'receipt', 'quote'].includes(d.documentType)) || [];
+  const certDocs = documents.filter(d => [
+    'fire_safety_certificate', 'building_compliance_certificate',
+    'ndis_practice_standards_cert', 'sda_design_certificate',
+    'sda_registration_cert', 'ndis_worker_screening'
+  ].includes(d.documentType)) || [];
+  const planDocs = documents.filter(d => ['ndis_plan', 'accommodation_agreement'].includes(d.documentType)) || [];
+  const otherDocs = documents.filter(d =>
+    !invoiceDocs.includes(d) && !certDocs.includes(d) && !planDocs.includes(d)
+  ) || [];
+
+  const invoiceTotal = invoiceDocs.reduce((sum, doc) => sum + (doc.invoiceAmount || 0), 0);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-AU", {
+      style: "currency",
+      currency: "AUD",
+    }).format(amount);
   };
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString("en-AU", {
-      day: "2-digit",
+      day: "numeric",
       month: "short",
       year: "numeric",
     });
   };
 
-  return (
-    <div className="bg-gray-700 rounded-lg p-4">
-      <div className="flex justify-between items-start">
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-medium truncate">{document.fileName}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs px-2 py-0.5 bg-gray-600 text-gray-300 rounded">
-              {formatDocType(document.documentType)}
-            </span>
-            <span className="text-gray-400 text-sm">
-              {formatDate(document.createdAt)}
-            </span>
+  const getDocTypeLabel = (type: string) => {
+    return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const handleDelete = async (docId: Id<"documents">) => {
+    setDeletingId(docId);
+    try {
+      await onDelete(docId);
+    } catch (error) {
+      console.error("Error deleting document:", error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const DocumentCard = ({ doc }: { doc: any }) => {
+    const isExpired = doc.expiryDate && new Date(doc.expiryDate) < new Date();
+    const isExpiringSoon =
+      doc.expiryDate &&
+      !isExpired &&
+      new Date(doc.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const truncateFilename = (name: string) => {
+      if (name.length <= 40) return name;
+      const ext = name.split('.').pop();
+      return `${name.substring(0, 37)}...${ext}`;
+    };
+
+    return (
+      <div className="bg-gray-700 rounded-lg p-4 border border-gray-700 hover:bg-gray-700/50 transition-colors">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="neutral" size="xs">
+                {getDocTypeLabel(doc.documentType)}
+              </Badge>
+              {doc.invoiceAmount && (
+                <span className="text-green-400 text-sm font-medium">
+                  {formatCurrency(doc.invoiceAmount)}
+                </span>
+              )}
+            </div>
+            <p className="text-white text-sm font-medium truncate" title={doc.fileName}>
+              {truncateFilename(doc.fileName)}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              Uploaded {formatDate(doc._creationTime)}
+              {doc.expiryDate && (
+                <span className={isExpired ? "text-red-400" : isExpiringSoon ? "text-yellow-400" : ""}>
+                  {" "}| Expires: {doc.expiryDate}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {doc.downloadUrl && (
+              <a
+                href={doc.downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
+              >
+                Download
+              </a>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => handleDelete(doc._id)}
+                disabled={deletingId === doc._id}
+                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors disabled:opacity-50"
+                title="Delete document"
+              >
+                {deletingId === doc._id ? (
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+              </button>
+            )}
           </div>
         </div>
-        {document.downloadUrl && (
-          <a
-            href={document.downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-2 px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded transition-colors"
-          >
-            View
-          </a>
-        )}
       </div>
+    );
+  };
+
+  const DocumentGroup = ({ title, docs, showTotal }: { title: string; docs: any[]; showTotal?: boolean }) => {
+    if (docs.length === 0) return null;
+
+    return (
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          {showTotal && (
+            <span className="text-green-400 font-semibold">
+              Total: {formatCurrency(invoiceTotal)}
+            </span>
+          )}
+        </div>
+        <div className="space-y-3">
+          {docs.map((doc) => (
+            <DocumentCard key={doc._id} doc={doc} />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-white">Related Documents</h2>
+        <button
+          onClick={onUploadClick}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+        >
+          + Upload
+        </button>
+      </div>
+
+      {documents.length === 0 ? (
+        <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-lg">
+          <svg className="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <p className="text-gray-400 mb-4">No documents uploaded yet. Click Upload to add one.</p>
+        </div>
+      ) : (
+        <>
+          <DocumentGroup title="Invoices" docs={invoiceDocs} showTotal={invoiceDocs.length > 0} />
+          <DocumentGroup title="Certificates" docs={certDocs} />
+          <DocumentGroup title="Plans" docs={planDocs} />
+          <DocumentGroup title="Other" docs={otherDocs} />
+        </>
+      )}
     </div>
   );
 }
+
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (

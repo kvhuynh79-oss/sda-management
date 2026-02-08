@@ -62,9 +62,9 @@ export default function DocumentsPage() {
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <StatCard title="Total Documents" value={stats.total} color="blue" />
-              <StatCard title="NDIS Plans" value={stats.byType.ndis_plan} color="green" />
-              <StatCard title="Leases" value={stats.byType.lease} color="yellow" />
-              <StatCard title="With Expiry" value={stats.withExpiry} color="red" />
+              <StatCard title="NDIS Plans" value={stats.byType.ndis_plan || 0} color="green" />
+              <StatCard title="Leases" value={stats.byType.lease || 0} color="yellow" />
+              <StatCard title="Expiring Soon" value={stats.expiringSoon} color="red" />
             </div>
           )}
 

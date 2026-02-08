@@ -7,6 +7,9 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import CommunicationsHistory from "@/components/CommunicationsHistory";
+import GlobalUploadModal from "@/components/GlobalUploadModal";
+import Badge from "@/components/ui/Badge";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 // Access level options for SIL provider allocation
@@ -47,6 +50,8 @@ export default function PropertyDetailPage() {
   const router = useRouter();
   const params = useParams();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   const propertyId = params.id as Id<"properties">;
   const property = useQuery(api.properties.getById, { propertyId });
@@ -55,6 +60,7 @@ export default function PropertyDetailPage() {
   const propertyMedia = useQuery(api.propertyMedia.getByProperty, { propertyId });
   const allSilProviders = useQuery(api.silProviders.getAll, { status: "active" });
   const removeDwelling = useMutation(api.dwellings.remove);
+  const removeDocument = useMutation(api.documents.remove);
   const linkDwellingProvider = useMutation(api.silProviders.linkDwelling);
   const unlinkDwellingProvider = useMutation(api.silProviders.unlinkDwelling);
 
@@ -236,29 +242,6 @@ export default function PropertyDetailPage() {
               </div>
             )}
 
-            {/* Documents */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-white">Documents</h2>
-                <Link
-                  href={`/documents?propertyId=${propertyId}`}
-                  className="text-sm text-blue-400 hover:text-blue-300"
-                >
-                  + Add Document
-                </Link>
-              </div>
-              {documents === undefined ? (
-                <p className="text-gray-400 text-sm">Loading...</p>
-              ) : documents.length === 0 ? (
-                <p className="text-gray-400 text-sm">No documents attached to this property</p>
-              ) : (
-                <div className="space-y-2">
-                  {documents.map((doc) => (
-                    <DocumentRow key={doc._id} document={doc} />
-                  ))}
-                </div>
-              )}
-            </div>
 
           </div>
 
@@ -316,6 +299,27 @@ export default function PropertyDetailPage() {
           </div>
         </div>
 
+        {/* Related Documents */}
+        <div className="mt-6">
+          <RelatedDocuments
+            documents={documents || []}
+            onUploadClick={() => setUploadModalOpen(true)}
+            onDelete={async (docId) => {
+              const confirmed = await confirmDialog({
+                title: "Delete Document?",
+                message: "This will permanently delete this document. This action cannot be undone.",
+                confirmLabel: "Delete",
+                cancelLabel: "Cancel",
+                variant: "danger",
+              });
+              if (confirmed) {
+                await removeDocument({ id: docId });
+              }
+            }}
+            userRole={user?.role || ""}
+          />
+        </div>
+
         {/* Communications History */}
         <div className="mt-6">
           <CommunicationsHistory propertyId={propertyId} />
@@ -330,6 +334,198 @@ export default function PropertyDetailPage() {
           />
         </div>
       </main>
+
+      {/* Upload Modal */}
+      <GlobalUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        prefillCategory="property"
+        prefillEntityId={propertyId}
+      />
+    </div>
+  );
+}
+
+function RelatedDocuments({
+  documents,
+  onUploadClick,
+  onDelete,
+  userRole,
+}: {
+  documents: any[];
+  onUploadClick: () => void;
+  onDelete: (docId: Id<"documents">) => Promise<void>;
+  userRole: string;
+}) {
+  const [deletingId, setDeletingId] = useState<Id<"documents"> | null>(null);
+
+  const canDelete = userRole === "admin" || userRole === "property_manager";
+
+  // Group documents by category
+  const invoiceDocs = documents.filter(d => ['invoice', 'receipt', 'quote'].includes(d.documentType)) || [];
+  const certDocs = documents.filter(d => [
+    'fire_safety_certificate', 'building_compliance_certificate',
+    'ndis_practice_standards_cert', 'sda_design_certificate',
+    'sda_registration_cert', 'ndis_worker_screening'
+  ].includes(d.documentType)) || [];
+  const leaseDocs = documents.filter(d => d.documentType === 'lease') || [];
+  const otherDocs = documents.filter(d =>
+    !invoiceDocs.includes(d) && !certDocs.includes(d) && !leaseDocs.includes(d)
+  ) || [];
+
+  const invoiceTotal = invoiceDocs.reduce((sum, doc) => sum + (doc.invoiceAmount || 0), 0);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-AU", {
+      style: "currency",
+      currency: "AUD",
+    }).format(amount);
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getDocTypeLabel = (type: string) => {
+    return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const handleDelete = async (docId: Id<"documents">) => {
+    setDeletingId(docId);
+    try {
+      await onDelete(docId);
+    } catch (error) {
+      console.error("Error deleting document:", error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const DocumentCard = ({ doc }: { doc: any }) => {
+    const isExpired = doc.expiryDate && new Date(doc.expiryDate) < new Date();
+    const isExpiringSoon =
+      doc.expiryDate &&
+      !isExpired &&
+      new Date(doc.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const truncateFilename = (name: string) => {
+      if (name.length <= 40) return name;
+      const ext = name.split('.').pop();
+      return `${name.substring(0, 37)}...${ext}`;
+    };
+
+    return (
+      <div className="bg-gray-700 rounded-lg p-4 border border-gray-700 hover:bg-gray-700/50 transition-colors">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="neutral" size="xs">
+                {getDocTypeLabel(doc.documentType)}
+              </Badge>
+              {doc.invoiceAmount && (
+                <span className="text-green-400 text-sm font-medium">
+                  {formatCurrency(doc.invoiceAmount)}
+                </span>
+              )}
+            </div>
+            <p className="text-white text-sm font-medium truncate" title={doc.fileName}>
+              {truncateFilename(doc.fileName)}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              Uploaded {formatDate(doc._creationTime)}
+              {doc.expiryDate && (
+                <span className={isExpired ? "text-red-400" : isExpiringSoon ? "text-yellow-400" : ""}>
+                  {" "}| Expires: {doc.expiryDate}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {doc.downloadUrl && (
+              <a
+                href={doc.downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
+              >
+                Download
+              </a>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => handleDelete(doc._id)}
+                disabled={deletingId === doc._id}
+                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors disabled:opacity-50"
+                title="Delete document"
+              >
+                {deletingId === doc._id ? (
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const DocumentGroup = ({ title, docs, showTotal }: { title: string; docs: any[]; showTotal?: boolean }) => {
+    if (docs.length === 0) return null;
+
+    return (
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          {showTotal && (
+            <span className="text-green-400 font-semibold">
+              Total: {formatCurrency(invoiceTotal)}
+            </span>
+          )}
+        </div>
+        <div className="space-y-3">
+          {docs.map((doc) => (
+            <DocumentCard key={doc._id} doc={doc} />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-white">Related Documents</h2>
+        <button
+          onClick={onUploadClick}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+        >
+          + Upload
+        </button>
+      </div>
+
+      {documents.length === 0 ? (
+        <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-lg">
+          <svg className="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <p className="text-gray-400 mb-4">No documents uploaded yet. Click Upload to add one.</p>
+        </div>
+      ) : (
+        <>
+          <DocumentGroup title="Invoices" docs={invoiceDocs} showTotal={invoiceDocs.length > 0} />
+          <DocumentGroup title="Certificates" docs={certDocs} />
+          <DocumentGroup title="Leases" docs={leaseDocs} />
+          <DocumentGroup title="Other" docs={otherDocs} />
+        </>
+      )}
     </div>
   );
 }
@@ -754,77 +950,6 @@ function DwellingCard({
   );
 }
 
-function DocumentRow({ document }: { document: any }) {
-  const getDocTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      ndis_plan: "NDIS Plan",
-      service_agreement: "Service Agreement",
-      lease: "Lease",
-      insurance: "Insurance",
-      compliance: "Compliance",
-      centrepay_consent: "Centrepay Consent",
-      report: "Report",
-      other: "Other",
-    };
-    return labels[type] || type;
-  };
-
-  const getDocTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      lease: "bg-purple-600",
-      insurance: "bg-yellow-600",
-      compliance: "bg-green-600",
-      report: "bg-blue-600",
-      other: "bg-gray-600",
-    };
-    return colors[type] || "bg-gray-600";
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("en-AU", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  const isExpired = document.expiryDate && new Date(document.expiryDate) < new Date();
-  const isExpiringSoon =
-    document.expiryDate &&
-    !isExpired &&
-    new Date(document.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-  return (
-    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-650 transition-colors">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <span className={`px-2 py-1 rounded text-xs text-white ${getDocTypeColor(document.documentType)}`}>
-          {getDocTypeLabel(document.documentType)}
-        </span>
-        <div className="min-w-0">
-          <p className="text-white text-sm truncate">{document.fileName}</p>
-          <p className="text-gray-400 text-xs">
-            Uploaded {formatDate(document.createdAt)}
-            {document.expiryDate && (
-              <span className={isExpired ? "text-red-400" : isExpiringSoon ? "text-yellow-400" : ""}>
-                {" "}| Expires: {document.expiryDate}
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
-      {document.downloadUrl && (
-        <a
-          href={document.downloadUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-        >
-          View
-        </a>
-      )}
-    </div>
-  );
-}
 
 function MediaGallery({
   propertyId,

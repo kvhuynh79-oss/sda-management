@@ -215,7 +215,7 @@ export default function NewDocumentPage() {
 
     try {
       // Step 1: Get upload URL
-      const uploadUrl = await generateUploadUrl({ userId: user.id as Id<"users"> });
+      const uploadUrl = await generateUploadUrl();
 
       // Step 2: Upload file
       const uploadResult = await fetch(uploadUrl, {

@@ -343,7 +343,9 @@ export default function GlobalUploadModal({
       onClose();
     } catch (err) {
       console.error("Upload error:", err);
-      setError("Failed to upload document. Please try again.");
+      // Show the actual error message from Convex
+      const errorMessage = err instanceof Error ? err.message : "Failed to upload document. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsUploading(false);
     }

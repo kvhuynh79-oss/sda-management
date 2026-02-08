@@ -8,11 +8,13 @@ import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
 import { formatStatus, formatFileSize, formatDate } from "@/utils/format";
+import GlobalUploadModal from "@/components/GlobalUploadModal";
 
 export default function DocumentsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const documents = useQuery(api.documents.getAll);
   const stats = useQuery(api.documents.getStats);
@@ -50,12 +52,12 @@ export default function DocumentsPage() {
               <h1 className="text-2xl font-bold text-white">Documents</h1>
               <p className="text-gray-400 mt-1">Manage and organize important files</p>
             </div>
-            <Link
-              href="/documents/new"
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               + Upload Document
-            </Link>
+            </button>
           </div>
 
           {/* Stats Cards */}
@@ -164,6 +166,16 @@ export default function DocumentsPage() {
           )}
         </main>
       </div>
+
+      {/* Global Upload Modal */}
+      <GlobalUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={() => {
+          setIsUploadModalOpen(false);
+          // Documents will refresh automatically via Convex reactivity
+        }}
+      />
     </RequireAuth>
   );
 }

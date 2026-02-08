@@ -4,59 +4,48 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useMemo } from "react";
 import Link from "next/link";
-import Header from "@/components/Header";
-import BottomNav from "@/components/BottomNav";
-import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState } from "@/components/ui";
 import { OCCUPANCY_COLORS, PROPERTY_STATUS_COLORS } from "@/constants/colors";
 
-export default function PropertiesPage() {
+export default function PropertiesContent() {
   const properties = useQuery(api.properties.getAll);
 
   return (
-    <RequireAuth>
-      <div className="min-h-screen bg-gray-900">
-        <Header currentPage="database" />
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Page Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Properties</h1>
-              <p className="text-gray-400 mt-1">Manage your SDA properties and dwellings</p>
-            </div>
-            <Link
-              href="/properties/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Add Property
-            </Link>
-          </div>
-
-          {/* Properties List */}
-          {properties === undefined ? (
-            <LoadingScreen fullScreen={false} message="Loading properties..." />
-          ) : properties.length === 0 ? (
-            <EmptyState
-              title="No properties yet"
-              description="Get started by adding your first SDA property"
-              icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
-              action={{
-                label: "+ Add Your First Property",
-                href: "/properties/new",
-              }}
-            />
-          ) : (
-            <div className="grid gap-6" role="list" aria-label="Properties list">
-              {properties.map((property) => (
-                <PropertyCard key={property._id} property={property} />
-              ))}
-            </div>
-          )}
-        </main>
-        <BottomNav currentPage="database" />
+    <>
+      {/* Header with Add Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <p className="text-gray-400 text-sm">Manage your SDA properties and dwellings</p>
+        </div>
+        <Link
+          href="/properties/new"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+        >
+          + Add Property
+        </Link>
       </div>
-    </RequireAuth>
+
+      {/* Properties List */}
+      {properties === undefined ? (
+        <LoadingScreen fullScreen={false} message="Loading properties..." />
+      ) : properties.length === 0 ? (
+        <EmptyState
+          title="No properties yet"
+          description="Get started by adding your first SDA property"
+          icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>}
+          action={{
+            label: "+ Add Your First Property",
+            href: "/properties/new",
+          }}
+        />
+      ) : (
+        <div className="grid gap-6" role="list" aria-label="Properties list">
+          {properties.map((property) => (
+            <PropertyCard key={property._id} property={property} />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

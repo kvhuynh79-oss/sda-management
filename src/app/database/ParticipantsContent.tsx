@@ -4,14 +4,11 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import Header from "@/components/Header";
 import { LoadingScreen, EmptyState } from "@/components/ui";
-import { RequireAuth } from "@/components/RequireAuth";
-import { STATUS_COLORS, getStatusColor } from "@/constants/colors";
 import { formatCurrency, formatDate, formatStatus } from "@/utils/format";
 import { Id } from "../../../convex/_generated/dataModel";
 
-export default function ParticipantsPage() {
+export default function ParticipantsContent() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [userId, setUserId] = useState<Id<"users"> | null>(null);
@@ -46,112 +43,103 @@ export default function ParticipantsPage() {
   const hasFilters = searchTerm !== "" || statusFilter !== "all";
 
   return (
-    <RequireAuth>
-      <div className="min-h-screen bg-gray-900">
-        <Header currentPage="database" />
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Page Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Participants</h1>
-              <p className="text-gray-400 mt-1">
-                Manage NDIS participants and their plans
-              </p>
-            </div>
-            <Link
-              href="/participants/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Add Participant
-            </Link>
-          </div>
-
-          {/* Filters */}
-          <fieldset className="bg-gray-800 rounded-lg p-4 mb-6">
-            <legend className="sr-only">Filter participants</legend>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label htmlFor="search" className="sr-only">
-                  Search participants
-                </label>
-                <input
-                  id="search"
-                  type="text"
-                  placeholder="Search by name or NDIS number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  aria-describedby="search-hint"
-                />
-                <span id="search-hint" className="sr-only">
-                  Search by participant name or NDIS number
-                </span>
-              </div>
-              <div>
-                <label htmlFor="status-filter" className="sr-only">
-                  Filter by status
-                </label>
-                <select
-                  id="status-filter"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="pending_move_in">Pending Move-in</option>
-                </select>
-              </div>
-            </div>
-          </fieldset>
-
-          {/* Results count */}
-          {participants !== undefined && (
-            <p className="text-sm text-gray-400 mb-4" aria-live="polite">
-              Showing {filteredParticipants.length} of {participants.length}{" "}
-              participants
-              {hasFilters && " (filtered)"}
-            </p>
-          )}
-
-          {/* Participants List */}
-          {participants === undefined ? (
-            <LoadingScreen fullScreen={false} message="Loading participants..." />
-          ) : filteredParticipants.length === 0 ? (
-            <EmptyState
-              title={
-                hasFilters
-                  ? "No participants match your filters"
-                  : "No participants yet"
-              }
-              description={
-                hasFilters
-                  ? "Try adjusting your search or filters"
-                  : "Get started by adding your first NDIS participant"
-              }
-              icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
-              action={
-                !hasFilters
-                  ? {
-                      label: "+ Add Your First Participant",
-                      href: "/participants/new",
-                    }
-                  : undefined
-              }
-              isFiltered={hasFilters}
-            />
-          ) : (
-            <div className="grid gap-4" role="list" aria-label="Participants list">
-              {filteredParticipants.map((participant) => (
-                <ParticipantCard key={participant._id} participant={participant} />
-              ))}
-            </div>
-          )}
-        </main>
+    <>
+      {/* Header with Add Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <p className="text-gray-400 text-sm">Manage NDIS participants and their plans</p>
+        </div>
+        <Link
+          href="/participants/new"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+        >
+          + Add Participant
+        </Link>
       </div>
-    </RequireAuth>
+
+      {/* Filters */}
+      <fieldset className="bg-gray-800 rounded-lg p-4 mb-6">
+        <legend className="sr-only">Filter participants</legend>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <label htmlFor="search" className="sr-only">
+              Search participants
+            </label>
+            <input
+              id="search"
+              type="text"
+              placeholder="Search by name or NDIS number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-describedby="search-hint"
+            />
+            <span id="search-hint" className="sr-only">
+              Search by participant name or NDIS number
+            </span>
+          </div>
+          <div>
+            <label htmlFor="status-filter" className="sr-only">
+              Filter by status
+            </label>
+            <select
+              id="status-filter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending_move_in">Pending Move-in</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      {/* Results count */}
+      {participants !== undefined && (
+        <p className="text-sm text-gray-400 mb-4" aria-live="polite">
+          Showing {filteredParticipants.length} of {participants.length}{" "}
+          participants
+          {hasFilters && " (filtered)"}
+        </p>
+      )}
+
+      {/* Participants List */}
+      {participants === undefined ? (
+        <LoadingScreen fullScreen={false} message="Loading participants..." />
+      ) : filteredParticipants.length === 0 ? (
+        <EmptyState
+          title={
+            hasFilters
+              ? "No participants match your filters"
+              : "No participants yet"
+          }
+          description={
+            hasFilters
+              ? "Try adjusting your search or filters"
+              : "Get started by adding your first NDIS participant"
+          }
+          icon={<svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>}
+          action={
+            !hasFilters
+              ? {
+                  label: "+ Add Your First Participant",
+                  href: "/participants/new",
+                }
+              : undefined
+          }
+          isFiltered={hasFilters}
+        />
+      ) : (
+        <div className="grid gap-4" role="list" aria-label="Participants list">
+          {filteredParticipants.map((participant) => (
+            <ParticipantCard key={participant._id} participant={participant} />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

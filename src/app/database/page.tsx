@@ -10,8 +10,10 @@ import ContractorsContent from "./ContractorsContent";
 import SILProvidersContent from "./sil-providers/SILProvidersContent";
 import OccupationalTherapistsContent from "./occupational-therapists/OccupationalTherapistsContent";
 import DocumentsContent from "./DocumentsContent";
+import PropertiesContent from "./PropertiesContent";
+import ParticipantsContent from "./ParticipantsContent";
 
-type TabType = "support-coordinators" | "contractors" | "sil-providers" | "occupational-therapists" | "documents";
+type TabType = "properties" | "participants" | "support-coordinators" | "contractors" | "sil-providers" | "occupational-therapists" | "documents";
 
 function LoadingScreen() {
   return (
@@ -32,7 +34,7 @@ export default function DatabasePage() {
 function DatabaseContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = (searchParams.get("tab") as TabType) || "support-coordinators";
+  const initialTab = (searchParams.get("tab") as TabType) || "properties";
 
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
@@ -70,7 +72,7 @@ function DatabaseContent() {
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">Database</h2>
             <p className="text-gray-400 mt-1 text-sm sm:text-base">
-              Manage external contacts and service providers
+              Manage properties, participants, contacts and service providers
             </p>
           </div>
         </div>
@@ -78,6 +80,26 @@ function DatabaseContent() {
         {/* Tab Navigation */}
         <div className="border-b border-gray-700 mb-6">
           <nav className="flex gap-4 sm:gap-8 overflow-x-auto scrollbar-hide">
+            <button
+              onClick={() => handleTabChange("properties")}
+              className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === "properties"
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              Properties
+            </button>
+            <button
+              onClick={() => handleTabChange("participants")}
+              className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === "participants"
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-gray-400 hover:text-white"
+              }`}
+            >
+              Participants
+            </button>
             <button
               onClick={() => handleTabChange("support-coordinators")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
@@ -132,6 +154,8 @@ function DatabaseContent() {
         </div>
 
         {/* Tab Content */}
+        {activeTab === "properties" && <PropertiesContent />}
+        {activeTab === "participants" && <ParticipantsContent />}
         {activeTab === "support-coordinators" && <SupportCoordinatorsContent />}
         {activeTab === "sil-providers" && <SILProvidersContent />}
         {activeTab === "occupational-therapists" && <OccupationalTherapistsContent />}

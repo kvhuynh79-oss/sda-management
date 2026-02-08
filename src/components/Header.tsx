@@ -62,12 +62,10 @@ export default function Header({ currentPage }: HeaderProps) {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", key: "dashboard" },
-    { href: "/properties", label: "Properties", key: "properties" },
-    { href: "/participants", label: "Participants", key: "participants" },
+    { href: "/database", label: "Database", key: "database" },
     { href: "/financials", label: "Financials", key: "financials" },
     { href: "/operations", label: "Maintenance", key: "operations" },
     { href: "/communications", label: "Communications", key: "communications" },
-    { href: "/database", label: "Database", key: "database" },
     { href: "/incidents", label: "Incidents", key: "incidents" },
     { href: "/compliance", label: "Compliance", key: "compliance" },
     { href: "/onboarding", label: "Onboarding", key: "onboarding" },

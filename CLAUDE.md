@@ -580,6 +580,15 @@ worker/
 12. White-label + API - Sprint 7 (per-org branding, REST API)
 13. Security audit + launch - Sprint 8 (tenant isolation audit, load testing)
 
+### Future Enhancements (Post-Launch)
+14. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
+   - **Current limitation**: Anthropic SDK v0.30.0 doesn't support PDF vision analysis
+   - **Solution options**:
+     - Upgrade to latest Anthropic SDK with PDF support, OR
+     - Add server-side PDF-to-image converter (pdf-lib, pdfjs-dist, or sharp)
+   - **Workaround**: Users can take screenshots of PDFs and upload as images
+   - **Priority**: Medium - nice to have, but screenshot workaround is functional
+
 ## Phase 2: SaaS Subscription Model (Approved 2026-02-08)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
 See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.

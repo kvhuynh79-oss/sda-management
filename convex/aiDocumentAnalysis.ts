@@ -34,12 +34,16 @@ export const analyzeDocument = action({
     const fileUrl = await ctx.storage.getUrl(args.storageId);
     if (!fileUrl) throw new Error("File not found in storage");
 
-    // Only support images for now (PDFs would need conversion)
+    // Only support images for now (PDFs would need conversion or SDK upgrade)
     const isImage = args.fileType.startsWith("image/");
     const isPDF = args.fileType === "application/pdf";
 
-    if (!isImage && !isPDF) {
-      throw new Error("Only image and PDF files are supported for AI analysis. Please upload a JPG, PNG, or PDF.");
+    if (isPDF) {
+      throw new Error("PDF analysis is not yet supported. Please take a screenshot of the PDF and upload it as an image (JPG or PNG) instead.");
+    }
+
+    if (!isImage) {
+      throw new Error("Only image files are supported for AI analysis. Please upload a JPG or PNG.");
     }
 
     // Fetch the file
@@ -50,13 +54,8 @@ export const analyzeDocument = action({
     const arrayBuffer = await response.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString("base64");
 
-    // Determine media type
-    let mediaType = args.fileType as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
-    if (isPDF) {
-      // For PDFs, we'll need to note that full PDF support requires conversion
-      // For now, we'll try to process it as an image (may work for single-page PDFs)
-      mediaType = "image/png";
-    }
+    // Determine media type (only images supported)
+    const mediaType = args.fileType as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 
     try {
       const message = await anthropic.messages.create({

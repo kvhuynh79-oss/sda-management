@@ -36,7 +36,7 @@ export default function IncidentsPage() {
 
   return (
     <RequireAuth>
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen bg-gray-900 overflow-x-hidden">
         <Header currentPage="incidents" />
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -124,11 +124,11 @@ export default function IncidentsPage() {
 function IncidentCard({ incident }: { incident: any }) {
   return (
     <article
-      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors"
+      className="bg-gray-800 rounded-lg p-4 sm:p-6 hover:bg-gray-700 transition-colors"
       role="listitem"
     >
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+        <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span
               className={`px-2 py-1 rounded text-xs text-white ${
@@ -166,7 +166,7 @@ function IncidentCard({ incident }: { incident: any }) {
           <h2 className="text-lg font-semibold text-white">{incident.title}</h2>
           <p className="text-gray-400 text-sm mt-1 line-clamp-2">{incident.description}</p>
         </div>
-        <div className="flex flex-col gap-2 flex-shrink-0">
+        <div className="flex sm:flex-col gap-2 flex-shrink-0">
           <Link
             href={`/incidents/${incident._id}`}
             className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"

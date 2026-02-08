@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const activeAlerts = useQuery(api.alerts.getActive);
   const taskStats = useQuery(api.tasks.getStats);
   const upcomingTasks = useQuery(api.tasks.getUpcoming, { days: 7 });
+  const certStats = useQuery(api.complianceCertifications.getDashboardStats);
 
   // Memoize property calculations
   const propertyStats = useMemo(() => {
@@ -368,6 +369,60 @@ export default function DashboardPage() {
                   </div>
                 </Link>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Compliance Certifications */}
+        {certStats && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">Compliance Certifications</h3>
+              <Link href="/compliance/certifications" className="text-blue-400 hover:text-blue-300 text-sm">
+                View Certifications →
+              </Link>
+            </div>
+
+            {/* Alert banners */}
+            {certStats.expired > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-red-900/30 border border-red-600/50 rounded-lg mb-3">
+                <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span className="text-red-400 text-sm font-medium">
+                  {certStats.expired} certification{certStats.expired !== 1 ? "s" : ""} expired — action required
+                </span>
+              </div>
+            )}
+            {certStats.expiringSoon > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-yellow-900/30 border border-yellow-600/50 rounded-lg mb-3">
+                <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-yellow-400 text-sm font-medium">
+                  {certStats.expiringSoon} certification{certStats.expiringSoon !== 1 ? "s" : ""} expiring within 30 days
+                </span>
+              </div>
+            )}
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                <p className="text-2xl font-bold text-white">{certStats.total}</p>
+                <p className="text-gray-400 text-sm">Total Certs</p>
+              </div>
+              <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                <p className={`text-2xl font-bold ${certStats.expired > 0 ? "text-red-400" : "text-white"}`}>
+                  {certStats.expired}
+                </p>
+                <p className="text-gray-400 text-sm">Expired</p>
+              </div>
+              <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                <p className={`text-2xl font-bold ${certStats.expiringSoon > 0 ? "text-yellow-400" : "text-white"}`}>
+                  {certStats.expiringSoon}
+                </p>
+                <p className="text-gray-400 text-sm">Expiring Soon</p>
+              </div>
             </div>
           </div>
         )}

@@ -298,6 +298,90 @@ export async function generatePreventativeScheduleAlerts(
   return alertsCreated;
 }
 
+// Certification type labels for human-readable messages
+const CERT_TYPE_ALERT_LABELS: Record<string, string> = {
+  ndis_practice_standards: "NDIS Practice Standards",
+  ndis_verification_audit: "NDIS Verification Audit",
+  sda_design_standard: "SDA Design Standard",
+  sda_registration: "SDA Registration",
+  ndis_worker_screening: "Worker Screening",
+  fire_safety: "Fire Safety",
+  building_compliance: "Building Compliance",
+  other: "Other",
+};
+
+export async function generateCertificationExpiryAlerts(
+  ctx: MutationCtx,
+  todayStr: string
+): Promise<number> {
+  const { today } = getDateStrings();
+  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  let alertsCreated = 0;
+
+  const certifications = await ctx.db.query("complianceCertifications").collect();
+
+  // Get existing active certification_expiry alerts to check duplicates by title
+  const existingCertAlerts = await ctx.db
+    .query("alerts")
+    .withIndex("by_status_alertType", (q) =>
+      q.eq("status", "active").eq("alertType", "certification_expiry")
+    )
+    .collect();
+  const existingTitles = new Set(existingCertAlerts.map((a) => a.title));
+
+  for (const cert of certifications) {
+    const expiryDate = new Date(cert.expiryDate);
+    const certTypeLabel =
+      CERT_TYPE_ALERT_LABELS[cert.certificationType] ||
+      cert.certificationType.replace(/_/g, " ");
+
+    // Expired certifications → critical alert
+    if (cert.status === "expired") {
+      const title = `Expired Certification: ${cert.certificationName}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "certification_expiry",
+        severity: "critical",
+        title,
+        message: `The ${certTypeLabel} certificate expired on ${cert.expiryDate}. Immediate renewal required.`,
+        linkedPropertyId: cert.propertyId,
+        triggerDate: todayStr,
+        dueDate: cert.expiryDate,
+      });
+
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+
+    // Expiring within 30 days → warning alert
+    if (expiryDate > today && expiryDate <= thirtyDaysFromNow) {
+      const days = daysUntil(expiryDate, today);
+      const title = `Certification Expiring: ${cert.certificationName}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "certification_expiry",
+        severity: "warning",
+        title,
+        message: `The ${certTypeLabel} certificate expires on ${cert.expiryDate} (${days} day${days !== 1 ? "s" : ""} remaining).`,
+        linkedPropertyId: cert.propertyId,
+        triggerDate: todayStr,
+        dueDate: cert.expiryDate,
+      });
+
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+  }
+
+  return alertsCreated;
+}
+
 // Run all alert generators
 export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success: boolean; alertsCreated: number }> {
   const { todayStr } = getDateStrings();
@@ -308,6 +392,7 @@ export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success
   alertsCreated += await generateVacancyAlerts(ctx, todayStr);
   alertsCreated += await generateMaintenanceAlerts(ctx, todayStr);
   alertsCreated += await generatePreventativeScheduleAlerts(ctx, todayStr);
+  alertsCreated += await generateCertificationExpiryAlerts(ctx, todayStr);
 
   return { success: true, alertsCreated };
 }

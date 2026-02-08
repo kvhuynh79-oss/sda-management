@@ -203,7 +203,7 @@ function CommunicationsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 overflow-x-hidden">
       <Header currentPage="communications" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -315,7 +315,7 @@ function CommunicationsContent() {
         )}
 
         {/* Main content area with sidebar */}
-        <div className="flex gap-6">
+        <div className="lg:flex lg:gap-6">
           {/* Filter Sidebar */}
           <FilterSidebar
             filters={filters}

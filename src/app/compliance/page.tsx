@@ -192,12 +192,12 @@ function ComplianceContent() {
                         <span className="text-red-400">{certifications.filter(c => c.status === "expired").length}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setActiveTab("certifications")}
-                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    <Link
+                      href="/compliance/certifications"
+                      className="mt-4 inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                     >
-                      View all certifications →
-                    </button>
+                      View all certifications &rarr;
+                    </Link>
                   </>
                 )}
               </div>
@@ -369,12 +369,20 @@ function ComplianceContent() {
             <div className="bg-gray-800 rounded-lg p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-white">Compliance Certifications</h2>
-                <Link
-                  href="/compliance/certifications/new"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                  + Add Certification
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/compliance/certifications"
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    View Full Page
+                  </Link>
+                  <Link
+                    href="/compliance/certifications/new"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    + Add Certification
+                  </Link>
+                </div>
               </div>
 
               {!certifications ? (
@@ -393,7 +401,7 @@ function ComplianceContent() {
               ) : (
                 <div className="space-y-4">
                   {certifications.map((cert) => (
-                    <div key={cert._id} className="bg-gray-700 rounded-lg p-4">
+                    <Link key={cert._id} href={`/compliance/certifications/${cert._id}`} className="block bg-gray-700 rounded-lg p-4 hover:bg-gray-600/80 transition-colors">
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -423,7 +431,7 @@ function ComplianceContent() {
                           </p>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

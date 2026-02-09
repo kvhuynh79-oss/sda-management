@@ -268,7 +268,7 @@ function MoreSheet({
         >
           {MORE_SHEET_GROUPS.map((group) => (
             <div key={group.label}>
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 px-1">
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 px-1">
                 {group.label}
               </div>
               <div className="grid grid-cols-3 gap-2">

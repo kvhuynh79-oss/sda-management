@@ -325,7 +325,7 @@ export default function LoginPage() {
         <p className="text-center text-gray-400 text-sm mt-8">
           MySDAManager - Professional SDA Management
         </p>
-        <p className="text-center text-gray-500 text-xs mt-2">
+        <p className="text-center text-gray-400 text-xs mt-2">
           Your data is stored securely in Australia. Built for NDIS compliance.
         </p>
       </div>

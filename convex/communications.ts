@@ -3028,3 +3028,127 @@ async function repairOrphanedThreadsHandler(ctx: any) {
     totalThreads: threadMap.size,
   };
 }
+
+/**
+ * Auto-merge duplicate threads: Groups communications by contactName + subject,
+ * then merges threads that share the same contact+subject into a single thread.
+ * This fixes pre-threading communications that each got unique threadIds.
+ */
+export const autoMergeDuplicateThreads = mutation({
+  args: {
+    userId: v.id("users"),
+    dryRun: v.optional(v.boolean()), // If true, just report what would be merged
+  },
+  handler: async (ctx, args) => {
+    await requirePermission(ctx, args.userId, "communications", "update");
+    return await autoMergeDuplicateThreadsHandler(ctx, args.dryRun || false);
+  },
+});
+
+async function autoMergeDuplicateThreadsHandler(ctx: any, dryRun: boolean) {
+    const allComms: any[] = await ctx.db
+      .query("communications")
+      .filter((q: any) => q.neq(q.field("isDeleted"), true))
+      .collect();
+
+    // Group by normalized key: lowercase(contactName) + "|" + lowercase(subject)
+    const groupMap = new Map<string, any[]>();
+    for (const comm of allComms) {
+      if (!comm.threadId) continue;
+      const contact = (comm.contactName || "").trim().toLowerCase();
+      const subject = (comm.subject || "").trim().toLowerCase();
+      if (!contact) continue;
+
+      const key = `${contact}|${subject}`;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+      }
+      groupMap.get(key)!.push(comm);
+    }
+
+    const mergeResults: Array<{
+      key: string;
+      targetThreadId: string;
+      mergedThreadIds: string[];
+      commsMovedCount: number;
+    }> = [];
+
+    for (const [key, comms] of groupMap.entries()) {
+      // Get unique threadIds in this group
+      const threadIds = [...new Set(comms.map((c: any) => c.threadId as string))];
+      if (threadIds.length <= 1) continue; // Already in same thread
+
+      // Pick the thread with the most communications as the target (stability)
+      const threadCounts = new Map<string, number>();
+      for (const comm of comms) {
+        threadCounts.set(comm.threadId, (threadCounts.get(comm.threadId) || 0) + 1);
+      }
+
+      let targetThreadId = threadIds[0];
+      let maxCount = 0;
+      for (const [tid, count] of threadCounts.entries()) {
+        if (count > maxCount) {
+          maxCount = count;
+          targetThreadId = tid;
+        }
+      }
+
+      const sourceThreadIds = threadIds.filter((t) => t !== targetThreadId);
+
+      if (dryRun) {
+        mergeResults.push({
+          key,
+          targetThreadId,
+          mergedThreadIds: sourceThreadIds,
+          commsMovedCount: comms.filter((c: any) => c.threadId !== targetThreadId).length,
+        });
+        continue;
+      }
+
+      // Move all communications from source threads to target thread
+      let movedCount = 0;
+      for (const comm of comms) {
+        if (comm.threadId !== targetThreadId) {
+          await ctx.db.patch(comm._id, {
+            threadId: targetThreadId,
+            updatedAt: Date.now(),
+          });
+          movedCount++;
+        }
+      }
+
+      // Delete source thread summaries
+      for (const sourceThreadId of sourceThreadIds) {
+        const sourceSummary = await ctx.db
+          .query("threadSummaries")
+          .withIndex("by_thread", (q: any) => q.eq("threadId", sourceThreadId))
+          .first();
+        if (sourceSummary) {
+          await ctx.db.delete(sourceSummary._id);
+        }
+      }
+
+      // Regenerate target thread summary
+      await regenerateThreadSummary(ctx, targetThreadId);
+
+      mergeResults.push({
+        key,
+        targetThreadId,
+        mergedThreadIds: sourceThreadIds,
+        commsMovedCount: movedCount,
+      });
+    }
+
+    const totalMerged = mergeResults.reduce((sum, r) => sum + r.commsMovedCount, 0);
+
+    console.log(
+      `Auto-merge ${dryRun ? "(DRY RUN)" : ""}: ${mergeResults.length} groups merged, ${totalMerged} communications moved`
+    );
+
+    return {
+      dryRun,
+      groupsMerged: mergeResults.length,
+      communicationsMoved: totalMerged,
+      details: mergeResults,
+    };
+}

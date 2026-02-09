@@ -519,7 +519,7 @@ function MobileNav({
                 <div
                   className={`
                     flex items-center gap-2 px-3 mb-2 text-xs font-semibold uppercase tracking-wider
-                    ${clusterIsActive ? "text-teal-400" : "text-gray-500"}
+                    ${clusterIsActive ? "text-teal-400" : "text-gray-400"}
                   `}
                 >
                   {cluster.icon}
@@ -561,7 +561,7 @@ function MobileNav({
 
           {/* Utility links */}
           <div>
-            <div className="flex items-center gap-2 px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="flex items-center gap-2 px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
               <span>Utilities</span>
             </div>
             <div className="space-y-0.5">

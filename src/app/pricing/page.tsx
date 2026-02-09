@@ -346,7 +346,7 @@ export default function PricingPage() {
                       ) : (
                         <XIcon className="h-5 w-5 text-gray-600 shrink-0 mt-0.5" />
                       )}
-                      <span className={feature.included ? "text-sm text-gray-300" : "text-sm text-gray-500"}>
+                      <span className={feature.included ? "text-sm text-gray-300" : "text-sm text-gray-400"}>
                         {feature.text}
                       </span>
                     </li>
@@ -493,7 +493,7 @@ export default function PricingPage() {
                 Register
               </Link>
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400">
               &copy; {new Date().getFullYear()} MySDAManager. All rights reserved.
             </p>
           </div>

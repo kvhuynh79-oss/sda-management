@@ -168,7 +168,7 @@ function DetailField({ label, value }: { label: string; value?: string | null })
   return (
     <div>
       <p className="text-sm text-gray-400 mb-0.5">{label}</p>
-      <p className="text-sm text-white">{value || <span className="text-gray-500">-</span>}</p>
+      <p className="text-sm text-white">{value || <span className="text-gray-400">-</span>}</p>
     </div>
   );
 }
@@ -1121,7 +1121,7 @@ function ComplaintDetailContent() {
                             {description && (
                               <p className="text-gray-400 text-xs mt-0.5">{description}</p>
                             )}
-                            <p className="text-gray-500 text-xs mt-0.5">
+                            <p className="text-gray-400 text-xs mt-0.5">
                               {formatDateTime(entry.timestamp)}
                             </p>
                           </div>
@@ -1247,7 +1247,7 @@ function ComplaintDetailContent() {
                     );
                   })}
                 </div>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-gray-400 mt-3">
                   Each step is auto-logged to the audit trail when checked.
                 </p>
               </div>

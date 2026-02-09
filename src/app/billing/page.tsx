@@ -320,7 +320,7 @@ function BillingContent() {
               </span>
               <span className="text-gray-400 text-sm">/month</span>
               {MOCK_BILLING_PERIOD === "annual" && (
-                <span className="text-xs text-gray-500 ml-2">
+                <span className="text-xs text-gray-400 ml-2">
                   (${currentPlan.annualPrice.toLocaleString()}/year)
                 </span>
               )}

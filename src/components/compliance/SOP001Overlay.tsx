@@ -291,7 +291,7 @@ export default function SOP001Overlay({ isOpen, onClose }: SOP001OverlayProps) {
                       const isMandatory = item.startsWith("MANDATORY:");
                       return (
                         <li key={idx} className={`flex items-start gap-2 text-sm ${isMandatory ? "text-red-300 font-medium" : "text-gray-300"}`}>
-                          <span className={`mt-0.5 shrink-0 ${isMandatory ? "text-red-400" : "text-gray-500"}`}>
+                          <span className={`mt-0.5 shrink-0 ${isMandatory ? "text-red-400" : "text-gray-400"}`}>
                             {isMandatory ? "!" : "\u2022"}
                           </span>
                           <span>{item}</span>

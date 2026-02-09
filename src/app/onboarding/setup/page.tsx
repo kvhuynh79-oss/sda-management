@@ -108,7 +108,7 @@ function StepIndicator({ currentStep }: { currentStep: OnboardingStep }) {
                 </span>
                 <span
                   className={`text-xs font-medium mt-1.5 ${
-                    isActive ? "text-white" : isCompleted ? "text-teal-400" : "text-gray-500"
+                    isActive ? "text-white" : isCompleted ? "text-teal-400" : "text-gray-400"
                   }`}
                 >
                   {step.label}

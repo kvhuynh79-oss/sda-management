@@ -549,7 +549,7 @@ export default function CommandPalette() {
                   return (
                     <div
                       key={`header-${entry.label}-${i}`}
-                      className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-500"
+                      className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400"
                       aria-hidden="true"
                     >
                       {entry.label}
@@ -592,7 +592,7 @@ export default function CommandPalette() {
                     <span className="flex-1 text-sm font-medium truncate">
                       {entry.item.label}
                     </span>
-                    <span className="text-xs text-gray-500 flex-shrink-0">
+                    <span className="text-xs text-gray-400 flex-shrink-0">
                       {entry.item.group}
                     </span>
                     {isSelected && (
@@ -608,7 +608,7 @@ export default function CommandPalette() {
           </div>
 
           {/* Footer hints */}
-          <div className="flex items-center gap-4 px-4 py-2.5 border-t border-gray-700 text-[11px] text-gray-500">
+          <div className="flex items-center gap-4 px-4 py-2.5 border-t border-gray-700 text-[11px] text-gray-400">
             <span className="flex items-center gap-1">
               <kbd className="bg-gray-700 px-1 py-0.5 rounded font-mono">
                 &uarr;&darr;

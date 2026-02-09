@@ -146,7 +146,7 @@ function StepIndicator({ currentStep }: { currentStep: RegistrationStep }) {
                 </span>
                 <span
                   className={`text-sm font-medium hidden sm:inline ${
-                    isActive ? "text-white" : isCompleted ? "text-teal-400" : "text-gray-500"
+                    isActive ? "text-white" : isCompleted ? "text-teal-400" : "text-gray-400"
                   }`}
                 >
                   {step.label}
@@ -803,7 +803,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Terms */}
-        <p className="text-center text-xs text-gray-500 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-6">
           By creating an account, you agree to our{" "}
           <Link href="#" className="text-teal-400 hover:text-teal-300 underline">
             Terms of Service

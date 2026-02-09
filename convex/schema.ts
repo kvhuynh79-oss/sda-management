@@ -668,6 +668,7 @@ export default defineSchema({
     linkedPropertyId: v.optional(v.id("properties")),
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedOwnerId: v.optional(v.id("owners")),
+    linkedLeadId: v.optional(v.id("leads")),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
     // Invoice-specific fields
@@ -689,6 +690,7 @@ export default defineSchema({
     .index("by_participant_type", ["linkedParticipantId", "documentType"])
     .index("by_property_type", ["linkedPropertyId", "documentType"])
     .index("by_vendor", ["vendor"])
+    .index("by_lead", ["linkedLeadId"])
     .index("by_organizationId", ["organizationId"]),
 
   // Provider Settings table - NDIS provider configuration

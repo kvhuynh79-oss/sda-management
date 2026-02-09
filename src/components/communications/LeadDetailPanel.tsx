@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Badge from "../ui/Badge";
@@ -71,6 +71,19 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Document type labels
+// ---------------------------------------------------------------------------
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  ndis_plan: "NDIS Plan",
+  sda_quotation: "SDA Quotation",
+  accommodation_agreement: "Accommodation Agreement",
+  centrepay_consent: "Centrepay Consent",
+  report: "OT Assessment / Report",
+  other: "Other",
+};
+
+// ---------------------------------------------------------------------------
 // Detail Section component
 // ---------------------------------------------------------------------------
 
@@ -105,6 +118,12 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
   // Convex mutations
   const updateLeadStatus = useMutation(api.leads.updateStatus);
   const removeLead = useMutation(api.leads.remove);
+
+  // Convex queries
+  const linkedDocuments = useQuery(
+    api.documents.getByLead,
+    userId ? { userId: userId as Id<"users">, leadId: lead._id as Id<"leads"> } : "skip"
+  );
 
   const sdaConfig = SDA_CATEGORY_CONFIG[lead.sdaCategory];
   const urgencyConfig = URGENCY_CONFIG[lead.urgency];
@@ -293,6 +312,41 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
               }
             />
             <DetailRow label="Notes" value={lead.notes} />
+          </DetailSection>
+
+          {/* Documents */}
+          <DetailSection title={`Documents${linkedDocuments && linkedDocuments.length > 0 ? ` (${linkedDocuments.length})` : ""}`}>
+            {linkedDocuments === undefined ? (
+              <p className="text-xs text-gray-400">Loading documents...</p>
+            ) : linkedDocuments.length === 0 ? (
+              <p className="text-xs text-gray-400">No documents attached</p>
+            ) : (
+              <div className="space-y-1">
+                {linkedDocuments.map((doc) => (
+                  <a
+                    key={doc._id}
+                    href={doc.downloadUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-700/50 transition-colors group"
+                  >
+                    {/* File icon */}
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {/* File info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-200 truncate group-hover:text-teal-400 transition-colors">{doc.fileName}</p>
+                      <p className="text-xs text-gray-400">{(doc.fileSize / 1024 / 1024).toFixed(1)} MB</p>
+                    </div>
+                    {/* Type badge */}
+                    <span className="text-xs px-2 py-0.5 bg-gray-700 text-gray-300 rounded-md border border-gray-600">
+                      {DOC_TYPE_LABELS[doc.documentType] || doc.documentType}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
           </DetailSection>
 
           {/* Activity Timeline */}

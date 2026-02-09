@@ -21,6 +21,7 @@ export const create = mutation({
     linkedPropertyId: v.optional(v.id("properties")),
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedOwnerId: v.optional(v.id("owners")),
+    linkedLeadId: v.optional(v.id("leads")),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
     // Invoice fields
@@ -166,6 +167,29 @@ export const getByDwelling = query({
     const allDocuments = await ctx.db
       .query("documents")
       .withIndex("by_dwelling", (q) => q.eq("linkedDwellingId", args.dwellingId))
+      .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
+
+    const documentsWithUrls = await Promise.all(
+      documents.map(async (doc) => {
+        const downloadUrl = await ctx.storage.getUrl(doc.storageId);
+        return { ...doc, downloadUrl };
+      })
+    );
+
+    return documentsWithUrls.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+// Get documents by lead
+export const getByLead = query({
+  args: { userId: v.id("users"), leadId: v.id("leads") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
+      .query("documents")
+      .withIndex("by_lead", (q) => q.eq("linkedLeadId", args.leadId))
       .collect();
 
     const documents = allDocuments.filter(d => d.organizationId === organizationId);

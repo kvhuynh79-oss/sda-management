@@ -65,6 +65,42 @@ const EMPTY_FORM: LeadFormData = {
 };
 
 // ---------------------------------------------------------------------------
+// File upload types & constants
+// ---------------------------------------------------------------------------
+
+interface PendingFile {
+  id: string;
+  file: File;
+  documentType: string;
+  storageId: string | null;
+  uploading: boolean;
+  uploaded: boolean;
+  error: string | null;
+}
+
+const MAX_FILES = 15;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+const ACCEPTED_FILE_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "image/png",
+  "image/jpeg",
+];
+
+const LEAD_DOCUMENT_TYPES = [
+  { value: "ndis_plan", label: "NDIS Plan" },
+  { value: "sda_quotation", label: "SDA Quotation" },
+  { value: "accommodation_agreement", label: "Accommodation Agreement" },
+  { value: "centrepay_consent", label: "Centrepay Consent" },
+  { value: "report", label: "OT Assessment / Report" },
+  { value: "other", label: "Other Document" },
+];
+
+// ---------------------------------------------------------------------------
 // Option constants
 // ---------------------------------------------------------------------------
 
@@ -219,6 +255,12 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLSelectElement>(null);
 
+  // File upload state
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Query OTs and SCs from database for dropdown
   const ots = useQuery(
     api.occupationalTherapists.getAll,
@@ -229,9 +271,17 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
     userId ? { userId: userId as Id<"users"> } : "skip"
   );
 
-  // Mutation for creating/updating leads
+  // Mutations for creating/updating leads
   const createLead = useMutation(api.leads.create);
   const updateLead = useMutation(api.leads.update);
+
+  // File upload mutations
+  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+  const createDocument = useMutation(api.documents.create);
+
+  // Derived upload state
+  const hasUploadingFiles = pendingFiles.some((f) => f.uploading);
+  const hasFailedFiles = pendingFiles.some((f) => f.error);
 
   // Populate form when editing
   useEffect(() => {
@@ -260,6 +310,8 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
       setFormData(EMPTY_FORM);
     }
     setErrors({});
+    setPendingFiles([]);
+    setUploadError(null);
   }, [editLead, isOpen]);
 
   // Focus trap and Escape key
@@ -347,7 +399,148 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
     }));
   }, []);
 
-  // Validate form
+  // -------------------------------------------------------------------------
+  // File upload handlers
+  // -------------------------------------------------------------------------
+
+  const uploadFile = useCallback(
+    async (pendingFile: PendingFile) => {
+      try {
+        setPendingFiles((prev) =>
+          prev.map((f) =>
+            f.id === pendingFile.id ? { ...f, uploading: true, error: null } : f
+          )
+        );
+
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": pendingFile.file.type },
+          body: pendingFile.file,
+        });
+
+        if (!result.ok) throw new Error("Upload failed");
+
+        const { storageId } = await result.json();
+
+        setPendingFiles((prev) =>
+          prev.map((f) =>
+            f.id === pendingFile.id
+              ? { ...f, storageId, uploading: false, uploaded: true }
+              : f
+          )
+        );
+      } catch {
+        setPendingFiles((prev) =>
+          prev.map((f) =>
+            f.id === pendingFile.id
+              ? { ...f, uploading: false, error: "Upload failed. Click retry." }
+              : f
+          )
+        );
+      }
+    },
+    [generateUploadUrl]
+  );
+
+  const handleFiles = useCallback(
+    (files: FileList | File[]) => {
+      setUploadError(null);
+      const fileArray = Array.from(files);
+
+      const remaining = MAX_FILES - pendingFiles.length;
+      if (fileArray.length > remaining) {
+        setUploadError(
+          `Maximum ${MAX_FILES} files allowed. You can add ${remaining} more.`
+        );
+        return;
+      }
+
+      const validFiles: PendingFile[] = [];
+      for (const file of fileArray) {
+        if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+          setUploadError(`"${file.name}" is not a supported file type.`);
+          continue;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          setUploadError(`"${file.name}" exceeds 50MB limit.`);
+          continue;
+        }
+        validFiles.push({
+          id: crypto.randomUUID(),
+          file,
+          documentType: "other",
+          storageId: null,
+          uploading: false,
+          uploaded: false,
+          error: null,
+        });
+      }
+
+      setPendingFiles((prev) => [...prev, ...validFiles]);
+
+      // Start uploading each file immediately
+      validFiles.forEach((f) => uploadFile(f));
+    },
+    [pendingFiles.length, uploadFile]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      if (e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
+      }
+    },
+    [handleFiles]
+  );
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFiles(e.target.files);
+        e.target.value = ""; // Reset so same files can be re-selected
+      }
+    },
+    [handleFiles]
+  );
+
+  const handleRemoveFile = useCallback((fileId: string) => {
+    setPendingFiles((prev) => prev.filter((f) => f.id !== fileId));
+  }, []);
+
+  const handleDocTypeChange = useCallback((fileId: string, docType: string) => {
+    setPendingFiles((prev) =>
+      prev.map((f) => (f.id === fileId ? { ...f, documentType: docType } : f))
+    );
+  }, []);
+
+  const handleRetry = useCallback(
+    (fileId: string) => {
+      const file = pendingFiles.find((f) => f.id === fileId);
+      if (file) uploadFile(file);
+    },
+    [pendingFiles, uploadFile]
+  );
+
+  // -------------------------------------------------------------------------
+  // Validation
+  // -------------------------------------------------------------------------
+
   const validate = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -371,12 +564,16 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
+  // -------------------------------------------------------------------------
   // Submit handler
+  // -------------------------------------------------------------------------
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
       if (!validate()) return;
+      if (hasUploadingFiles) return;
 
       setIsSubmitting(true);
       try {
@@ -423,7 +620,7 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
           });
         } else {
           // Create new lead
-          await createLead({
+          const leadId = await createLead({
             userId: userId as Id<"users">,
             referrerType: referrerTypeMap[formData.referrerType] as any,
             referrerId: formData.referrerEntityId || undefined,
@@ -446,6 +643,26 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
             source: formData.source as any,
             notes: formData.notes || undefined,
           });
+
+          // Link uploaded documents to the newly created lead
+          for (const pf of pendingFiles) {
+            if (pf.uploaded && pf.storageId) {
+              try {
+                await createDocument({
+                  fileName: pf.file.name,
+                  fileSize: pf.file.size,
+                  fileType: pf.file.type,
+                  storageId: pf.storageId as Id<"_storage">,
+                  documentType: pf.documentType,
+                  documentCategory: "participant",
+                  linkedLeadId: leadId as Id<"leads">,
+                  uploadedBy: userId as Id<"users">,
+                });
+              } catch (err) {
+                console.error("Failed to link document:", pf.file.name, err);
+              }
+            }
+          }
         }
 
         if (onSubmit) {
@@ -453,14 +670,29 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
         }
         onClose();
         setFormData(EMPTY_FORM);
+        setPendingFiles([]);
+        setUploadError(null);
       } catch (error) {
         console.error("Failed to save lead:", error);
       } finally {
         setIsSubmitting(false);
       }
     },
-    [formData, validate, onSubmit, onClose, createLead, updateLead, editLead, userId]
+    [formData, validate, onSubmit, onClose, createLead, updateLead, editLead, userId, pendingFiles, createDocument, hasUploadingFiles]
   );
+
+  // -------------------------------------------------------------------------
+  // Compute submit button label
+  // -------------------------------------------------------------------------
+
+  const submitButtonLabel = useMemo(() => {
+    if (hasUploadingFiles) return "Uploading files...";
+    if (pendingFiles.length > 0 && !editLead) {
+      const uploadedCount = pendingFiles.filter((f) => f.uploaded).length;
+      return `Create Lead & Link ${uploadedCount} Document${uploadedCount !== 1 ? "s" : ""}`;
+    }
+    return editLead ? "Update Lead" : "Create Lead";
+  }, [hasUploadingFiles, pendingFiles, editLead]);
 
   if (!isOpen) return null;
 
@@ -691,6 +923,239 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
             </div>
           </fieldset>
 
+          {/* Section 5: Attachments */}
+          <fieldset>
+            <legend className="text-sm font-semibold text-teal-500 uppercase tracking-wider mb-3">
+              Attachments
+            </legend>
+
+            {/* Drop Zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragOver
+                  ? "border-teal-500 bg-teal-500/10"
+                  : "border-gray-600 hover:border-gray-500 hover:bg-gray-800/50"
+              }`}
+              role="button"
+              tabIndex={0}
+              aria-label="Drop files here or click to browse"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                onChange={handleFileInputChange}
+                className="hidden"
+                aria-hidden="true"
+              />
+              <svg
+                className="mx-auto w-8 h-8 text-gray-400 mb-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              <p className="text-sm text-gray-300">
+                {isDragOver ? "Drop files here" : "Drop files here or click to browse"}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                PDF, DOC, XLS, PNG, JPG - Max 50MB each - Up to {MAX_FILES} files
+              </p>
+            </div>
+
+            {/* Upload Error */}
+            {uploadError && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-red-400">
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+                {uploadError}
+              </div>
+            )}
+
+            {/* File List */}
+            {pendingFiles.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {pendingFiles.map((pf) => (
+                  <div
+                    key={pf.id}
+                    className="flex items-center gap-3 bg-gray-700/50 rounded-lg px-3 py-2 border border-gray-600"
+                  >
+                    {/* Status icon */}
+                    <div className="flex-shrink-0">
+                      {pf.uploading ? (
+                        <svg
+                          className="w-4 h-4 text-teal-400 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      ) : pf.uploaded ? (
+                        <svg
+                          className="w-4 h-4 text-green-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      ) : pf.error ? (
+                        <svg
+                          className="w-4 h-4 text-red-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* File name + size */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{pf.file.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {(pf.file.size / 1024 / 1024).toFixed(1)} MB
+                        {pf.error && (
+                          <span className="text-red-400 ml-2">{pf.error}</span>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Document type selector */}
+                    <select
+                      value={pf.documentType}
+                      onChange={(e) => handleDocTypeChange(pf.id, e.target.value)}
+                      className="bg-gray-700 border border-gray-600 rounded-md text-sm text-gray-200 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-600"
+                      aria-label={`Document type for ${pf.file.name}`}
+                    >
+                      {LEAD_DOCUMENT_TYPES.map((dt) => (
+                        <option key={dt.value} value={dt.value}>
+                          {dt.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Retry button (on error) */}
+                    {pf.error && (
+                      <button
+                        type="button"
+                        onClick={() => handleRetry(pf.id)}
+                        className="p-1 text-teal-400 hover:text-teal-300 rounded transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-600"
+                        aria-label={`Retry upload for ${pf.file.name}`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* Remove button */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(pf.id)}
+                      className="p-1 text-gray-400 hover:text-red-400 rounded transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-600"
+                      aria-label={`Remove ${pf.file.name}`}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-400">
+                  {pendingFiles.length}/{MAX_FILES} files - Select document type for
+                  each file before submitting.
+                </p>
+              </div>
+            )}
+          </fieldset>
+
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-700">
             <Button variant="ghost" onClick={onClose} type="button">
@@ -700,13 +1165,14 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
               variant="primary"
               type="submit"
               isLoading={isSubmitting}
+              disabled={hasUploadingFiles}
               leftIcon={
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               }
             >
-              {editLead ? "Update Lead" : "Create Lead"}
+              {submitButtonLabel}
             </Button>
           </div>
         </form>

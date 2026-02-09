@@ -13,6 +13,9 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatStatus } from "@/utils/format";
 import { generateInspectionPDF } from "@/utils/inspectionPdf";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 function InspectionsContent() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
@@ -20,6 +23,7 @@ function InspectionsContent() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: Id<"inspections">; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const convex = useConvex();
 
   useEffect(() => {
@@ -158,6 +162,7 @@ function InspectionsContent() {
             </p>
           </div>
           <div className="flex gap-2">
+            <HelpGuideButton onClick={() => setShowHelp(true)} />
             <Link
               href="/inspections/templates"
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
@@ -379,6 +384,11 @@ function InspectionsContent() {
         </div>
       )}
       <BottomNav currentPage="inspections" />
+      <HelpGuidePanel
+        guide={HELP_GUIDES.inspections}
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
     </div>
   );
 }

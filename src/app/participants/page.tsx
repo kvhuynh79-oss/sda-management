@@ -6,6 +6,9 @@ import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { LoadingScreen, EmptyState } from "@/components/ui";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 import { RequireAuth } from "@/components/RequireAuth";
 import { STATUS_COLORS, getStatusColor } from "@/constants/colors";
 import { formatCurrency, formatDate, formatStatus } from "@/utils/format";
@@ -14,6 +17,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 export default function ParticipantsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showHelp, setShowHelp] = useState(false);
   const [userId, setUserId] = useState<Id<"users"> | null>(null);
 
   useEffect(() => {
@@ -59,12 +63,15 @@ export default function ParticipantsPage() {
                 Manage NDIS participants and their plans
               </p>
             </div>
-            <Link
-              href="/participants/new"
-              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Add Participant
-            </Link>
+            <div className="flex items-center gap-3">
+              <HelpGuideButton onClick={() => setShowHelp(true)} />
+              <Link
+                href="/participants/new"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                + Add Participant
+              </Link>
+            </div>
           </div>
 
           {/* Filters */}
@@ -150,6 +157,12 @@ export default function ParticipantsPage() {
             </div>
           )}
         </main>
+
+        <HelpGuidePanel
+          guide={HELP_GUIDES.participants}
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
       </div>
     </RequireAuth>
   );

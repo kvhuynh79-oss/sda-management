@@ -1,0 +1,1249 @@
+import type { HelpGuide } from "@/components/ui/HelpGuidePanel";
+
+export const HELP_GUIDES: Record<string, HelpGuide> = {
+  // ---------------------------------------------------------------------------
+  // 1. INCIDENTS
+  // ---------------------------------------------------------------------------
+  incidents: {
+    id: "incidents",
+    title: "Incident Reporting Guide",
+    subtitle: "NDIS compliance requirements for incident management",
+    overview:
+      "Incidents are safety-related events that affect participants, staff, or visitors. They are distinct from maintenance requests, which deal with property repairs. Every incident must be documented promptly to meet NDIS Quality and Safeguards Commission requirements and to protect participant wellbeing.",
+    sections: [
+      {
+        id: "when-to-report-an-incident",
+        title: "When to Report an Incident",
+        icon: "alert",
+        color: "red",
+        badge: "CRITICAL",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "An incident is any event that causes harm, risk of harm, or a near-miss involving a participant. It is not the same as a maintenance request. A broken tap is maintenance; a participant scalded by hot water is an incident.",
+          },
+          {
+            type: "list",
+            value: [
+              "Injury to a participant, staff member, or visitor",
+              "Property damage caused by or affecting a participant",
+              "Behavioural incident involving aggression, self-harm, or absconding",
+              "Medication error (wrong dose, missed dose, wrong medication)",
+              "Abuse or neglect (suspected or confirmed)",
+              "Missing participant or participant at risk",
+              "Death of a participant",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "If in doubt, report it as an incident. It is always better to over-report than to miss a reportable event.",
+          },
+        ],
+      },
+      {
+        id: "ndis-reportable-incidents",
+        title: "NDIS Reportable Incidents",
+        icon: "shield",
+        color: "red",
+        badge: "24HR",
+        content: [
+          {
+            type: "text",
+            value:
+              "Certain incidents must be reported to the NDIS Quality and Safeguards Commission within strict timeframes. Failure to report can result in sanctions, civil penalties, or banning orders against your organisation.",
+          },
+          {
+            type: "list",
+            value: [
+              "Death of a participant",
+              "Serious injury requiring emergency hospital treatment",
+              "Abuse or neglect causing serious harm to a participant",
+              "Unlawful sexual or physical contact of a participant by a staff member",
+              "Sexual misconduct committed against a participant by a staff member",
+              "Use of an unauthorised restrictive practice on a participant",
+            ],
+          },
+          {
+            type: "list",
+            value: [
+              "5 business day notification: suspected abuse or neglect",
+              "5 business day notification: unlawful physical contact not involving serious harm",
+              "5 business day notification: unexplained serious injury to a participant",
+              "5 business day notification: missing participant who is at risk of harm",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Timeframes start when you BECOME AWARE of the incident, not when it occurred. Report to the NDIS Quality and Safeguards Commission at 1800 035 544 or via their provider portal.",
+          },
+        ],
+      },
+      {
+        id: "reporting-workflow",
+        title: "Reporting Workflow",
+        icon: "list",
+        color: "teal",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "Log the incident immediately in MySDAManager with as much detail as available",
+              "Ensure participant safety - take any immediate protective actions needed",
+              "Assess severity: Critical (life threat), Major (NDIS reportable), Moderate (action needed), Minor (preventative)",
+              "If NDIS reportable: notify the NDIS Quality and Safeguards Commission within 24 hours via their online portal",
+              "Complete investigation within 7 days - gather evidence, interview witnesses, review records",
+              "Document actions taken and preventive measures implemented",
+              "Close the incident with final notes and lessons learned",
+            ],
+          },
+        ],
+      },
+      {
+        id: "completing-the-form",
+        title: "Completing the Form",
+        icon: "file",
+        color: "gray",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Title**: Be specific - include what happened and where (e.g. 'Hot water scalding in Dwelling 2 bathroom')",
+              "**Description**: What happened, when exactly, who was involved, immediate actions taken. Write factually - avoid opinions.",
+              "**Severity**: Critical = immediate life threat. Major = NDIS reportable. Moderate = participant affected. Minor = near-miss or low impact.",
+              "**Incident Type**: Select the most specific type. If multiple apply, choose the most serious one.",
+              "**Property & Dwelling**: Link to the exact location. This creates automatic cross-references.",
+              "**Participant**: Link to affected participant(s). This notifies their Support Coordinator.",
+              "**Photos**: Required for property damage and visible injuries (with consent). Take wide shots for context and close-ups for detail.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "best-practices",
+        title: "Best Practices",
+        icon: "check",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Report first, investigate after - never delay reporting to gather more information",
+              "Use objective language: 'Participant fell at 2:15pm in hallway' not 'They tripped because they weren't being careful'",
+              "Include witness names while they are available - memories fade quickly",
+              "Take photos immediately with timestamps enabled on your phone",
+              "Always offer the participant support and explain what happens next",
+              "Follow up within 48 hours to check on participant wellbeing",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "The incident form works offline too. If you are on-site with poor reception, fill it out and it will sync automatically when you reconnect.",
+          },
+        ],
+      },
+      {
+        id: "common-mistakes-to-avoid",
+        title: "Common Mistakes to Avoid",
+        icon: "warning",
+        color: "yellow",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Waiting to report until you have 'all the information' - report immediately, update later",
+              "Classifying abuse or neglect as a 'behavioural incident' to avoid NDIS notification",
+              "Uploading photos that show a participant's face without their consent",
+              "Forgetting to follow up on actions - the system tracks this automatically",
+              "Not linking the incident to the correct property/participant - this breaks audit trails",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Compliance Dashboard", href: "/compliance" },
+      {
+        label: "NDIS Commission Portal",
+        href: "https://www.ndiscommission.gov.au/providers/provider-portal",
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 2. MAINTENANCE
+  // ---------------------------------------------------------------------------
+  maintenance: {
+    id: "maintenance",
+    title: "Maintenance Management Guide",
+    subtitle: "From request to completion - managing property maintenance",
+    overview:
+      "Log, track, and resolve maintenance requests across all SDA and SIL properties. Every maintenance request follows a defined lifecycle from initial report through to completion and closure, with full audit trails and photo documentation.",
+    sections: [
+      {
+        id: "maintenance-vs-incident",
+        title: "Maintenance vs Incident",
+        icon: "info",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "Before logging a request, determine whether the issue is maintenance, an incident, or both. This ensures it is routed correctly and any compliance obligations are met.",
+          },
+          {
+            type: "list",
+            value: [
+              "Maintenance: Broken equipment, wear and tear, scheduled repairs, cosmetic damage",
+              "Incident: Safety hazard, participant injury, emergency situation, abuse or neglect",
+              "Both: Gas leak (emergency maintenance + safety incident), flooding (property damage + participant risk)",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "If a maintenance issue poses immediate risk to a participant, log it as BOTH an incident and a maintenance request.",
+          },
+        ],
+      },
+      {
+        id: "request-lifecycle",
+        title: "Request Lifecycle",
+        icon: "list",
+        color: "teal",
+        content: [
+          {
+            type: "text",
+            value:
+              "Every maintenance request follows this 8-stage lifecycle. Each status change is logged for audit purposes.",
+          },
+          {
+            type: "steps",
+            value: [
+              "Reported - Staff logs the issue with description, photos, and priority",
+              "Awaiting Quotes - Request sent to relevant contractors for pricing",
+              "Quoted - Quotes received and under review by property manager",
+              "Approved - Best quote selected, contractor notified",
+              "Scheduled - Work date confirmed with contractor and participant",
+              "In Progress - Contractor on-site performing the work",
+              "Completed - Work finished, before/after photos uploaded, quality verified",
+              "Closed - Final review complete, invoice processed",
+            ],
+          },
+        ],
+      },
+      {
+        id: "priority-assessment",
+        title: "Priority Assessment",
+        icon: "alert",
+        color: "yellow",
+        badge: "KEY SKILL",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Urgent**: Safety hazard, essential service down (no hot water, power outage, security breach). Target response: same day.",
+              "**High**: Impacts daily living significantly (broken appliance, leaking tap, blocked drain). Target: within 48 hours.",
+              "**Medium**: Non-urgent but needed repair (cracked tile, stiff door, minor cosmetic). Target: within 1 week.",
+              "**Low**: Preventative or cosmetic work (painting, garden maintenance, minor wear). Target: within 1 month.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Always assess from the PARTICIPANT's perspective. A broken air conditioner might be 'Medium' in autumn, but 'Urgent' during a heatwave for someone with limited mobility.",
+          },
+        ],
+      },
+      {
+        id: "quote-request-process",
+        title: "Quote Request Process",
+        icon: "dollar",
+        color: "purple",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "From the maintenance request, click 'Request Quotes'",
+              "Select contractors by specialty (plumber, electrician, HVAC, builder, etc.)",
+              "An email is automatically sent with property address, issue description, and photos",
+              "Contractors receive a unique link to submit their quote online",
+              "Compare quotes side-by-side on the maintenance request detail page",
+              "Select the winning quote and update status to 'Approved'",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Maintain at least 2-3 contractors per specialty in your database. This ensures competitive quotes and backup options if one is unavailable.",
+          },
+        ],
+      },
+      {
+        id: "completing-the-form",
+        title: "Completing the Form",
+        icon: "file",
+        color: "gray",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Title**: Brief summary (e.g. 'Leaking kitchen tap in Unit 3')",
+              "**Category**: Select the most specific type - HVAC, Plumbing, Electrical, Structural, etc. Avoid 'Other' if a better category exists.",
+              "**Description**: What is broken, when it was noticed, any temporary fixes applied. The more detail, the better the quote.",
+              "**Priority**: Use the assessment guide above. When unsure, mark as High and let the property manager adjust.",
+              "**Property & Dwelling**: Always specify the exact dwelling, not just the property.",
+              "**Estimated Cost**: Optional but helpful for budget planning. Leave blank if unknown.",
+              "**Photos**: Before-photos help contractors prepare accurate quotes. Include a wide shot of the area plus a close-up of the issue.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "best-practices",
+        title: "Best Practices",
+        icon: "check",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Use the preventative schedule to catch issues early and reduce emergency repairs",
+              "Always upload before AND after photos - these are critical for insurance claims and owner reports",
+              "Notify the participant before contractors visit their dwelling",
+              "Check if the issue is covered by warranty before requesting external quotes",
+              "Track contractor response times and quality - this data helps choose better contractors over time",
+              "Close completed requests promptly so dashboards and reports stay accurate",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Preventative Schedule", href: "/preventative-schedule" },
+      { label: "Contractors", href: "/contractors" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 3. INSPECTIONS
+  // ---------------------------------------------------------------------------
+  inspections: {
+    id: "inspections",
+    title: "Property Inspection Guide",
+    subtitle: "BLS inspection template and mobile inspection tips",
+    overview:
+      "Regular property inspections ensure SDA compliance, participant safety, and property condition monitoring. Inspections are conducted on-site using a mobile-optimised checklist and produce PDF reports for property managers, owners, and compliance records.",
+    sections: [
+      {
+        id: "inspection-schedule",
+        title: "Inspection Schedule",
+        icon: "clock",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "Different property types require different inspection frequencies. Use this as a baseline and adjust based on risk factors such as participant needs, property age, and incident history.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Move-in Inspection**: Within 7 days of a new participant moving in. Documents baseline property condition.",
+              "**Quarterly**: Every 3 months for High Physical Support (HPS) and Robust category properties.",
+              "**Bi-annual**: Every 6 months for Fully Accessible properties.",
+              "**Annual**: Once per year for Improved Liveability properties.",
+              "**Move-out**: Within 3 days of a participant vacating. Compare against move-in inspection.",
+              "**Ad-hoc**: After major maintenance work, following an incident, or if concerns are raised.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "using-the-bls-template",
+        title: "Using the BLS Template",
+        icon: "list",
+        color: "teal",
+        content: [
+          {
+            type: "text",
+            value:
+              "The BLS inspection template covers 8 categories with over 100 checklist items. Each item is marked Pass, Fail, or N/A with optional photos and comments.",
+          },
+          {
+            type: "list",
+            value: [
+              "Safety: Fire extinguishers, smoke alarms, exit signs, handrails, non-slip surfaces",
+              "Accessibility: Doorway widths, grab rails, ramp gradients, switch heights, emergency systems",
+              "Functionality: Hot water (must be 50-60 degrees C), appliances, lighting, plumbing, HVAC",
+              "Cleanliness: Common areas, participant spaces, outdoor areas, pest control",
+              "Structural: Walls, floors, ceilings, windows, doors, roof condition",
+              "Compliance: Certificates displayed, emergency plans posted, first aid accessible",
+              "Participant Feedback: Satisfaction, comfort, any concerns or requests",
+              "Overall Assessment: Summary rating, recommended actions, follow-up date",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "For each failed item, add a clear comment explaining why it failed and what action is needed. Failed items can automatically generate maintenance requests.",
+          },
+        ],
+      },
+      {
+        id: "mobile-inspection-tips",
+        title: "Mobile Inspection Tips",
+        icon: "tool",
+        color: "green",
+        badge: "MOBILE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "The inspection form works fully offline - start the inspection even without mobile signal",
+              "Take photos as you go - use the camera button next to each checklist item",
+              "Good lighting matters: turn on all lights before photographing. Use flash only if needed.",
+              "Include context in photos: take a wide shot of the room then close-ups of specific issues",
+              "Mark items as Pass or Fail. If unsure, mark Fail with a note - it is easier to upgrade than to miss an issue",
+              "Comments are required for any Fail items. Be specific about what needs fixing.",
+              "Your inspection will auto-sync when you reconnect to the internet",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Battery tip: Inspections with lots of photos can drain your phone quickly. Start with a full charge or bring a portable charger.",
+          },
+        ],
+      },
+      {
+        id: "after-the-inspection",
+        title: "After the Inspection",
+        icon: "check",
+        color: "gray",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "Review all items before submitting - especially any Fail items and their comments",
+              "Submit the inspection. A PDF report is automatically generated.",
+              "Failed items will appear as recommended maintenance actions",
+              "Share the report with the property manager and participant (if requested)",
+              "Schedule any follow-up inspections for items that need re-checking",
+              "The inspection history is available on each property's detail page",
+            ],
+          },
+        ],
+      },
+      {
+        id: "common-issues-to-watch-for",
+        title: "Common Issues to Watch For",
+        icon: "warning",
+        color: "yellow",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Fire safety: Expired extinguishers, missing smoke alarm batteries, blocked exits, outdated emergency plans",
+              "Accessibility: Loose grab rails, damaged ramps, high switches, heavy doors",
+              "Hot water: Must be between 50-60 degrees C at the tap. Too hot risks scalding, too cold risks legionella",
+              "Pest evidence: Droppings, damage to food packaging, unusual smells, visible insects",
+              "Mould: Check bathrooms, laundry, and any areas with poor ventilation",
+              "Security: Broken locks, damaged windows, non-functioning intercoms or cameras",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Inspection Templates", href: "/inspections/templates" },
+      { label: "Properties", href: "/properties" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 4. PAYMENTS
+  // ---------------------------------------------------------------------------
+  payments: {
+    id: "payments",
+    title: "SDA Payments Guide",
+    subtitle: "Recording payments, understanding SDA funding, and NDIS exports",
+    overview:
+      "Track all SDA-related payments including NDIS funding, Reasonable Rent Contributions, and owner distributions. The payments module ensures accurate financial records for NDIS compliance, owner reporting, and organisational accounting.",
+    sections: [
+      {
+        id: "understanding-sda-revenue",
+        title: "Understanding SDA Revenue",
+        icon: "dollar",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "Each participant generates revenue from multiple sources. Understanding these revenue streams is essential for accurate payment recording and owner distributions.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**SDA Funding**: The NDIS payment for the participant's accommodation. Amount varies by SDA design category (HPS pays highest, Improved Liveability pays lowest) and is specified in the participant's NDIS plan.",
+              "**Reasonable Rent Contribution (RRC)**: The participant's own contribution, calculated as 25% of the Disability Support Pension PLUS 100% of Commonwealth Rent Assistance. This is collected directly from the participant.",
+              "**SDA Provider Fee**: The management fee deducted before paying the property owner. This is your organisation's revenue for managing the property.",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "The participant's NDIS plan specifies their exact SDA funding amount. Always verify this before recording payments.",
+          },
+        ],
+      },
+      {
+        id: "recording-a-payment",
+        title: "Recording a Payment",
+        icon: "file",
+        color: "gray",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Payment Date**: The date payment was received (not the invoice date or service period)",
+              "**Amount**: The gross amount received, before any deductions",
+              "**Payment Type**: 'SDA Funding' for NDIS payments, 'RRC' for participant contributions, 'Other' for ad-hoc payments",
+              "**Participant**: Link to the participant. Must have an active NDIS plan with SDA funding.",
+              "**Property**: Auto-populated from participant's dwelling assignment",
+              "**Reference**: Bank reference number or NDIS payment reference for reconciliation",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Payments are validated against the participant's NDIS plan. The system will reject payments if the plan has expired. Ensure plans are kept up to date.",
+          },
+        ],
+      },
+      {
+        id: "variance-detection",
+        title: "Variance Detection",
+        icon: "alert",
+        color: "yellow",
+        badge: "IMPORTANT",
+        content: [
+          {
+            type: "text",
+            value:
+              "The system automatically flags payments that differ from expected amounts. Variance monitoring helps catch errors early and ensures participants receive the correct funding.",
+          },
+          {
+            type: "list",
+            value: [
+              "A variance alert is triggered when a payment differs by more than $500 from the expected amount",
+              "Common causes: NDIS plan changes, pro-rata calculations for partial months, processing errors",
+              "To investigate: Check the participant's current plan amount, verify the payment period, and contact NDIS if the variance is unexplained",
+              "Variance history is tracked on each participant's payment record for trend analysis",
+            ],
+          },
+        ],
+      },
+      {
+        id: "ndis-export",
+        title: "NDIS Export",
+        icon: "list",
+        color: "purple",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "Navigate to Payments > NDIS Export",
+              "Select the reporting period (typically quarterly)",
+              "Review the export preview - check participant names, amounts, and dates",
+              "Download the CSV file in NDIS-compliant format",
+              "Upload to the NDIS portal via your provider account",
+              "Mark the export as submitted in MySDAManager for tracking",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Run the export preview first and check for any warnings. Common issues include missing participant NDIS numbers or expired plans.",
+          },
+        ],
+      },
+      {
+        id: "owner-distributions",
+        title: "Owner Distributions",
+        icon: "home",
+        color: "green",
+        content: [
+          {
+            type: "text",
+            value:
+              "After collecting payments and deducting the provider fee, the remaining funds are distributed to property owners. The Folio Summary report provides a complete breakdown for each owner.",
+          },
+          {
+            type: "steps",
+            value: [
+              "Payments are allocated to properties based on participant dwelling assignments",
+              "The SDA Provider Fee percentage is deducted automatically",
+              "Generate a Folio Summary report for each owner showing per-participant breakdown",
+              "Process bank transfers using the owner's stored bank details",
+              "The Folio Summary serves as the owner's tax invoice and statement",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "NDIS Export", href: "/payments/ndis-export" },
+      { label: "Owner Distributions", href: "/payments/distributions" },
+      { label: "Financial Reports", href: "/financials" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 5. DOCUMENTS
+  // ---------------------------------------------------------------------------
+  documents: {
+    id: "documents",
+    title: "Document Management Guide",
+    subtitle: "Upload, track, and manage compliance documents",
+    overview:
+      "Centralised document storage with expiry tracking, auto-certification linking, and AI-powered analysis. Every compliance-critical document is monitored for expiry, and the system generates alerts well before deadlines are missed.",
+    sections: [
+      {
+        id: "document-categories",
+        title: "Document Categories",
+        icon: "file",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "Documents are organised into 5 categories for easy retrieval. Choosing the correct category ensures documents appear in the right context throughout the system.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Property Documents**: Leases, property agreements, building plans, land titles. Linked to specific properties.",
+              "**Participant Documents**: NDIS plans, service agreements, consent forms, assessment reports. Linked to specific participants.",
+              "**Compliance Documents**: NDIS registration, fire safety certificates, building compliance, insurance policies. Often have expiry dates.",
+              "**Organisation Documents**: Policies, procedures, staff training records, ABN certificates. Apply to the whole organisation.",
+              "**Financial Documents**: Invoices, receipts, quotes, bank statements. Can be linked to properties or participants.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "expiry-tracking",
+        title: "Expiry Tracking",
+        icon: "clock",
+        color: "red",
+        badge: "COMPLIANCE",
+        content: [
+          {
+            type: "text",
+            value:
+              "Compliance-critical documents have automatic expiry tracking. The system monitors deadlines and generates escalating alerts to ensure nothing lapses.",
+          },
+          {
+            type: "list",
+            value: [
+              "Set the expiry date when uploading any compliance document",
+              "System generates alerts at 90 days, 30 days, and 7 days before expiry",
+              "Expired documents appear as critical alerts on the dashboard",
+              "Fire Safety Certificates must be renewed ANNUALLY - the most common compliance gap",
+              "NDIS Practice Standards certification renews every 3 years with an 18-month mid-term audit",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Letting certifications expire can result in NDIS registration suspension, civil penalties up to $93,900, or banning orders. Always begin renewal at least 60 days before expiry.",
+          },
+        ],
+      },
+      {
+        id: "auto-certification-linking",
+        title: "Auto-Certification Linking",
+        icon: "check",
+        color: "green",
+        content: [
+          {
+            type: "text",
+            value:
+              "When you upload certain document types, the system automatically creates or updates compliance certification records. This saves manual data entry and keeps the Compliance Dashboard current.",
+          },
+          {
+            type: "list",
+            value: [
+              "Fire Safety Certificate uploads automatically create or update the fire safety certification for that property",
+              "Building Compliance Certificate uploads link to building compliance certification",
+              "NDIS Practice Standards documents link to organisational certification",
+              "SDA Design Standard documents link to property-level SDA certification",
+              "Worker Screening checks link to individual worker clearance records",
+              "The auto-linked certification appears on the Compliance Dashboard immediately",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Use the Global Upload button in the header to quickly file documents from any page. You can route documents to the correct property, participant, or category in seconds.",
+          },
+        ],
+      },
+      {
+        id: "upload-best-practices",
+        title: "Upload Best Practices",
+        icon: "star",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Name files clearly before uploading: 'Fire_Safety_Cert_12WaldronRd_2026.pdf' is much better than 'scan001.pdf'",
+              "Upload original digital documents when available, not scans of printouts",
+              "Always set the expiry date for compliance documents - without it, no alerts will be generated",
+              "Use the AI Analysis button to automatically extract document details (invoice amounts, dates, vendors)",
+              "Link documents to the correct entity (property, participant, or organisation) for easy retrieval",
+              "Check the Documents tab on property and participant detail pages to see all linked documents in one place",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Compliance Certifications", href: "/compliance/certifications" },
+      { label: "Global Upload", href: "/documents/new" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6. COMMUNICATIONS
+  // ---------------------------------------------------------------------------
+  communications: {
+    id: "communications",
+    title: "Communications & Follow-ups Guide",
+    subtitle: "Track all communications and manage follow-up tasks",
+    overview:
+      "Log every email, call, SMS, and meeting in one place. Create follow-up tasks to ensure nothing falls through the cracks. The Communications Log creates an auditable trail that satisfies NDIS record-keeping requirements.",
+    sections: [
+      {
+        id: "what-to-log",
+        title: "What to Log",
+        icon: "info",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "The Communications Log creates an auditable trail of all interactions related to participants, properties, and compliance matters. If a conversation is relevant to service delivery, it should be logged.",
+          },
+          {
+            type: "list",
+            value: [
+              "Phone calls with Support Coordinators about plan renewals or funding",
+              "Emails to or from NDIS about participant plans or payments",
+              "SMS messages to participants about maintenance visits or inspections",
+              "Meetings with SIL providers about shared care arrangements",
+              "Conversations with family members or advocates about participant concerns",
+              "Correspondence with contractors about quotes or work quality",
+              "Any communication related to complaints, incidents, or compliance matters",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "If it is important enough to remember, it is important enough to log. A 30-second entry now can save hours of confusion later.",
+          },
+        ],
+      },
+      {
+        id: "5-view-modes",
+        title: "5 View Modes",
+        icon: "list",
+        color: "teal",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Thread View**: See conversations grouped by topic. Each thread shows all related messages in chronological order. Best for following ongoing discussions.",
+              "**Timeline View**: A flat, chronological list of ALL communications. Best for seeing recent activity across all contacts.",
+              "**Stakeholder View**: Filter by contact person. See all communications with a specific Support Coordinator, SIL provider, or family member.",
+              "**Compliance View**: Filter by NDIS compliance category. Critical for audit preparation - see all incident-related, funding-related, or complaint-related communications.",
+              "**Tasks View**: See all follow-up tasks with due dates, priorities, and status. Overdue tasks are highlighted.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "logging-a-communication",
+        title: "Logging a Communication",
+        icon: "file",
+        color: "gray",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Type**: Email, Phone Call, SMS, Meeting, or In-Person conversation",
+              "**Direction**: Inbound (you received it) or Outbound (you initiated it)",
+              "**Contact**: Who you communicated with. Select from database (SC, SIL provider, OT, contractor) for auto-filled contact details, or type a name manually.",
+              "**Subject**: Brief topic (e.g. 'Plan renewal for Sarah - due March 2026')",
+              "**Notes**: Key points discussed, decisions made, action items identified. Write enough that someone else could understand the conversation.",
+              "**Participant**: Link to relevant participant(s) for their communication history",
+              "**Compliance Category**: If NDIS-relevant, select the category (incident_related, funding, plan_approval, etc.)",
+              "**Attachments**: Upload email screenshots, documents discussed, or meeting notes",
+            ],
+          },
+        ],
+      },
+      {
+        id: "ndis-compliance-features",
+        title: "NDIS Compliance Features",
+        icon: "shield",
+        color: "red",
+        badge: "COMPLIANCE",
+        content: [
+          {
+            type: "text",
+            value:
+              "Every communication can be tagged with compliance flags for NDIS audit readiness. These flags make it simple to locate relevant records during Quality and Safeguards Commission reviews.",
+          },
+          {
+            type: "list",
+            value: [
+              "NDIA Reportable: The communication relates to a reportable incident or event",
+              "Time Sensitive: Has a deadline for response or action (e.g. 24hr incident notification)",
+              "Funding Related: Involves SDA funding, plan amounts, or payment discussions",
+              "Advocacy Involved: A participant advocate was part of the communication",
+              "Complaint Related: Connected to a formal complaint or feedback process",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Communications tagged with compliance flags are immutable - they cannot be deleted, only soft-archived. This ensures a complete audit trail for NDIS reviews.",
+          },
+        ],
+      },
+      {
+        id: "managing-tasks",
+        title: "Managing Tasks",
+        icon: "check",
+        color: "green",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "Create a task from any communication by clicking 'Create Follow-up Task'",
+              "Set priority (High, Medium, Low) and a due date",
+              "Assign to yourself or another team member",
+              "Tasks appear on the dashboard and in the Tasks view of Follow-ups",
+              "When complete, add resolution notes explaining the outcome",
+              "Overdue tasks generate alerts - check them daily",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Create tasks for anything that needs a response or action. Common tasks: 'Call SC about plan renewal', 'Send inspection report to owner', 'Follow up on maintenance quote'.",
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Follow-ups Dashboard", href: "/follow-ups" },
+      { label: "New Communication", href: "/follow-ups/communications/new" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 7. PROPERTIES
+  // ---------------------------------------------------------------------------
+  properties: {
+    id: "properties",
+    title: "Property Management Guide",
+    subtitle: "Managing SDA and SIL properties, dwellings, and compliance",
+    overview:
+      "Properties are the core of MySDAManager. Each property contains one or more dwellings where NDIS participants live. Accurate property records drive compliance tracking, payment calculations, and reporting across the entire system.",
+    sections: [
+      {
+        id: "sda-vs-sil-properties",
+        title: "SDA vs SIL Properties",
+        icon: "home",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**SDA Properties**: Registered with the NDIS as Specialist Disability Accommodation. Must meet specific design standards. Revenue comes from NDIS SDA funding. Owned by investors and managed by your organisation.",
+              "**SIL Properties**: Used by Supported Independent Living providers. May not require NDIS SDA registration. Managed differently - often by the SIL provider directly with your organisation providing oversight.",
+              "**Hybrid**: An SDA-registered property where a SIL provider manages participant support. The property receives SDA funding AND the participant receives SIL support separately.",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "When creating a new property, select the correct property type first. This determines which fields are shown and which compliance requirements apply.",
+          },
+        ],
+      },
+      {
+        id: "sda-design-categories",
+        title: "SDA Design Categories",
+        icon: "star",
+        color: "purple",
+        content: [
+          {
+            type: "text",
+            value:
+              "NDIS recognises four SDA design categories, each with different design requirements and funding levels. The category determines the maximum SDA payment a property can receive.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Improved Liveability**: Basic accessibility features like step-free entry, wider doorways, and improved lighting. Lowest SDA funding tier.",
+              "**Fully Accessible**: Full wheelchair accessibility throughout, including bathrooms, kitchen, and outdoor areas. Medium funding tier.",
+              "**Robust**: Reinforced construction for participants with complex behavioural support needs. Includes impact-resistant walls and secure fittings.",
+              "**High Physical Support (HPS)**: The highest standard. Includes ceiling hoists, adjustable kitchen benches, profiling beds, emergency power, and assistive technology integration. Highest SDA funding tier.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "setting-up-a-property",
+        title: "Setting Up a Property",
+        icon: "list",
+        color: "gray",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "Enter the property address, type (SDA or SIL), and design category",
+              "Add the property owner details and their bank information for payment distributions",
+              "Create dwellings - each dwelling is a separate living unit within the property",
+              "Set bedroom count and maximum occupancy for each dwelling",
+              "Upload compliance documents (SDA registration, fire safety certificate, building compliance)",
+              "Assign participants to their dwellings once they move in",
+            ],
+          },
+        ],
+      },
+      {
+        id: "dwelling-management",
+        title: "Dwelling Management",
+        icon: "users",
+        color: "green",
+        content: [
+          {
+            type: "text",
+            value:
+              "Each dwelling is a separate unit that houses participants and generates individual SDA funding. Accurate dwelling records are essential for payment calculations and vacancy tracking.",
+          },
+          {
+            type: "list",
+            value: [
+              "Each dwelling has its own bedroom count and maximum participant capacity (1-4)",
+              "Participants are assigned to specific dwellings, not just properties",
+              "Vacancy tracking shows which dwellings have available beds",
+              "Move-in and move-out dates are tracked per participant per dwelling",
+              "Maintenance requests, inspections, and incidents can be linked to specific dwellings",
+              "Dwelling occupancy affects SDA funding calculations",
+            ],
+          },
+        ],
+      },
+      {
+        id: "property-compliance",
+        title: "Property Compliance",
+        icon: "shield",
+        color: "red",
+        badge: "COMPLIANCE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "SDA Registration Certificate - must be current for NDIS funding eligibility",
+              "Fire Safety Certificate - ANNUAL renewal required. Most common compliance gap.",
+              "Building Compliance Certificate - required for occupancy",
+              "SDA Design Standard Certificate - confirms the property meets its registered design category",
+              "Insurance - public liability, building, and contents insurance must be current",
+              "All certificates are tracked on the Compliance Dashboard with automatic expiry alerts",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "An expired SDA registration means the property cannot receive NDIS SDA funding until renewed. Monitor expiry dates closely.",
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Compliance Dashboard", href: "/compliance" },
+      { label: "Vacancy Listings", href: "/vacancies" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 8. PARTICIPANTS
+  // ---------------------------------------------------------------------------
+  participants: {
+    id: "participants",
+    title: "Participant Management Guide",
+    subtitle: "NDIS participant records, plans, and stakeholder management",
+    overview:
+      "Manage participant information, NDIS plan details, and relationships with Support Coordinators, SIL providers, and other stakeholders. Accurate participant records are the foundation of SDA funding, compliance reporting, and service delivery.",
+    sections: [
+      {
+        id: "participant-records",
+        title: "Participant Records",
+        icon: "users",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "Each participant record contains personal details, NDIS information, and living arrangements. Keep records current to ensure accurate payments and compliance reporting.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Name & Contact**: Full name, phone, email, emergency contact details",
+              "**NDIS Number**: The participant's unique NDIS identifier. Stored securely and audit-logged on access.",
+              "**Date of Birth**: Used for age-related compliance checks",
+              "**SDA Category Needs**: Which design category the participant is approved for (IL, FA, Robust, HPS)",
+              "**Current Dwelling**: Which property and dwelling they live in",
+              "**Move-in Date**: When they started living at the current dwelling",
+            ],
+          },
+        ],
+      },
+      {
+        id: "ndis-plan-management",
+        title: "NDIS Plan Management",
+        icon: "file",
+        color: "purple",
+        badge: "KEY",
+        content: [
+          {
+            type: "text",
+            value:
+              "Each participant has an NDIS plan that determines their SDA funding. Plans have fixed terms and must be renewed before expiry to avoid gaps in funding.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Plan Start Date**: When the current NDIS plan period begins",
+              "**Plan End Date**: When the plan expires - CRITICAL to track. Payments cannot be processed against an expired plan.",
+              "**SDA Funding Amount**: The monthly SDA payment specified in the plan",
+              "**Plan Manager**: Who manages the participant's NDIS funding (self-managed, plan-managed, or NDIA-managed)",
+              "**Support Coordinator**: The participant's assigned SC who assists with plan implementation",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "The system generates automatic alerts at 60, 30, and 7 days before plan expiry. Begin the renewal process at least 60 days before expiry to avoid gaps in funding.",
+          },
+        ],
+      },
+      {
+        id: "stakeholder-linking",
+        title: "Stakeholder Linking",
+        icon: "users",
+        color: "green",
+        content: [
+          {
+            type: "text",
+            value:
+              "Link participants to their support network for streamlined communications and coordinated care.",
+          },
+          {
+            type: "list",
+            value: [
+              "Support Coordinator: Primary contact for plan reviews, funding queries, and service coordination. Linked from the database - their contact details auto-populate in communications.",
+              "SIL Provider: If the participant receives Supported Independent Living services. Important for coordinating property access and support schedules.",
+              "Occupational Therapist: For SDA assessments, equipment recommendations, and home modifications. Track AHPRA registration and specialisations.",
+              "Family/Guardian: Emergency contacts and decision-makers. Important for consent and communication preferences.",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "When you link a Support Coordinator to a participant, you can quickly create pre-filled communications to them from the participant's detail page.",
+          },
+        ],
+      },
+      {
+        id: "privacy-and-consent",
+        title: "Privacy and Consent",
+        icon: "shield",
+        color: "red",
+        badge: "PRIVACY",
+        content: [
+          {
+            type: "list",
+            value: [
+              "NDIS numbers are sensitive personal information - access is audit-logged",
+              "Never share participant information without their explicit consent or legal authority",
+              "Photos containing a participant's face require written consent before being uploaded",
+              "Participants can request access to their own records at any time",
+              "All data is retained for 7 years after service ends (NDIS compliance requirement)",
+              "When a participant moves out, their record is archived but not deleted",
+            ],
+          },
+        ],
+      },
+      {
+        id: "plan-expiry-workflow",
+        title: "Plan Expiry Workflow",
+        icon: "clock",
+        color: "yellow",
+        badge: "TIMELINE",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "60 days before expiry: Alert generated. Contact the Support Coordinator to confirm renewal is underway.",
+              "30 days before expiry: Escalation alert. Follow up with SC if no update on renewal progress.",
+              "7 days before expiry: Critical alert. Payment processing will be blocked if the plan is not renewed.",
+              "Plan expired: No new payments can be recorded against this plan. Existing payments remain valid.",
+              "New plan received: Create a new plan record with updated dates, funding amounts, and any changes to SDA category.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Never delete an expired plan. Create a new plan record instead. The expired plan is needed for historical payment reconciliation.",
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      {
+        label: "Support Coordinators",
+        href: "/database/support-coordinators",
+      },
+      { label: "SIL Providers", href: "/database/sil-providers" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 9. CONTRACTORS
+  // ---------------------------------------------------------------------------
+  contractors: {
+    id: "contractors",
+    title: "Contractor Management Guide",
+    subtitle: "Managing trade contractors and the quote request workflow",
+    overview:
+      "Maintain a database of trusted contractors for property maintenance and access the automated quote request system. Good contractor records lead to faster repairs, competitive pricing, and better outcomes for participants.",
+    sections: [
+      {
+        id: "contractor-database",
+        title: "Contractor Database",
+        icon: "tool",
+        color: "teal",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Business Name**: The contractor's registered business name",
+              "**Contact**: Primary contact person, phone, and email",
+              "**ABN**: Australian Business Number - required for invoicing and tax compliance",
+              "**Specialty**: Primary trade (Plumber, Electrician, HVAC, Builder, Painter, Locksmith, Landscaper, Cleaner, General Maintenance, Other)",
+              "**Service Areas**: Which suburbs or regions they cover",
+              "**Insurance**: Public liability insurance status and expiry date - verify annually",
+              "**Notes**: Any relevant information (availability, quality notes, pricing tendencies)",
+            ],
+          },
+        ],
+      },
+      {
+        id: "quote-request-workflow",
+        title: "Quote Request Workflow",
+        icon: "dollar",
+        color: "purple",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "From a maintenance request, click 'Request Quotes'",
+              "Select one or more contractors that match the required specialty",
+              "Customise the email message if needed - property details and photos are included automatically",
+              "The contractor receives an email with a unique link to submit their quote",
+              "They fill out their quote online: amount, estimated timeframe, scope of work, warranty details",
+              "Quotes appear on the maintenance request for side-by-side comparison",
+              "Select the winning quote and the contractor is notified automatically",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Send quote requests to at least 2-3 contractors for competitive pricing. The system tracks which contractors respond fastest and offer the best value.",
+          },
+        ],
+      },
+      {
+        id: "performance-tracking",
+        title: "Performance Tracking",
+        icon: "star",
+        color: "green",
+        content: [
+          {
+            type: "text",
+            value:
+              "Over time, MySDAManager builds a profile of each contractor's performance based on completed work. Use this data to make informed decisions when selecting contractors.",
+          },
+          {
+            type: "list",
+            value: [
+              "Response time: How quickly they reply to quote requests",
+              "Quote accuracy: How close their final invoice is to the original quote",
+              "Work quality: Based on post-completion inspection results",
+              "Reliability: Tracks no-shows, delays, and schedule changes",
+              "Cost competitiveness: How their pricing compares to other contractors for similar work",
+            ],
+          },
+        ],
+      },
+      {
+        id: "best-practices",
+        title: "Best Practices",
+        icon: "check",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Keep at least 2-3 contractors per specialty for competitive quotes and backup options",
+              "Verify public liability insurance annually - expired insurance is a significant risk",
+              "Add detailed notes after each job to build a useful contractor profile",
+              "Use the preferred contractor flag for your most reliable trades",
+              "Always confirm the contractor has appropriate licences for the work (e.g. electrical licence for electrical work)",
+              "Request certificates of completion for major works - upload them as documents",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Maintenance Requests", href: "/maintenance" },
+      { label: "Quote Requests", href: "/maintenance" },
+    ],
+  },
+};

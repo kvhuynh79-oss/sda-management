@@ -7,6 +7,9 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 import { useAuth } from "@/hooks/useAuth";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatStatus } from "@/utils/format";
@@ -46,6 +49,7 @@ const SPECIALTY_BADGE_COLORS: Record<string, string> = {
 export default function ContractorsPage() {
   const { user } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [editingContractor, setEditingContractor] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSpecialty, setFilterSpecialty] = useState<string>("all");
@@ -101,12 +105,15 @@ export default function ContractorsPage() {
                 Manage trade contractors for maintenance work
               </p>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors flex-shrink-0 self-start sm:self-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Add Contractor
-            </button>
+            <div className="flex items-center gap-3 flex-shrink-0 self-start sm:self-auto">
+              <HelpGuideButton onClick={() => setShowHelp(true)} />
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                + Add Contractor
+              </button>
+            </div>
           </div>
 
           {/* Search and Filters */}
@@ -203,6 +210,12 @@ export default function ContractorsPage() {
             </div>
           )}
         </main>
+
+        <HelpGuidePanel
+          guide={HELP_GUIDES.contractors}
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
 
         {/* Add/Edit Modal */}
         {(showAddModal || editingContractor) && (

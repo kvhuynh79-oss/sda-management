@@ -12,6 +12,9 @@ import { PRIORITY_COLORS, MAINTENANCE_STATUS_COLORS } from "@/constants/colors";
 import { formatStatus, formatCategory, formatCurrency } from "@/utils/format";
 import { useAuth } from "@/hooks/useAuth";
 import { Id } from "../../../convex/_generated/dataModel";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 // Priority badge colors (solid backgrounds for badges)
 const PRIORITY_BADGE_COLORS: Record<string, string> = {
@@ -36,6 +39,7 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
 export default function MaintenancePage() {
   const { user } = useAuth();
   const [filterStatus, setFilterStatus] = useState<string>("open");
+  const [showHelp, setShowHelp] = useState(false);
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,12 +92,15 @@ export default function MaintenancePage() {
               <h1 className="text-2xl font-bold text-white">Maintenance Requests</h1>
               <p className="text-gray-400 mt-1">Track and manage property maintenance</p>
             </div>
-            <Link
-              href="/maintenance/new"
-              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Log Request
-            </Link>
+            <div className="flex items-center gap-3">
+              <HelpGuideButton onClick={() => setShowHelp(true)} />
+              <Link
+                href="/maintenance/new"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                + Log Request
+              </Link>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -224,6 +231,11 @@ export default function MaintenancePage() {
           )}
         </main>
         <BottomNav currentPage="operations" />
+        <HelpGuidePanel
+          guide={HELP_GUIDES.maintenance}
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
       </div>
     </RequireAuth>
   );

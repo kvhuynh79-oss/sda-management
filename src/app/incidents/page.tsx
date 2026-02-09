@@ -11,6 +11,9 @@ import { LoadingScreen, EmptyState } from "@/components/ui";
 import { formatStatus } from "@/utils/format";
 import { useAuth } from "@/hooks/useAuth";
 import { Id } from "../../../convex/_generated/dataModel";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 // Severity badge colors
 const SEVERITY_BADGE_COLORS: Record<string, string> = {
@@ -31,6 +34,7 @@ const INCIDENT_STATUS_COLORS: Record<string, string> = {
 export default function IncidentsPage() {
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showHelp, setShowHelp] = useState(false);
 
   const incidents = useQuery(api.incidents.getAll, user ? {
     userId: user.id as Id<"users">,
@@ -51,12 +55,15 @@ export default function IncidentsPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-white">Incident Reports</h1>
               <p className="text-gray-300 mt-1 text-sm sm:text-base">Track and manage incident reports</p>
             </div>
-            <Link
-              href="/incidents/new"
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex-shrink-0 self-start sm:self-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Report Incident
-            </Link>
+            <div className="flex items-center gap-3 flex-shrink-0 self-start sm:self-auto">
+              <HelpGuideButton onClick={() => setShowHelp(true)} />
+              <Link
+                href="/incidents/new"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                + Report Incident
+              </Link>
+            </div>
           </div>
 
           {/* Filters */}
@@ -122,6 +129,11 @@ export default function IncidentsPage() {
           )}
         </main>
         <BottomNav currentPage="incidents" />
+        <HelpGuidePanel
+          guide={HELP_GUIDES.incidents}
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
       </div>
     </RequireAuth>
   );

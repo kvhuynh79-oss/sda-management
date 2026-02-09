@@ -11,6 +11,9 @@ import { LoadingScreen, EmptyState, StatCard } from "@/components/ui";
 import { formatStatus, formatFileSize, formatDate } from "@/utils/format";
 import { useAuth } from "@/hooks/useAuth";
 import GlobalUploadModal from "@/components/GlobalUploadModal";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 export default function DocumentsPage() {
   const { user } = useAuth();
@@ -18,6 +21,7 @@ export default function DocumentsPage() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const documents = useQuery(api.documents.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const stats = useQuery(api.documents.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
@@ -55,12 +59,15 @@ export default function DocumentsPage() {
               <h1 className="text-2xl font-bold text-white">Documents</h1>
               <p className="text-gray-400 mt-1">Manage and organize important files</p>
             </div>
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Upload Document
-            </button>
+            <div className="flex items-center gap-3">
+              <HelpGuideButton onClick={() => setShowHelp(true)} />
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                + Upload Document
+              </button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -169,6 +176,12 @@ export default function DocumentsPage() {
           )}
         </main>
       </div>
+
+      <HelpGuidePanel
+        guide={HELP_GUIDES.documents}
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
 
       {/* Global Upload Modal */}
       <GlobalUploadModal

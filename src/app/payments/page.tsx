@@ -14,6 +14,9 @@ import { StatCard } from "@/components/ui/StatCard";
 import { FormInput } from "@/components/forms/FormInput";
 import { FormSelect } from "@/components/forms/FormSelect";
 import { formatCurrency, formatDate, formatStatus } from "@/utils/format";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 const SOURCE_OPTIONS = [
   { value: "all", label: "All Sources" },
@@ -25,6 +28,7 @@ const SOURCE_OPTIONS = [
 function PaymentsContent() {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showHelp, setShowHelp] = useState(false);
 
   // Auth state from localStorage (useAuth pattern)
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
@@ -88,6 +92,7 @@ function PaymentsContent() {
             <p className="text-gray-400 mt-1">Track and manage SDA payments</p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <HelpGuideButton onClick={() => setShowHelp(true)} />
             <Link
               href="/payments/ndis-export"
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
@@ -220,6 +225,11 @@ function PaymentsContent() {
           </p>
         )}
       </main>
+      <HelpGuidePanel
+        guide={HELP_GUIDES.payments}
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
     </div>
   );
 }

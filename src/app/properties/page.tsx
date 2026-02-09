@@ -2,18 +2,22 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, EmptyState } from "@/components/ui";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 import { OCCUPANCY_COLORS, PROPERTY_STATUS_COLORS } from "@/constants/colors";
 import { useAuth } from "@/hooks/useAuth";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function PropertiesPage() {
   const { user } = useAuth();
+  const [showHelp, setShowHelp] = useState(false);
   const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
 
   return (
@@ -28,12 +32,15 @@ export default function PropertiesPage() {
               <h1 className="text-2xl font-bold text-white">Properties</h1>
               <p className="text-gray-300 mt-1">Manage your SDA properties and dwellings</p>
             </div>
-            <Link
-              href="/properties/new"
-              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              + Add Property
-            </Link>
+            <div className="flex items-center gap-3">
+              <HelpGuideButton onClick={() => setShowHelp(true)} />
+              <Link
+                href="/properties/new"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                + Add Property
+              </Link>
+            </div>
           </div>
 
           {/* Properties List */}
@@ -57,6 +64,12 @@ export default function PropertiesPage() {
             </div>
           )}
         </main>
+
+        <HelpGuidePanel
+          guide={HELP_GUIDES.properties}
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
         <BottomNav currentPage="database" />
       </div>
     </RequireAuth>

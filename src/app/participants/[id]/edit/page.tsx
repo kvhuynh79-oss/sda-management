@@ -23,8 +23,32 @@ export default function EditParticipantPage() {
   const participant = useQuery(api.participants.getById, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
   const allDwellings = useQuery(api.dwellings.getAllWithAddresses, userIdTyped ? { userId: userIdTyped } : "skip");
 
+  // Database-linked queries for SIL providers and support coordinators
+  const silProviders = useQuery(
+    api.silProviders.getAll,
+    userIdTyped ? { userId: userIdTyped, status: "active" as const } : "skip"
+  );
+  const supportCoordinators = useQuery(
+    api.supportCoordinators.getAll,
+    userIdTyped ? { userId: userIdTyped, status: "active" as const } : "skip"
+  );
+
+  // Get existing links for this participant
+  const existingSilProviderLinks = useQuery(
+    api.silProviders.getByParticipant,
+    userIdTyped && participantId ? { userId: userIdTyped, participantId } : "skip"
+  );
+  const existingScLinks = useQuery(
+    api.supportCoordinators.getByParticipant,
+    userIdTyped && participantId ? { userId: userIdTyped, participantId } : "skip"
+  );
+
   const updateParticipant = useMutation(api.participants.update);
   const updatePlan = useMutation(api.participantPlans.update);
+  const createSilProvider = useMutation(api.silProviders.create);
+  const linkSilProvider = useMutation(api.silProviders.linkParticipant);
+  const createSupportCoordinator = useMutation(api.supportCoordinators.create);
+  const linkSupportCoordinator = useMutation(api.supportCoordinators.linkParticipant);
 
   // Participant form state
   const [participantData, setParticipantData] = useState({
@@ -43,6 +67,21 @@ export default function EditParticipantPage() {
     supportCoordinatorPhone: "",
     notes: "",
   });
+
+  // Database-linked entity selection state
+  const [selectedSilProviderId, setSelectedSilProviderId] = useState<string>("");
+  const [silProviderAddNew, setSilProviderAddNew] = useState(false);
+  const [newSilProviderName, setNewSilProviderName] = useState("");
+
+  const [selectedScId, setSelectedScId] = useState<string>("");
+  const [scAddNew, setScAddNew] = useState(false);
+  const [newScName, setNewScName] = useState("");
+  const [newScEmail, setNewScEmail] = useState("");
+  const [newScPhone, setNewScPhone] = useState("");
+
+  // Track whether the entity selections have been initialized from DB
+  const [silProviderInitialized, setSilProviderInitialized] = useState(false);
+  const [scInitialized, setScInitialized] = useState(false);
 
   // Plan form state
   const [planData, setPlanData] = useState({
@@ -119,12 +158,111 @@ export default function EditParticipantPage() {
     }
   }, [participant]);
 
+  // Initialize SIL provider selection from existing link
+  useEffect(() => {
+    if (!silProviderInitialized && existingSilProviderLinks && existingSilProviderLinks.length > 0) {
+      const currentLink = existingSilProviderLinks.find(
+        (link) => link.relationshipType === "current"
+      ) || existingSilProviderLinks[0];
+      if (currentLink?.provider) {
+        setSelectedSilProviderId(currentLink.provider._id);
+      }
+      setSilProviderInitialized(true);
+    }
+  }, [existingSilProviderLinks, silProviderInitialized]);
+
+  // Initialize SC selection from existing link
+  useEffect(() => {
+    if (!scInitialized && existingScLinks && existingScLinks.length > 0) {
+      const currentLink = existingScLinks.find(
+        (link) => link.relationshipType === "current"
+      ) || existingScLinks[0];
+      if (currentLink?.coordinator) {
+        setSelectedScId(currentLink.coordinator._id);
+      }
+      setScInitialized(true);
+    }
+  }, [existingScLinks, scInitialized]);
+
+  // Handle SIL provider selection change
+  const handleSilProviderChange = (value: string) => {
+    if (value === "__add_new__") {
+      setSelectedSilProviderId("");
+      setSilProviderAddNew(true);
+      setNewSilProviderName("");
+      setParticipantData({ ...participantData, silProviderName: "" });
+    } else {
+      setSelectedSilProviderId(value);
+      setSilProviderAddNew(false);
+      setNewSilProviderName("");
+      const provider = silProviders?.find((p) => p._id === value);
+      setParticipantData({
+        ...participantData,
+        silProviderName: provider?.companyName || "",
+      });
+    }
+  };
+
+  // Handle SC selection change
+  const handleScChange = (value: string) => {
+    if (value === "__add_new__") {
+      setSelectedScId("");
+      setScAddNew(true);
+      setNewScName("");
+      setNewScEmail("");
+      setNewScPhone("");
+      setParticipantData({
+        ...participantData,
+        supportCoordinatorName: "",
+        supportCoordinatorEmail: "",
+        supportCoordinatorPhone: "",
+      });
+    } else {
+      setSelectedScId(value);
+      setScAddNew(false);
+      setNewScName("");
+      setNewScEmail("");
+      setNewScPhone("");
+      const coordinator = supportCoordinators?.find((c) => c._id === value);
+      if (coordinator) {
+        setParticipantData({
+          ...participantData,
+          supportCoordinatorName: `${coordinator.firstName} ${coordinator.lastName}`,
+          supportCoordinatorEmail: coordinator.email || "",
+          supportCoordinatorPhone: coordinator.phone || "",
+        });
+      } else {
+        setParticipantData({
+          ...participantData,
+          supportCoordinatorName: "",
+          supportCoordinatorEmail: "",
+          supportCoordinatorPhone: "",
+        });
+      }
+    }
+  };
+
   const handleParticipantSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
 
     try {
+      // Determine final values based on dropdown/add-new state
+      let finalSilProviderName = participantData.silProviderName;
+      let finalScName = participantData.supportCoordinatorName;
+      let finalScEmail = participantData.supportCoordinatorEmail;
+      let finalScPhone = participantData.supportCoordinatorPhone;
+
+      if (silProviderAddNew && newSilProviderName) {
+        finalSilProviderName = newSilProviderName;
+      }
+      if (scAddNew) {
+        finalScName = newScName;
+        finalScEmail = newScEmail;
+        finalScPhone = newScPhone;
+      }
+
       await updateParticipant({
         userId: user?.id as Id<"users">,
         participantId,
@@ -137,12 +275,72 @@ export default function EditParticipantPage() {
         emergencyContactPhone: participantData.emergencyContactPhone || undefined,
         emergencyContactRelation: participantData.emergencyContactRelation || undefined,
         dwellingId: participantData.dwellingId ? participantData.dwellingId as Id<"dwellings"> : undefined,
-        silProviderName: participantData.silProviderName || undefined,
-        supportCoordinatorName: participantData.supportCoordinatorName || undefined,
-        supportCoordinatorEmail: participantData.supportCoordinatorEmail || undefined,
-        supportCoordinatorPhone: participantData.supportCoordinatorPhone || undefined,
+        silProviderName: finalSilProviderName || undefined,
+        supportCoordinatorName: finalScName || undefined,
+        supportCoordinatorEmail: finalScEmail || undefined,
+        supportCoordinatorPhone: finalScPhone || undefined,
         notes: participantData.notes || undefined,
       });
+
+      // Link or create SIL provider
+      if (silProviderAddNew && newSilProviderName) {
+        const newProviderId = await createSilProvider({
+          userId: user!.id as Id<"users">,
+          companyName: newSilProviderName,
+          email: "",
+          areas: [],
+        });
+        await linkSilProvider({
+          silProviderId: newProviderId,
+          participantId,
+          relationshipType: "current",
+        });
+      } else if (selectedSilProviderId) {
+        // Check if already linked to this provider
+        const alreadyLinked = existingSilProviderLinks?.some(
+          (link) => link.provider?._id === selectedSilProviderId
+        );
+        if (!alreadyLinked) {
+          await linkSilProvider({
+            silProviderId: selectedSilProviderId as Id<"silProviders">,
+            participantId,
+            relationshipType: "current",
+          });
+        }
+      }
+
+      // Link or create Support Coordinator
+      if (scAddNew && newScName) {
+        const nameParts = newScName.trim().split(/\s+/);
+        const firstName = nameParts[0] || "Unknown";
+        const lastName = nameParts.slice(1).join(" ") || "";
+
+        const newScId = await createSupportCoordinator({
+          userId: user!.id as Id<"users">,
+          firstName,
+          lastName: lastName || "Coordinator",
+          email: newScEmail || "",
+          areas: [],
+        });
+        await linkSupportCoordinator({
+          userId: user!.id as Id<"users">,
+          supportCoordinatorId: newScId,
+          participantId,
+          relationshipType: "current",
+        });
+      } else if (selectedScId) {
+        const alreadyLinked = existingScLinks?.some(
+          (link) => link.coordinator?._id === selectedScId
+        );
+        if (!alreadyLinked) {
+          await linkSupportCoordinator({
+            userId: user!.id as Id<"users">,
+            supportCoordinatorId: selectedScId as Id<"supportCoordinators">,
+            participantId,
+            relationshipType: "current",
+          });
+        }
+      }
 
       router.push(`/participants/${participantId}`);
     } catch (err: any) {
@@ -398,69 +596,126 @@ export default function EditParticipantPage() {
               </div>
             </div>
 
-            {/* Support Services */}
+            {/* Support Services - Database-linked dropdowns */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h2 className="text-lg font-semibold text-white mb-4">Support Services</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                {/* SIL Provider - Database-linked dropdown */}
                 <div>
-                  <label className="block text-gray-300 text-sm mb-1">SIL Provider Name</label>
-                  <input
-                    type="text"
-                    value={participantData.silProviderName}
-                    onChange={(e) =>
-                      setParticipantData({ ...participantData, silProviderName: e.target.value })
-                    }
+                  <label className="block text-gray-300 text-sm mb-1">SIL Provider</label>
+                  <select
+                    value={silProviderAddNew ? "__add_new__" : selectedSilProviderId}
+                    onChange={(e) => handleSilProviderChange(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
+                  >
+                    <option value="">Select SIL Provider...</option>
+                    {silProviders?.map((provider: any) => (
+                      <option key={provider._id} value={provider._id}>
+                        {provider.companyName}
+                        {provider.contactName ? ` (${provider.contactName})` : ""}
+                      </option>
+                    ))}
+                    <option value="__add_new__">+ Add New Provider</option>
+                  </select>
+                  {silProviderAddNew && (
+                    <div className="mt-2">
+                      <label className="block text-gray-400 text-sm mb-1">
+                        New Provider Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newSilProviderName}
+                        onChange={(e) => setNewSilProviderName(e.target.value)}
+                        placeholder="Enter new SIL provider name"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      />
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-gray-300 text-sm mb-1">
-                    Support Coordinator Name
-                  </label>
-                  <input
-                    type="text"
-                    value={participantData.supportCoordinatorName}
-                    onChange={(e) =>
-                      setParticipantData({
-                        ...participantData,
-                        supportCoordinatorName: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm mb-1">
-                    Support Coordinator Email
-                  </label>
-                  <input
-                    type="email"
-                    value={participantData.supportCoordinatorEmail}
-                    onChange={(e) =>
-                      setParticipantData({
-                        ...participantData,
-                        supportCoordinatorEmail: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
-                </div>
+
+                {/* Support Coordinator - Database-linked dropdown */}
                 <div>
                   <label className="block text-gray-300 text-sm mb-1">
-                    Support Coordinator Phone
+                    Support Coordinator
                   </label>
-                  <input
-                    type="tel"
-                    value={participantData.supportCoordinatorPhone}
-                    onChange={(e) =>
-                      setParticipantData({
-                        ...participantData,
-                        supportCoordinatorPhone: e.target.value,
-                      })
-                    }
+                  <select
+                    value={scAddNew ? "__add_new__" : selectedScId}
+                    onChange={(e) => handleScChange(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  />
+                  >
+                    <option value="">Select Support Coordinator...</option>
+                    {supportCoordinators?.map((sc: any) => (
+                      <option key={sc._id} value={sc._id}>
+                        {sc.firstName} {sc.lastName}
+                        {sc.organization ? ` - ${sc.organization}` : ""}
+                      </option>
+                    ))}
+                    <option value="__add_new__">+ Add New Coordinator</option>
+                  </select>
                 </div>
+
+                {/* SC Details - auto-filled when existing coordinator selected, editable when adding new */}
+                {scAddNew ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-1">
+                        New SC Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newScName}
+                        onChange={(e) => setNewScName(e.target.value)}
+                        placeholder="Full name"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-1">
+                        New SC Email
+                      </label>
+                      <input
+                        type="email"
+                        value={newScEmail}
+                        onChange={(e) => setNewScEmail(e.target.value)}
+                        placeholder="Email address"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-1">
+                        New SC Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={newScPhone}
+                        onChange={(e) => setNewScPhone(e.target.value)}
+                        placeholder="Phone number"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                      />
+                    </div>
+                  </div>
+                ) : selectedScId ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-1">SC Email</label>
+                      <input
+                        type="email"
+                        value={participantData.supportCoordinatorEmail}
+                        readOnly
+                        className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-300 cursor-not-allowed"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-1">SC Phone</label>
+                      <input
+                        type="tel"
+                        value={participantData.supportCoordinatorPhone}
+                        readOnly
+                        className="w-full px-4 py-2 bg-gray-600 border border-gray-500 rounded-lg text-gray-300 cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 

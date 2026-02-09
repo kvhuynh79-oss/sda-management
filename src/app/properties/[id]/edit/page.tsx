@@ -224,7 +224,7 @@ export default function EditPropertyPage() {
                   value={formData.propertyName}
                   onChange={(e) => setFormData({ ...formData, propertyName: e.target.value })}
                   placeholder="e.g., Sunrise House"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
               </div>
 
@@ -246,7 +246,7 @@ export default function EditPropertyPage() {
                   value={formData.addressLine2}
                   onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
                   placeholder="Unit, suite, etc."
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
               </div>
 
@@ -360,7 +360,7 @@ export default function EditPropertyPage() {
                 placeholder="e.g., 30"
                 min="0"
                 max="100"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
               />
               <p className="text-gray-400 text-xs mt-1">
                 % kept as management fee for owner distributions (0-100)
@@ -383,7 +383,7 @@ export default function EditPropertyPage() {
                     value={ownerData.bankAccountName}
                     onChange={(e) => setOwnerData({ ...ownerData, bankAccountName: e.target.value })}
                     placeholder="e.g., John Smith or ABC Pty Ltd"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -395,7 +395,7 @@ export default function EditPropertyPage() {
                       onChange={(e) => setOwnerData({ ...ownerData, bankBsb: e.target.value })}
                       placeholder="e.g., 062-000"
                       maxLength={7}
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                     />
                   </div>
                   <div>
@@ -405,7 +405,7 @@ export default function EditPropertyPage() {
                       value={ownerData.bankAccountNumber}
                       onChange={(e) => setOwnerData({ ...ownerData, bankAccountNumber: e.target.value })}
                       placeholder="e.g., 12345678"
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                     />
                   </div>
                 </div>

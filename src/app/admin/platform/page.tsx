@@ -411,7 +411,7 @@ function PlatformDashboardContent() {
           ) : filteredOrgs.length === 0 ? (
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-12 text-center">
               <Filter
-                className="w-10 h-10 text-gray-600 mx-auto mb-3"
+                className="w-10 h-10 text-gray-400 mx-auto mb-3"
                 aria-hidden="true"
               />
               <p className="text-gray-400">

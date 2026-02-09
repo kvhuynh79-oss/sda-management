@@ -956,7 +956,7 @@ function OrganizationDetailContent() {
           {recentAuditLogs.length === 0 ? (
             <div className="text-center py-8">
               <FileText
-                className="w-10 h-10 text-gray-600 mx-auto mb-2"
+                className="w-10 h-10 text-gray-400 mx-auto mb-2"
                 aria-hidden="true"
               />
               <p className="text-gray-400 text-sm">No recent activity.</p>

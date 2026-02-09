@@ -320,7 +320,7 @@ export default function ChatInterface({
             }
             disabled={isLoading || !!pendingAction}
             rows={1}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent resize-none disabled:opacity-50"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent resize-none disabled:opacity-50"
             style={{ minHeight: "48px", maxHeight: "120px" }}
           />
           <button

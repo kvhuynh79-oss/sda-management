@@ -637,13 +637,24 @@ All 8 sprints of the SaaS transformation are complete.
 | **7** | ✅ DONE | White-Label + REST API v1 |
 | **8** | ✅ DONE | Security audit + error boundaries + mobile contrast |
 
-### Remaining Post-Launch Tasks
-- Stripe environment setup (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
-- VAPID key setup for push notifications
-- Legal docs (Terms of Service, Privacy Policy, DPA)
-- Sentry error tracking integration
+### Post-Sprint Enhancements (2026-02-09)
+- **In-App SOP Help Guides**: HelpGuidePanel slide-in component with structured guides on 11 pages
+  - 9 feature pages: incidents, maintenance, inspections, payments, documents, follow-ups, properties, participants, contractors
+  - 2 compliance pages: complaints register, compliance certifications
+  - Color-coded badges (RED/YELLOW/GREEN/TEAL), collapsible accordion sections
+  - Files: `src/components/ui/HelpGuidePanel.tsx`, `HelpGuideButton.tsx`, `src/constants/helpGuides.ts`
+- **Complaints Register PDF Export**: Functional Export PDF button generating landscape NDIS audit report
+- **VAPID Keys Configured**: Push notification keys set in Convex env + Vercel production
+- **Legal Pages**: `/terms` (Terms of Service) + `/privacy` (Privacy Policy) - APP-compliant, NDIS-specific
+- **Sentry Error Tracking**: Client/server/edge configs, global error boundary, withSentryConfig in next.config.ts
+- **Settings Gear Icon**: Added to desktop header (was only in mobile menu)
+- **Participant Form Dropdowns**: SIL Provider + Support Coordinator linked to database with "Add New" option
+- **WCAG Contrast Fix (Final)**: 39 files fixed, all text-gray-500/600 on dark backgrounds replaced with text-gray-400
+
+### Remaining Launch Tasks
+- Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
+- Configure Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
 - Performance load testing with multiple orgs
-- Complaints Register PDF Export for NDIS audit
 - Field-level encryption for NDIS numbers, DOB at rest
 
 ## Reference Documents
@@ -673,8 +684,17 @@ All 8 sprints of the SaaS transformation are complete.
 12. White-label + API - ✅ Sprint 7 (per-org branding, REST API v1, API keys)
 13. Security audit + launch - ✅ Sprint 8 (tenant isolation audit, error boundaries, loading states)
 
+### Completed (v2.1 - Post-Sprint Polish)
+14. In-app SOP help guides - ✅ (11 pages with structured guides, HelpGuidePanel component)
+15. Complaints Register PDF Export - ✅ (landscape NDIS audit report)
+16. Legal pages - ✅ (Terms of Service + Privacy Policy, APP-compliant)
+17. Sentry error tracking - ✅ (infrastructure ready, needs DSN)
+18. Participant form dropdowns - ✅ (SIL Provider + SC from database with "Add New")
+19. WCAG contrast final fix - ✅ (39 files, all dark-bg text-gray-500/600 → text-gray-400)
+20. VAPID keys + push notification infra - ✅ (configured in Convex + Vercel)
+
 ### Future Enhancements (Post-Launch)
-14. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
+21. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
    - **Workaround**: Users can take screenshots of PDFs and upload as images
    - **Priority**: Medium
 15. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
@@ -719,11 +739,10 @@ See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.
 
 ### Launch Checklist (Remaining)
 1. Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
-2. Generate VAPID keys for push notifications
-3. Legal documents (ToS, Privacy Policy, DPA)
-4. Set up Sentry error tracking
-5. Load test with 10+ simultaneous organizations
-6. DNS/domain configuration for custom org subdomains
+2. Configure Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
+3. Load test with 10+ simultaneous organizations
+4. DNS/domain configuration for custom org subdomains
+5. Field-level encryption for NDIS numbers, DOB at rest
 
 ## Commands
 ```bash
@@ -734,4 +753,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-09 (v2.0.0 - SaaS Transformation Complete, 80 pages, Sprints 0-8 DONE)
+**Last Updated**: 2026-02-09 (v2.1.0 - Post-Sprint Polish: Help guides, legal pages, Sentry, contrast fixes, participant dropdowns. 82 pages, 0 errors)

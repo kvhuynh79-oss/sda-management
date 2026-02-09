@@ -439,7 +439,7 @@ export default function SupportCoordinatorsContent() {
                       key={star}
                       type="button"
                       onClick={() => setFormData({ ...formData, rating: star })}
-                      className={`text-2xl ${star <= formData.rating ? "text-yellow-400" : "text-gray-600"}`}
+                      className={`text-2xl ${star <= formData.rating ? "text-yellow-400" : "text-gray-500"}`}
                     >
                       ★
                     </button>

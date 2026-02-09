@@ -258,13 +258,13 @@ function InspectionsContent() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
                         <span>{inspection.template?.name || "Unknown Template"}</span>
-                        <span className="text-gray-600">|</span>
+                        <span className="text-gray-400">|</span>
                         <span>
                           {inspection.inspector
                             ? `${inspection.inspector.firstName} ${inspection.inspector.lastName}`
                             : "Unassigned"}
                         </span>
-                        <span className="text-gray-600">|</span>
+                        <span className="text-gray-400">|</span>
                         <span>{inspection.scheduledDate}</span>
                       </div>
                     </div>

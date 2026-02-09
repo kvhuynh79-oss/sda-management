@@ -141,13 +141,13 @@ export default function NewPaymentPage() {
                 Dashboard
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/payments" className="text-gray-400 hover:text-white">
                 Payments
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white">Record Payment</li>
           </ol>
         </nav>

@@ -24,7 +24,7 @@ export default function NotFound() {
               />
             </svg>
           </div>
-          <h1 className="text-6xl font-bold text-gray-600 mb-2">404</h1>
+          <h1 className="text-6xl font-bold text-gray-400 mb-2">404</h1>
           <h2 className="text-xl font-semibold text-white mb-2">Page not found</h2>
           <p className="text-gray-400 mb-8">
             The page you are looking for does not exist or has been moved.
@@ -44,7 +44,7 @@ export default function NotFound() {
             </Link>
           </div>
         </div>
-        <p className="text-gray-500 text-sm mt-6">
+        <p className="text-gray-400 text-sm mt-6">
           Built for NDIS compliance &middot; MySDAManager
         </p>
       </div>

@@ -334,7 +334,7 @@ export default function InspectionDetailPage() {
                 Inspections
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white truncate max-w-[200px]">
               {inspection.property?.propertyName || inspection.property?.addressLine1}
             </li>
@@ -507,7 +507,7 @@ export default function InspectionDetailPage() {
                                   })
                                 }
                                 placeholder="Add remarks..."
-                                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                                 autoFocus
                               />
                               <button
@@ -714,7 +714,7 @@ export default function InspectionDetailPage() {
                   onChange={(e) => setAdditionalComments(e.target.value)}
                   placeholder="Any final observations or recommendations..."
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -779,7 +779,7 @@ export default function InspectionDetailPage() {
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
                       placeholder="e.g., Pool Area, Outdoor Furniture..."
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                     />
                   </div>
                 )}
@@ -794,7 +794,7 @@ export default function InspectionDetailPage() {
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     placeholder="e.g., Check pool pump working..."
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>

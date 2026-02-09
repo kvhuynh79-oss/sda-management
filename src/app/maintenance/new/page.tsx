@@ -291,13 +291,13 @@ function NewMaintenanceRequestContent() {
                 Dashboard
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/maintenance" className="text-gray-400 hover:text-white">
                 Maintenance
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white">New Request</li>
           </ol>
         </nav>

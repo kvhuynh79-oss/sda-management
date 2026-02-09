@@ -300,17 +300,17 @@ export default function NewDocumentPage() {
                 Dashboard
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/database?tab=documents" className="text-gray-400 hover:text-white">
                 Database
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <span className="text-gray-400">Documents</span>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white">Upload Document</li>
           </ol>
         </nav>

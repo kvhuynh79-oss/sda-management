@@ -361,7 +361,7 @@ export default function SILProvidersContent() {
                 <label className="block text-sm font-medium text-gray-300 mb-1">Rating</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <button key={star} type="button" onClick={() => setFormData({ ...formData, rating: star })} className={`text-2xl ${star <= formData.rating ? "text-yellow-400" : "text-gray-600"}`}>★</button>
+                    <button key={star} type="button" onClick={() => setFormData({ ...formData, rating: star })} className={`text-2xl ${star <= formData.rating ? "text-yellow-400" : "text-gray-500"}`}>★</button>
                   ))}
                   {formData.rating > 0 && <button type="button" onClick={() => setFormData({ ...formData, rating: 0 })} className="text-sm text-gray-400 hover:text-gray-300 ml-2">Clear</button>}
                 </div>

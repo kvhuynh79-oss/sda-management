@@ -376,13 +376,13 @@ export default function IncidentDetailPage() {
                 Dashboard
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/incidents" className="text-gray-400 hover:text-white">
                 Incidents
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white">{incident.title}</li>
           </ol>
         </nav>

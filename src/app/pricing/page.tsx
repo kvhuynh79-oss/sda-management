@@ -344,7 +344,7 @@ export default function PricingPage() {
                       {feature.included ? (
                         <CheckIcon className="h-5 w-5 text-teal-400 shrink-0 mt-0.5" />
                       ) : (
-                        <XIcon className="h-5 w-5 text-gray-600 shrink-0 mt-0.5" />
+                        <XIcon className="h-5 w-5 text-gray-400 shrink-0 mt-0.5" />
                       )}
                       <span className={feature.included ? "text-sm text-gray-300" : "text-sm text-gray-400"}>
                         {feature.text}
@@ -434,7 +434,7 @@ export default function PricingPage() {
                             value ? (
                               <CheckIcon className="h-5 w-5 text-teal-400" />
                             ) : (
-                              <XIcon className="h-5 w-5 text-gray-600" />
+                              <XIcon className="h-5 w-5 text-gray-400" />
                             )
                           ) : (
                             <span className="text-sm text-gray-300">{value}</span>

@@ -507,7 +507,7 @@ function OwnerStep({
                       value={ownerData.bankAccountName}
                       onChange={(e) => setOwnerData({ ...ownerData, bankAccountName: e.target.value })}
                       placeholder="e.g., John Smith or ABC Pty Ltd"
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -519,7 +519,7 @@ function OwnerStep({
                         onChange={(e) => setOwnerData({ ...ownerData, bankBsb: e.target.value })}
                         placeholder="e.g., 062-000"
                         maxLength={7}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                       />
                     </div>
                     <div>
@@ -529,7 +529,7 @@ function OwnerStep({
                         value={ownerData.bankAccountNumber}
                         onChange={(e) => setOwnerData({ ...ownerData, bankAccountNumber: e.target.value })}
                         placeholder="e.g., 12345678"
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                       />
                     </div>
                   </div>
@@ -575,7 +575,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             value={propertyData.propertyName}
             onChange={(e) => setPropertyData({ ...propertyData, propertyName: e.target.value })}
             placeholder="e.g., Sunrise House"
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
           />
         </div>
 
@@ -599,7 +599,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             value={propertyData.addressLine2}
             onChange={(e) => setPropertyData({ ...propertyData, addressLine2: e.target.value })}
             placeholder="Unit, suite, etc."
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
           />
         </div>
 
@@ -679,7 +679,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
               placeholder="e.g., 80"
               min="0"
               max="100"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
             />
           </div>
         )}
@@ -695,7 +695,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
             placeholder="e.g., 30"
             min="0"
             max="100"
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
           />
           <p className="text-gray-400 text-xs mt-1">% kept as management fee for owner distributions</p>
         </div>
@@ -820,7 +820,7 @@ function SilProviderStep({
             onChange={(e) => setPropertyData({ ...propertyData, silMonthlyFee: e.target.value })}
             placeholder="e.g., 500"
             min="0"
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
           />
           <p className="text-gray-400 text-xs mt-1">Fee charged to SIL provider for managing this property</p>
         </div>
@@ -836,7 +836,7 @@ function SilProviderStep({
                 value={propertyData.silContactName}
                 onChange={(e) => setPropertyData({ ...propertyData, silContactName: e.target.value })}
                 placeholder="Primary contact for this property"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -847,7 +847,7 @@ function SilProviderStep({
                   value={propertyData.silContactPhone}
                   onChange={(e) => setPropertyData({ ...propertyData, silContactPhone: e.target.value })}
                   placeholder="e.g., 0400 000 000"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
               </div>
               <div>
@@ -857,7 +857,7 @@ function SilProviderStep({
                   value={propertyData.silContactEmail}
                   onChange={(e) => setPropertyData({ ...propertyData, silContactEmail: e.target.value })}
                   placeholder="contact@provider.com"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
                 />
               </div>
             </div>

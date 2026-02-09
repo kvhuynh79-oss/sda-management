@@ -130,13 +130,13 @@ export default function NewDwellingPage() {
                 Dashboard
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/properties" className="text-gray-400 hover:text-white">
                 Properties
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link
                 href={`/properties/${propertyId}`}
@@ -145,7 +145,7 @@ export default function NewDwellingPage() {
                 {property.propertyName || property.addressLine1}
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white">Add Dwelling</li>
           </ol>
         </nav>

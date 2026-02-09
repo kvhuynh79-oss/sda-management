@@ -31,7 +31,7 @@ export default function Error({
           {error.message || "An unexpected error occurred. Please try again."}
         </p>
         {error.digest && (
-          <p className="text-xs text-gray-500 mb-4 font-mono">
+          <p className="text-xs text-gray-400 mb-4 font-mono">
             Error ID: {error.digest}
           </p>
         )}

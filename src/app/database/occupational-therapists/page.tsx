@@ -615,7 +615,7 @@ export default function OccupationalTherapistsPage() {
                       className={`text-2xl ${
                         star <= formData.rating
                           ? "text-yellow-400"
-                          : "text-gray-600"
+                          : "text-gray-500"
                       }`}
                     >
                       ★

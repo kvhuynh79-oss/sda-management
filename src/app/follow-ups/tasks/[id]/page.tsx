@@ -197,7 +197,7 @@ export default function TaskDetailPage() {
             <Link href="/follow-ups" className="text-gray-400 hover:text-white">
               Follow-ups
             </Link>
-            <span className="text-gray-600 mx-2">/</span>
+            <span className="text-gray-400 mx-2">/</span>
             <span className="text-white">Task Details</span>
           </nav>
 

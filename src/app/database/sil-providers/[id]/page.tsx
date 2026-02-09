@@ -130,19 +130,19 @@ export default function SILProviderDetailPage() {
                 Dashboard
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/database" className="text-gray-400 hover:text-white">
                 Database
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/database/sil-providers" className="text-gray-400 hover:text-white">
                 SIL Providers
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white">{provider.companyName}</li>
           </ol>
         </nav>
@@ -352,7 +352,7 @@ export default function SILProviderDetailPage() {
             {!provider.allocatedDwellings || provider.allocatedDwellings.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-400">No dwellings allocated</p>
-                <p className="text-gray-600 text-sm mt-1">
+                <p className="text-gray-400 text-sm mt-1">
                   Allocate dwellings from the property detail page
                 </p>
               </div>
@@ -419,7 +419,7 @@ export default function SILProviderDetailPage() {
             {!provider.linkedParticipants || provider.linkedParticipants.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-400">No participants linked</p>
-                <p className="text-gray-600 text-sm mt-1">
+                <p className="text-gray-400 text-sm mt-1">
                   Link participants from their detail page
                 </p>
               </div>

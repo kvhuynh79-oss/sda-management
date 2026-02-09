@@ -427,13 +427,13 @@ export default function MaintenanceRequestDetailPage() {
                 Dashboard
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li>
               <Link href="/maintenance" className="text-gray-400 hover:text-white">
                 Maintenance
               </Link>
             </li>
-            <li className="text-gray-600">/</li>
+            <li className="text-gray-400">/</li>
             <li className="text-white">{request.title}</li>
           </ol>
         </nav>

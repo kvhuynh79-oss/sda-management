@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type Specialty =
   | "plumbing"
@@ -46,6 +47,7 @@ export default function ContractorsContent() {
   const createContractor = useMutation(api.contractors.create);
   const updateContractor = useMutation(api.contractors.update);
   const removeContractor = useMutation(api.contractors.remove);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   const filteredContractors = contractors?.filter((contractor) => {
     const matchesSearch =
@@ -193,9 +195,9 @@ export default function ContractorsContent() {
                   Edit
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (!userId) return;
-                    if (confirm("Are you sure you want to remove this contractor?")) {
+                    if (await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to remove this contractor?", variant: "danger" })) {
                       removeContractor({ contractorId: contractor._id, userId });
                     }
                   }}

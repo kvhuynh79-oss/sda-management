@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import SILProviderHeader from "@/components/SILProviderHeader";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const INCIDENT_TYPES = [
   { value: "injury", label: "Injury" },
@@ -32,6 +33,7 @@ const INCIDENT_TYPES = [
 
 export default function NewIncidentPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [silProviderId, setSilProviderId] = useState<Id<"silProviders"> | null>(
     null
   );
@@ -98,7 +100,7 @@ export default function NewIncidentPage() {
 
     // Dwelling is now required
     if (!formData.dwellingId) {
-      alert("Please select a dwelling");
+      await alertDialog("Please select a dwelling");
       return;
     }
 
@@ -149,7 +151,7 @@ export default function NewIncidentPage() {
       router.push("/portal/incidents");
     } catch (error) {
       console.error("Failed to create incident:", error);
-      alert("Failed to create incident. Please try again.");
+      await alertDialog("Failed to create incident. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

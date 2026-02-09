@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../convex/_generated/dataModel";
 
 type TabType = "payments" | "claims" | "owner_payments";
@@ -180,6 +181,7 @@ function TabButton({
 // CLAIMS TAB
 // ============================================
 function ClaimsTab({ userId }: { userId: string }) {
+  const { alert: alertDialog } = useConfirmDialog();
   const [selectedPeriod, setSelectedPeriod] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -270,10 +272,10 @@ function ClaimsTab({ userId }: { userId: string }) {
     return acc;
   }, {});
 
-  const generateNdisExport = () => {
+  const generateNdisExport = async () => {
     const paceClaims = filteredClaims?.filter((c) => c.claimMethod === "pace" && c.status === "pending");
     if (!paceClaims || paceClaims.length === 0) {
-      alert("No PACE claims pending for export");
+      await alertDialog("No PACE claims pending for export");
       return;
     }
     const [year, month] = selectedPeriod.split("-");
@@ -343,9 +345,9 @@ function ClaimsTab({ userId }: { userId: string }) {
   };
 
   // Export selected claims to CSV (PACE format for NDIS portal)
-  const exportSelectedClaimsCsv = () => {
+  const exportSelectedClaimsCsv = async () => {
     if (selectedClaims.size === 0) {
-      alert("Please select at least one claim to export");
+      await alertDialog("Please select at least one claim to export");
       return;
     }
 
@@ -354,7 +356,7 @@ function ClaimsTab({ userId }: { userId: string }) {
     );
 
     if (!selectedClaimsList || selectedClaimsList.length === 0) {
-      alert("No claims selected for export");
+      await alertDialog("No claims selected for export");
       return;
     }
 
@@ -423,7 +425,7 @@ function ClaimsTab({ userId }: { userId: string }) {
 
     // Clear selections after export (manual submit required)
     clearAllSelections();
-    alert(`CSV exported with ${selectedClaimsList.length} claim(s).\nClick "Submit" on each claim after uploading to NDIS portal.`);
+    await alertDialog(`CSV exported with ${selectedClaimsList.length} claim(s). Click "Submit" on each claim after uploading to NDIS portal.`);
   };
 
   const handleMarkSubmitted = async (claimId: Id<"claims">, amount: number, notes?: string) => {
@@ -435,7 +437,7 @@ function ClaimsTab({ userId }: { userId: string }) {
       setSelectedClaim(null);
     } catch (error) {
       console.error("Error marking submitted:", error);
-      alert("Failed to mark claim as submitted");
+      await alertDialog("Failed to mark claim as submitted");
     }
   };
 
@@ -448,7 +450,7 @@ function ClaimsTab({ userId }: { userId: string }) {
       setSelectedClaim(null);
     } catch (error) {
       console.error("Error marking paid:", error);
-      alert("Failed to mark claim as paid");
+      await alertDialog("Failed to mark claim as paid");
     }
   };
 
@@ -460,7 +462,7 @@ function ClaimsTab({ userId }: { userId: string }) {
       setSelectedClaim(null);
     } catch (error) {
       console.error("Error rejecting claim:", error);
-      alert("Failed to reject claim");
+      await alertDialog("Failed to reject claim");
     }
   };
 
@@ -470,7 +472,7 @@ function ClaimsTab({ userId }: { userId: string }) {
       await revertToPending({ claimId, userId: userId as Id<"users"> });
     } catch (error) {
       console.error("Error reverting claim:", error);
-      alert("Failed to revert claim to pending");
+      await alertDialog("Failed to revert claim to pending");
     }
   };
 
@@ -487,10 +489,10 @@ function ClaimsTab({ userId }: { userId: string }) {
         status: "submitted",
         claimDate: today,
       });
-      alert("Claim created and marked as submitted!");
+      await alertDialog("Claim created and marked as submitted!");
     } catch (error) {
       console.error("Error creating claim:", error);
-      alert("Failed to create claim");
+      await alertDialog("Failed to create claim");
     }
   };
 
@@ -1035,6 +1037,7 @@ function PaymentsTab({ userId }: { userId: string }) {
 // OWNER PAYMENTS TAB
 // ============================================
 function OwnerPaymentsTab({ userId }: { userId: string }) {
+  const { alert: alertDialog } = useConfirmDialog();
   const [filterProperty, setFilterProperty] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -1475,7 +1478,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
       doc.save(fileName);
     } catch (error) {
       console.error("Error generating statement:", error);
-      alert(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
+      await alertDialog(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
 
@@ -1762,7 +1765,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
       doc.save(fileName);
     } catch (error) {
       console.error("Error generating statement:", error);
-      alert(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
+      await alertDialog(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
 
@@ -2043,7 +2046,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
               setShowAddPaymentModal(false);
             } catch (error) {
               console.error("Error creating payment:", error);
-              alert("Failed to create payment");
+              await alertDialog("Failed to create payment");
             }
           }}
         />

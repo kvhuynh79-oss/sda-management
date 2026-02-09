@@ -5,6 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -14,6 +15,7 @@ type ReportTab = "financial" | "compliance" | "operational" | "owner";
 
 export default function ReportsPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [activeTab, setActiveTab] = useState<ReportTab>("financial");
   const [startDate, setStartDate] = useState("");
@@ -125,9 +127,9 @@ export default function ReportsPage() {
   ];
 
   // PDF Export for Owner Statement
-  const exportOwnerStatementPDF = () => {
+  const exportOwnerStatementPDF = async () => {
     if (!ownerStatement || ownerStatement.length === 0) {
-      alert("No owner statement data available");
+      await alertDialog("No owner statement data available");
       return;
     }
 

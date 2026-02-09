@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 type BankAccountWithStats = {
@@ -28,6 +29,7 @@ type BankAccountWithStats = {
 
 export default function BankAccountsPage() {
   const router = useRouter();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccountWithStats | null>(null);
@@ -51,14 +53,14 @@ export default function BankAccountsPage() {
   }
 
   const handleDelete = async (accountId: Id<"bankAccounts">) => {
-    if (!confirm("Are you sure you want to delete this bank account? This will also delete all associated transactions.")) {
+    if (!(await confirmDialog({ title: "Delete Bank Account", message: "Are you sure you want to delete this bank account? This will also delete all associated transactions.", variant: "danger" }))) {
       return;
     }
     try {
       await removeAccount({ id: accountId, userId: user.id as Id<"users"> });
     } catch (err) {
       console.error("Failed to delete account:", err);
-      alert("Failed to delete account. It may have associated transactions.");
+      await alertDialog("Failed to delete account. It may have associated transactions.");
     }
   };
 
@@ -311,6 +313,7 @@ function AccountModal({
     isActive?: boolean;
   }) => Promise<Id<"bankAccounts">>;
 }) {
+  const { alert: alertDialog } = useConfirmDialog();
   const [formData, setFormData] = useState({
     accountName: account?.accountName ?? "",
     bankName: account?.bankName ?? "ANZ",
@@ -345,7 +348,7 @@ function AccountModal({
       onClose();
     } catch (err) {
       console.error("Failed to save account:", err);
-      alert("Failed to save account. Please check your inputs.");
+      await alertDialog("Failed to save account. Please check your inputs.");
     } finally {
       setSaving(false);
     }

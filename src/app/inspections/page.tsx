@@ -13,6 +13,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatStatus } from "@/utils/format";
 import { generateInspectionPDF } from "@/utils/inspectionPdf";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import HelpGuideButton from "@/components/ui/HelpGuideButton";
 import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
 import { HELP_GUIDES } from "@/constants/helpGuides";
@@ -24,6 +25,7 @@ function InspectionsContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const { alert: alertDialog } = useConfirmDialog();
   const convex = useConvex();
 
   useEffect(() => {
@@ -50,10 +52,10 @@ function InspectionsContent() {
     if (!user || !user.id) return;
     try {
       await seedBLSTemplate({ createdBy: user.id as Id<"users"> });
-      alert("BLS Template created successfully!");
+      await alertDialog("BLS Template created successfully!");
     } catch (error) {
       console.error("Error seeding template:", error);
-      alert("Error creating template. It may already exist.");
+      await alertDialog("Error creating template. It may already exist.");
     }
   };
 
@@ -74,7 +76,7 @@ function InspectionsContent() {
       setDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting inspection:", error);
-      alert("Error deleting inspection. Please try again.");
+      await alertDialog("Error deleting inspection. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -93,7 +95,7 @@ function InspectionsContent() {
       await generateInspectionPDF(reportData);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("Error generating PDF. Please try again.");
+      await alertDialog("Error generating PDF. Please try again.");
     } finally {
       setGeneratingPdfId(null);
     }

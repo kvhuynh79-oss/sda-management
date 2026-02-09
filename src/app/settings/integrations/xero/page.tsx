@@ -6,6 +6,7 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 
 type XeroBankAccount = {
@@ -20,6 +21,7 @@ type XeroBankAccount = {
 export default function XeroSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{
     id: string;
     firstName: string;
@@ -87,11 +89,12 @@ export default function XeroSettingsPage() {
   const handleDisconnect = async () => {
     if (!connection) return;
 
-    if (
-      !confirm(
-        "Are you sure you want to disconnect from Xero? This will stop automatic bank feed syncing."
-      )
-    ) {
+    const confirmed = await confirmDialog({
+      title: "Disconnect Xero",
+      message: "Are you sure you want to disconnect from Xero? This will stop automatic bank feed syncing.",
+      variant: "danger",
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -423,7 +426,7 @@ export default function XeroSettingsPage() {
                           if (xeroAccountId && xeroAccountId !== "") {
                             handleSyncTransactions(account._id, xeroAccountId, account.accountName);
                           } else {
-                            alert("Please select a Xero account first");
+                            alertDialog("Please select a Xero account first");
                           }
                         }}
                         disabled={syncingAccounts[account._id]}

@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, StatCard } from "@/components/ui";
 import Badge from "@/components/ui/Badge";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatDate, formatStatus } from "@/utils/format";
 import HelpGuideButton from "@/components/ui/HelpGuideButton";
 import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
@@ -40,6 +41,7 @@ const AUDIT_OUTCOME_BADGE: Record<string, { variant: "success" | "warning" | "er
 };
 
 function CertificationsContent() {
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [filterType, setFilterType] = useState("");
@@ -116,7 +118,7 @@ function CertificationsContent() {
       });
       setDeleteConfirm(null);
     } catch (err: any) {
-      alert(err.message || "Failed to delete certification");
+      await alertDialog(err.message || "Failed to delete certification");
     }
   };
 

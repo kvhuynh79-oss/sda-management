@@ -8,6 +8,7 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 import Header from "../../../../components/Header";
 import CommunicationsHistory from "../../../../components/CommunicationsHistory";
 import Link from "next/link";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function OccupationalTherapistDetailPage() {
   const params = useParams();
@@ -41,6 +42,7 @@ export default function OccupationalTherapistDetailPage() {
   const linkParticipant = useMutation(api.occupationalTherapists.linkParticipant);
   const unlinkParticipant = useMutation(api.occupationalTherapists.unlinkParticipant);
   const updateTherapist = useMutation(api.occupationalTherapists.update);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   if (therapist === undefined) {
     return (
@@ -102,7 +104,7 @@ export default function OccupationalTherapistDetailPage() {
 
   const handleUnlink = async (linkId: Id<"otParticipants">) => {
     if (!userId) return;
-    if (confirm("Remove this participant link?")) {
+    if (await confirmDialog({ title: "Confirm Remove", message: "Remove this participant link?", variant: "danger" })) {
       await unlinkParticipant({ userId, linkId });
     }
   };

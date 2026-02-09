@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NewInspectionPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; role: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -71,7 +73,7 @@ export default function NewInspectionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !formData.templateId || !formData.propertyId) {
-      alert("Please select a template and property");
+      await alertDialog("Please select a template and property");
       return;
     }
 
@@ -92,7 +94,7 @@ export default function NewInspectionPage() {
       router.push(`/inspections/${inspectionId}`);
     } catch (error) {
       console.error("Error creating inspection:", error);
-      alert("Error creating inspection. Please try again.");
+      await alertDialog("Error creating inspection. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

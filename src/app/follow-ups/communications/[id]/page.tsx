@@ -11,6 +11,7 @@ import { LoadingScreen } from "@/components/ui";
 import { CommunicationTypeBadge, ContactTypeBadge, DirectionBadge } from "@/components/ui/Badge";
 import { FormInput, FormSelect, FormTextarea, Button } from "@/components/forms";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function CommunicationDetailPage() {
   const params = useParams();
@@ -54,6 +55,7 @@ export default function CommunicationDetailPage() {
 
   const updateCommunication = useMutation(api.communications.update);
   const deleteCommunication = useMutation(api.communications.remove);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   // Initialize form data when communication loads
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function CommunicationDetailPage() {
 
   const handleDelete = async () => {
     if (!user || !communication) return;
-    if (!confirm("Are you sure you want to delete this communication? It can be restored by an admin.")) return;
+    if (!(await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to delete this communication? It can be restored by an admin.", variant: "danger" }))) return;
 
     try {
       await deleteCommunication({

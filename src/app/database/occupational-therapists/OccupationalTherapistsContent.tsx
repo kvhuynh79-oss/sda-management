@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const SYDNEY_REGIONS = [
   "Northern Sydney",
@@ -76,6 +77,7 @@ export default function OccupationalTherapistsContent() {
   const createTherapist = useMutation(api.occupationalTherapists.create);
   const updateTherapist = useMutation(api.occupationalTherapists.update);
   const removeTherapist = useMutation(api.occupationalTherapists.remove);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   const resetForm = () => {
     setFormData({
@@ -164,7 +166,7 @@ export default function OccupationalTherapistsContent() {
 
   const handleDelete = async (id: Id<"occupationalTherapists">) => {
     if (!userId) return;
-    if (confirm("Are you sure you want to delete this occupational therapist?")) {
+    if (await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to delete this occupational therapist?", variant: "danger" })) {
       await removeTherapist({ userId, otId: id });
     }
   };

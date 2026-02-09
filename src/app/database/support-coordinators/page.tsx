@@ -7,6 +7,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const SYDNEY_REGIONS = [
   "Northern Sydney",
@@ -64,6 +65,7 @@ export default function SupportCoordinatorsPage() {
   const createCoordinator = useMutation(api.supportCoordinators.create);
   const updateCoordinator = useMutation(api.supportCoordinators.update);
   const removeCoordinator = useMutation(api.supportCoordinators.remove);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   const resetForm = () => {
     setFormData({
@@ -148,7 +150,7 @@ export default function SupportCoordinatorsPage() {
 
   const handleDelete = async (id: Id<"supportCoordinators">) => {
     if (!userId) return;
-    if (confirm("Are you sure you want to delete this support coordinator?")) {
+    if (await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to delete this support coordinator?", variant: "danger" })) {
       await removeCoordinator({ userId, coordinatorId: id });
     }
   };

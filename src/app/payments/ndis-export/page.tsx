@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NDISExportPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -108,16 +110,16 @@ export default function NDISExportPage() {
       if (!userId) return;
       await saveSettings({ userId, ...settingsForm });
       setShowSettings(false);
-      alert("Provider settings saved successfully");
+      await alertDialog("Provider settings saved successfully");
     } catch (err) {
       console.error("Failed to save settings:", err);
-      alert("Failed to save settings. Please try again.");
+      await alertDialog("Failed to save settings. Please try again.");
     }
   };
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
     if (!claimData || !claimData.claims || claimData.claims.length === 0) {
-      alert("No claim data to export");
+      await alertDialog("No claim data to export");
       return;
     }
 

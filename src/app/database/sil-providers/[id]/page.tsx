@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "../../../../components/Header";
 import CommunicationsHistory from "../../../../components/CommunicationsHistory";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const ACCESS_LEVELS = [
   { value: "full", label: "Full Access", color: "green" },
@@ -46,6 +47,7 @@ export default function SILProviderDetailPage() {
   );
   const linkUserToProvider = useMutation(api.silProviders.linkUserToProvider);
   const unlinkUserFromProvider = useMutation(api.silProviders.unlinkUserFromProvider);
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   // Filter users that can be linked (not already SIL provider or not linked to any provider)
   const availableUsers = (allUsers || []).filter(
@@ -68,7 +70,7 @@ export default function SILProviderDetailPage() {
       setSelectedUserId("");
     } catch (error) {
       console.error("Error linking user:", error);
-      alert("Failed to link user to provider");
+      await alertDialog("Failed to link user to provider");
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +78,7 @@ export default function SILProviderDetailPage() {
 
   const handleUnlinkUser = async (userIdToUnlink: Id<"users">) => {
     if (!userId) return;
-    if (!confirm("Remove this user's access to the SIL provider portal?")) return;
+    if (!(await confirmDialog({ title: "Confirm Remove", message: "Remove this user's access to the SIL provider portal?", variant: "danger" }))) return;
     try {
       await unlinkUserFromProvider({
         userId: userIdToUnlink,
@@ -84,7 +86,7 @@ export default function SILProviderDetailPage() {
       });
     } catch (error) {
       console.error("Error unlinking user:", error);
-      alert("Failed to remove user access");
+      await alertDialog("Failed to remove user access");
     }
   };
 

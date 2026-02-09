@@ -22,7 +22,7 @@ export default function ParticipantDetailPage() {
   const [isMovingIn, setIsMovingIn] = useState(false);
   const [isReverting, setIsReverting] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const { confirm: confirmDialog } = useConfirmDialog();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   const participantId = params.id as Id<"participants">;
   const userIdTyped = user ? (user.id as Id<"users">) : undefined;
@@ -83,7 +83,7 @@ export default function ParticipantDetailPage() {
   const handleMoveIn = async () => {
     if (!user) return;
     if (!moveInDate) {
-      alert("Please select a move-in date");
+      await alertDialog("Please select a move-in date");
       return;
     }
     setIsMovingIn(true);
@@ -92,7 +92,7 @@ export default function ParticipantDetailPage() {
       setShowMoveInModal(false);
     } catch (error) {
       console.error("Error moving in participant:", error);
-      alert("Failed to move in participant. Please try again.");
+      await alertDialog("Failed to move in participant. Please try again.");
     } finally {
       setIsMovingIn(false);
     }
@@ -106,7 +106,7 @@ export default function ParticipantDetailPage() {
       setShowRevertModal(false);
     } catch (error) {
       console.error("Error reverting participant:", error);
-      alert("Failed to revert participant status. Please try again.");
+      await alertDialog("Failed to revert participant status. Please try again.");
     } finally {
       setIsReverting(false);
     }

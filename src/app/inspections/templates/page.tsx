@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function InspectionTemplatesPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
 
@@ -45,28 +47,28 @@ export default function InspectionTemplatesPage() {
     // Check if BLS template already exists
     const existingBLS = templates?.find(t => t.name === "BLS Property Inspection");
     if (existingBLS) {
-      alert("BLS Template already exists!");
+      await alertDialog("BLS Template already exists!");
       return;
     }
 
     // Validate user ID exists
     if (!user.id) {
-      alert("Error: User ID not found. Please log out and log back in.");
+      await alertDialog("Error: User ID not found. Please log out and log back in.");
       return;
     }
 
     try {
       await seedBLSTemplate({ createdBy: user.id as Id<"users"> });
-      alert("BLS Template created successfully!");
+      await alertDialog("BLS Template created successfully!");
     } catch (error: any) {
       console.error("Error seeding template:", error);
       const errorMessage = error?.message || "Unknown error";
       if (errorMessage.includes("already exists")) {
-        alert("BLS Template already exists! Refresh the page to see it.");
+        await alertDialog("BLS Template already exists! Refresh the page to see it.");
       } else if (errorMessage.includes("Invalid ID")) {
-        alert("Error: Your user session may be invalid. Please log out and log back in.");
+        await alertDialog("Error: Your user session may be invalid. Please log out and log back in.");
       } else {
-        alert(`Error creating template: ${errorMessage}`);
+        await alertDialog(`Error creating template: ${errorMessage}`);
       }
     }
   };

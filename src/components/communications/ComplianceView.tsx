@@ -8,6 +8,7 @@ import Link from "next/link";
 import Badge, { ContactTypeBadge } from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
+import { useConfirmDialog } from "../ui/ConfirmDialog";
 
 function buildAddEntryUrl(comm: any): string {
   const params: Record<string, string> = {};
@@ -92,6 +93,7 @@ export function ComplianceView({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteCommunication = useMutation(api.communications.remove);
   const canDelete = userRole === "admin" || userRole === "property_manager";
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   const data = useQuery(api.communications.getComplianceView, {
     userId: userId as Id<"users">,
@@ -139,7 +141,7 @@ export function ComplianceView({
 
   const handleDelete = useCallback(
     async (commId: string, contactName: string) => {
-      if (!confirm(`Delete this communication with "${contactName}"? It can be restored by an admin.`)) return;
+      if (!(await confirmDialog({ title: "Confirm Delete", message: `Delete this communication with "${contactName}"? It can be restored by an admin.`, variant: "danger" }))) return;
       setDeletingId(commId);
       try {
         await deleteCommunication({
@@ -148,12 +150,12 @@ export function ComplianceView({
         });
       } catch (error) {
         console.error("Failed to delete:", error);
-        alert("Failed to delete communication.");
+        await alertDialog("Failed to delete communication.");
       } finally {
         setDeletingId(null);
       }
     },
-    [deleteCommunication, userId]
+    [deleteCommunication, userId, confirmDialog, alertDialog]
   );
 
   const handleLoadMore = useCallback(() => {

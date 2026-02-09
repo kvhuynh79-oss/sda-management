@@ -13,6 +13,7 @@ import { HELP_GUIDES } from "@/constants/helpGuides";
 import { useAuth } from "@/hooks/useAuth";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatStatus } from "@/utils/format";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type Specialty =
   | "plumbing"
@@ -59,6 +60,7 @@ export default function ContractorsPage() {
   const createContractor = useMutation(api.contractors.create);
   const updateContractor = useMutation(api.contractors.update);
   const removeContractor = useMutation(api.contractors.remove);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   // Memoize filtered contractors
   const filteredContractors = useMemo(() => {
@@ -197,8 +199,8 @@ export default function ContractorsPage() {
                   key={contractor._id}
                   contractor={contractor}
                   onEdit={() => setEditingContractor(contractor)}
-                  onRemove={() => {
-                    if (confirm("Are you sure you want to remove this contractor?")) {
+                  onRemove={async () => {
+                    if (await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to remove this contractor?", variant: "danger" })) {
                       removeContractor({
                         contractorId: contractor._id,
                         userId: user?.id as Id<"users">,

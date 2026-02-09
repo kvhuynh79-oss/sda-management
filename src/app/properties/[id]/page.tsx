@@ -586,6 +586,7 @@ function DwellingCard({
   ) => Promise<void>;
   onUnlinkProvider: (linkId: Id<"silProviderDwellings">) => Promise<void>;
 }) {
+  const { alert: alertDialog } = useConfirmDialog();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddProvider, setShowAddProvider] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<Id<"silProviders"> | "">("");
@@ -631,7 +632,7 @@ function DwellingCard({
       setProviderNotes("");
     } catch (error) {
       console.error("Error allocating SIL provider:", error);
-      alert("Failed to allocate SIL provider");
+      await alertDialog("Failed to allocate SIL provider");
     } finally {
       setIsSubmitting(false);
     }
@@ -643,7 +644,7 @@ function DwellingCard({
       setShowRemoveConfirm(null);
     } catch (error) {
       console.error("Error removing allocation:", error);
-      alert("Failed to remove allocation");
+      await alertDialog("Failed to remove allocation");
     }
   };
 
@@ -961,6 +962,7 @@ function MediaGallery({
   media: any[];
   userId: Id<"users">;
 }) {
+  const { alert: alertDialog } = useConfirmDialog();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
@@ -991,7 +993,7 @@ function MediaGallery({
         const isImage = file.type.startsWith("image/");
 
         if (!isVideo && !isImage) {
-          alert(`Skipping ${file.name}: Only images and videos are supported`);
+          await alertDialog(`Skipping ${file.name}: Only images and videos are supported`);
           continue;
         }
 
@@ -1023,7 +1025,7 @@ function MediaGallery({
         });
       } catch (error) {
         console.error(`Error uploading ${file.name}:`, error);
-        alert(`Failed to upload ${file.name}`);
+        await alertDialog(`Failed to upload ${file.name}`);
       }
     }
 
@@ -1081,7 +1083,7 @@ function MediaGallery({
       setShowDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting media:", error);
-      alert("Failed to delete media");
+      await alertDialog("Failed to delete media");
     }
   };
 
@@ -1090,7 +1092,7 @@ function MediaGallery({
       await setFeatured({ userId, mediaId: mediaId as Id<"propertyMedia">, isFeatured });
     } catch (error) {
       console.error("Error setting featured:", error);
-      alert("Failed to update featured status");
+      await alertDialog("Failed to update featured status");
     }
   };
 

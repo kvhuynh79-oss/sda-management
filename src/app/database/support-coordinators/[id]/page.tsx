@@ -8,6 +8,7 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 import Header from "../../../../components/Header";
 import CommunicationsHistory from "../../../../components/CommunicationsHistory";
 import Link from "next/link";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function SupportCoordinatorDetailPage() {
   const params = useParams();
@@ -38,6 +39,7 @@ export default function SupportCoordinatorDetailPage() {
   const linkParticipant = useMutation(api.supportCoordinators.linkParticipant);
   const unlinkParticipant = useMutation(api.supportCoordinators.unlinkParticipant);
   const updateCoordinator = useMutation(api.supportCoordinators.update);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   if (coordinator === undefined) {
     return (
@@ -98,7 +100,7 @@ export default function SupportCoordinatorDetailPage() {
 
   const handleUnlink = async (linkId: Id<"supportCoordinatorParticipants">) => {
     if (!userId) return;
-    if (confirm("Remove this participant link? (History will be preserved in notes)")) {
+    if (await confirmDialog({ title: "Confirm Remove", message: "Remove this participant link? (History will be preserved in notes)", variant: "danger" })) {
       await unlinkParticipant({ userId, linkId });
     }
   };

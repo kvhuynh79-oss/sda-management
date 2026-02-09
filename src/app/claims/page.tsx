@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function ClaimsPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState(() => {
     const now = new Date();
@@ -150,9 +152,9 @@ export default function ClaimsPage() {
     return acc;
   }, {});
 
-  const generateNdisExport = (claim: ClaimItem) => {
+  const generateNdisExport = async (claim: ClaimItem) => {
     if (!providerSettings) {
-      alert("Please configure provider settings first (go to Payments > NDIS Export > Provider Settings)");
+      await alertDialog("Please configure provider settings first (go to Payments > NDIS Export > Provider Settings)");
       return;
     }
 
@@ -238,10 +240,10 @@ export default function ClaimsPage() {
         claimPeriod: selectedPeriod,
         userId: user.id as Id<"users">,
       });
-      alert(`Created ${result.created} claims, skipped ${result.skipped}`);
+      await alertDialog(`Created ${result.created} claims, skipped ${result.skipped}`);
     } catch (err) {
       console.error("Failed to initialize claims:", err);
-      alert("Failed to initialize claims");
+      await alertDialog("Failed to initialize claims");
     }
   };
 
@@ -279,7 +281,7 @@ export default function ClaimsPage() {
       });
     } catch (err) {
       console.error("Failed to mark submitted:", err);
-      alert("Failed to mark as submitted");
+      await alertDialog("Failed to mark as submitted");
     }
   };
 
@@ -305,7 +307,7 @@ export default function ClaimsPage() {
       });
     } catch (err) {
       console.error("Failed to mark paid:", err);
-      alert("Failed to mark as paid");
+      await alertDialog("Failed to mark as paid");
     }
   };
 

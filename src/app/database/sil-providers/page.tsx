@@ -6,6 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
 import Link from "next/link";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const SYDNEY_REGIONS = [
   "Northern Sydney",
@@ -79,6 +80,7 @@ export default function SILProvidersPage() {
   const createProvider = useMutation(api.silProviders.create);
   const updateProvider = useMutation(api.silProviders.update);
   const removeProvider = useMutation(api.silProviders.remove);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   const resetForm = () => {
     setFormData({
@@ -187,7 +189,7 @@ export default function SILProvidersPage() {
 
   const handleDelete = async (id: Id<"silProviders">) => {
     if (!userId) return;
-    if (confirm("Are you sure you want to delete this SIL provider?")) {
+    if (await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to delete this SIL provider?", variant: "danger" })) {
       await removeProvider({ providerId: id, userId });
     }
   };

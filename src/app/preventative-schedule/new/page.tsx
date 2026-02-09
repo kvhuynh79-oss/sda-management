@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NewPreventativeSchedulePage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
 
@@ -59,7 +61,7 @@ export default function NewPreventativeSchedulePage() {
     e.preventDefault();
 
     if (!formData.propertyId || !formData.taskName || !formData.nextDueDate) {
-      alert("Please fill in all required fields");
+      await alertDialog("Please fill in all required fields");
       return;
     }
 
@@ -84,7 +86,7 @@ export default function NewPreventativeSchedulePage() {
       router.push("/preventative-schedule");
     } catch (err) {
       console.error("Failed to create preventative schedule:", err);
-      alert("Failed to create preventative schedule. Please try again.");
+      await alertDialog("Failed to create preventative schedule. Please try again.");
     }
   };
 

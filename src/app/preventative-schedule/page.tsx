@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../convex/_generated/dataModel";
 
 export default function PreventativeSchedulePage() {
   const router = useRouter();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
@@ -50,18 +52,23 @@ export default function PreventativeSchedulePage() {
       });
     } catch (err) {
       console.error("Failed to complete schedule:", err);
-      alert("Failed to mark schedule as completed");
+      await alertDialog("Failed to mark schedule as completed");
     }
   };
 
   const handleDelete = async (scheduleId: Id<"preventativeSchedule">) => {
-    if (!confirm("Are you sure you want to delete this schedule?")) return;
+    const confirmed = await confirmDialog({
+      title: "Delete Schedule",
+      message: "Are you sure you want to delete this schedule?",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       await removeSchedule({ userId: user!.id as Id<"users">, scheduleId });
     } catch (err) {
       console.error("Failed to delete schedule:", err);
-      alert("Failed to delete schedule");
+      await alertDialog("Failed to delete schedule");
     }
   };
 

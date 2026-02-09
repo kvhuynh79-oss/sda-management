@@ -9,6 +9,7 @@ import Badge, { CommunicationTypeBadge } from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 import { exportThreadToPdf } from "../../lib/threadPdfExport";
+import { useConfirmDialog } from "../ui/ConfirmDialog";
 
 function buildThreadAddEntryUrl(thread: any): string {
   const params: Record<string, string> = {};
@@ -108,10 +109,11 @@ function ThreadMessages({ threadId, userId, userRole }: { threadId: string; user
   });
   const deleteCommunication = useMutation(api.communications.remove);
   const canDelete = userRole === "admin" || userRole === "property_manager";
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   const handleDeleteMessage = useCallback(
     async (messageId: string, contactName: string) => {
-      if (!confirm(`Delete this communication from ${contactName}? It can be restored by an admin.`)) return;
+      if (!(await confirmDialog({ title: "Confirm Delete", message: `Delete this communication from ${contactName}? It can be restored by an admin.`, variant: "danger" }))) return;
       try {
         await deleteCommunication({
           id: messageId as Id<"communications">,
@@ -121,7 +123,7 @@ function ThreadMessages({ threadId, userId, userRole }: { threadId: string; user
         console.error("Failed to delete communication:", error);
       }
     },
-    [deleteCommunication, userId]
+    [deleteCommunication, userId, confirmDialog]
   );
 
   if (!data) {

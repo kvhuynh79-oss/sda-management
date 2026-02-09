@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Bot, CheckCircle, XCircle, Paperclip, FileText, X, Upload } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import QuickActions from "./QuickActions";
+import { useConfirmDialog } from "../ui/ConfirmDialog";
 
 interface Message {
   role: "user" | "assistant";
@@ -39,6 +40,7 @@ export default function ChatInterface({
   const [input, setInput] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { alert: alertDialog } = useConfirmDialog();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
@@ -77,10 +79,10 @@ export default function ChatInterface({
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      validateAndSetFile(file);
+      await validateAndSetFile(file);
     }
     // Reset file input
     if (fileInputRef.current) {
@@ -104,14 +106,14 @@ export default function ChatInterface({
   };
 
   // Shared file validation logic
-  const validateAndSetFile = (file: File): boolean => {
+  const validateAndSetFile = async (file: File): Promise<boolean> => {
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Please upload an image (PNG, JPG, WebP, GIF) or PDF file.');
+      await alertDialog('Please upload an image (PNG, JPG, WebP, GIF) or PDF file.');
       return false;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB.');
+      await alertDialog('File size must be less than 10MB.');
       return false;
     }
     setSelectedFile(file);
@@ -142,7 +144,7 @@ export default function ChatInterface({
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -152,7 +154,7 @@ export default function ChatInterface({
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      validateAndSetFile(files[0]);
+      await validateAndSetFile(files[0]);
     }
   };
 

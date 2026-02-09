@@ -11,6 +11,7 @@ import { LoadingScreen } from "@/components/ui";
 import { TaskStatusBadge, TaskCategoryBadge, PriorityBadge } from "@/components/ui/Badge";
 import { FormInput, FormSelect, FormTextarea, Button } from "@/components/forms";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -57,6 +58,7 @@ export default function TaskDetailPage() {
   const updateStatus = useMutation(api.tasks.updateStatus);
   const completeTask = useMutation(api.tasks.complete);
   const deleteTask = useMutation(api.tasks.remove);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   // Initialize form data when task loads
   useEffect(() => {
@@ -144,7 +146,7 @@ export default function TaskDetailPage() {
 
   const handleDelete = async () => {
     if (!user || !task) return;
-    if (!confirm("Are you sure you want to delete this task?")) return;
+    if (!(await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to delete this task?", variant: "danger" }))) return;
 
     try {
       await deleteTask({

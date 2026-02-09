@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../convex/_generated/dataModel";
 import jsPDF from "jspdf";
 
@@ -42,6 +43,7 @@ interface ExtractedData {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>("");
   const [selectedDwellingId, setSelectedDwellingId] = useState<string>("");
@@ -2038,9 +2040,9 @@ export default function OnboardingPage() {
                           setEditedPlan(null);
                           setSelectedAiDwellingId("");
                           setAiMoveInDate("");
-                          alert("Participant created successfully!");
+                          await alertDialog("Participant created successfully!");
                         } catch (err: any) {
-                          alert(`Error: ${err.message}`);
+                          await alertDialog(`Error: ${err.message}`);
                         } finally {
                           setIsCreating(false);
                         }

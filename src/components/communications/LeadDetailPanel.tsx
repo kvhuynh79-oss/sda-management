@@ -6,6 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import Badge from "../ui/Badge";
 import { Button } from "../forms/Button";
+import { useConfirmDialog } from "../ui/ConfirmDialog";
 import LeadForm from "./LeadForm";
 import type { Lead, LeadStatus } from "./LeadsView";
 import {
@@ -114,6 +115,7 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
   const [showEditForm, setShowEditForm] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { confirm: confirmDialog } = useConfirmDialog();
 
   // Convex mutations
   const updateLeadStatus = useMutation(api.leads.updateStatus);
@@ -148,7 +150,7 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
   );
 
   const handleDelete = useCallback(async () => {
-    if (!confirm("Are you sure you want to delete this lead? This action can be undone by an admin.")) return;
+    if (!(await confirmDialog({ title: "Confirm Delete", message: "Are you sure you want to delete this lead? This action can be undone by an admin.", variant: "danger" }))) return;
     setIsDeleting(true);
     try {
       await removeLead({
@@ -161,7 +163,7 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
     } finally {
       setIsDeleting(false);
     }
-  }, [lead._id, userId, removeLead, onClose]);
+  }, [lead._id, userId, removeLead, onClose, confirmDialog]);
 
   const canDelete = userRole === "admin" || userRole === "property_manager";
 

@@ -42,7 +42,7 @@ interface DialogState {
 
 interface ConfirmDialogContextType {
   confirm: (options: ConfirmOptions) => Promise<boolean>;
-  alert: (options: AlertOptions) => Promise<void>;
+  alert: (options: AlertOptions | string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,13 +98,16 @@ export function ConfirmDialogProvider({ children }: ConfirmDialogProviderProps) 
   }, []);
 
   // ------ alert() ------
-  const alert = useCallback((options: AlertOptions): Promise<void> => {
+  const alert = useCallback((options: AlertOptions | string): Promise<void> => {
+    const opts: AlertOptions = typeof options === "string"
+      ? { title: "Notice", message: options }
+      : options;
     return new Promise<void>((resolve) => {
       setDialog({
         open: true,
-        title: options.title,
-        message: options.message,
-        confirmLabel: options.confirmLabel ?? "OK",
+        title: opts.title,
+        message: opts.message,
+        confirmLabel: opts.confirmLabel ?? "OK",
         cancelLabel: null, // no cancel button for alerts
         variant: "default",
         resolve: () => resolve(),

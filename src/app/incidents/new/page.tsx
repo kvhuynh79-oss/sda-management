@@ -7,6 +7,7 @@ import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { addToQueue } from "@/lib/offlineQueue";
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -19,6 +20,7 @@ type MediaUpload = {
 
 export default function NewIncidentPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -227,7 +229,7 @@ export default function NewIncidentPage() {
         await addToQueue(incidentData);
 
         // Show success message
-        alert("✓ Incident saved locally. It will sync when you're back online.");
+        await alertDialog("Incident saved locally. It will sync when you're back online.");
 
         // Redirect to incidents page
         router.push("/incidents");

@@ -10,6 +10,7 @@ import Badge from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 import { FormInput } from "../forms/FormInput";
+import { useConfirmDialog } from "../ui/ConfirmDialog";
 
 function buildStakeholderAddEntryUrl(stakeholder: any): string {
   const params: Record<string, string> = {};
@@ -86,6 +87,7 @@ export function StakeholderView({
   const [deletingContact, setDeletingContact] = useState<string | null>(null);
   const deleteByContactName = useMutation(api.communications.deleteByContactName);
   const canDelete = userRole === "admin" || userRole === "property_manager";
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   const data = useQuery(api.communications.getStakeholderView, {
     userId: userId as Id<"users">,
@@ -126,7 +128,7 @@ export function StakeholderView({
 
   const handleDeleteContact = useCallback(
     async (contactName: string) => {
-      if (!confirm(`Delete all communications with "${contactName}"? This can be restored by an admin.`)) return;
+      if (!(await confirmDialog({ title: "Confirm Delete", message: `Delete all communications with "${contactName}"? This can be restored by an admin.`, variant: "danger" }))) return;
       setDeletingContact(contactName);
       try {
         await deleteByContactName({
@@ -137,12 +139,12 @@ export function StakeholderView({
         setPrevItems([]);
       } catch (error) {
         console.error("Failed to delete:", error);
-        alert("Failed to delete communications.");
+        await alertDialog("Failed to delete communications.");
       } finally {
         setDeletingContact(null);
       }
     },
-    [deleteByContactName, userId]
+    [deleteByContactName, userId, confirmDialog, alertDialog]
   );
 
   const handleLoadMore = useCallback(() => {

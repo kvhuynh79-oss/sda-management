@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 type CategoryType = "sda_income" | "rrc_income" | "owner_payment" | "maintenance" | "other_income" | "other_expense" | "transfer" | "uncategorized";
@@ -30,6 +31,7 @@ export default function ReconciliationPage() {
 
 function ReconciliationContent() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const searchParams = useSearchParams();
   const initialAccountId = searchParams.get("account");
   const showImport = searchParams.get("import") === "true";
@@ -86,10 +88,10 @@ function ReconciliationContent() {
     if (!selectedAccountId) return;
     try {
       const result = await runAutoMatch({ userId: user!.id as Id<"users">, bankAccountId: selectedAccountId as Id<"bankAccounts"> });
-      alert(`Auto-matched ${result.matched} transactions`);
+      await alertDialog(`Auto-matched ${result.matched} transactions`);
     } catch (err) {
       console.error("Auto-match failed:", err);
-      alert("Auto-match failed. Please try again.");
+      await alertDialog("Auto-match failed. Please try again.");
     }
   };
 
@@ -600,6 +602,7 @@ function ImportModal({
     }>;
   }) => Promise<{ success: boolean; imported: number; duplicates: number; importBatchId: string }>;
 }) {
+  const { alert: alertDialog } = useConfirmDialog();
   const [accountId, setAccountId] = useState(selectedAccountId || (accounts[0]?._id ?? ""));
   const [bankFormat, setBankFormat] = useState<"anz" | "westpac">("anz");
   const [csvText, setCsvText] = useState("");
@@ -728,7 +731,7 @@ function ImportModal({
       const transactions = parseCSV(csvText, bankFormat);
 
       if (transactions.length === 0) {
-        alert("No valid transactions found in the CSV. Please check the format.");
+        await alertDialog("No valid transactions found in the CSV. Please check the format.");
         setImporting(false);
         return;
       }
@@ -742,7 +745,7 @@ function ImportModal({
       setResult({ imported: importResult.imported, duplicates: importResult.duplicates });
     } catch (err) {
       console.error("Import failed:", err);
-      alert("Import failed. Please check the CSV format and try again.");
+      await alertDialog("Import failed. Please check the CSV format and try again.");
     } finally {
       setImporting(false);
     }

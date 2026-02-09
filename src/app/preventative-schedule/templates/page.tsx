@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 const SDA_TEMPLATES = [
@@ -111,6 +112,7 @@ const SDA_TEMPLATES = [
 
 export default function ScheduleTemplatesPage() {
   const router = useRouter();
+  const { alert: alertDialog } = useConfirmDialog();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string>("");
   const [selectedDwelling, setSelectedDwelling] = useState<string>("");
@@ -165,12 +167,12 @@ export default function ScheduleTemplatesPage() {
 
   const handleApply = async () => {
     if (!selectedProperty || !startDate) {
-      alert("Please select a property and start date");
+      await alertDialog("Please select a property and start date");
       return;
     }
 
     if (selectedTemplates.length === 0) {
-      alert("Please select at least one template");
+      await alertDialog("Please select at least one template");
       return;
     }
 
@@ -194,7 +196,7 @@ export default function ScheduleTemplatesPage() {
         });
       }
 
-      alert(
+      await alertDialog(
         `Successfully created ${selectedTemplates.length} preventative maintenance schedule${
           selectedTemplates.length !== 1 ? "s" : ""
         }`
@@ -202,7 +204,7 @@ export default function ScheduleTemplatesPage() {
       router.push("/preventative-schedule");
     } catch (err) {
       console.error("Failed to apply templates:", err);
-      alert("Failed to apply templates. Please try again.");
+      await alertDialog("Failed to apply templates. Please try again.");
     }
   };
 

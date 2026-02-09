@@ -10,6 +10,7 @@ import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 import { FormSelect } from "../forms/FormSelect";
 import { FormInput } from "../forms/FormInput";
+import { useConfirmDialog } from "../ui/ConfirmDialog";
 
 function buildAddEntryUrl(comm: any): string {
   const params: Record<string, string> = {};
@@ -120,6 +121,7 @@ export function TimelineView({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteCommunication = useMutation(api.communications.remove);
   const canDelete = userRole === "admin" || userRole === "property_manager";
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   const data = useQuery(api.communications.getTimelineView, {
     userId: userId as Id<"users">,
@@ -177,7 +179,7 @@ export function TimelineView({
 
   const handleDelete = useCallback(
     async (commId: string, contactName: string) => {
-      if (!confirm(`Delete this communication with "${contactName}"? It can be restored by an admin.`)) return;
+      if (!(await confirmDialog({ title: "Confirm Delete", message: `Delete this communication with "${contactName}"? It can be restored by an admin.`, variant: "danger" }))) return;
       setDeletingId(commId);
       try {
         await deleteCommunication({
@@ -186,12 +188,12 @@ export function TimelineView({
         });
       } catch (error) {
         console.error("Failed to delete:", error);
-        alert("Failed to delete communication.");
+        await alertDialog("Failed to delete communication.");
       } finally {
         setDeletingId(null);
       }
     },
-    [deleteCommunication, userId]
+    [deleteCommunication, userId, confirmDialog, alertDialog]
   );
 
   const handleLoadMore = useCallback(() => {

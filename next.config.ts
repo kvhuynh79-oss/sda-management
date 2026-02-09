@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const withPWA = withPWAInit({
   dest: "public",
@@ -138,6 +139,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
-// Trigger rebuild 1770022095
-// Trigger rebuild Mon, Feb  2, 2026  8:35:20 PM
+export default withSentryConfig(withPWA(nextConfig), {
+  org: "mysdamanager",
+  project: "sda-management",
+  silent: !process.env.SENTRY_AUTH_TOKEN, // Only log when auth token present
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN, // Skip source map upload when no auth token
+  },
+});

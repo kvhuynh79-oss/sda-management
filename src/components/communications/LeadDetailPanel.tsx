@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import Badge from "../ui/Badge";
 import { Button } from "../forms/Button";
 import LeadForm from "./LeadForm";
@@ -97,6 +100,11 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailPanelProps) {
   const [showEditForm, setShowEditForm] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Convex mutations
+  const updateLeadStatus = useMutation(api.leads.updateStatus);
+  const removeLead = useMutation(api.leads.remove);
 
   const sdaConfig = SDA_CATEGORY_CONFIG[lead.sdaCategory];
   const urgencyConfig = URGENCY_CONFIG[lead.urgency];
@@ -106,20 +114,40 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
     async (newStatus: LeadStatus) => {
       setIsUpdatingStatus(true);
       try {
-        // TODO: Replace with real Convex mutation once backend is created:
-        //   await updateLeadStatus({ leadId: lead._id, status: newStatus, userId });
-        console.log("Status update:", lead._id, "->", newStatus);
+        await updateLeadStatus({
+          userId: userId as Id<"users">,
+          leadId: lead._id as Id<"leads">,
+          status: newStatus,
+        });
       } catch (error) {
         console.error("Failed to update lead status:", error);
       } finally {
         setIsUpdatingStatus(false);
       }
     },
-    [lead._id, userId]
+    [lead._id, userId, updateLeadStatus]
   );
 
+  const handleDelete = useCallback(async () => {
+    if (!confirm("Are you sure you want to delete this lead? This action can be undone by an admin.")) return;
+    setIsDeleting(true);
+    try {
+      await removeLead({
+        userId: userId as Id<"users">,
+        leadId: lead._id as Id<"leads">,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Failed to delete lead:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [lead._id, userId, removeLead, onClose]);
+
+  const canDelete = userRole === "admin" || userRole === "property_manager";
+
   const handleMatchToProperty = useCallback(() => {
-    // TODO: Implement property matching once backend is ready
+    // Property matching will be implemented when the property search/selection UI is built
     console.log("Match to property for lead:", lead._id);
   }, [lead._id]);
 
@@ -298,12 +326,11 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
             </DetailSection>
           )}
 
-          {/* Linked Communication Thread placeholder */}
+          {/* Linked Communication Thread */}
           {lead.linkedThreadId && (
             <DetailSection title="Linked Communication Thread">
               <div className="bg-gray-700/50 rounded-lg p-3 text-sm text-gray-400">
                 Thread ID: {lead.linkedThreadId}
-                {/* TODO: Embed ThreadMessages component here once backend is ready */}
               </div>
             </DetailSection>
           )}
@@ -311,18 +338,36 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
 
         {/* Footer actions */}
         <div className="px-4 py-3 border-t border-gray-700 flex items-center justify-between gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMatchToProperty}
-            leftIcon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            }
-          >
-            Match to Property
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMatchToProperty}
+              leftIcon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              }
+            >
+              Match to Property
+            </Button>
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                leftIcon={
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                }
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            )}
+          </div>
           <Button
             variant="secondary"
             size="sm"

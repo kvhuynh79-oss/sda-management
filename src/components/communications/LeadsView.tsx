@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import Badge from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
@@ -8,7 +11,7 @@ import LeadDetailPanel from "./LeadDetailPanel";
 import { FormInput, FormSelect } from "../forms";
 
 // ---------------------------------------------------------------------------
-// Types (will move to shared types file once backend module is created)
+// Types (frontend display types - mapped from backend schema in convex/leads.ts)
 // ---------------------------------------------------------------------------
 
 export type LeadStatus =
@@ -508,12 +511,42 @@ interface LeadsViewProps {
 }
 
 export function LeadsView({ userId, userRole }: LeadsViewProps) {
-  // ----- Backend integration placeholder -----
-  // TODO: Replace with real Convex query once convex/leads.ts is created:
-  //   const leads = useQuery(api.leads.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
-  // For now, leads will be undefined (loading state) until backend is ready.
-  // Set to empty array to show the empty state, or undefined to show loading.
-  const leads: Lead[] | undefined = [];
+  // Query leads from Convex backend
+  const rawLeads = useQuery(
+    api.leads.getAll,
+    userId ? { userId: userId as Id<"users"> } : "skip"
+  );
+
+  // Map backend field names to frontend Lead type
+  const leads: Lead[] | undefined = rawLeads === undefined
+    ? undefined
+    : rawLeads?.map((lead: any) => ({
+        _id: lead._id,
+        _creationTime: lead._creationTime,
+        referrerType: lead.referrerType === "occupational_therapist" ? "ot" as ReferrerType : lead.referrerType === "support_coordinator" ? "sc" as ReferrerType : "other" as ReferrerType,
+        referrerName: lead.referrerName,
+        referrerPhone: lead.referrerPhone,
+        referrerEmail: lead.referrerEmail,
+        referrerOrganization: lead.referrerOrganization,
+        referrerEntityId: lead.referrerId,
+        participantName: lead.participantName,
+        ndisNumber: lead.participantNdisNumber,
+        participantAge: lead.participantAge,
+        participantGender: lead.participantGender,
+        sdaCategory: lead.sdaCategoryNeeded as SdaCategory,
+        preferredAreas: lead.preferredAreas || [],
+        preferredState: lead.preferredState,
+        specificRequirements: lead.specificRequirements,
+        budgetNotes: lead.budgetNotes,
+        status: lead.status as LeadStatus,
+        source: lead.source as LeadSource,
+        urgency: lead.urgency as UrgencyLevel,
+        notes: lead.notes,
+        linkedThreadId: lead.threadId,
+        matchedPropertyId: lead.matchedPropertyId,
+        lastActivityAt: lead.updatedAt,
+        statusHistory: lead.statusHistory,
+      })) ?? [];
 
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [pipelineFilter, setPipelineFilter] = useState<LeadStatus | null>(null);

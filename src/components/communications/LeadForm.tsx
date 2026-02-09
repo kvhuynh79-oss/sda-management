@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { FormInput, FormSelect, FormTextarea, Button } from "../forms";
@@ -229,6 +229,10 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
     userId ? { userId: userId as Id<"users"> } : "skip"
   );
 
+  // Mutation for creating/updating leads
+  const createLead = useMutation(api.leads.create);
+  const updateLead = useMutation(api.leads.update);
+
   // Populate form when editing
   useEffect(() => {
     if (editLead) {
@@ -376,8 +380,74 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
 
       setIsSubmitting(true);
       try {
-        // TODO: Replace with real Convex mutation once backend is created:
-        //   await createLead({ ...formData, userId: userId as Id<"users"> });
+        // Map frontend referrerType to backend values
+        const referrerTypeMap: Record<string, string> = {
+          ot: "occupational_therapist",
+          sc: "support_coordinator",
+          other: "other",
+        };
+
+        // Map frontend gender to backend values (non_binary not in backend schema, map to other)
+        const genderMap: Record<string, string> = {
+          male: "male",
+          female: "female",
+          non_binary: "other",
+          prefer_not_to_say: "prefer_not_to_say",
+        };
+
+        if (editLead) {
+          // Update existing lead
+          await updateLead({
+            userId: userId as Id<"users">,
+            leadId: editLead._id as Id<"leads">,
+            referrerType: referrerTypeMap[formData.referrerType] as any,
+            referrerId: formData.referrerEntityId || undefined,
+            referrerName: formData.referrerName,
+            referrerPhone: formData.referrerPhone || undefined,
+            referrerEmail: formData.referrerEmail || undefined,
+            referrerOrganization: formData.referrerOrganization || undefined,
+            participantName: formData.participantName,
+            participantNdisNumber: formData.ndisNumber || undefined,
+            participantAge: formData.participantAge ? parseInt(formData.participantAge) : undefined,
+            participantGender: formData.participantGender && genderMap[formData.participantGender]
+              ? (genderMap[formData.participantGender] as any)
+              : undefined,
+            sdaCategoryNeeded: formData.sdaCategory as any,
+            preferredAreas: formData.preferredAreas,
+            preferredState: formData.preferredState || undefined,
+            specificRequirements: formData.specificRequirements || undefined,
+            budgetNotes: formData.budgetNotes || undefined,
+            urgency: formData.urgency as any,
+            source: formData.source as any,
+            notes: formData.notes || undefined,
+          });
+        } else {
+          // Create new lead
+          await createLead({
+            userId: userId as Id<"users">,
+            referrerType: referrerTypeMap[formData.referrerType] as any,
+            referrerId: formData.referrerEntityId || undefined,
+            referrerName: formData.referrerName,
+            referrerPhone: formData.referrerPhone || undefined,
+            referrerEmail: formData.referrerEmail || undefined,
+            referrerOrganization: formData.referrerOrganization || undefined,
+            participantName: formData.participantName,
+            participantNdisNumber: formData.ndisNumber || undefined,
+            participantAge: formData.participantAge ? parseInt(formData.participantAge) : undefined,
+            participantGender: formData.participantGender && genderMap[formData.participantGender]
+              ? (genderMap[formData.participantGender] as any)
+              : undefined,
+            sdaCategoryNeeded: formData.sdaCategory as any,
+            preferredAreas: formData.preferredAreas,
+            preferredState: formData.preferredState || undefined,
+            specificRequirements: formData.specificRequirements || undefined,
+            budgetNotes: formData.budgetNotes || undefined,
+            urgency: formData.urgency as any,
+            source: formData.source as any,
+            notes: formData.notes || undefined,
+          });
+        }
+
         if (onSubmit) {
           await onSubmit(formData);
         }
@@ -389,7 +459,7 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
         setIsSubmitting(false);
       }
     },
-    [formData, validate, onSubmit, onClose]
+    [formData, validate, onSubmit, onClose, createLead, updateLead, editLead, userId]
   );
 
   if (!isOpen) return null;

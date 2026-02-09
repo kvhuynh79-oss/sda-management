@@ -35,6 +35,7 @@ import {
   MessagesSquare,
   ListChecks,
   Search,
+  Settings,
 } from "lucide-react";
 
 // ── Type definitions ──────────────────────────────────────────────
@@ -781,6 +782,14 @@ export default function Header({ currentPage }: HeaderProps) {
                   />
                 </svg>
               </button>
+              <Link
+                href="/settings"
+                className="text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded p-1.5"
+                aria-label="Settings"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" aria-hidden="true" />
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-gray-400 hover:text-white transition-colors text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded px-1.5 py-1"

@@ -2199,4 +2199,22 @@ export default defineSchema({
     .index("by_sdaCategory", ["sdaCategoryNeeded"])
     .index("by_referrerType", ["referrerType"])
     .index("by_createdAt", ["createdAt"]),
+
+  // API Keys table - REST API keys for external integrations (Sprint 7)
+  apiKeys: defineTable({
+    organizationId: v.id("organizations"),
+    key: v.string(), // SHA-256 hash of the actual API key (never store plaintext)
+    keyPrefix: v.string(), // First 12 chars for identification (e.g., "msd_live_abc")
+    name: v.string(), // Friendly name (e.g., "Production API Key")
+    permissions: v.array(v.string()), // ["read:properties", "write:properties", etc.]
+    isActive: v.boolean(),
+    lastUsedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+    expiresAt: v.optional(v.number()), // Optional expiration timestamp (ms)
+    rateLimit: v.number(), // Requests per minute
+  })
+    .index("by_key", ["key"])
+    .index("by_organizationId", ["organizationId"])
+    .index("by_isActive", ["isActive"]),
 });

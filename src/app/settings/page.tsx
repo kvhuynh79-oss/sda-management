@@ -303,6 +303,49 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Organization & API - Admin Only */}
+        {user.role === "admin" && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Administration</h3>
+            <div className="space-y-4">
+              <Link
+                href="/settings/organization"
+                className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex-1">
+                  <h4 className="text-white font-medium">Organization Settings</h4>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Manage your organization&apos;s name, branding, and logo
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-gray-400">
+                  <span className="text-sm">Configure</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+              <Link
+                href="/settings/api-keys"
+                className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex-1">
+                  <h4 className="text-white font-medium">API Keys</h4>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Create and manage REST API keys for external integrations
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-gray-400">
+                  <span className="text-sm">Manage</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* User Management - Admin Only */}
         {user.role === "admin" && (
           <div className="bg-gray-800 rounded-lg p-6 mb-6">

@@ -14,6 +14,152 @@ import { encryptField, createBlindIndex, isEncrypted } from "../lib/encryption";
 
 const BATCH_SIZE = 50;
 
+/**
+ * Re-encrypt migration: strips old encrypted values (from lost keys)
+ * and re-encrypts with current keys. For fields where plaintext is
+ * unrecoverable, sets placeholder values that must be re-entered manually.
+ */
+export const reEncryptAll = action({
+  args: {},
+  handler: async (ctx): Promise<{
+    participants: { total: number; fixed: number; skipped: number };
+    incidents: { total: number; fixed: number; skipped: number };
+    owners: { total: number; fixed: number; skipped: number };
+  }> => {
+    const results = {
+      participants: { total: 0, fixed: 0, skipped: 0 },
+      incidents: { total: 0, fixed: 0, skipped: 0 },
+      owners: { total: 0, fixed: 0, skipped: 0 },
+    };
+
+    // === PARTICIPANTS ===
+    console.log("[RE-ENC] Starting participants...");
+    const participants = await ctx.runQuery(internal.participants.getAllRaw);
+    results.participants.total = participants.length;
+
+    for (let i = 0; i < participants.length; i += BATCH_SIZE) {
+      const batch = participants.slice(i, i + BATCH_SIZE);
+      const updates: Array<{
+        id: Id<"participants">;
+        ndisNumber?: string;
+        ndisNumberIndex?: string;
+        dateOfBirth?: string;
+        emergencyContactName?: string;
+        emergencyContactPhone?: string;
+        emergencyContactRelation?: string;
+      }> = [];
+
+      for (const p of batch) {
+        if (!isEncrypted(p.ndisNumber)) {
+          results.participants.skipped++;
+          continue;
+        }
+
+        // NDIS number is unrecoverable - set placeholder, re-encrypt it
+        const placeholder = `NEEDS-REENTRY-${p._id.slice(-6)}`;
+        const update: typeof updates[0] = { id: p._id };
+
+        update.ndisNumber = (await encryptField(placeholder))!;
+        update.ndisNumberIndex = (await createBlindIndex(placeholder))!;
+
+        // Clear optional encrypted fields (will show as empty until re-entered)
+        update.dateOfBirth = undefined;
+        update.emergencyContactName = undefined;
+        update.emergencyContactPhone = undefined;
+        update.emergencyContactRelation = undefined;
+
+        updates.push(update);
+        results.participants.fixed++;
+      }
+
+      if (updates.length > 0) {
+        await ctx.runMutation(
+          internal.migrations.encryptExistingData.patchParticipantBatch,
+          { updates }
+        );
+      }
+      console.log(`[RE-ENC] Participants batch ${Math.floor(i / BATCH_SIZE) + 1}: ${updates.length} fixed`);
+    }
+
+    // === INCIDENTS ===
+    console.log("[RE-ENC] Starting incidents...");
+    const incidents = await ctx.runQuery(internal.incidents.getAllRaw);
+    results.incidents.total = incidents.length;
+
+    for (let i = 0; i < incidents.length; i += BATCH_SIZE) {
+      const batch = incidents.slice(i, i + BATCH_SIZE);
+      const updates: Array<{
+        id: Id<"incidents">;
+        description?: string;
+        witnessNames?: string;
+        immediateActionTaken?: string;
+        followUpNotes?: string;
+      }> = [];
+
+      for (const inc of batch) {
+        if (!isEncrypted(inc.description)) {
+          results.incidents.skipped++;
+          continue;
+        }
+
+        const update: typeof updates[0] = { id: inc._id };
+        update.description = (await encryptField("[Description needs re-entry]"))!;
+        update.witnessNames = undefined;
+        update.immediateActionTaken = undefined;
+        update.followUpNotes = undefined;
+
+        updates.push(update);
+        results.incidents.fixed++;
+      }
+
+      if (updates.length > 0) {
+        await ctx.runMutation(
+          internal.migrations.encryptExistingData.patchIncidentBatch,
+          { updates }
+        );
+      }
+      console.log(`[RE-ENC] Incidents batch ${Math.floor(i / BATCH_SIZE) + 1}: ${updates.length} fixed`);
+    }
+
+    // === OWNERS ===
+    console.log("[RE-ENC] Starting owners...");
+    const owners = await ctx.runQuery(internal.owners.getAllRaw);
+    results.owners.total = owners.length;
+
+    for (let i = 0; i < owners.length; i += BATCH_SIZE) {
+      const batch = owners.slice(i, i + BATCH_SIZE);
+      const updates: Array<{
+        id: Id<"owners">;
+        bankAccountNumber?: string;
+      }> = [];
+
+      for (const owner of batch) {
+        if (!owner.bankAccountNumber || !isEncrypted(owner.bankAccountNumber)) {
+          results.owners.skipped++;
+          continue;
+        }
+
+        const update: typeof updates[0] = { id: owner._id };
+        update.bankAccountNumber = undefined; // Clear - needs re-entry
+
+        updates.push(update);
+        results.owners.fixed++;
+      }
+
+      if (updates.length > 0) {
+        await ctx.runMutation(
+          internal.migrations.encryptExistingData.patchOwnerBatch,
+          { updates }
+        );
+      }
+      console.log(`[RE-ENC] Owners batch ${Math.floor(i / BATCH_SIZE) + 1}: ${updates.length} fixed`);
+    }
+
+    console.log("[RE-ENC] COMPLETE:", JSON.stringify(results, null, 2));
+    return results;
+  },
+});
+
 // Internal mutation to patch a batch of participants with encrypted data
 export const patchParticipantBatch = internalMutation({
   args: {

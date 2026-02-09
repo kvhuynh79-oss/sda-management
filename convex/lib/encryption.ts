@@ -125,20 +125,26 @@ export async function decryptField(
   if (encrypted === null || encrypted === undefined) return null;
   if (!isEncrypted(encrypted)) return encrypted; // Pass through plaintext
 
-  const base64 = encrypted.slice(ENCRYPTED_PREFIX.length);
-  const combined = base64ToUint8Array(base64);
+  try {
+    const base64 = encrypted.slice(ENCRYPTED_PREFIX.length);
+    const combined = base64ToUint8Array(base64);
 
-  const iv = combined.slice(0, IV_LENGTH);
-  const ciphertext = combined.slice(IV_LENGTH);
+    const iv = combined.slice(0, IV_LENGTH);
+    const ciphertext = combined.slice(IV_LENGTH);
 
-  const key = await getEncryptionKey();
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    ciphertext
-  );
+    const key = await getEncryptionKey();
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      ciphertext
+    );
 
-  return new TextDecoder().decode(decrypted);
+    return new TextDecoder().decode(decrypted);
+  } catch {
+    // Key mismatch or corrupt data - return placeholder instead of crashing
+    console.warn("[ENC] Decryption failed for a field (key mismatch or corrupt data)");
+    return "[encrypted]";
+  }
 }
 
 /**

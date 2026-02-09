@@ -216,7 +216,7 @@ function CommunicationsContent() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowNewLeadForm(true)}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg border border-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
             >
               + New Lead
             </button>

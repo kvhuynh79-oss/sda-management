@@ -159,13 +159,26 @@ export const create = mutation({
     } else {
       // Bug 2 Fix: No participant linked - search by contactName within org
       // Look for recent communications with the same contact name to auto-thread
-      const recentComms = await ctx.db
-        .query("communications")
-        .withIndex("by_org_contactName", (q: any) =>
-          q.eq("organizationId", organizationId).eq("contactName", args.contactName)
-        )
-        .filter((q: any) => q.neq(q.field("isDeleted"), true))
-        .collect();
+      // During migration (organizationId undefined), fall back to contactName-only search
+      let recentComms;
+      if (organizationId) {
+        recentComms = await ctx.db
+          .query("communications")
+          .withIndex("by_org_contactName", (q: any) =>
+            q.eq("organizationId", organizationId).eq("contactName", args.contactName)
+          )
+          .filter((q: any) => q.neq(q.field("isDeleted"), true))
+          .collect();
+      } else {
+        // Migration mode: search by contactName using filter (no orgId in existing records)
+        recentComms = (await ctx.db
+          .query("communications")
+          .filter((q: any) => q.and(
+            q.eq(q.field("contactName"), args.contactName),
+            q.neq(q.field("isDeleted"), true)
+          ))
+          .collect());
+      }
 
       if (recentComms.length > 0) {
         // Map to threading interface for scoring

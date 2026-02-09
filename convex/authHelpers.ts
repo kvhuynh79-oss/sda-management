@@ -156,12 +156,17 @@ export async function requireTenant(
     throw new Error("User not found");
   }
 
-  // During Sprint 1 migration, organizationId may be optional
-  // After Sprint 2 (query refactoring), this should always be set
+  // Migration mode: if user has no organizationId yet (seed script not run),
+  // return undefined orgId. Queries using .eq("organizationId", undefined)
+  // will match existing unscoped records. Remove this fallback after full migration.
   if (!userDoc.organizationId) {
-    throw new Error(
-      "User does not belong to an organization. Please contact support to complete your account setup."
+    console.warn(
+      `[Migration] User ${userId} has no organizationId - operating in unscoped mode`
     );
+    return {
+      organizationId: undefined as unknown as Id<"organizations">,
+      user,
+    };
   }
 
   return {

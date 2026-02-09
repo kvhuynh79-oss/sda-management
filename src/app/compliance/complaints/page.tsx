@@ -10,6 +10,7 @@ import { RequireAuth } from "../../../components/RequireAuth";
 import { LoadingScreen, StatCard } from "../../../components/ui";
 import Badge from "../../../components/ui/Badge";
 import { formatDate, formatStatus } from "../../../utils/format";
+import { generateComplaintsRegisterPdf } from "../../../utils/complaintsRegisterPdf";
 import Link from "next/link";
 import HelpGuideButton from "@/components/ui/HelpGuideButton";
 import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
@@ -71,6 +72,7 @@ function ComplaintsRegisterContent() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
 
   const [showHelp, setShowHelp] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filter state
   const [searchText, setSearchText] = useState("");
@@ -173,6 +175,76 @@ function ComplaintsRegisterContent() {
     return { color: "text-green-400", label: `${Math.round(hoursRemaining)}h (ack)` };
   };
 
+  const handleExportPdf = async () => {
+    if (!filteredComplaints.length || !complaintsStats) return;
+    setIsExporting(true);
+    try {
+      const now = new Date();
+      const pdfData = filteredComplaints.map((c) => {
+        const receivedDate = new Date(c.receivedDate);
+        const daysOpen = Math.floor(
+          (now.getTime() - receivedDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const daysToAcknowledge = c.acknowledgedDate
+          ? Math.floor(
+              (new Date(c.acknowledgedDate).getTime() - receivedDate.getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          : null;
+        const daysToResolve = c.resolutionDate
+          ? Math.floor(
+              (new Date(c.resolutionDate).getTime() - receivedDate.getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          : null;
+
+        return {
+          _id: c._id,
+          referenceNumber: c.referenceNumber,
+          complainantType: c.complainantType,
+          complainantName: c.complainantName,
+          category: c.category,
+          severity: c.severity,
+          status: c.status,
+          source: c.source,
+          receivedDate: c.receivedDate,
+          acknowledgedDate: c.acknowledgedDate,
+          acknowledgmentMethod: c.acknowledgmentMethod,
+          resolutionDate: c.resolutionDate,
+          resolutionDescription: c.resolutionDescription,
+          resolutionOutcome: c.resolutionOutcome,
+          complainantSatisfied: c.complainantSatisfied,
+          escalatedToNdisCommission: c.escalatedToNdisCommission,
+          escalationDate: c.escalationDate,
+          systemicIssueIdentified: c.systemicIssueIdentified,
+          correctiveActionsTaken: c.correctiveActionsTaken,
+          description: c.description,
+          daysOpen,
+          daysToAcknowledge,
+          daysToResolve,
+          participant: c.participant
+            ? { firstName: c.participant.firstName, lastName: c.participant.lastName }
+            : null,
+          property: c.property
+            ? { addressLine1: c.property.addressLine1, suburb: c.property.suburb }
+            : null,
+          receivedByUser: c.receivedByUser
+            ? { firstName: c.receivedByUser.firstName, lastName: c.receivedByUser.lastName }
+            : null,
+          assignedToUser: c.assignedToUser
+            ? { firstName: c.assignedToUser.firstName, lastName: c.assignedToUser.lastName }
+            : null,
+        };
+      });
+
+      generateComplaintsRegisterPdf(pdfData, complaintsStats);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="compliance" />
@@ -195,12 +267,16 @@ function ComplaintsRegisterContent() {
           <div className="flex items-center gap-3">
             <HelpGuideButton onClick={() => setShowHelp(true)} />
             <button
-              disabled
-              className="px-4 py-2 bg-gray-700 text-gray-400 rounded-lg cursor-not-allowed text-sm"
-              aria-label="Export complaints register as PDF (coming soon)"
-              title="Coming soon"
+              onClick={handleExportPdf}
+              disabled={isExporting || !filteredComplaints.length}
+              className={`px-4 py-2 rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 ${
+                isExporting || !filteredComplaints.length
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-700 hover:bg-gray-600 text-white"
+              }`}
+              aria-label="Export complaints register as PDF"
             >
-              Export PDF
+              {isExporting ? "Generating..." : "Export PDF"}
             </button>
             <Link
               href="/compliance/complaints/new"

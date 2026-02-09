@@ -344,7 +344,7 @@ function NavDropdown({
         aria-expanded={isOpen}
         aria-haspopup="true"
         className={`
-          flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium
+          flex items-center gap-1 px-2 lg:px-2.5 py-1.5 rounded-md text-sm font-medium
           transition-all duration-200
           focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500
           ${
@@ -354,17 +354,17 @@ function NavDropdown({
           }
         `}
       >
-        {cluster.icon}
-        <span className="hidden lg:inline">{cluster.label}</span>
+        <span className="[&>svg]:w-4 [&>svg]:h-4">{cluster.icon}</span>
+        <span className="hidden lg:inline text-sm">{cluster.label}</span>
         <ChevronDown
-          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+          className={`w-3 h-3 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
           }`}
           aria-hidden="true"
         />
         {isActive && (
           <span
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-teal-500 rounded-t-full"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-teal-500 rounded-t-full"
             aria-hidden="true"
           />
         )}
@@ -662,13 +662,13 @@ export default function Header({ currentPage }: HeaderProps) {
         className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 lg:h-16">
+          <div className="flex items-center justify-between h-14">
             {/* Left: Mobile hamburger + Logo */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {/* Hamburger for mobile */}
               <button
                 onClick={() => setIsMobileNavOpen(true)}
-                className="md:hidden p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                className="md:hidden p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                 aria-label="Open navigation menu"
               >
                 <Menu className="w-5 h-5" aria-hidden="true" />
@@ -677,37 +677,29 @@ export default function Header({ currentPage }: HeaderProps) {
               {/* Logo */}
               <Link
                 href="/dashboard"
-                className="flex-shrink-0 flex items-center gap-3"
+                className="flex-shrink-0 flex items-center gap-2"
               >
                 <Image
                   src="/Logo.jpg"
                   alt="Better Living Solutions"
-                  width={120}
-                  height={48}
-                  className="rounded object-contain h-10 lg:h-12 w-auto"
+                  width={80}
+                  height={32}
+                  className="rounded object-contain h-7 w-auto"
                   priority
                 />
-                <div className="hidden sm:flex flex-col border-l border-gray-600 pl-3">
-                  <span className="text-white font-semibold text-sm tracking-wide">
-                    MySDAManager
-                  </span>
-                  <span className="text-gray-400 text-xs">
-                    SDA Property Management
-                  </span>
-                </div>
               </Link>
             </div>
 
             {/* Center: Navigation clusters (desktop only) */}
             <nav
-              className="hidden md:flex items-center gap-1"
+              className="hidden md:flex items-center gap-0.5 mx-4 flex-1 justify-center"
               aria-label="Main navigation"
             >
               {/* Dashboard link */}
               <Link
                 href="/dashboard"
                 className={`
-                  relative flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium
+                  relative flex items-center gap-1 px-2 lg:px-3 py-1.5 rounded-md text-sm font-medium
                   transition-all duration-200
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500
                   ${
@@ -717,11 +709,11 @@ export default function Header({ currentPage }: HeaderProps) {
                   }
                 `}
               >
-                <Home className="w-5 h-5" aria-hidden="true" />
-                <span className="hidden lg:inline">Dashboard</span>
+                <Home className="w-4 h-4" aria-hidden="true" />
+                <span className="hidden lg:inline text-sm">Home</span>
                 {currentPage === "dashboard" && (
                   <span
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-teal-500 rounded-t-full"
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-teal-500 rounded-t-full"
                     aria-hidden="true"
                   />
                 )}
@@ -741,43 +733,41 @@ export default function Header({ currentPage }: HeaderProps) {
             </nav>
 
             {/* Right: User info + actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               {/* Cmd+K hint */}
               <button
                 onClick={() => {
-                  // Dispatch a custom event that CommandPalette listens for
                   window.dispatchEvent(
                     new CustomEvent("open-command-palette")
                   );
                 }}
-                className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-300 bg-gray-700/50 hover:bg-gray-700 border border-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                className="hidden md:flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-gray-400 hover:text-gray-300 bg-gray-700/50 hover:bg-gray-700 border border-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                 aria-label="Open command palette"
               >
                 <Search className="w-3.5 h-3.5" aria-hidden="true" />
-                <span className="hidden lg:inline">Search</span>
-                <kbd className="ml-1 text-[10px] bg-gray-600 px-1 py-0.5 rounded font-mono">
-                  Ctrl+K
+                <kbd className="text-[10px] bg-gray-600 px-1 py-0.5 rounded font-mono">
+                  /
                 </kbd>
               </button>
 
               {user && (
                 <>
-                  <span className="hidden sm:inline text-gray-300 text-sm">
-                    {user.firstName} {user.lastName}
+                  <span className="hidden lg:inline text-gray-300 text-sm truncate max-w-[120px]">
+                    {user.firstName}
                   </span>
-                  <span className="text-xs bg-teal-600 text-white px-2 py-1 rounded">
+                  <span className="text-xs bg-teal-600 text-white px-1.5 py-0.5 rounded">
                     {user.role.replace("_", " ")}
                   </span>
                 </>
               )}
               <button
                 onClick={() => setIsUploadModalOpen(true)}
-                className="text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded p-2"
+                className="text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded p-1.5"
                 aria-label="Upload document"
                 title="Upload Document"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -792,7 +782,7 @@ export default function Header({ currentPage }: HeaderProps) {
               </button>
               <button
                 onClick={handleLogout}
-                className="text-gray-400 hover:text-white transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded px-2 py-1"
+                className="text-gray-400 hover:text-white transition-colors text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded px-1.5 py-1"
                 aria-label="Logout from account"
               >
                 Logout

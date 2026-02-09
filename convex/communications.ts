@@ -2928,3 +2928,103 @@ export const getThreadExportData = query({
     };
   },
 });
+
+// Repair orphaned communications that have threadIds but no thread summaries
+// This fixes communications created before the threading summary logic was in place
+// Internal version for CLI use; public version below requires auth
+export const repairOrphanedThreadsInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    return await repairOrphanedThreadsHandler(ctx);
+  },
+});
+
+export const repairOrphanedThreads = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requirePermission(ctx, args.userId, "communications", "update");
+    return await repairOrphanedThreadsHandler(ctx);
+  },
+});
+
+async function repairOrphanedThreadsHandler(ctx: any) {
+
+    // Get ALL communications (not deleted)
+    const allComms = await ctx.db
+      .query("communications")
+      .filter((q: any) => q.neq(q.field("isDeleted"), true))
+      .collect();
+
+    // Group by threadId
+    const threadMap = new Map<string, any[]>();
+    for (const comm of allComms) {
+      if (!comm.threadId) continue;
+      if (!threadMap.has(comm.threadId)) {
+        threadMap.set(comm.threadId, []);
+      }
+      threadMap.get(comm.threadId)!.push(comm);
+    }
+
+    // Get all existing thread summaries
+    const existingSummaries = await ctx.db.query("threadSummaries").collect();
+    const existingThreadIds = new Set(existingSummaries.map((s: any) => s.threadId));
+
+    let repaired = 0;
+    let alreadyExist = 0;
+
+    for (const [threadId, comms] of threadMap.entries()) {
+      if (existingThreadIds.has(threadId)) {
+        alreadyExist++;
+        continue;
+      }
+
+      // Sort comms chronologically
+      comms.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      const first = comms[0];
+      const last = comms[comms.length - 1];
+
+      // Collect unique contact names
+      const contactNames = [...new Set(comms.map((c) => c.contactName))];
+
+      // Collect compliance categories
+      const complianceCategories: string[] = [
+        ...new Set(
+          comms
+            .map((c) => c.complianceCategory as string | undefined)
+            .filter((c): c is string => !!c && c !== "none")
+        ),
+      ];
+
+      await ctx.db.insert("threadSummaries", {
+        threadId,
+        organizationId: first.organizationId,
+        participantId: first.linkedParticipantId || first.participantId,
+        startedAt: first.createdAt || Date.now(),
+        lastActivityAt: last.createdAt || Date.now(),
+        messageCount: comms.length,
+        participantNames: contactNames,
+        subject:
+          first.subject ||
+          `${first.communicationType} with ${first.contactName}`,
+        previewText: last.summary?.substring(0, 100) || "",
+        hasUnread: false,
+        complianceCategories:
+          complianceCategories.length > 0 ? complianceCategories : ["none"],
+        requiresAction: false,
+      });
+
+      repaired++;
+    }
+
+    console.log(
+      `Thread repair complete: ${repaired} created, ${alreadyExist} already existed, ${threadMap.size} total threads`
+    );
+
+  return {
+    repaired,
+    alreadyExist,
+    totalThreads: threadMap.size,
+  };
+}

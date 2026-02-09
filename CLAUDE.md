@@ -650,6 +650,10 @@ All 8 sprints of the SaaS transformation are complete.
 - **Settings Gear Icon**: Added to desktop header (was only in mobile menu)
 - **Participant Form Dropdowns**: SIL Provider + Support Coordinator linked to database with "Add New" option
 - **WCAG Contrast Fix (Final)**: 39 files fixed, all text-gray-500/600 on dark backgrounds replaced with text-gray-400
+- **ConfirmDialog Migration (Complete)**: All 40 remaining browser `alert()`/`confirm()` calls replaced with styled `useConfirmDialog()`. ConfirmDialog `alert()` enhanced to accept plain strings. Zero browser dialogs remain in codebase.
+- **Database Page Cleanup**: Removed Properties and Participants tabs (redundant with main nav)
+- **Multi-File Document Upload**: Lead creation form supports multiple document uploads
+- **Dashboard Leads UI**: Property filtering fix + leads wired to backend
 
 ### Remaining Launch Tasks
 - Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
@@ -753,4 +757,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-09 (v2.1.0 - Post-Sprint Polish: Help guides, legal pages, Sentry, contrast fixes, participant dropdowns. 82 pages, 0 errors)
+**Last Updated**: 2026-02-09 (v2.1.1 - ConfirmDialog migration complete, DB page cleanup, leads UI, multi-file upload. 82 pages, 0 errors)

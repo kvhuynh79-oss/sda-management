@@ -11,6 +11,9 @@ import { LoadingScreen, StatCard } from "../../../components/ui";
 import Badge from "../../../components/ui/Badge";
 import { formatDate, formatStatus } from "../../../utils/format";
 import Link from "next/link";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 // -- Label maps --
 
@@ -66,6 +69,8 @@ function hoursBetween(a: Date, b: Date): number {
 function ComplaintsRegisterContent() {
   const router = useRouter();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+
+  const [showHelp, setShowHelp] = useState(false);
 
   // Filter state
   const [searchText, setSearchText] = useState("");
@@ -188,6 +193,7 @@ function ComplaintsRegisterContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <HelpGuideButton onClick={() => setShowHelp(true)} />
             <button
               disabled
               className="px-4 py-2 bg-gray-700 text-gray-400 rounded-lg cursor-not-allowed text-sm"
@@ -580,6 +586,11 @@ function ComplaintsRegisterContent() {
             </div>
           </div>
         )}
+        <HelpGuidePanel
+          guide={HELP_GUIDES.complaints}
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
       </main>
     </div>
   );

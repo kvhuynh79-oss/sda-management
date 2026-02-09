@@ -10,6 +10,9 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen, StatCard } from "@/components/ui";
 import Badge from "@/components/ui/Badge";
 import { formatDate, formatStatus } from "@/utils/format";
+import HelpGuideButton from "@/components/ui/HelpGuideButton";
+import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 const CERT_TYPE_LABELS: Record<string, string> = {
   ndis_practice_standards: "NDIS Practice Standards",
@@ -38,6 +41,7 @@ const AUDIT_OUTCOME_BADGE: Record<string, { variant: "success" | "warning" | "er
 
 function CertificationsContent() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterProperty, setFilterProperty] = useState("");
@@ -137,12 +141,15 @@ function CertificationsContent() {
               Manage NDIS certifications, registrations, and safety certificates
             </p>
           </div>
-          <Link
-            href="/compliance/certifications/new"
-            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-          >
-            + Add Certification
-          </Link>
+          <div className="flex items-center gap-3">
+            <HelpGuideButton onClick={() => setShowHelp(true)} />
+            <Link
+              href="/compliance/certifications/new"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+            >
+              + Add Certification
+            </Link>
+          </div>
         </div>
 
         {/* Stats Row */}
@@ -504,6 +511,11 @@ function CertificationsContent() {
             </div>
           </div>
         )}
+        <HelpGuidePanel
+          guide={HELP_GUIDES.certifications}
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
       </main>
     </div>
   );

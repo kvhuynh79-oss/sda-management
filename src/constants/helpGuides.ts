@@ -1246,4 +1246,408 @@ export const HELP_GUIDES: Record<string, HelpGuide> = {
       { label: "Quote Requests", href: "/maintenance" },
     ],
   },
+
+  // ---------------------------------------------------------------------------
+  // 10. COMPLAINTS
+  // ---------------------------------------------------------------------------
+  complaints: {
+    id: "complaints",
+    title: "Complaints Management SOP",
+    subtitle: "BLS-SOP-001 — NDIS-compliant complaints handling procedure",
+    overview:
+      "This procedure ensures all complaints regarding Better Living Solutions are handled fairly, quickly, and in compliance with the NDIS (Complaints Management and Resolution) Rules 2018. All complaints must be logged in MySDAManager to maintain a complete, auditable chain of custody.",
+    sections: [
+      {
+        id: "key-timeframes",
+        title: "Key Compliance Timeframes",
+        icon: "clock",
+        color: "red",
+        badge: "MANDATORY",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "These timeframes are non-negotiable under the NDIS Practice Standards. Missing them may trigger regulatory action.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**24 Hours**: Acknowledge receipt of the complaint and make initial contact with the complainant.",
+              "**24 Hours (Reportable)**: If the complaint involves a Reportable Incident (abuse, neglect, exploitation, serious injury), the Director must notify the NDIS Quality and Safeguards Commission immediately.",
+              "**21 Days**: Target resolution. Provide the complainant with a written outcome including findings and actions taken.",
+              "**7 Years**: Retain all complaint records, communications, and evidence for NDIS audit purposes.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "If a complaint involves a Reportable Incident, the Director must notify the NDIS Quality and Safeguards Commission within 24 hours via the online portal or by calling 1800 035 544. Reference: NDIS (Incident Management and Reportable Incidents) Rules 2018, Section 16.",
+          },
+        ],
+      },
+      {
+        id: "five-step-resolution",
+        title: "5-Step Resolution Lifecycle",
+        icon: "list",
+        color: "teal",
+        badge: "BLS-SOP-001",
+        content: [
+          {
+            type: "steps",
+            value: [
+              "Receipt and Initial Triage — Log the complaint in MySDAManager immediately. A unique reference (CMP-YYYYMMDD-XXXX) is auto-generated. Assess whether it involves a Reportable Incident. Assign severity (Low / Medium / High / Critical) and category.",
+              "Acknowledgement — Contact the complainant within 24 hours via their preferred method (phone, email, letter, or in person). Confirm receipt, provide the reference number, and give an estimated resolution timeframe. Remind them of their right to use an independent advocate.",
+              "Investigation — Assign an investigator who is not the subject of the complaint. Review relevant records in MySDAManager (property logs, communications, incidents, maintenance). Interview all relevant parties. Upload all evidence and notes to the complaint record. Keep the complainant informed of progress.",
+              "Resolution and Outcome — Determine the outcome: Upheld, Partially Upheld, Not Upheld, or Withdrawn. Send a formal outcome letter with findings and corrective actions. Every outcome letter must include instructions on contacting the NDIS Commission (1800 035 544) if dissatisfied. Record whether the complainant is satisfied.",
+              "Closing and Learning — Close the record in MySDAManager. Review at the monthly management meeting to identify systemic patterns. Update staff training if knowledge gaps were identified. Ensure all documentation is complete for the 7-year retention requirement.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "complaint-sources",
+        title: "Complaint Sources",
+        icon: "info",
+        color: "gray",
+        content: [
+          {
+            type: "text",
+            value:
+              "Complaints can arrive through multiple channels. Each is automatically logged with its source for tracking.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Website**: Submitted via the Better Living Solutions website form. These are auto-logged and locked — only status, notes, and assignment can be edited.",
+              "**Phone**: Received by phone call. Staff must log the complaint manually within the same business day.",
+              "**Email**: Received via email. Forward to the complaints inbox or log manually.",
+              "**In Person**: Raised face-to-face by a participant, family member, or visitor. Log immediately after the conversation.",
+              "**Internal**: Raised by a staff member about an internal process or concern.",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Website-submitted complaints have a locked icon. This means the original complaint details cannot be modified — this protects the integrity of the complainant's submission for audit purposes.",
+          },
+        ],
+      },
+      {
+        id: "severity-assessment",
+        title: "Severity Assessment",
+        icon: "alert",
+        color: "yellow",
+        badge: "KEY SKILL",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Critical**: Immediate risk to participant safety. Potential Reportable Incident. Requires same-day escalation to Director.",
+              "**High**: Significant impact on participant wellbeing or service delivery. Requires priority investigation within 48 hours.",
+              "**Medium**: Service issue affecting participant experience but no immediate safety risk. Standard 21-day resolution applies.",
+              "**Low**: Minor feedback, suggestion, or low-impact concern. Address within normal workflow.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Always assess severity from the complainant's perspective. A complaint about 'cold food' might seem low severity, but if the participant has swallowing difficulties and requires specific food temperatures, it could be a safety concern.",
+          },
+        ],
+      },
+      {
+        id: "completing-the-form",
+        title: "Completing the Complaint Form",
+        icon: "file",
+        color: "gray",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Complainant Name**: Full name of the person lodging the complaint. Can be anonymous — record as 'Anonymous' if requested.",
+              "**Complainant Type**: Participant, Family/Carer, Support Coordinator, SIL Provider, Staff, Anonymous, or Other.",
+              "**Category**: Service Delivery, Staff Conduct, Property Condition, Communication, Billing, Privacy, Safety, or Other.",
+              "**Severity**: Use the severity guide above. When uncertain, err on the side of a higher severity.",
+              "**Description**: Record the complaint in the complainant's own words as closely as possible. Include dates, times, and specific details.",
+              "**Preferred Contact Method**: How the complainant wants to be contacted for updates (phone, email, letter, SMS).",
+              "**Advocacy Offered**: NDIS Practice Standards require offering access to an independent advocate. Always tick this and note if they accepted or declined.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "compliance-checklist",
+        title: "Interactive Compliance Checklist",
+        icon: "check",
+        color: "green",
+        content: [
+          {
+            type: "text",
+            value:
+              "Each complaint detail page has an interactive 5-step compliance checklist in the sidebar. Complete each step as the complaint progresses through the lifecycle.",
+          },
+          {
+            type: "list",
+            value: [
+              "Step 1: Initial Triage — Confirm severity, assign category, check for Reportable Incident",
+              "Step 2: Acknowledgement — Confirm complainant contacted within 24 hours",
+              "Step 3: Investigation — Confirm investigator assigned and evidence gathering underway",
+              "Step 4: Resolution — Confirm outcome determined and communicated to complainant",
+              "Step 5: Closure — Confirm complainant satisfaction recorded and lessons documented",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Each checklist step is audit-logged with a timestamp and the user who completed it. This creates an automatic chain of custody for NDIS reviews.",
+          },
+        ],
+      },
+      {
+        id: "best-practices",
+        title: "Best Practices",
+        icon: "star",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Acknowledge every complaint promptly — even if you cannot resolve it immediately, the complainant needs to know they have been heard",
+              "Record complaints in the complainant's own words, not your interpretation",
+              "Keep the complainant informed at every stage — silence breeds escalation",
+              "Always offer advocacy support and document that you did so",
+              "Look for patterns — if the same property or staff member appears in multiple complaints, investigate the root cause",
+              "Use the Chain of Custody view on the detail page to verify all actions are documented before closing",
+              "Never close a complaint without recording whether the complainant is satisfied with the outcome",
+            ],
+          },
+        ],
+      },
+      {
+        id: "compliance-contacts",
+        title: "Compliance Contacts",
+        icon: "shield",
+        color: "red",
+        badge: "CONTACTS",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**NDIS Quality and Safeguards Commission**: Phone 1800 035 544 | Website www.ndiscommission.gov.au",
+              "**Internal Escalation**: Director, Better Living Solutions — for all Reportable Incidents and complaints unresolved within 21 days",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Compliance Dashboard", href: "/compliance" },
+      { label: "New Complaint", href: "/compliance/complaints/new" },
+      { label: "NDIS Commission", href: "https://www.ndiscommission.gov.au" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 11. COMPLIANCE CERTIFICATIONS
+  // ---------------------------------------------------------------------------
+  certifications: {
+    id: "certifications",
+    title: "Compliance Certifications Guide",
+    subtitle: "Managing NDIS registrations, safety certificates, and audit compliance",
+    overview:
+      "Compliance certifications are the legal documents that allow your organisation and properties to operate as an NDIS SDA provider. Letting any certification expire can result in funding suspension, penalties, or registration revocation.",
+    sections: [
+      {
+        id: "organisation-level-certifications",
+        title: "Organisation-Level Certifications",
+        icon: "shield",
+        color: "red",
+        badge: "REQUIRED",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "These certifications apply to your entire organisation and must be maintained at all times to remain a registered NDIS provider.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**NDIS Practice Standards Certification**: Required for all registered NDIS providers. Demonstrates compliance with NDIS Practice Standards including rights, governance, and service delivery. Certified by an NDIS-approved auditor. Renewal: every 3 years with a mid-term audit at 18 months.",
+              "**SDA Provider Registration**: Registration with the NDIS Commission to provide Specialist Disability Accommodation. Must be current for any SDA funding to be received. Renewal: every 3 years.",
+              "**NDIS Verification Audit**: Required for providers delivering lower-risk supports. A desktop audit verifying policies, procedures, and systems are in place. Renewal: every 3 years.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Non-compliance consequences include: registration suspension or revocation, civil penalties up to $93,900, and banning orders. Begin renewal at least 60 days before expiry.",
+          },
+        ],
+      },
+      {
+        id: "property-level-certifications",
+        title: "Property-Level Certifications",
+        icon: "home",
+        color: "yellow",
+        badge: "PER PROPERTY",
+        content: [
+          {
+            type: "text",
+            value:
+              "Each SDA property requires its own set of certifications. These must be maintained individually and linked to the correct property in MySDAManager.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**SDA Design Standard Certificate**: Certifies the property meets SDA Design Standard requirements for its registered category (HPS, Fully Accessible, Robust, or Improved Liveability). Issued by a certified SDA Assessor or Building Certifier. One-time unless modifications are made to the property.",
+              "**Fire Safety Certificate**: Annual fire safety statement covering detection, alarms, extinguishers, exits, and evacuation plans. Issued by an Accredited Fire Safety Practitioner. ANNUAL renewal — this is the most commonly missed certification.",
+              "**Building Compliance Certificate**: Occupancy or compliance certificate confirming the building meets BCA requirements and is safe for occupation. Issued by a Private Certifier or Local Council. One-time unless modifications are made.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Fire Safety Certificates expire ANNUALLY. This is the most common compliance gap across SDA providers. Set calendar reminders 90 days before expiry and begin the renewal process immediately.",
+          },
+        ],
+      },
+      {
+        id: "worker-certifications",
+        title: "Worker Screening Requirements",
+        icon: "users",
+        color: "purple",
+        badge: "ALL WORKERS",
+        content: [
+          {
+            type: "text",
+            value:
+              "All workers with more than incidental contact with NDIS participants must have valid screening clearance.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**NDIS Worker Screening Check**: Mandatory for all workers. Applied for through the State/Territory Worker Screening Unit. Valid for 5 years.",
+              "**Workers CANNOT start until clearance is received**: No exceptions. Interim or provisional arrangements are not permitted under NDIS rules.",
+              "**Track expiry dates for all staff**: MySDAManager can track worker screening expiry dates and generate alerts before they lapse.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Employing a worker without a valid NDIS Worker Screening Check is a serious compliance breach. The responsibility falls on the provider, not the worker.",
+          },
+        ],
+      },
+      {
+        id: "status-lifecycle",
+        title: "Certification Status Lifecycle",
+        icon: "clock",
+        color: "teal",
+        content: [
+          {
+            type: "text",
+            value:
+              "MySDAManager automatically tracks certification status and transitions based on expiry dates.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Current** (green): The certification is valid and the expiry date is more than 90 days away.",
+              "**Expiring Soon** (yellow): The certification will expire within 90 days. Action needed — begin the renewal process.",
+              "**Expired** (red): The certification has passed its expiry date. Immediate action required — the property or organisation may not be compliant.",
+              "**Pending Renewal** (purple): A renewal application has been submitted but the new certificate has not yet been received.",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "The system runs a daily check at 1:00 AM UTC to automatically transition certifications from Current to Expiring Soon to Expired based on their expiry dates. You do not need to update statuses manually.",
+          },
+        ],
+      },
+      {
+        id: "adding-a-certification",
+        title: "Adding a Certification",
+        icon: "file",
+        color: "gray",
+        content: [
+          {
+            type: "fields",
+            value: [
+              "**Type**: Select the certification type. This determines which compliance requirements apply.",
+              "**Title**: A descriptive name (e.g. 'Fire Safety Certificate - 12 Waldron Rd - 2026').",
+              "**Issuing Body**: Who issued the certificate (e.g. 'Fire Safety Australia Pty Ltd').",
+              "**Issue Date**: When the certificate was issued.",
+              "**Expiry Date**: When the certificate expires. This drives all automatic alerts and status transitions.",
+              "**Property**: Link to a specific property (for property-level certs) or leave blank for organisation-wide certs.",
+              "**Certificate File**: Upload the actual certificate document. This creates an automatic link in the Documents module.",
+              "**Audit Outcome**: If from an audit — Pass, Conditional Pass, Fail, or Pending.",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "You can also add certifications automatically by uploading compliance documents through the Global Upload button. The system detects fire safety, building compliance, and SDA design certificates and auto-creates the certification record.",
+          },
+        ],
+      },
+      {
+        id: "alert-system",
+        title: "Expiry Alert System",
+        icon: "alert",
+        color: "yellow",
+        badge: "AUTOMATED",
+        content: [
+          {
+            type: "text",
+            value:
+              "MySDAManager generates automatic alerts for certification expiry to ensure you never miss a renewal deadline.",
+          },
+          {
+            type: "list",
+            value: [
+              "90 days before expiry: Status changes to 'Expiring Soon' (yellow). Begin gathering renewal requirements.",
+              "30 days before expiry: Warning alert generated on the dashboard. Contact the certifying body if renewal is not yet underway.",
+              "7 days before expiry: Critical alert. Escalate to management if the renewal is still pending.",
+              "Expired: Critical alert displayed prominently on dashboard and compliance page. Immediate action required.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Expired certifications block SDA funding eligibility. The 30-day alert is your last comfortable window to complete renewal without service disruption.",
+          },
+        ],
+      },
+      {
+        id: "best-practices",
+        title: "Best Practices",
+        icon: "star",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Maintain a renewal calendar with reminders starting 90 days before each expiry",
+              "Upload the actual certificate document — not just a record. Auditors will ask for the original.",
+              "Link property-level certificates to the correct property so they appear on property detail pages",
+              "After an NDIS audit, update the audit outcome and any conditions immediately",
+              "Review the Expiring Soon list weekly as part of your compliance routine",
+              "For NDIS Practice Standards renewal, schedule the mid-term audit at exactly 18 months to avoid surprises",
+              "Keep contact details for all certifying bodies on file so renewals can be initiated quickly",
+            ],
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "New Certification", href: "/compliance/certifications/new" },
+      { label: "Compliance Dashboard", href: "/compliance" },
+      { label: "Documents", href: "/documents" },
+    ],
+  },
 };

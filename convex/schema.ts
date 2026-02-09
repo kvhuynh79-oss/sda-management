@@ -18,6 +18,8 @@ export default defineSchema({
     phone: v.optional(v.string()),
     // Multi-tenant: Organization this user belongs to (optional during migration)
     organizationId: v.optional(v.id("organizations")),
+    // Platform-level super-admin flag (separate from org-level role)
+    isSuperAdmin: v.optional(v.boolean()),
     // For SIL provider users - links to their provider record
     silProviderId: v.optional(v.id("silProviders")),
     isActive: v.boolean(),
@@ -97,6 +99,7 @@ export default defineSchema({
     })),
     createdAt: v.number(),
     isActive: v.boolean(),       // Organization active status
+    trialEndsAt: v.optional(v.number()), // Trial expiry timestamp (ms) - set by super-admin
   })
     .index("by_slug", ["slug"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])

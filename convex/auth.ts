@@ -377,6 +377,7 @@ export const getUser = query({
       phone: user.phone,
       isActive: user.isActive,
       lastLogin: user.lastLogin,
+      isSuperAdmin: user.isSuperAdmin ?? false,
     };
   },
 });

@@ -182,3 +182,137 @@ export const verifyMigration = mutation({
     };
   },
 });
+
+/**
+ * Backfill ALL data tables with BLS organizationId
+ *
+ * After Sprint 2 migration, all queries use withIndex("by_organizationId") which
+ * means pre-existing records without organizationId are invisible to tenant-scoped queries.
+ *
+ * This mutation finds every record across all tenant-scoped tables that is missing
+ * organizationId and patches it with the BLS organization ID.
+ *
+ * IDEMPOTENT: Skips records that already have organizationId set.
+ * NO ARGS: Designed to be called directly from the Convex dashboard CLI.
+ *
+ * Usage: Run once from the Convex dashboard after deploying Sprint 2 schema.
+ */
+export const backfillAllTablesOrganizationId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Step 1: Look up BLS organization by slug
+    const blsOrg = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", "better-living-solutions"))
+      .first();
+
+    if (!blsOrg) {
+      throw new Error(
+        "BLS organization not found. Run seedBlsOrganization first."
+      );
+    }
+
+    const organizationId = blsOrg._id;
+    console.log(`Using BLS organizationId: ${organizationId}`);
+
+    // Step 2: Define all tables that need backfilling
+    // These are all tables with organizationId field (excluding users, sessions, organizations themselves)
+    const tablesToBackfill = [
+      "properties",
+      "dwellings",
+      "participants",
+      "participantPlans",
+      "payments",
+      "claims",
+      "maintenanceRequests",
+      "maintenancePhotos",
+      "maintenanceQuotes",
+      "contractors",
+      "quoteRequests",
+      "incidents",
+      "incidentPhotos",
+      "incidentActions",
+      "documents",
+      "alerts",
+      "inspections",
+      "inspectionItems",
+      "inspectionPhotos",
+      "inspectionTemplates",
+      "preventativeSchedule",
+      "communications",
+      "threadSummaries",
+      "tasks",
+      "complaints",
+      "complianceCertifications",
+      "supportCoordinators",
+      "supportCoordinatorParticipants",
+      "silProviders",
+      "silProviderParticipants",
+      "silProviderProperties",
+      "silProviderDwellings",
+      "occupationalTherapists",
+      "otParticipants",
+      "owners",
+      "bankAccounts",
+      "bankTransactions",
+      "auditLogs",
+      "propertyMedia",
+      "aiConversations",
+      "aiProcessingQueue",
+      "providerSettings",
+      "expectedPayments",
+      "paymentSchedules",
+      "ownerPayments",
+      "xeroConnections",
+      "insurancePolicies",
+      "vacancyListings",
+      "leads",
+    ] as const;
+
+    // Step 3: Process each table
+    const results: Record<string, number> = {};
+    let grandTotal = 0;
+
+    for (const tableName of tablesToBackfill) {
+      // Collect all records from the table
+      // We cannot filter by "organizationId === undefined" with an index,
+      // so we fetch all and filter in memory
+      const allRecords = await ctx.db
+        .query(tableName)
+        .collect();
+
+      // Filter to only records missing organizationId (idempotent)
+      const recordsToUpdate = allRecords.filter(
+        (record: Record<string, unknown>) => record.organizationId === undefined
+      );
+
+      // Patch each record with the BLS organizationId
+      for (const record of recordsToUpdate) {
+        await ctx.db.patch(record._id, {
+          organizationId,
+        } as Record<string, unknown>);
+      }
+
+      results[tableName] = recordsToUpdate.length;
+      grandTotal += recordsToUpdate.length;
+
+      if (recordsToUpdate.length > 0) {
+        console.log(
+          `${tableName}: ${recordsToUpdate.length} records updated`
+        );
+      } else {
+        console.log(`${tableName}: 0 records updated (all already have organizationId)`);
+      }
+    }
+
+    console.log(`\nBackfill complete. Total records updated: ${grandTotal}`);
+
+    return {
+      success: true,
+      organizationId,
+      organizationName: blsOrg.name,
+      grandTotal,
+      perTable: results,
+    };
+  },
+});

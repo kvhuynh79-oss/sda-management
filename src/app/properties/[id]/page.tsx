@@ -58,7 +58,7 @@ export default function PropertyDetailPage() {
   const property = useQuery(api.properties.getById, userIdTyped ? { propertyId, userId: userIdTyped } : "skip");
   const dwellings = useQuery(api.dwellings.getByProperty, userIdTyped ? { propertyId, userId: userIdTyped } : "skip");
   const documents = useQuery(api.documents.getByProperty, userIdTyped ? { userId: userIdTyped, propertyId } : "skip");
-  const propertyMedia = useQuery(api.propertyMedia.getByProperty, { propertyId });
+  const propertyMedia = useQuery(api.propertyMedia.getByProperty, userIdTyped ? { userId: userIdTyped, propertyId } : "skip");
   const allSilProviders = useQuery(api.silProviders.getAll, userIdTyped ? { status: "active", userId: userIdTyped } : "skip");
   const removeDwelling = useMutation(api.dwellings.remove);
   const removeDocument = useMutation(api.documents.remove);
@@ -996,7 +996,7 @@ function MediaGallery({
         }
 
         // Get upload URL
-        const uploadUrl = await generateUploadUrl();
+        const uploadUrl = await generateUploadUrl({ userId });
 
         // Upload file
         const result = await fetch(uploadUrl, {
@@ -1077,7 +1077,7 @@ function MediaGallery({
 
   const handleDelete = async (mediaId: string) => {
     try {
-      await deleteMedia({ mediaId: mediaId as Id<"propertyMedia"> });
+      await deleteMedia({ userId, mediaId: mediaId as Id<"propertyMedia"> });
       setShowDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting media:", error);
@@ -1087,7 +1087,7 @@ function MediaGallery({
 
   const handleSetFeatured = async (mediaId: string, isFeatured: boolean) => {
     try {
-      await setFeatured({ mediaId: mediaId as Id<"propertyMedia">, isFeatured });
+      await setFeatured({ userId, mediaId: mediaId as Id<"propertyMedia">, isFeatured });
     } catch (error) {
       console.error("Error setting featured:", error);
       alert("Failed to update featured status");

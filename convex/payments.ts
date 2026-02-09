@@ -273,10 +273,18 @@ export const getByPlan = query({
 
 // Get payment by ID
 export const getById = query({
-  args: { paymentId: v.id("payments") },
+  args: {
+    userId: v.id("users"),
+    paymentId: v.id("payments"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const payment = await ctx.db.get(args.paymentId);
     if (!payment) return null;
+
+    // Verify payment belongs to this organization
+    if (payment.organizationId !== organizationId) return null;
 
     const participant = await ctx.db.get(payment.participantId);
     const plan = await ctx.db.get(payment.planId);
@@ -315,10 +323,16 @@ export const update = mutation({
   handler: async (ctx, args) => {
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "payments", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const { paymentId, userId, ...updates } = args;
     const payment = await ctx.db.get(paymentId);
     if (!payment) throw new Error("Payment not found");
+
+    // Verify payment belongs to this organization
+    if (payment.organizationId !== organizationId) {
+      throw new Error("Payment not found");
+    }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(updates)) {
@@ -359,8 +373,14 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "payments", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
 
     const payment = await ctx.db.get(args.paymentId);
+
+    // Verify payment belongs to this organization
+    if (payment && payment.organizationId !== organizationId) {
+      throw new Error("Payment not found");
+    }
 
     await ctx.db.delete(args.paymentId);
 
@@ -385,8 +405,26 @@ export const remove = mutation({
 
 // Get payment statistics for a participant
 export const getParticipantStats = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify participant belongs to this organization
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant || participant.organizationId !== organizationId) {
+      return {
+        totalPayments: 0,
+        totalExpected: 0,
+        totalActual: 0,
+        totalVariance: 0,
+        averageVariance: 0,
+        paymentsCount: 0,
+      };
+    }
+
     const payments = await ctx.db
       .query("payments")
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
@@ -420,10 +458,17 @@ export const getParticipantStats = query({
 
 // Get recent payments (for dashboard) - optimized
 export const getRecent = query({
-  args: { limit: v.optional(v.number()) },
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const limit = args.limit || 10;
-    const payments = await ctx.db.query("payments").collect();
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (payments.length === 0) return [];
 
@@ -451,9 +496,16 @@ export const getRecent = query({
 
 // Get payments with variances (for alerting) - optimized
 export const getPaymentsWithVariance = query({
-  args: { minVariancePercent: v.number() },
+  args: {
+    userId: v.id("users"),
+    minVariancePercent: v.number(),
+  },
   handler: async (ctx, args) => {
-    const payments = await ctx.db.query("payments").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     // Filter first to reduce the dataset
     const filteredPayments = payments.filter((payment) => {
@@ -493,6 +545,8 @@ export const getAllPaginated = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     // Admin or accountant permission check
     const requestingUser = await ctx.db.get(args.userId);
     if (!requestingUser) {
@@ -506,6 +560,7 @@ export const getAllPaginated = query({
 
     const result = await ctx.db
       .query("payments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .order("desc")
       .paginate({ numItems: limit, cursor: args.cursor ?? null });
 

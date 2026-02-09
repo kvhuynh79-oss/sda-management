@@ -1,18 +1,28 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { requireTenant } from "./authHelpers";
 
 // Get provider settings
 export const getProviderSettings = query({
-  args: {},
-  handler: async (ctx) => {
-    const settings = await ctx.db.query("providerSettings").first();
-    return settings;
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const allSettings = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    return allSettings[0] ?? null;
   },
 });
 
 // Save provider settings (create or update)
 export const saveProviderSettings = mutation({
   args: {
+    userId: v.id("users"),
     providerName: v.string(),
     ndisRegistrationNumber: v.string(),
     abn: v.string(),
@@ -23,17 +33,26 @@ export const saveProviderSettings = mutation({
     address: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db.query("providerSettings").first();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { userId, ...settingsData } = args;
+
+    const allSettings = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    const existing = allSettings[0];
 
     if (existing) {
       await ctx.db.patch(existing._id, {
-        ...args,
+        ...settingsData,
         updatedAt: Date.now(),
       });
       return existing._id;
     } else {
       return await ctx.db.insert("providerSettings", {
-        ...args,
+        organizationId,
+        ...settingsData,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -44,30 +63,39 @@ export const saveProviderSettings = mutation({
 // Generate NDIS claim data for export
 export const generateClaimData = query({
   args: {
+    userId: v.id("users"),
     periodStart: v.string(),
     periodEnd: v.string(),
     participantIds: v.optional(v.array(v.id("participants"))),
   },
   handler: async (ctx, args) => {
-    // Get provider settings
-    const providerSettings = await ctx.db.query("providerSettings").first();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Get provider settings for this organization
+    const allSettings = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+    const providerSettings = allSettings[0] ?? null;
 
     if (!providerSettings) {
       return { error: "Provider settings not configured", claims: [] };
     }
 
-    // Get all active participants or filter by IDs
+    // Get all active participants for this organization, or filter by IDs
     let participants;
     if (args.participantIds && args.participantIds.length > 0) {
-      participants = await Promise.all(
+      const fetched = await Promise.all(
         args.participantIds.map((id) => ctx.db.get(id))
       );
-      participants = participants.filter((p) => p !== null);
+      // Filter to only participants belonging to this organization
+      participants = fetched.filter((p) => p !== null && p.organizationId === organizationId);
     } else {
-      participants = await ctx.db
+      const allParticipants = await ctx.db
         .query("participants")
-        .filter((q) => q.eq(q.field("status"), "active"))
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
         .collect();
+      participants = allParticipants.filter((p) => p.status === "active");
     }
 
     const claims = [];
@@ -124,12 +152,17 @@ export const generateClaimData = query({
 
 // Get active participants for selection
 export const getActiveParticipantsForClaim = query({
-  args: {},
-  handler: async (ctx) => {
-    const participants = await ctx.db
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const allParticipants = await ctx.db
       .query("participants")
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const participants = allParticipants.filter((p) => p.status === "active");
 
     // Get their current plans
     const participantsWithPlans = await Promise.all(

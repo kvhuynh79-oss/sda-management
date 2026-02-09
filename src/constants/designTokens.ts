@@ -72,8 +72,8 @@ export const COMPONENT_TOKENS = {
   card: {
     bg: "bg-gray-800",
     bgHover: "hover:bg-gray-700/80",
-    border: "border border-gray-700",
-    borderHover: "hover:bg-gray-700/80",
+    border: "border border-gray-600",
+    borderHover: "hover:border-gray-500",
     rounded: "rounded-lg",
     padding: "p-6",
     paddingSm: "p-4",
@@ -97,14 +97,14 @@ export const COMPONENT_TOKENS = {
   // Header
   header: {
     bg: "bg-gray-800",
-    border: "border-b border-gray-700",
+    border: "border-b border-gray-600",
     height: "h-14 lg:h-16",
   },
   // Table styles
   table: {
-    container: "bg-gray-800 rounded-lg border border-gray-700 overflow-hidden",
+    container: "bg-gray-800 rounded-lg border border-gray-600 overflow-hidden",
     header: "bg-gray-700",
-    headerCell: "px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider",
+    headerCell: "px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider",
     row: "hover:bg-gray-700 transition-colors",
     cell: "px-4 py-3",
     divider: "divide-y divide-gray-700",
@@ -113,10 +113,10 @@ export const COMPONENT_TOKENS = {
   modal: {
     backdrop: "fixed inset-0 bg-black/50 z-40",
     container: "fixed inset-0 z-50 flex items-center justify-center p-4",
-    content: "bg-gray-800 rounded-lg border border-gray-700 shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto",
-    header: "px-6 py-4 border-b border-gray-700",
+    content: "bg-gray-800 rounded-lg border border-gray-600 shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto",
+    header: "px-6 py-4 border-b border-gray-600",
     body: "px-6 py-4",
-    footer: "px-6 py-4 border-t border-gray-700 flex justify-end gap-3",
+    footer: "px-6 py-4 border-t border-gray-600 flex justify-end gap-3",
   },
 } as const;
 
@@ -188,7 +188,7 @@ export const TYPOGRAPHY = {
     primary: "text-white",
     secondary: "text-gray-300",
     muted: "text-gray-400",
-    disabled: "text-gray-500",
+    disabled: "text-gray-400 opacity-60",
   },
 } as const;
 

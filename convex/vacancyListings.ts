@@ -1,10 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { requireTenant } from "./authHelpers";
 
 // Create or update vacancy listing for a dwelling
 export const upsert = mutation({
   args: {
+    userId: v.id("users"),
     dwellingId: v.id("dwellings"),
     goNestListed: v.optional(v.boolean()),
     goNestListedDate: v.optional(v.string()),
@@ -26,8 +28,15 @@ export const upsert = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { dwellingId, ...updates } = args;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { dwellingId, userId, ...updates } = args;
     const now = Date.now();
+
+    // Verify dwelling belongs to this organization
+    const dwelling = await ctx.db.get(dwellingId);
+    if (!dwelling || dwelling.organizationId !== organizationId) {
+      throw new Error("Dwelling not found or does not belong to this organization");
+    }
 
     // Check if listing exists
     const existing = await ctx.db
@@ -49,6 +58,7 @@ export const upsert = mutation({
 
     // Create new
     const listingId = await ctx.db.insert("vacancyListings", {
+      organizationId,
       dwellingId,
       goNestListed: updates.goNestListed ?? false,
       goNestListedDate: updates.goNestListedDate,
@@ -71,8 +81,17 @@ export const upsert = mutation({
 
 // Get vacancy listing for a dwelling
 export const getByDwelling = query({
-  args: { dwellingId: v.id("dwellings") },
+  args: {
+    userId: v.id("users"),
+    dwellingId: v.id("dwellings"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify dwelling belongs to this organization
+    const dwelling = await ctx.db.get(args.dwellingId);
+    if (!dwelling || dwelling.organizationId !== organizationId) return null;
+
     const listing = await ctx.db
       .query("vacancyListings")
       .withIndex("by_dwelling", (q) => q.eq("dwellingId", args.dwellingId))
@@ -100,6 +119,7 @@ export const getByDwelling = query({
 // Get all vacancy listings (with dwelling and property info)
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     status: v.optional(
       v.union(
         v.literal("open"),
@@ -110,17 +130,15 @@ export const getAll = query({
     ),
   },
   handler: async (ctx, args) => {
-    let listings;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    let listings = await ctx.db
+      .query("vacancyListings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (args.status) {
-      listings = await ctx.db
-        .query("vacancyListings")
-        .withIndex("by_status", (q) => q.eq("vacancyStatus", args.status!))
-        .collect();
-    } else {
-      listings = await ctx.db
-        .query("vacancyListings")
-        .collect();
+      listings = listings.filter((l) => l.vacancyStatus === args.status);
     }
 
     // Enrich with dwelling and property info
@@ -146,12 +164,20 @@ export const getAll = query({
 // Record coordinator notification
 export const notifyCoordinator = mutation({
   args: {
+    userId: v.id("users"),
     dwellingId: v.id("dwellings"),
     coordinatorId: v.id("supportCoordinators"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
     const today = new Date().toISOString().split("T")[0];
+
+    // Verify dwelling belongs to this organization
+    const dwellingRecord = await ctx.db.get(args.dwellingId);
+    if (!dwellingRecord || dwellingRecord.organizationId !== organizationId) {
+      throw new Error("Dwelling not found or does not belong to this organization");
+    }
 
     // Get or create listing
     let listing = await ctx.db
@@ -161,6 +187,7 @@ export const notifyCoordinator = mutation({
 
     if (!listing) {
       const listingId = await ctx.db.insert("vacancyListings", {
+        organizationId,
         dwellingId: args.dwellingId,
         coordinatorsNotified: [args.coordinatorId],
         lastNotificationDate: today,
@@ -194,18 +221,22 @@ export const notifyCoordinator = mutation({
 
 // Get vacancy summary (for dashboard) - only includes active properties
 export const getSummary = query({
-  args: {},
-  handler: async (ctx) => {
-    // Get all vacant or partially occupied dwellings
-    const dwellings = await ctx.db
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Get all dwellings for this organization
+    const allDwellings = await ctx.db
       .query("dwellings")
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("occupancyStatus"), "vacant"),
-          q.eq(q.field("occupancyStatus"), "partially_occupied")
-        )
-      )
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+
+    // Filter to vacant or partially occupied
+    const dwellings = allDwellings.filter(
+      (d) => d.occupancyStatus === "vacant" || d.occupancyStatus === "partially_occupied"
+    );
 
     // Get listings for these dwellings (only from active properties)
     const summary = await Promise.all(

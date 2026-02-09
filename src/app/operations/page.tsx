@@ -171,7 +171,7 @@ function OperationsContent() {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white">Operations</h1>
-            <p className="text-gray-400 mt-1 text-sm sm:text-base">Manage maintenance, inspections, and schedules</p>
+            <p className="text-gray-300 mt-1 text-sm sm:text-base">Manage maintenance, inspections, and schedules</p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             {activeTab === "maintenance" && (
@@ -306,7 +306,7 @@ function MaintenanceTab({ userId }: { userId: string }) {
       )}
 
       {/* Filters */}
-      <div className="bg-gray-800 rounded-lg p-4 mb-6">
+      <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-600">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <FormInput
             label="Search"
@@ -394,7 +394,7 @@ function MaintenanceCard({ request }: { request: any }) {
   return (
     <Link
       href={`/maintenance/${request._id}`}
-      className="block bg-gray-800 rounded-lg p-4 border border-gray-700 hover:bg-gray-700/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-inset"
+      className="block bg-gray-800 rounded-lg p-4 border border-gray-600 hover:bg-gray-700/80 hover:border-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-inset"
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">
@@ -495,7 +495,7 @@ function InspectionsTab({ userId }: { userId: string }) {
       )}
 
       {/* Filters */}
-      <div className="bg-gray-800 rounded-lg p-4 mb-6">
+      <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-600">
         <div className="flex gap-4 items-end">
           <div className="w-48">
             <FormSelect
@@ -533,7 +533,7 @@ function InspectionsTab({ userId }: { userId: string }) {
       ) : (
         <div className="space-y-4">
           {filteredInspections.map((inspection) => (
-            <div key={inspection._id} className="bg-gray-800 rounded-lg p-4">
+            <div key={inspection._id} className="bg-gray-800 rounded-lg p-4 border border-gray-600">
               <div className="flex justify-between items-start">
                 <Link
                   href={`/inspections/${inspection._id}`}
@@ -700,7 +700,7 @@ function ScheduleTab({ userId }: { userId: string }) {
       )}
 
       {/* Filters */}
-      <div className="bg-gray-800 rounded-lg p-4 mb-6">
+      <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-600">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormInput
             label="Search"
@@ -776,7 +776,7 @@ function ScheduleCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
+    <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">

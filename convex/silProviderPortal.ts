@@ -361,7 +361,12 @@ export const createIncident = mutation({
       "staff_assault",
     ].includes(args.incidentType);
 
+    // Get organizationId from the property for tenant isolation
+    const propertyRecord = await ctx.db.get(args.propertyId);
+    const incidentOrganizationId = propertyRecord?.organizationId;
+
     const incidentId = await ctx.db.insert("incidents", {
+      organizationId: incidentOrganizationId,
       propertyId: args.propertyId,
       dwellingId: args.dwellingId,
       participantId: args.participantId,
@@ -542,7 +547,12 @@ export const createMaintenanceRequest = mutation({
     const now = Date.now();
     const today = new Date().toISOString().split("T")[0];
 
+    // Get organizationId from the dwelling for tenant isolation
+    const dwellingRecord = await ctx.db.get(args.dwellingId);
+    const mrOrganizationId = dwellingRecord?.organizationId;
+
     const requestId = await ctx.db.insert("maintenanceRequests", {
+      organizationId: mrOrganizationId,
       dwellingId: args.dwellingId,
       requestType: "reactive",
       category: args.category,

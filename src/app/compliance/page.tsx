@@ -31,8 +31,8 @@ function ComplianceContent() {
 
   const certifications = useQuery(api.complianceCertifications.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const expiringSoonCerts = useQuery(api.complianceCertifications.getExpiringSoon, user ? { userId: user.id as Id<"users"> } : "skip");
-  const insurancePolicies = useQuery(api.insurancePolicies.getAll, {});
-  const insuranceCoverage = useQuery(api.insurancePolicies.checkRequiredCoverage);
+  const insurancePolicies = useQuery(api.insurancePolicies.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const insuranceCoverage = useQuery(api.insurancePolicies.checkRequiredCoverage, user ? { userId: user.id as Id<"users"> } : "skip");
   const complaintsStats = useQuery(api.complaints.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const incidentStats = useQuery(api.incidents.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
 

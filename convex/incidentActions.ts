@@ -1,12 +1,23 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireAuth } from "./authHelpers";
+import { requireAuth, requireTenant } from "./authHelpers";
 
 // Get all actions for an incident
 export const getByIncident = query({
-  args: { incidentId: v.id("incidents") },
+  args: {
+    userId: v.id("users"),
+    incidentId: v.id("incidents"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify incident belongs to this organization
+    const incident = await ctx.db.get(args.incidentId);
+    if (!incident || incident.organizationId !== organizationId) {
+      return [];
+    }
+
     const actions = await ctx.db
       .query("incidentActions")
       .withIndex("by_incident", (q) => q.eq("incidentId", args.incidentId))
@@ -32,10 +43,17 @@ export const getByIncident = query({
 
 // Get a single action by ID
 export const getById = query({
-  args: { actionId: v.id("incidentActions") },
+  args: {
+    userId: v.id("users"),
+    actionId: v.id("incidentActions"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const action = await ctx.db.get(args.actionId);
     if (!action) return null;
+    // Verify org ownership
+    if (action.organizationId !== organizationId) return null;
 
     // Get incident
     const incident = await ctx.db.get(action.incidentId);
@@ -80,10 +98,17 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
+    // Verify incident belongs to this organization
+    const incident = await ctx.db.get(args.incidentId);
+    if (!incident || incident.organizationId !== organizationId) {
+      throw new Error("Incident not found or does not belong to this organization");
+    }
+
     const actionId = await ctx.db.insert("incidentActions", {
+      organizationId,
       incidentId: args.incidentId,
       title: args.title,
       description: args.description,
@@ -131,10 +156,10 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { actionId, userId, ...updates } = args;
     const action = await ctx.db.get(actionId);
-    if (!action) throw new Error("Action not found");
+    if (!action || action.organizationId !== organizationId) throw new Error("Action not found");
 
     // Only allow updates if status is pending
     if (action.status !== "pending") {
@@ -167,9 +192,9 @@ export const markInHouse = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
-    if (!action) throw new Error("Action not found");
+    if (!action || action.organizationId !== organizationId) throw new Error("Action not found");
 
     if (action.status !== "pending") {
       throw new Error("Action is not in pending status");
@@ -198,9 +223,9 @@ export const complete = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
-    if (!action) throw new Error("Action not found");
+    if (!action || action.organizationId !== organizationId) throw new Error("Action not found");
 
     if (action.status !== "in_progress") {
       throw new Error("Action is not in progress");
@@ -227,9 +252,9 @@ export const cancel = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
-    if (!action) throw new Error("Action not found");
+    if (!action || action.organizationId !== organizationId) throw new Error("Action not found");
 
     if (action.status === "completed") {
       throw new Error("Cannot cancel a completed action");
@@ -253,12 +278,12 @@ export const linkMaintenanceRequest = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
-    if (!action) throw new Error("Action not found");
+    if (!action || action.organizationId !== organizationId) throw new Error("Action not found");
 
     const mr = await ctx.db.get(args.maintenanceRequestId);
-    if (!mr) throw new Error("Maintenance request not found");
+    if (!mr || mr.organizationId !== organizationId) throw new Error("Maintenance request not found");
 
     await ctx.db.patch(args.actionId, {
       status: "in_progress",
@@ -285,9 +310,9 @@ export const remove = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const action = await ctx.db.get(args.actionId);
-    if (!action) throw new Error("Action not found");
+    if (!action || action.organizationId !== organizationId) throw new Error("Action not found");
 
     if (action.status !== "pending" && action.status !== "cancelled") {
       throw new Error("Can only delete pending or cancelled actions");
@@ -307,7 +332,14 @@ export const completeFromMaintenanceRequest = mutation({
   },
   handler: async (ctx, args) => {
     // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify the maintenance request belongs to this organization
+    const mrRecord = await ctx.db.get(args.maintenanceRequestId);
+    if (!mrRecord || mrRecord.organizationId !== organizationId) {
+      throw new Error("Maintenance request not found");
+    }
+
     // Find the action linked to this maintenance request
     const actions = await ctx.db
       .query("incidentActions")

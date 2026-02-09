@@ -203,7 +203,7 @@ function ClaimsTab({ userId }: { userId: string }) {
   // Bulk selection state
   const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
 
-  const dashboard = useQuery(api.claims.getDashboard);
+  const dashboard = useQuery(api.claims.getDashboard, { userId: userId as Id<"users"> });
   const providerSettings = useQuery(api.providerSettings.get);
   const createClaim = useMutation(api.claims.create);
   const markSubmitted = useMutation(api.claims.markSubmitted);
@@ -1042,7 +1042,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
   const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
-  const ownerPayments = useQuery(api.ownerPayments.getAll, {});
+  const ownerPayments = useQuery(api.ownerPayments.getAll, { userId: userId as Id<"users"> });
   const properties = useQuery(api.properties.getAll, { userId: userId as Id<"users"> });
   const participants = useQuery(
     api.participants.getAll,
@@ -2030,6 +2030,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
           onSubmit={async (data) => {
             try {
               await createOwnerPayment({
+                userId: userId as Id<"users">,
                 propertyId: data.propertyId as Id<"properties">,
                 ownerId: data.ownerId as Id<"owners">,
                 paymentType: data.paymentType as "interim" | "sda_share" | "rent_contribution" | "other",

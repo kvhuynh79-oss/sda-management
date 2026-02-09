@@ -83,8 +83,9 @@ export default function AlertsPage() {
   };
 
   const handleGenerateAlerts = async () => {
+    if (!user) return;
     try {
-      await generateAlerts({});
+      await generateAlerts({ userId: user.id as Id<"users"> });
     } catch (err) {
       console.error("Failed to generate alerts:", err);
     }

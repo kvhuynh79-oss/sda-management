@@ -10,7 +10,7 @@ import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NDISExportPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
@@ -26,14 +26,16 @@ export default function NDISExportPage() {
     defaultSupportItemNumber: "",
   });
 
-  const providerSettings = useQuery(api.ndisClaimExport.getProviderSettings);
-  const participants = useQuery(api.ndisClaimExport.getActiveParticipantsForClaim);
+  const userId = user ? (user.id as Id<"users">) : undefined;
+  const providerSettings = useQuery(api.ndisClaimExport.getProviderSettings, userId ? { userId } : "skip");
+  const participants = useQuery(api.ndisClaimExport.getActiveParticipantsForClaim, userId ? { userId } : "skip");
   const saveSettings = useMutation(api.ndisClaimExport.saveProviderSettings);
 
   const claimData = useQuery(
     api.ndisClaimExport.generateClaimData,
-    periodStart && periodEnd
+    periodStart && periodEnd && userId
       ? {
+          userId,
           periodStart,
           periodEnd,
           participantIds:
@@ -103,7 +105,8 @@ export default function NDISExportPage() {
 
   const handleSaveSettings = async () => {
     try {
-      await saveSettings(settingsForm);
+      if (!userId) return;
+      await saveSettings({ userId, ...settingsForm });
       setShowSettings(false);
       alert("Provider settings saved successfully");
     } catch (err) {

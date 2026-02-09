@@ -52,15 +52,15 @@ export function StatCard({
   const finalValueColor = valueColor || (color ? COLOR_MAP[color] : "text-white");
   const content = (
     <div
-      className={`${bgColor} rounded-lg p-6 ${
-        href ? "hover:bg-opacity-80 transition-colors cursor-pointer" : ""
+      className={`${bgColor} rounded-lg p-6 border border-gray-600 ${
+        href ? "hover:bg-opacity-80 hover:border-gray-500 transition-colors cursor-pointer" : ""
       }`}
       role="region"
       aria-label={`${title}: ${value}`}
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-300">{title}</p>
+          <p className="text-sm font-medium text-gray-200">{title}</p>
           <p className={`text-3xl font-bold ${finalValueColor} mt-1`}>{value}</p>
           {subtitle && (
             <p className="text-sm text-gray-400 mt-1">{subtitle}</p>

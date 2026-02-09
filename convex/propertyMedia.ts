@@ -1,10 +1,20 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireTenant } from "./authHelpers";
 
 // Get all media for a property
 export const getByProperty = query({
-  args: { propertyId: v.id("properties") },
+  args: {
+    userId: v.id("users"),
+    propertyId: v.id("properties"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify property belongs to this organization
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.organizationId !== organizationId) return [];
+
     const media = await ctx.db
       .query("propertyMedia")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
@@ -35,8 +45,11 @@ export const getByProperty = query({
 
 // Generate upload URL for new media
 export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireTenant(ctx, args.userId);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -56,6 +69,13 @@ export const saveMedia = mutation({
     uploadedBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.uploadedBy);
+
+    // Verify property belongs to this organization
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.organizationId !== organizationId) {
+      throw new Error("Property not found or does not belong to this organization");
+    }
     // If setting as featured, unset any existing featured media
     if (args.isFeatured) {
       const existingFeatured = await ctx.db
@@ -81,6 +101,7 @@ export const saveMedia = mutation({
     );
 
     const mediaId = await ctx.db.insert("propertyMedia", {
+      organizationId,
       propertyId: args.propertyId,
       storageId: args.storageId,
       fileName: args.fileName,
@@ -102,15 +123,17 @@ export const saveMedia = mutation({
 // Update media details
 export const updateMedia = mutation({
   args: {
+    userId: v.id("users"),
     mediaId: v.id("propertyMedia"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     isFeatured: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { mediaId, ...updates } = args;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { mediaId, userId, ...updates } = args;
     const media = await ctx.db.get(mediaId);
-    if (!media) throw new Error("Media not found");
+    if (!media || media.organizationId !== organizationId) throw new Error("Media not found");
 
     // If setting as featured, unset any existing featured media
     if (updates.isFeatured) {
@@ -141,10 +164,14 @@ export const updateMedia = mutation({
 
 // Delete media
 export const deleteMedia = mutation({
-  args: { mediaId: v.id("propertyMedia") },
+  args: {
+    userId: v.id("users"),
+    mediaId: v.id("propertyMedia"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const media = await ctx.db.get(args.mediaId);
-    if (!media) throw new Error("Media not found");
+    if (!media || media.organizationId !== organizationId) throw new Error("Media not found");
 
     // Delete from storage
     await ctx.storage.delete(media.storageId);
@@ -159,10 +186,19 @@ export const deleteMedia = mutation({
 // Reorder media (update sort orders)
 export const reorderMedia = mutation({
   args: {
+    userId: v.id("users"),
     propertyId: v.id("properties"),
     mediaOrder: v.array(v.id("propertyMedia")),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify property belongs to this organization
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.organizationId !== organizationId) {
+      throw new Error("Property not found");
+    }
+
     for (let i = 0; i < args.mediaOrder.length; i++) {
       await ctx.db.patch(args.mediaOrder[i], { sortOrder: i });
     }
@@ -173,12 +209,14 @@ export const reorderMedia = mutation({
 // Set featured media
 export const setFeatured = mutation({
   args: {
+    userId: v.id("users"),
     mediaId: v.id("propertyMedia"),
     isFeatured: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const media = await ctx.db.get(args.mediaId);
-    if (!media) throw new Error("Media not found");
+    if (!media || media.organizationId !== organizationId) throw new Error("Media not found");
 
     if (args.isFeatured) {
       // Unset any existing featured

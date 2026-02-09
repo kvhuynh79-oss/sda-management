@@ -236,7 +236,7 @@ function MoreSheet({
         aria-label="More navigation options"
         className={`
           fixed inset-x-0 bottom-0 z-50 bg-gray-800
-          border-t border-gray-700 rounded-t-2xl
+          border-t border-gray-600 rounded-t-2xl
           shadow-2xl
           transition-transform duration-300 ease-out
           ${isOpen ? "translate-y-0" : "translate-y-full"}
@@ -249,7 +249,7 @@ function MoreSheet({
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-700">
+        <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-600">
           <span className="text-white font-semibold">More</span>
           <button
             onClick={onClose}
@@ -268,7 +268,7 @@ function MoreSheet({
         >
           {MORE_SHEET_GROUPS.map((group) => (
             <div key={group.label}>
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 px-1">
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2 px-1">
                 {group.label}
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -341,7 +341,7 @@ export default function BottomNav({ currentPage }: BottomNavProps) {
 
       {/* Bottom navigation bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 bg-gray-800 border-t border-gray-700 md:hidden safe-area-inset-bottom"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-gray-800 border-t border-gray-600 md:hidden safe-area-inset-bottom"
         aria-label="Mobile navigation"
         role="navigation"
       >

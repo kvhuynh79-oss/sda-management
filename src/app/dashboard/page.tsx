@@ -69,7 +69,7 @@ export default function DashboardPage() {
 
         {/* Property Portfolio */}
         <section className="mb-10" aria-labelledby="section-property-portfolio">
-          <h3 id="section-property-portfolio" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          <h3 id="section-property-portfolio" className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">
             Property Portfolio
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -144,7 +144,7 @@ export default function DashboardPage() {
 
         {/* Tasks & Follow-ups */}
         <section className="mb-10" aria-labelledby="section-tasks">
-          <h3 id="section-tasks" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          <h3 id="section-tasks" className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">
             Tasks & Follow-ups
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -185,7 +185,7 @@ export default function DashboardPage() {
 
         {/* Operations */}
         <section className="mb-10" aria-labelledby="section-operations">
-          <h3 id="section-operations" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          <h3 id="section-operations" className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">
             Operations
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -218,10 +218,10 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <section className="mb-10" aria-labelledby="section-quick-actions">
-          <h3 id="section-quick-actions" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          <h3 id="section-quick-actions" className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">
             Quick Actions
           </h3>
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-600">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link href="/participants/new">
                 <QuickActionButton label="Add Participant" />
@@ -253,13 +253,13 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <section className="mb-10" aria-labelledby="section-recent-activity">
-          <h3 id="section-recent-activity" className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+          <h3 id="section-recent-activity" className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">
             Recent Activity
           </h3>
 
         {/* Upcoming Tasks */}
         {upcomingTasks && upcomingTasks.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-600">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Upcoming Tasks</h3>
               <Link href="/follow-ups" className="text-teal-500 hover:text-teal-400 text-sm">
@@ -315,7 +315,7 @@ export default function DashboardPage() {
 
         {/* Upcoming Preventative Maintenance */}
         {upcomingSchedules && upcomingSchedules.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-600">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Upcoming Preventative Maintenance</h3>
               <Link href="/operations?tab=schedule" className="text-teal-500 hover:text-teal-400 text-sm">
@@ -367,7 +367,7 @@ export default function DashboardPage() {
 
         {/* Recent Properties */}
         {properties && properties.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-600">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Recent Properties</h3>
               <Link href="/properties" className="text-teal-500 hover:text-teal-400 text-sm">
@@ -401,7 +401,7 @@ export default function DashboardPage() {
 
         {/* Compliance Certifications */}
         {certStats && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-600">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Compliance Certifications</h3>
               <Link href="/compliance/certifications" className="text-teal-500 hover:text-teal-400 text-sm">
@@ -435,26 +435,26 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-gray-700/50 rounded-lg">
                 <p className="text-2xl font-bold text-white">{certStats.total}</p>
-                <p className="text-gray-400 text-sm">Total Certs</p>
+                <p className="text-gray-300 text-sm">Total Certs</p>
               </div>
               <div className="text-center p-4 bg-gray-700/50 rounded-lg">
                 <p className={`text-2xl font-bold ${certStats.expired > 0 ? "text-red-400" : "text-white"}`}>
                   {certStats.expired}
                 </p>
-                <p className="text-gray-400 text-sm">Expired</p>
+                <p className="text-gray-300 text-sm">Expired</p>
               </div>
               <div className="text-center p-4 bg-gray-700/50 rounded-lg">
                 <p className={`text-2xl font-bold ${certStats.expiringSoon > 0 ? "text-yellow-400" : "text-white"}`}>
                   {certStats.expiringSoon}
                 </p>
-                <p className="text-gray-400 text-sm">Expiring Soon</p>
+                <p className="text-gray-300 text-sm">Expiring Soon</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Alerts Section */}
-        <div className="bg-gray-800 rounded-lg p-6">
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-600">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-white">Recent Alerts</h3>
           </div>
@@ -507,9 +507,9 @@ function DashboardCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors cursor-pointer">
+    <div className="bg-gray-800 rounded-lg p-6 border border-gray-600 hover:bg-gray-700/80 hover:border-gray-500 transition-colors cursor-pointer">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-gray-400 text-sm">{title}</span>
+        <span className="text-gray-300 text-sm font-medium">{title}</span>
         <div className={`w-3 h-3 rounded-full ${colorClasses[color]}`} />
       </div>
       <div className="text-3xl font-bold text-white mb-1">{value}</div>

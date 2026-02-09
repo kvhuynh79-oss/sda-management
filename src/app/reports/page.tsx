@@ -20,22 +20,25 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
 
+  const userId = user?.id as Id<"users"> | undefined;
+
   // Existing reports
   const complianceReport = useQuery(
     api.reports.getComplianceReport,
-    startDate && endDate ? { startDate, endDate } : {}
+    userId && startDate && endDate ? { userId, startDate, endDate } : "skip"
   );
   const costAnalysis = useQuery(
     api.reports.getCostAnalysis,
-    startDate && endDate ? { startDate, endDate } : {}
+    userId && startDate && endDate ? { userId, startDate, endDate } : "skip"
   );
-  const contractorPerformance = useQuery(api.reports.getContractorPerformance);
+  const contractorPerformance = useQuery(api.reports.getContractorPerformance, userId ? { userId } : "skip");
 
   // New reports
   const ownerStatement = useQuery(
     api.reports.getOwnerStatement,
-    startDate && endDate
+    userId && startDate && endDate
       ? {
+          userId,
           startDate,
           endDate,
           propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
@@ -44,52 +47,56 @@ export default function ReportsPage() {
   );
   const paymentSummary = useQuery(
     api.reports.getPaymentSummary,
-    startDate && endDate
+    userId && startDate && endDate
       ? {
+          userId,
           startDate,
           endDate,
           propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
         }
       : "skip"
   );
-  const outstandingPayments = useQuery(api.reports.getOutstandingPayments, {});
+  const outstandingPayments = useQuery(api.reports.getOutstandingPayments, userId ? { userId } : "skip");
   const inspectionSummary = useQuery(
     api.reports.getInspectionSummary,
-    startDate && endDate
+    userId && startDate && endDate
       ? {
+          userId,
           startDate,
           endDate,
           propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
         }
-      : {}
+      : "skip"
   );
-  const documentExpiry = useQuery(api.reports.getDocumentExpiryReport, { daysAhead: 90 });
+  const documentExpiry = useQuery(api.reports.getDocumentExpiryReport, userId ? { userId, daysAhead: 90 } : "skip");
   const maintenanceOverview = useQuery(
     api.reports.getMaintenanceOverview,
-    startDate && endDate
+    userId && startDate && endDate
       ? {
+          userId,
           startDate,
           endDate,
           propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
         }
-      : {}
+      : "skip"
   );
-  const vacancyReport = useQuery(api.reports.getVacancyReport, {});
+  const vacancyReport = useQuery(api.reports.getVacancyReport, userId ? { userId } : "skip");
   const incidentSummary = useQuery(
     api.reports.getIncidentSummary,
-    startDate && endDate
+    userId && startDate && endDate
       ? {
+          userId,
           startDate,
           endDate,
           propertyId: selectedPropertyId ? (selectedPropertyId as Id<"properties">) : undefined,
         }
-      : {}
+      : "skip"
   );
-  const participantPlanStatus = useQuery(api.reports.getParticipantPlanStatus, { daysAhead: 90 });
-  const certStats = useQuery(api.complianceCertifications.getDashboardStats, user ? { userId: user.id as Id<"users"> } : "skip");
+  const participantPlanStatus = useQuery(api.reports.getParticipantPlanStatus, userId ? { userId, daysAhead: 90 } : "skip");
+  const certStats = useQuery(api.complianceCertifications.getDashboardStats, userId ? { userId } : "skip");
 
   // Properties for filter
-  const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+  const properties = useQuery(api.properties.getAll, userId ? { userId } : "skip");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");

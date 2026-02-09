@@ -43,7 +43,7 @@ export default function IncidentDetailPage() {
   const markNdisNotified = useMutation(api.incidents.markNdisNotified);
 
   // Incident Actions
-  const incidentActions = useQuery(api.incidentActions.getByIncident, { incidentId });
+  const incidentActions = useQuery(api.incidentActions.getByIncident, user ? { userId: user.id as Id<"users">, incidentId } : "skip");
   const createAction = useMutation(api.incidentActions.create);
   const updateAction = useMutation(api.incidentActions.update);
   const markInHouse = useMutation(api.incidentActions.markInHouse);

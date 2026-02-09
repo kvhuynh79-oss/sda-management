@@ -378,6 +378,7 @@ export const getUser = query({
       isActive: user.isActive,
       lastLogin: user.lastLogin,
       isSuperAdmin: user.isSuperAdmin ?? false,
+      organizationId: user.organizationId,
     };
   },
 });

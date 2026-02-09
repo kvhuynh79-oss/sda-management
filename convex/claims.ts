@@ -1,16 +1,24 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, getUserFullName } from "./authHelpers";
+import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
 
 // Get all claims for a specific period (month)
 export const getByPeriod = query({
-  args: { claimPeriod: v.string() },
+  args: {
+    userId: v.id("users"),
+    claimPeriod: v.string(),
+  },
   handler: async (ctx, args) => {
-    const claims = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const allClaims = await ctx.db
       .query("claims")
       .withIndex("by_period", (q) => q.eq("claimPeriod", args.claimPeriod))
       .collect();
+
+    // Filter by organization
+    const claims = allClaims.filter((c) => c.organizationId === organizationId);
 
     const claimsWithDetails = await Promise.all(
       claims.map(async (claim) => {
@@ -46,17 +54,22 @@ export const getByPeriod = query({
 
 // Get claims dashboard data - upcoming claims for current month
 export const getDashboard = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const now = new Date();
     const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const currentDay = now.getDate();
 
-    // Get all active participants with their plans
-    const participants = await ctx.db
+    // Get all active participants for this organization
+    const allParticipants = await ctx.db
       .query("participants")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const participants = allParticipants.filter((p) => p.status === "active");
 
     const dashboardData = await Promise.all(
       participants.map(async (participant) => {
@@ -124,8 +137,19 @@ export const getDashboard = query({
 
 // Get claim history for a participant
 export const getByParticipant = query({
-  args: { participantId: v.id("participants") },
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify participant belongs to this organization
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant || participant.organizationId !== organizationId) {
+      return [];
+    }
+
     const claims = await ctx.db
       .query("claims")
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
@@ -161,7 +185,14 @@ export const create = mutation({
   handler: async (ctx, args) => {
     // Permission check - payments permission required
     const user = await requirePermission(ctx, args.userId, "payments", "create");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
+
+    // Verify participant belongs to this organization
+    const participantRecord = await ctx.db.get(args.participantId);
+    if (!participantRecord || participantRecord.organizationId !== organizationId) {
+      throw new Error("Participant not found or does not belong to this organization");
+    }
 
     // Check if claim already exists for this participant and period
     const existing = await ctx.db
@@ -175,6 +206,7 @@ export const create = mutation({
     }
 
     const claimId = await ctx.db.insert("claims", {
+      organizationId,
       participantId: args.participantId,
       planId: args.planId,
       claimPeriod: args.claimPeriod,
@@ -226,11 +258,16 @@ export const updateStatus = mutation({
   handler: async (ctx, args) => {
     // Permission check
     const user = await requirePermission(ctx, args.userId, "payments", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const { claimId, userId, ...updates } = args;
 
     // Get current claim for audit logging (BEFORE update)
     const claim = await ctx.db.get(claimId);
     if (!claim) {
+      throw new Error("Claim not found");
+    }
+    // Verify org ownership
+    if (claim.organizationId !== organizationId) {
       throw new Error("Claim not found");
     }
 
@@ -280,13 +317,15 @@ export const bulkCreateForPeriod = mutation({
   handler: async (ctx, args) => {
     // Permission check
     const user = await requirePermission(ctx, args.userId, "payments", "create");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
-    // Get all active participants
-    const participants = await ctx.db
+    // Get all active participants for this organization
+    const allParticipants = await ctx.db
       .query("participants")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const participants = allParticipants.filter((p) => p.status === "active");
 
     let created = 0;
     let skipped = 0;
@@ -319,6 +358,7 @@ export const bulkCreateForPeriod = mutation({
 
       // Create claim
       const claimId = await ctx.db.insert("claims", {
+        organizationId,
         participantId: participant._id,
         planId: currentPlan._id,
         claimPeriod: args.claimPeriod,
@@ -369,8 +409,9 @@ export const markSubmitted = mutation({
   handler: async (ctx, args) => {
     // Permission check
     await requirePermission(ctx, args.userId, "payments", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const claim = await ctx.db.get(args.claimId);
-    if (!claim) throw new Error("Claim not found");
+    if (!claim || claim.organizationId !== organizationId) throw new Error("Claim not found");
 
     await ctx.db.patch(args.claimId, {
       status: "submitted",
@@ -397,6 +438,10 @@ export const markPaid = mutation({
   handler: async (ctx, args) => {
     // Permission check
     await requirePermission(ctx, args.userId, "payments", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const claim = await ctx.db.get(args.claimId);
+    if (!claim || claim.organizationId !== organizationId) throw new Error("Claim not found");
+
     await ctx.db.patch(args.claimId, {
       status: "paid",
       paidDate: args.paidDate,
@@ -420,6 +465,10 @@ export const markRejected = mutation({
   handler: async (ctx, args) => {
     // Permission check
     await requirePermission(ctx, args.userId, "payments", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const claim = await ctx.db.get(args.claimId);
+    if (!claim || claim.organizationId !== organizationId) throw new Error("Claim not found");
+
     await ctx.db.patch(args.claimId, {
       status: "rejected",
       notes: args.reason || "Claim rejected",
@@ -439,6 +488,10 @@ export const revertToPending = mutation({
   handler: async (ctx, args) => {
     // Permission check
     await requirePermission(ctx, args.userId, "payments", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const claim = await ctx.db.get(args.claimId);
+    if (!claim || claim.organizationId !== organizationId) throw new Error("Claim not found");
+
     await ctx.db.patch(args.claimId, {
       status: "pending",
       claimDate: undefined,
@@ -452,14 +505,21 @@ export const revertToPending = mutation({
 
 // Get PACE export data (for CSV bulk upload)
 export const getPaceExport = query({
-  args: { claimPeriod: v.string() },
+  args: {
+    userId: v.id("users"),
+    claimPeriod: v.string(),
+  },
   handler: async (ctx, args) => {
-    const claims = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const allClaims = await ctx.db
       .query("claims")
       .withIndex("by_period", (q) => q.eq("claimPeriod", args.claimPeriod))
-      .filter((q) => q.eq(q.field("claimMethod"), "pace"))
-      .filter((q) => q.eq(q.field("status"), "pending"))
       .collect();
+
+    const claims = allClaims.filter(
+      (c) => c.organizationId === organizationId && c.claimMethod === "pace" && c.status === "pending"
+    );
 
     const exportData = await Promise.all(
       claims.map(async (claim) => {
@@ -483,12 +543,19 @@ export const getPaceExport = query({
 
 // Get monthly summary statistics
 export const getMonthlySummary = query({
-  args: { claimPeriod: v.string() },
+  args: {
+    userId: v.id("users"),
+    claimPeriod: v.string(),
+  },
   handler: async (ctx, args) => {
-    const claims = await ctx.db
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const allClaims = await ctx.db
       .query("claims")
       .withIndex("by_period", (q) => q.eq("claimPeriod", args.claimPeriod))
       .collect();
+
+    const claims = allClaims.filter((c) => c.organizationId === organizationId);
 
     const byMethod = {
       agency_managed: claims.filter((c) => c.claimMethod === "agency_managed"),
@@ -542,6 +609,11 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     // Permission check - only admin can delete
     await requirePermission(ctx, args.userId, "payments", "delete");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const claim = await ctx.db.get(args.claimId);
+    if (!claim || claim.organizationId !== organizationId) {
+      throw new Error("Claim not found");
+    }
     await ctx.db.delete(args.claimId);
     return { success: true };
   },

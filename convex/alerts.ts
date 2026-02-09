@@ -282,8 +282,14 @@ export const acknowledge = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Permission check - any authenticated user can acknowledge alerts
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify alert belongs to this organization
+    const alert = await ctx.db.get(args.alertId);
+    if (!alert || alert.organizationId !== organizationId) {
+      throw new Error("Alert not found");
+    }
+
     await ctx.db.patch(args.alertId, {
       status: "acknowledged",
       acknowledgedBy: args.userId,
@@ -300,8 +306,14 @@ export const resolve = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify alert belongs to this organization
+    const alert = await ctx.db.get(args.alertId);
+    if (!alert || alert.organizationId !== organizationId) {
+      throw new Error("Alert not found");
+    }
+
     await ctx.db.patch(args.alertId, {
       status: "resolved",
       resolvedBy: args.userId,
@@ -318,8 +330,14 @@ export const dismiss = mutation({
     alertId: v.id("alerts"),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify alert belongs to this organization
+    const alert = await ctx.db.get(args.alertId);
+    if (!alert || alert.organizationId !== organizationId) {
+      throw new Error("Alert not found");
+    }
+
     await ctx.db.patch(args.alertId, {
       status: "dismissed",
     });
@@ -334,8 +352,14 @@ export const remove = mutation({
     alertId: v.id("alerts"),
   },
   handler: async (ctx, args) => {
-    // Permission check
-    await requireAuth(ctx, args.userId);
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Verify alert belongs to this organization
+    const alert = await ctx.db.get(args.alertId);
+    if (!alert || alert.organizationId !== organizationId) {
+      throw new Error("Alert not found");
+    }
+
     await ctx.db.delete(args.alertId);
     return { success: true };
   },
@@ -385,8 +409,12 @@ export const getStats = query({
 
 // Generate alerts based on current data (should be run periodically)
 export const generateAlerts = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Require authenticated user for manual alert generation
+    await requireTenant(ctx, args.userId);
     // Use the centralized alert generator from alertHelpers
     return await runAllAlertGenerators(ctx);
   },

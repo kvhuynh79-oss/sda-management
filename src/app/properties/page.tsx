@@ -26,7 +26,7 @@ export default function PropertiesPage() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold text-white">Properties</h1>
-              <p className="text-gray-400 mt-1">Manage your SDA properties and dwellings</p>
+              <p className="text-gray-300 mt-1">Manage your SDA properties and dwellings</p>
             </div>
             <Link
               href="/properties/new"
@@ -97,7 +97,7 @@ function PropertyCard({ property }: { property: any }) {
       className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
       role="listitem"
     >
-      <article className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors cursor-pointer">
+      <article className="bg-gray-800 rounded-lg p-6 border border-gray-600 hover:bg-gray-700/80 hover:border-gray-500 transition-colors cursor-pointer">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -106,11 +106,11 @@ function PropertyCard({ property }: { property: any }) {
               </h2>
               {statusBadge}
             </div>
-            <p className="text-gray-400">
+            <p className="text-gray-300">
               {property.addressLine1}
               {property.addressLine2 && `, ${property.addressLine2}`}
             </p>
-            <p className="text-gray-400">
+            <p className="text-gray-300">
               {property.suburb}, {property.state} {property.postcode}
             </p>
           </div>
@@ -121,21 +121,21 @@ function PropertyCard({ property }: { property: any }) {
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="mt-4 pt-4 border-t border-gray-600 grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <p className="text-gray-400 text-sm">Owner</p>
+            <p className="text-gray-300 text-sm">Owner</p>
             <p className="text-white">{ownerName}</p>
           </div>
           <div>
-            <p className="text-gray-400 text-sm">Dwellings</p>
+            <p className="text-gray-300 text-sm">Dwellings</p>
             <p className="text-white">{property.dwellingCount}</p>
           </div>
           <div>
-            <p className="text-gray-400 text-sm">Vacancies</p>
+            <p className="text-gray-300 text-sm">Vacancies</p>
             <p className="text-white">{property.vacancies}</p>
           </div>
           <div>
-            <p className="text-gray-400 text-sm">Revenue Share</p>
+            <p className="text-gray-300 text-sm">Revenue Share</p>
             <p className="text-white">
               {property.ownershipType === "self_owned"
                 ? "N/A"

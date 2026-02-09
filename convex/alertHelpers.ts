@@ -29,6 +29,7 @@ export interface CreateAlertArgs {
   severity: AlertSeverity;
   title: string;
   message: string;
+  organizationId?: Id<"organizations">;
   linkedParticipantId?: Id<"participants">;
   linkedPropertyId?: Id<"properties">;
   linkedDwellingId?: Id<"dwellings">;
@@ -119,8 +120,10 @@ export async function createAlertIfNotExists(
     return null;
   }
 
+  const { organizationId, ...alertArgs } = args;
   const alertId = await ctx.db.insert("alerts", {
-    ...args,
+    ...alertArgs,
+    ...(organizationId ? { organizationId } : {}),
     status: "active",
     createdAt: Date.now(),
   });
@@ -153,6 +156,7 @@ export async function generatePlanExpiryAlerts(
         severity: getSeverityFromDays(days),
         title: "NDIS Plan Expiring Soon",
         message: `NDIS plan for ${participant?.firstName} ${participant?.lastName} expires in ${days} days on ${plan.planEndDate}`,
+        organizationId: participant?.organizationId,
         linkedParticipantId: plan.participantId,
         linkedPlanId: plan._id,
         triggerDate: todayStr,
@@ -186,6 +190,7 @@ export async function generateDocumentExpiryAlerts(
         severity: getSeverityFromDays(days),
         title: "Document Expiring Soon",
         message: `${doc.fileName} expires in ${days} days on ${doc.expiryDate}`,
+        organizationId: doc.organizationId,
         linkedParticipantId: doc.linkedParticipantId,
         linkedPropertyId: doc.linkedPropertyId,
         triggerDate: todayStr,
@@ -216,6 +221,7 @@ export async function generateVacancyAlerts(
         severity: "info",
         title: "Vacant Dwelling",
         message: `${dwelling.dwellingName} at ${property?.addressLine1} is currently vacant (${dwelling.maxParticipants} capacity)`,
+        organizationId: dwelling.organizationId,
         linkedDwellingId: dwelling._id,
         linkedPropertyId: dwelling.propertyId,
         triggerDate: todayStr,
@@ -250,6 +256,7 @@ export async function generateMaintenanceAlerts(
       severity: "critical",
       title: "Urgent Maintenance Required",
       message: `${request.title} at ${property?.addressLine1 || "Unknown"} requires urgent attention`,
+      organizationId: request.organizationId,
       linkedMaintenanceId: request._id,
       linkedDwellingId: request.dwellingId,
       linkedPropertyId: dwelling?.propertyId,
@@ -286,6 +293,7 @@ export async function generatePreventativeScheduleAlerts(
         severity: days <= 3 ? "critical" : "warning",
         title: "Preventative Maintenance Due",
         message: `${schedule.taskName} at ${property?.addressLine1}${dwelling ? ` (${dwelling.dwellingName})` : ""} is due in ${days} days`,
+        organizationId: schedule.organizationId,
         linkedPreventativeScheduleId: schedule._id,
         linkedPropertyId: schedule.propertyId,
         linkedDwellingId: schedule.dwellingId,
@@ -347,6 +355,7 @@ export async function generateCertificationExpiryAlerts(
         severity: "critical",
         title,
         message: `The ${certTypeLabel} certificate expired on ${cert.expiryDate}. Immediate renewal required.`,
+        organizationId: cert.organizationId,
         linkedPropertyId: cert.propertyId,
         triggerDate: todayStr,
         dueDate: cert.expiryDate,
@@ -369,6 +378,7 @@ export async function generateCertificationExpiryAlerts(
         severity: "warning",
         title,
         message: `The ${certTypeLabel} certificate expires on ${cert.expiryDate} (${days} day${days !== 1 ? "s" : ""} remaining).`,
+        organizationId: cert.organizationId,
         linkedPropertyId: cert.propertyId,
         triggerDate: todayStr,
         dueDate: cert.expiryDate,
@@ -425,6 +435,7 @@ export async function generateComplaintAcknowledgmentAlerts(
       severity: "critical",
       title,
       message: `Complaint ${refNumber} (${categoryLabel}) has not been acknowledged. ${hoursOverdue} hours overdue. Complainant: ${complaint.complainantName || "Anonymous"}.`,
+      organizationId: complaint.organizationId,
       linkedPropertyId: complaint.propertyId,
       linkedParticipantId: complaint.participantId,
       triggerDate: todayStr,

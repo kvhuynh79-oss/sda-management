@@ -36,9 +36,10 @@ export default function ClaimsPage() {
     notes: "",
   });
 
-  const dashboard = useQuery(api.claims.getDashboard);
-  const summary = useQuery(api.claims.getMonthlySummary, { claimPeriod: selectedPeriod });
-  const providerSettings = useQuery(api.ndisClaimExport.getProviderSettings);
+  const userId = user ? (user.id as Id<"users">) : undefined;
+  const dashboard = useQuery(api.claims.getDashboard, userId ? { userId } : "skip");
+  const summary = useQuery(api.claims.getMonthlySummary, userId ? { userId, claimPeriod: selectedPeriod } : "skip");
+  const providerSettings = useQuery(api.ndisClaimExport.getProviderSettings, userId ? { userId } : "skip");
   const createClaim = useMutation(api.claims.create);
   const markSubmitted = useMutation(api.claims.markSubmitted);
   const markPaid = useMutation(api.claims.markPaid);

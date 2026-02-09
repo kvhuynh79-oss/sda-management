@@ -49,7 +49,7 @@ export default function IncidentsPage() {
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-white">Incident Reports</h1>
-              <p className="text-gray-400 mt-1 text-sm sm:text-base">Track and manage incident reports</p>
+              <p className="text-gray-300 mt-1 text-sm sm:text-base">Track and manage incident reports</p>
             </div>
             <Link
               href="/incidents/new"
@@ -60,10 +60,10 @@ export default function IncidentsPage() {
           </div>
 
           {/* Filters */}
-          <fieldset className="bg-gray-800 rounded-lg p-4 mb-6">
+          <fieldset className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-600">
             <legend className="sr-only">Filter incidents by status</legend>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
-              <span className="text-gray-400 flex-shrink-0" id="status-filter-label">Filter by status:</span>
+              <span className="text-gray-300 flex-shrink-0" id="status-filter-label">Filter by status:</span>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1" role="group" aria-labelledby="status-filter-label">
                 {["all", "reported", "under_investigation", "resolved", "closed"].map((status) => (
                   <button
@@ -130,7 +130,7 @@ export default function IncidentsPage() {
 function IncidentCard({ incident }: { incident: any }) {
   return (
     <article
-      className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors"
+      className="bg-gray-800 rounded-lg p-4 sm:p-6 border border-gray-600 hover:bg-gray-700/80 hover:border-gray-500 transition-colors"
       role="listitem"
     >
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
@@ -188,18 +188,18 @@ function IncidentCard({ incident }: { incident: any }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 sm:gap-6 text-sm text-gray-400">
-        <div>
+      <div className="flex flex-wrap gap-4 sm:gap-6 text-sm">
+        <div className="text-gray-300">
           <span className="text-gray-400">Property:</span>{" "}
           {incident.property?.propertyName || incident.property?.addressLine1}
         </div>
         {incident.participant && (
-          <div>
+          <div className="text-gray-300">
             <span className="text-gray-400">Participant:</span>{" "}
             {incident.participant.firstName} {incident.participant.lastName}
           </div>
         )}
-        <div>
+        <div className="text-gray-300">
           <span className="text-gray-400">Date:</span> {incident.incidentDate}
         </div>
       </div>

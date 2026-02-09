@@ -1,14 +1,21 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireTenant } from "./authHelpers";
 
 // Get compliance report for preventative schedules
 export const getComplianceReport = query({
   args: {
+    userId: v.id("users"),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const allSchedules = await ctx.db.query("preventativeSchedule").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const allSchedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const activeSchedules = allSchedules.filter((s) => s.isActive);
 
     const today = new Date();
@@ -16,7 +23,10 @@ export const getComplianceReport = query({
     const endDate = args.endDate ? new Date(args.endDate) : today;
 
     // Get all maintenance records created from preventative schedules
-    const maintenanceRecords = await ctx.db.query("maintenanceRequests").collect();
+    const maintenanceRecords = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const preventativeMaintenance = maintenanceRecords.filter(
       (m) => m.requestType === "preventative" && m.status === "completed"
     );
@@ -92,16 +102,22 @@ export const getComplianceReport = query({
 // Get cost analysis report
 export const getCostAnalysis = query({
   args: {
+    userId: v.id("users"),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const today = new Date();
     const startDate = args.startDate ? new Date(args.startDate) : new Date(today.getFullYear(), 0, 1);
     const endDate = args.endDate ? new Date(args.endDate) : today;
 
     // Get completed maintenance from preventative schedules
-    const maintenanceRecords = await ctx.db.query("maintenanceRequests").collect();
+    const maintenanceRecords = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const preventativeMaintenance = maintenanceRecords.filter(
       (m) =>
         m.requestType === "preventative" &&
@@ -121,7 +137,10 @@ export const getCostAnalysis = query({
     );
 
     // Get estimated costs for upcoming schedules
-    const allSchedules = await ctx.db.query("preventativeSchedule").collect();
+    const allSchedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const activeSchedules = allSchedules.filter((s) => s.isActive);
 
     const thirtyDaysFromNow = new Date(today);
@@ -201,9 +220,16 @@ export const getCostAnalysis = query({
 
 // Get contractor performance report
 export const getContractorPerformance = query({
-  args: {},
-  handler: async (ctx) => {
-    const maintenanceRecords = await ctx.db.query("maintenanceRequests").collect();
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const maintenanceRecords = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const preventativeMaintenance = maintenanceRecords.filter(
       (m) => m.requestType === "preventative" && m.contractorName
     );
@@ -253,14 +279,26 @@ export const getContractorPerformance = query({
 
 export const getOwnerStatement = query({
   args: {
+    userId: v.id("users"),
     propertyId: v.optional(v.id("properties")),
     startDate: v.string(),
     endDate: v.string(),
   },
   handler: async (ctx, args) => {
-    const properties = args.propertyId
-      ? [await ctx.db.get(args.propertyId)].filter(Boolean)
-      : await ctx.db.query("properties").filter((q) => q.eq(q.field("isActive"), true)).collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    let properties;
+    if (args.propertyId) {
+      const prop = await ctx.db.get(args.propertyId);
+      // Verify property belongs to this organization
+      properties = prop && prop.organizationId === organizationId ? [prop] : [];
+    } else {
+      properties = await ctx.db
+        .query("properties")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
+      properties = properties.filter((p) => p.isActive);
+    }
 
     const results = await Promise.all(
       properties.map(async (property) => {
@@ -356,12 +394,18 @@ export const getOwnerStatement = query({
 
 export const getPaymentSummary = query({
   args: {
+    userId: v.id("users"),
     startDate: v.string(),
     endDate: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
-    const payments = await ctx.db.query("payments").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const filteredPayments = payments.filter((p) => {
       return p.paymentDate >= args.startDate && p.paymentDate <= args.endDate;
@@ -403,22 +447,23 @@ export const getPaymentSummary = query({
 // ============================================
 
 export const getOutstandingPayments = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const claims = await ctx.db
       .query("claims")
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("status"), "pending"),
-          q.eq(q.field("status"), "submitted"),
-          q.eq(q.field("status"), "rejected"),
-          q.eq(q.field("status"), "partial")
-        )
-      )
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
 
+    const outstandingClaims = claims.filter((c) =>
+      ["pending", "submitted", "rejected", "partial"].includes(c.status)
+    );
+
     const enrichedClaims = await Promise.all(
-      claims.map(async (claim) => {
+      outstandingClaims.map(async (claim) => {
         const participant = await ctx.db.get(claim.participantId);
         if (!participant) return null;
 
@@ -456,12 +501,18 @@ export const getOutstandingPayments = query({
 
 export const getInspectionSummary = query({
   args: {
+    userId: v.id("users"),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
-    let inspections = await ctx.db.query("inspections").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    let inspections = await ctx.db
+      .query("inspections")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (args.propertyId) {
       inspections = inspections.filter((i) => i.propertyId === args.propertyId);
@@ -524,15 +575,21 @@ export const getInspectionSummary = query({
 
 export const getDocumentExpiryReport = query({
   args: {
+    userId: v.id("users"),
     daysAhead: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const daysAhead = args.daysAhead || 90;
     const today = new Date();
     const futureDate = new Date(today);
     futureDate.setDate(today.getDate() + daysAhead);
 
-    const documents = await ctx.db.query("documents").collect();
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     const expiringDocs = await Promise.all(
       documents
@@ -588,12 +645,18 @@ export const getDocumentExpiryReport = query({
 
 export const getMaintenanceOverview = query({
   args: {
+    userId: v.id("users"),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
-    const maintenanceRequests = await ctx.db.query("maintenanceRequests").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const maintenanceRequests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const today = new Date().toISOString().split("T")[0];
 
     const enrichedRequests = await Promise.all(
@@ -662,15 +725,20 @@ export const getMaintenanceOverview = query({
 // ============================================
 
 export const getVacancyReport = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const dwellings = await ctx.db
       .query("dwellings")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const activeDwellings = dwellings.filter((d) => d.isActive);
 
     const enrichedDwellings = await Promise.all(
-      dwellings.map(async (dwelling) => {
+      activeDwellings.map(async (dwelling) => {
         const property = await ctx.db.get(dwelling.propertyId);
 
         const participants = await ctx.db
@@ -731,12 +799,18 @@ export const getVacancyReport = query({
 
 export const getIncidentSummary = query({
   args: {
+    userId: v.id("users"),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
-    let incidents = await ctx.db.query("incidents").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    let incidents = await ctx.db
+      .query("incidents")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (args.propertyId) {
       incidents = incidents.filter((i) => i.propertyId === args.propertyId);
@@ -799,9 +873,12 @@ export const getIncidentSummary = query({
 
 export const getParticipantPlanStatus = query({
   args: {
+    userId: v.id("users"),
     daysAhead: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const daysAhead = args.daysAhead || 90;
     const today = new Date();
     const futureDate = new Date(today);
@@ -811,11 +888,12 @@ export const getParticipantPlanStatus = query({
 
     const participants = await ctx.db
       .query("participants")
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const activeParticipants = participants.filter((p) => p.status === "active");
 
     const enrichedParticipants = await Promise.all(
-      participants.map(async (participant) => {
+      activeParticipants.map(async (participant) => {
         const dwelling = await ctx.db.get(participant.dwellingId);
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 

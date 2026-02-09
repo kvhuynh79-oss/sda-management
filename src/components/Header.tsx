@@ -377,7 +377,7 @@ function NavDropdown({
         aria-label={`${cluster.label} navigation`}
         className={`
           absolute top-full left-0 mt-1 w-72
-          bg-gray-800 rounded-lg shadow-xl border border-gray-700
+          bg-gray-800 rounded-lg shadow-xl border border-gray-600
           transition-all duration-200 origin-top-left z-50
           ${
             isOpen
@@ -471,13 +471,13 @@ function MobileNav({
         aria-label="Navigation menu"
         className={`
           fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-gray-800 z-50
-          shadow-2xl border-r border-gray-700
+          shadow-2xl border-r border-gray-600
           transition-transform duration-300 ease-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-600">
           <span className="text-white font-semibold text-lg">Navigation</span>
           <button
             onClick={onClose}
@@ -519,7 +519,7 @@ function MobileNav({
                 <div
                   className={`
                     flex items-center gap-2 px-3 mb-2 text-xs font-semibold uppercase tracking-wider
-                    ${clusterIsActive ? "text-teal-400" : "text-gray-400"}
+                    ${clusterIsActive ? "text-teal-400" : "text-gray-300"}
                   `}
                 >
                   {cluster.icon}
@@ -552,6 +552,7 @@ function MobileNav({
                           </div>
                         </div>
                       </Link>
+
                     );
                   })}
                 </div>
@@ -561,7 +562,7 @@ function MobileNav({
 
           {/* Utility links */}
           <div>
-            <div className="flex items-center gap-2 px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <div className="flex items-center gap-2 px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-300">
               <span>Utilities</span>
             </div>
             <div className="space-y-0.5">
@@ -659,7 +660,7 @@ export default function Header({ currentPage }: HeaderProps) {
     <>
       <header
         ref={headerRef}
-        className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50"
+        className="bg-gray-800 border-b border-gray-600 sticky top-0 z-50"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">

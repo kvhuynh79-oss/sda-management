@@ -17,6 +17,8 @@ import type * as aiTools from "../aiTools.js";
 import type * as aiUtils from "../aiUtils.js";
 import type * as alertHelpers from "../alertHelpers.js";
 import type * as alerts from "../alerts.js";
+import type * as apiKeys from "../apiKeys.js";
+import type * as apiQueries from "../apiQueries.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
@@ -77,6 +79,7 @@ import type * as seedPaulMortensenPayments from "../seedPaulMortensenPayments.js
 import type * as silProviderPortal from "../silProviderPortal.js";
 import type * as silProviders from "../silProviders.js";
 import type * as stripe from "../stripe.js";
+import type * as superAdmin from "../superAdmin.js";
 import type * as supportCoordinators from "../supportCoordinators.js";
 import type * as tasks from "../tasks.js";
 import type * as vacancyListings from "../vacancyListings.js";
@@ -99,6 +102,8 @@ declare const fullApi: ApiFromModules<{
   aiUtils: typeof aiUtils;
   alertHelpers: typeof alertHelpers;
   alerts: typeof alerts;
+  apiKeys: typeof apiKeys;
+  apiQueries: typeof apiQueries;
   auditLog: typeof auditLog;
   auth: typeof auth;
   authHelpers: typeof authHelpers;
@@ -159,6 +164,7 @@ declare const fullApi: ApiFromModules<{
   silProviderPortal: typeof silProviderPortal;
   silProviders: typeof silProviders;
   stripe: typeof stripe;
+  superAdmin: typeof superAdmin;
   supportCoordinators: typeof supportCoordinators;
   tasks: typeof tasks;
   vacancyListings: typeof vacancyListings;

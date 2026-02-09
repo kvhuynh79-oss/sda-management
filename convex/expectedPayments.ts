@@ -1,9 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { requireTenant } from "./authHelpers";
 
 // Create an expected payment
 export const create = mutation({
   args: {
+    userId: v.id("users"),
     paymentType: v.union(
       v.literal("sda_income"),
       v.literal("rrc_income"),
@@ -21,9 +23,11 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
 
     const id = await ctx.db.insert("expectedPayments", {
+      organizationId,
       paymentType: args.paymentType,
       participantId: args.participantId,
       planId: args.planId,
@@ -48,6 +52,7 @@ export const create = mutation({
 // Get expected payments for a month
 export const getByMonth = query({
   args: {
+    userId: v.id("users"),
     periodMonth: v.string(), // YYYY-MM format
     paymentType: v.optional(
       v.union(
@@ -67,10 +72,15 @@ export const getByMonth = query({
     ),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     let payments = await ctx.db
       .query("expectedPayments")
-      .withIndex("by_periodMonth", (q) => q.eq("periodMonth", args.periodMonth))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+
+    // Filter by period month
+    payments = payments.filter((p) => p.periodMonth === args.periodMonth);
 
     if (args.paymentType) {
       payments = payments.filter((p) => p.paymentType === args.paymentType);
@@ -108,19 +118,21 @@ export const getByMonth = query({
 
 // Get overdue payments
 export const getOverdue = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const today = new Date().toISOString().split("T")[0];
 
-    const payments = await ctx.db
+    const allPayments = await ctx.db
       .query("expectedPayments")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("status"), "pending"),
-          q.lt(q.field("expectedDate"), today)
-        )
-      )
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+
+    const payments = allPayments.filter(
+      (p) => p.status === "pending" && p.expectedDate < today
+    );
 
     // Fetch related records
     const paymentsWithDetails = await Promise.all(
@@ -149,6 +161,7 @@ export const getOverdue = query({
 // Mark expected payment as received
 export const markReceived = mutation({
   args: {
+    userId: v.id("users"),
     id: v.id("expectedPayments"),
     receivedAmount: v.number(),
     receivedDate: v.string(),
@@ -156,8 +169,9 @@ export const markReceived = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const payment = await ctx.db.get(args.id);
-    if (!payment) throw new Error("Expected payment not found");
+    if (!payment || payment.organizationId !== organizationId) throw new Error("Expected payment not found");
 
     const variance = args.receivedAmount - payment.expectedAmount;
     const isPartial = args.receivedAmount < payment.expectedAmount * 0.95; // More than 5% short
@@ -188,17 +202,20 @@ export const markReceived = mutation({
 // Generate expected SDA income payments for a month
 export const generateSdaExpected = mutation({
   args: {
+    userId: v.id("users"),
     periodMonth: v.string(), // YYYY-MM format
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
     let created = 0;
 
-    // Get all active participants with current plans
-    const participants = await ctx.db
+    // Get all active participants for this organization
+    const allParticipants = await ctx.db
       .query("participants")
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const participants = allParticipants.filter((p) => p.status === "active");
 
     for (const participant of participants) {
       // Get current plan
@@ -242,6 +259,7 @@ export const generateSdaExpected = mutation({
       const periodEnd = `${args.periodMonth}-${String(lastDay).padStart(2, "0")}`;
 
       await ctx.db.insert("expectedPayments", {
+        organizationId,
         paymentType: "sda_income",
         participantId: participant._id,
         planId: plan._id,
@@ -267,17 +285,20 @@ export const generateSdaExpected = mutation({
 // Generate expected RRC income for a month
 export const generateRrcExpected = mutation({
   args: {
+    userId: v.id("users"),
     periodMonth: v.string(),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
     let created = 0;
 
-    // Get all active participants with current plans
-    const participants = await ctx.db
+    // Get all active participants for this organization
+    const allParticipants = await ctx.db
       .query("participants")
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const participants = allParticipants.filter((p) => p.status === "active");
 
     for (const participant of participants) {
       // Get current plan
@@ -322,6 +343,7 @@ export const generateRrcExpected = mutation({
       const periodEnd = `${args.periodMonth}-${String(lastDay).padStart(2, "0")}`;
 
       await ctx.db.insert("expectedPayments", {
+        organizationId,
         paymentType: "rrc_income",
         participantId: participant._id,
         planId: plan._id,
@@ -347,19 +369,22 @@ export const generateRrcExpected = mutation({
 // Generate expected owner payments for a month
 export const generateOwnerExpected = mutation({
   args: {
+    userId: v.id("users"),
     periodMonth: v.string(),
     paymentDay: v.optional(v.number()), // Default: 5
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
     const paymentDay = args.paymentDay || 5;
     let created = 0;
 
-    // Get all active properties with owners
-    const properties = await ctx.db
+    // Get all active properties for this organization
+    const allProperties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const properties = allProperties.filter((p) => p.isActive === true);
 
     for (const property of properties) {
       // Check if expected payment already exists
@@ -425,6 +450,7 @@ export const generateOwnerExpected = mutation({
       const expectedDate = `${args.periodMonth}-${String(paymentDay).padStart(2, "0")}`;
 
       await ctx.db.insert("expectedPayments", {
+        organizationId,
         paymentType: "owner_disbursement",
         propertyId: property._id,
         ownerId: property.ownerId,
@@ -447,21 +473,24 @@ export const generateOwnerExpected = mutation({
 // Generate all expected payments for a month
 export const generateForMonth = mutation({
   args: {
+    userId: v.id("users"),
     periodMonth: v.string(),
     paymentDay: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
     const paymentDay = args.paymentDay || 5;
     let sdaCreated = 0;
     let rrcCreated = 0;
     let ownerCreated = 0;
 
-    // Get all active participants with current plans
-    const participants = await ctx.db
+    // Get all active participants for this organization
+    const allParticipants = await ctx.db
       .query("participants")
-      .filter((q) => q.eq(q.field("status"), "active"))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const participants = allParticipants.filter((p) => p.status === "active");
 
     // 1. Generate SDA expected payments
     for (const participant of participants) {
@@ -497,6 +526,7 @@ export const generateForMonth = mutation({
           const periodEnd = `${args.periodMonth}-${String(lastDay).padStart(2, "0")}`;
 
           await ctx.db.insert("expectedPayments", {
+            organizationId,
             paymentType: "sda_income",
             participantId: participant._id,
             planId: plan._id,
@@ -545,6 +575,7 @@ export const generateForMonth = mutation({
           const periodEnd = `${args.periodMonth}-${String(lastDay).padStart(2, "0")}`;
 
           await ctx.db.insert("expectedPayments", {
+            organizationId,
             paymentType: "rrc_income",
             participantId: participant._id,
             planId: plan._id,
@@ -566,12 +597,13 @@ export const generateForMonth = mutation({
     }
 
     // 3. Generate owner expected payments
-    const properties = await ctx.db
+    const allOrgProperties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
+    const orgProperties = allOrgProperties.filter((p) => p.isActive === true);
 
-    for (const property of properties) {
+    for (const property of orgProperties) {
       const existingOwner = await ctx.db
         .query("expectedPayments")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
@@ -629,6 +661,7 @@ export const generateForMonth = mutation({
         const expectedDate = `${args.periodMonth}-${String(paymentDay).padStart(2, "0")}`;
 
         await ctx.db.insert("expectedPayments", {
+          organizationId,
           paymentType: "owner_disbursement",
           propertyId: property._id,
           ownerId: property.ownerId,
@@ -895,18 +928,19 @@ export const checkOverdue = internalMutation({
 // Get summary stats
 export const getSummary = query({
   args: {
+    userId: v.id("users"),
     periodMonth: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let payments;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    let payments = await ctx.db
+      .query("expectedPayments")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (args.periodMonth) {
-      payments = await ctx.db
-        .query("expectedPayments")
-        .withIndex("by_periodMonth", (q) => q.eq("periodMonth", args.periodMonth!))
-        .collect();
-    } else {
-      payments = await ctx.db.query("expectedPayments").collect();
+      payments = payments.filter((p) => p.periodMonth === args.periodMonth);
     }
 
     const summary = {
@@ -943,10 +977,17 @@ export const getSummary = query({
 // Cancel an expected payment
 export const cancel = mutation({
   args: {
+    userId: v.id("users"),
     id: v.id("expectedPayments"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const payment = await ctx.db.get(args.id);
+    if (!payment || payment.organizationId !== organizationId) {
+      throw new Error("Expected payment not found");
+    }
+
     await ctx.db.patch(args.id, {
       status: "cancelled",
       notes: args.reason,

@@ -1,15 +1,22 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { requireTenant } from "./authHelpers";
 
 // Get all insurance policies with optional filters
 export const getAll = query({
   args: {
+    userId: v.id("users"),
     insuranceType: v.optional(v.string()),
     status: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
-    let policies = await ctx.db.query("insurancePolicies").collect();
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    let policies = await ctx.db
+      .query("insurancePolicies")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
 
     if (args.insuranceType) {
       policies = policies.filter(p => p.insuranceType === args.insuranceType);
@@ -35,9 +42,16 @@ export const getAll = query({
 
 // Get policies expiring soon (within 60 days)
 export const getExpiringSoon = query({
-  args: {},
-  handler: async (ctx) => {
-    const policies = await ctx.db.query("insurancePolicies").collect();
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const policies = await ctx.db
+      .query("insurancePolicies")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const now = new Date();
     const sixtyDaysFromNow = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
@@ -60,10 +74,16 @@ export const getExpiringSoon = query({
 
 // Get policy by ID
 export const getById = query({
-  args: { policyId: v.id("insurancePolicies") },
+  args: {
+    userId: v.id("users"),
+    policyId: v.id("insurancePolicies"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
     const policy = await ctx.db.get(args.policyId);
     if (!policy) return null;
+    if (policy.organizationId !== organizationId) return null;
 
     const property = policy.propertyId ? await ctx.db.get(policy.propertyId) : null;
 
@@ -73,9 +93,16 @@ export const getById = query({
 
 // Check if organization has required insurance coverage
 export const checkRequiredCoverage = query({
-  args: {},
-  handler: async (ctx) => {
-    const policies = await ctx.db.query("insurancePolicies").collect();
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const policies = await ctx.db
+      .query("insurancePolicies")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
     const today = new Date();
 
     // Required insurance types for NDIS providers
@@ -145,6 +172,7 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.createdBy);
     const now = Date.now();
     const endDate = new Date(args.endDate);
     const today = new Date();
@@ -159,6 +187,7 @@ export const create = mutation({
 
     return await ctx.db.insert("insurancePolicies", {
       ...args,
+      organizationId,
       status,
       createdAt: now,
       updatedAt: now,
@@ -169,6 +198,7 @@ export const create = mutation({
 // Update insurance policy
 export const update = mutation({
   args: {
+    userId: v.id("users"),
     policyId: v.id("insurancePolicies"),
     policyName: v.optional(v.string()),
     insurer: v.optional(v.string()),
@@ -195,9 +225,10 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { policyId, ...updates } = args;
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const { policyId, userId, ...updates } = args;
     const policy = await ctx.db.get(policyId);
-    if (!policy) throw new Error("Policy not found");
+    if (!policy || policy.organizationId !== organizationId) throw new Error("Policy not found");
 
     // Recalculate status if end date changed
     let status = updates.status;
@@ -230,15 +261,23 @@ export const update = mutation({
 
 // Delete insurance policy
 export const remove = mutation({
-  args: { policyId: v.id("insurancePolicies") },
+  args: {
+    userId: v.id("users"),
+    policyId: v.id("insurancePolicies"),
+  },
   handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const policy = await ctx.db.get(args.policyId);
+    if (!policy || policy.organizationId !== organizationId) {
+      throw new Error("Policy not found");
+    }
     await ctx.db.delete(args.policyId);
     return { success: true };
   },
 });
 
 // Update all policy statuses (run periodically via cron)
-export const updateStatuses = mutation({
+export const updateStatuses = internalMutation({
   args: {},
   handler: async (ctx) => {
     const policies = await ctx.db.query("insurancePolicies").collect();

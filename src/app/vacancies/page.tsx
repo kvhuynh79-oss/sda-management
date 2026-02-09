@@ -14,7 +14,7 @@ export default function VacanciesPage() {
   const [selectedDwellingId, setSelectedDwellingId] = useState<Id<"dwellings"> | null>(null);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
 
-  const vacancySummary = useQuery(api.vacancyListings.getSummary);
+  const vacancySummary = useQuery(api.vacancyListings.getSummary, userId ? { userId } : "skip");
   const coordinators = useQuery(api.supportCoordinators.getAll, userId ? { status: "active", userId } : "skip");
   const upsertListing = useMutation(api.vacancyListings.upsert);
   const notifyCoordinator = useMutation(api.vacancyListings.notifyCoordinator);
@@ -30,7 +30,9 @@ export default function VacanciesPage() {
       | "housingHubListedDate"
       | "ndisNotifiedDate";
 
+    if (!userId) return;
     await upsertListing({
+      userId,
       dwellingId,
       [field]: checked,
       [dateField]: checked ? today : undefined,
@@ -41,8 +43,9 @@ export default function VacanciesPage() {
     dwellingId: Id<"dwellings">,
     coordinatorIds: Id<"supportCoordinators">[]
   ) => {
+    if (!userId) return;
     for (const coordinatorId of coordinatorIds) {
-      await notifyCoordinator({ dwellingId, coordinatorId });
+      await notifyCoordinator({ userId, dwellingId, coordinatorId });
     }
     setShowNotifyModal(false);
     setSelectedDwellingId(null);

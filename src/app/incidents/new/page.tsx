@@ -326,7 +326,7 @@ export default function NewIncidentPage() {
 
         {/* Link to Compliance Guides */}
         <div className="mb-4">
-          <Link href="/compliance" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2">
+          <Link href="/compliance" className="text-teal-500 hover:text-teal-400 text-sm flex items-center gap-2">
             <span>ℹ️</span> View NDIS Incident Reporting Guide in Compliance Dashboard
           </Link>
         </div>

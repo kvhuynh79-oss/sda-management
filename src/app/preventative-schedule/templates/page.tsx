@@ -224,7 +224,7 @@ export default function ScheduleTemplatesPage() {
         <div className="mb-8">
           <Link
             href="/preventative-schedule"
-            className="text-blue-400 hover:text-blue-300 mb-4 inline-block"
+            className="text-teal-500 hover:text-teal-400 mb-4 inline-block"
           >
             ← Back to Preventative Schedule
           </Link>
@@ -250,7 +250,7 @@ export default function ScheduleTemplatesPage() {
                   setSelectedDwelling("");
                 }}
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="">Select property...</option>
                 {properties?.map((property) => (
@@ -269,7 +269,7 @@ export default function ScheduleTemplatesPage() {
                 <select
                   value={selectedDwelling}
                   onChange={(e) => setSelectedDwelling(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="">Entire Property</option>
                   {dwellings?.map((dwelling) => (
@@ -290,7 +290,7 @@ export default function ScheduleTemplatesPage() {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
 
@@ -303,7 +303,7 @@ export default function ScheduleTemplatesPage() {
                 value={contractorName}
                 onChange={(e) => setContractorName(e.target.value)}
                 placeholder="Contractor name for all schedules"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
           </div>
@@ -313,7 +313,7 @@ export default function ScheduleTemplatesPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="bg-gray-800 rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-2">Selected Templates</p>
-            <p className="text-2xl font-bold text-blue-400">{selectedTemplates.length}</p>
+            <p className="text-2xl font-bold text-teal-500">{selectedTemplates.length}</p>
           </div>
           <div className="bg-gray-800 rounded-lg p-6">
             <p className="text-gray-400 text-sm mb-2">Statutory Requirements</p>
@@ -347,7 +347,7 @@ export default function ScheduleTemplatesPage() {
                   type="checkbox"
                   checked={selectedTemplates.includes(index)}
                   onChange={() => handleToggleTemplate(index)}
-                  className="w-5 h-5 text-blue-600 bg-gray-600 border-gray-500 rounded focus:ring-blue-500 focus:ring-2"
+                  className="w-5 h-5 text-teal-700 bg-gray-600 border-gray-500 rounded focus:ring-teal-600 focus:ring-2"
                 />
                 <div className="ml-4 flex-1">
                   <div className="flex items-center gap-3">
@@ -357,7 +357,7 @@ export default function ScheduleTemplatesPage() {
                         STATUTORY
                       </span>
                     )}
-                    <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+                    <span className="px-2 py-1 bg-teal-700 text-white text-xs rounded-full">
                       {template.category}
                     </span>
                   </div>
@@ -376,7 +376,7 @@ export default function ScheduleTemplatesPage() {
           <button
             onClick={handleApply}
             disabled={!selectedProperty || selectedTemplates.length === 0}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            className="px-6 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
             Apply {selectedTemplates.length} Schedule{selectedTemplates.length !== 1 ? "s" : ""}
           </button>

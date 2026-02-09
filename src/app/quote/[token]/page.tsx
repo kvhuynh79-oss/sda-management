@@ -170,7 +170,7 @@ export default function QuoteSubmissionPage() {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-12 h-12 bg-teal-700 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
@@ -181,8 +181,8 @@ export default function QuoteSubmissionPage() {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-800">
+          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+            <p className="text-teal-900">
               Hi {contractor?.companyName || "Contractor"}, we&apos;re requesting a quote for maintenance work. Please review
               the details below and submit your quote.
             </p>
@@ -281,7 +281,7 @@ export default function QuoteSubmissionPage() {
                     value={formData.quoteAmount}
                     onChange={(e) => setFormData({ ...formData, quoteAmount: e.target.value })}
                     required
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                     placeholder="0.00"
                   />
                 </div>
@@ -291,7 +291,7 @@ export default function QuoteSubmissionPage() {
                 <select
                   value={formData.validDays}
                   onChange={(e) => setFormData({ ...formData, validDays: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                 >
                   <option value="7">7 days</option>
                   <option value="14">14 days</option>
@@ -311,7 +311,7 @@ export default function QuoteSubmissionPage() {
                     step="0.01"
                     value={formData.laborCost}
                     onChange={(e) => setFormData({ ...formData, laborCost: e.target.value })}
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                     placeholder="0.00"
                   />
                 </div>
@@ -325,7 +325,7 @@ export default function QuoteSubmissionPage() {
                     step="0.01"
                     value={formData.materialsCost}
                     onChange={(e) => setFormData({ ...formData, materialsCost: e.target.value })}
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                     placeholder="0.00"
                   />
                 </div>
@@ -339,7 +339,7 @@ export default function QuoteSubmissionPage() {
                   type="number"
                   value={formData.estimatedDays}
                   onChange={(e) => setFormData({ ...formData, estimatedDays: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                   placeholder="e.g., 1"
                 />
               </div>
@@ -349,7 +349,7 @@ export default function QuoteSubmissionPage() {
                   type="date"
                   value={formData.availableDate}
                   onChange={(e) => setFormData({ ...formData, availableDate: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                 />
               </div>
               <div>
@@ -358,7 +358,7 @@ export default function QuoteSubmissionPage() {
                   type="number"
                   value={formData.warrantyMonths}
                   onChange={(e) => setFormData({ ...formData, warrantyMonths: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                   placeholder="e.g., 12"
                 />
               </div>
@@ -370,7 +370,7 @@ export default function QuoteSubmissionPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
                 placeholder="Describe what's included in this quote..."
               />
             </div>
@@ -379,7 +379,7 @@ export default function QuoteSubmissionPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="flex-1 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
               >
                 {isSubmitting ? "Submitting..." : "Submit Quote"}
               </button>

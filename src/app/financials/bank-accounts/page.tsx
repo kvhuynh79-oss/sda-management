@@ -95,7 +95,7 @@ export default function BankAccountsPage() {
             </Link>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               + Add Bank Account
             </button>
@@ -172,7 +172,7 @@ function AccountCard({
 
   const getBankColor = (bankName: string) => {
     const colors: Record<string, string> = {
-      ANZ: "bg-blue-600",
+      ANZ: "bg-teal-700",
       Westpac: "bg-red-600",
       default: "bg-gray-600",
     };
@@ -267,7 +267,7 @@ function AccountCard({
       <div className="mt-4 flex gap-2">
         <Link
           href={`/financials/reconciliation?account=${account._id}`}
-          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm text-center rounded transition-colors"
+          className="flex-1 px-3 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm text-center rounded transition-colors"
         >
           Reconcile
         </Link>
@@ -378,7 +378,7 @@ function AccountModal({
               value={formData.accountName}
               onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
               placeholder="e.g., Operating Account"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               required
             />
           </div>
@@ -390,7 +390,7 @@ function AccountModal({
             <select
               value={formData.bankName}
               onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             >
               <option value="ANZ">ANZ</option>
               <option value="Westpac">Westpac</option>
@@ -410,7 +410,7 @@ function AccountModal({
                 value={formData.bsb}
                 onChange={(e) => setFormData({ ...formData, bsb: e.target.value })}
                 placeholder="000-000"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 required
               />
             </div>
@@ -423,7 +423,7 @@ function AccountModal({
                 value={formData.accountNumber}
                 onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
                 placeholder="12345678"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 required
               />
             </div>
@@ -436,7 +436,7 @@ function AccountModal({
             <select
               value={formData.accountType}
               onChange={(e) => setFormData({ ...formData, accountType: e.target.value as "operating" | "trust" })}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             >
               <option value="operating">Operating Account</option>
               <option value="trust">Trust Account</option>
@@ -450,7 +450,7 @@ function AccountModal({
                 id="isActive"
                 checked={formData.isActive}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="w-4 h-4 bg-gray-700 border-gray-600 rounded text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 bg-gray-700 border-gray-600 rounded text-teal-700 focus:ring-teal-600"
               />
               <label htmlFor="isActive" className="text-sm text-gray-300">
                 Account is active
@@ -469,7 +469,7 @@ function AccountModal({
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-900 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
             >
               {saving ? "Saving..." : account ? "Update Account" : "Add Account"}
             </button>
@@ -490,7 +490,7 @@ function StatCard({
   color: "blue" | "green" | "yellow" | "red";
 }) {
   const colorClasses = {
-    blue: "text-blue-400",
+    blue: "text-teal-500",
     green: "text-green-400",
     yellow: "text-yellow-400",
     red: "text-red-400",
@@ -518,7 +518,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <button
         onClick={onAdd}
-        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        className="px-6 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
       >
         + Add Your First Account
       </button>

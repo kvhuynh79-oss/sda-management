@@ -199,7 +199,7 @@ export default function EditPropertyPage() {
         <div className="mb-6">
           <Link
             href={`/properties/${propertyId}`}
-            className="text-blue-400 hover:text-blue-300 mb-4 inline-block"
+            className="text-teal-500 hover:text-teal-400 mb-4 inline-block"
           >
             &larr; Back to {property.propertyName || property.addressLine1}
           </Link>
@@ -339,7 +339,7 @@ export default function EditPropertyPage() {
                   </select>
                   <p className="text-gray-400 text-xs mt-1">
                     The SIL provider you are managing this property for.{" "}
-                    <Link href="/database/sil-providers/new" className="text-blue-400 hover:underline">
+                    <Link href="/database/sil-providers/new" className="text-teal-500 hover:underline">
                       Add new provider
                     </Link>
                   </p>
@@ -429,7 +429,7 @@ export default function EditPropertyPage() {
 
                   return (
                   <div key={dwelling._id} className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="text-white font-medium mb-4 bg-blue-900/50 px-3 py-2 rounded">{fullDwellingAddress}</h3>
+                    <h3 className="text-white font-medium mb-4 bg-teal-950/50 px-3 py-2 rounded">{fullDwellingAddress}</h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                       <div>

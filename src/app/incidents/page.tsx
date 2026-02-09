@@ -70,9 +70,9 @@ export default function IncidentsPage() {
                     key={status}
                     onClick={() => setStatusFilter(status)}
                     aria-pressed={statusFilter === status}
-                    className={`px-3 py-1 rounded-lg text-sm transition-colors whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    className={`px-3 py-1 rounded-lg text-sm transition-colors whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                       statusFilter === status
-                        ? "bg-blue-600 text-white"
+                        ? "bg-teal-700 text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
@@ -175,13 +175,13 @@ function IncidentCard({ incident }: { incident: any }) {
         <div className="flex sm:flex-col gap-2 flex-shrink-0">
           <Link
             href={`/incidents/${incident._id}`}
-            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             View Details
           </Link>
           <Link
             href={`/follow-ups/communications/new?subject=${encodeURIComponent(`Incident: ${incident.title}`)}&complianceCategory=incident_related&linkedIncidentId=${incident._id}${incident.participantId ? `&participantId=${incident.participantId}` : ""}${incident.propertyId ? `&propertyId=${incident.propertyId}` : ""}${incident.participant ? `&contactName=${encodeURIComponent(`${incident.participant.firstName} ${incident.participant.lastName}`)}` : ""}`}
-            className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded text-sm text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-3 py-1 bg-teal-700/20 hover:bg-teal-700/30 text-teal-500 rounded text-sm text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             Add Entry
           </Link>

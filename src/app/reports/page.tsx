@@ -214,7 +214,7 @@ export default function ReportsPage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600"
               />
             </div>
             <div>
@@ -223,7 +223,7 @@ export default function ReportsPage() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600"
               />
             </div>
             <div>
@@ -231,7 +231,7 @@ export default function ReportsPage() {
               <select
                 value={selectedPropertyId}
                 onChange={(e) => setSelectedPropertyId(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600"
               >
                 <option value="">All Properties</option>
                 {properties?.map((p) => (
@@ -253,7 +253,7 @@ export default function ReportsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                   activeTab === tab.id
-                    ? "text-blue-400 border-b-2 border-blue-400"
+                    ? "text-teal-500 border-b-2 border-teal-500"
                     : "text-gray-400 hover:text-white"
                 }`}
               >
@@ -311,7 +311,7 @@ export default function ReportsPage() {
                               <td className="py-2">
                                 <span className={`px-2 py-1 rounded text-xs ${
                                   claim?.status === "pending" ? "bg-yellow-600" :
-                                  claim?.status === "rejected" ? "bg-red-600" : "bg-blue-600"
+                                  claim?.status === "rejected" ? "bg-red-600" : "bg-teal-700"
                                 }`}>
                                   {claim?.status}
                                 </span>
@@ -356,7 +356,7 @@ export default function ReportsPage() {
                   </div>
                   <Link
                     href="/compliance/certifications"
-                    className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    className="inline-flex items-center gap-2 text-teal-500 hover:text-teal-400 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -687,7 +687,7 @@ export default function ReportsPage() {
                   <div className="flex justify-end mb-4">
                     <button
                       onClick={exportOwnerStatementPDF}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                      className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm"
                     >
                       Export to PDF
                     </button>
@@ -793,7 +793,7 @@ function StatCard({
   color: "blue" | "green" | "yellow" | "red";
 }) {
   const colorClasses = {
-    blue: "text-blue-400",
+    blue: "text-teal-500",
     green: "text-green-400",
     yellow: "text-yellow-400",
     red: "text-red-400",

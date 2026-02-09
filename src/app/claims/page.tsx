@@ -79,7 +79,7 @@ export default function ClaimsPage() {
     }
     const styles: Record<string, string> = {
       pending: "bg-yellow-600 text-white",
-      submitted: "bg-blue-600 text-white",
+      submitted: "bg-teal-700 text-white",
       paid: "bg-green-600 text-white",
       rejected: "bg-red-600 text-white",
       partial: "bg-orange-600 text-white",
@@ -346,7 +346,7 @@ export default function ClaimsPage() {
             </select>
             <button
               onClick={handleInitializeClaims}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg"
             >
               Initialize Claims
             </button>
@@ -366,7 +366,7 @@ export default function ClaimsPage() {
             </div>
             <div className="bg-gray-800 rounded-lg p-4">
               <p className="text-gray-400 text-sm">Submitted</p>
-              <p className="text-2xl font-bold text-blue-400">{dashboard.summary.submitted}</p>
+              <p className="text-2xl font-bold text-teal-500">{dashboard.summary.submitted}</p>
             </div>
             <div className="bg-gray-800 rounded-lg p-4">
               <p className="text-gray-400 text-sm">Paid</p>
@@ -429,7 +429,7 @@ export default function ClaimsPage() {
             {selectedDay !== null && (
               <button
                 onClick={() => setSelectedDay(null)}
-                className="text-sm text-blue-400 hover:text-blue-300"
+                className="text-sm text-teal-500 hover:text-teal-400"
               >
                 Clear filter (Day {selectedDay})
               </button>
@@ -457,7 +457,7 @@ export default function ClaimsPage() {
                     ${!day ? "bg-transparent border-transparent" : ""}
                     ${day && (!dayData || dayData.length === 0) ? "bg-gray-700 border-gray-700 cursor-default" : ""}
                     ${day && dayData && dayData.length > 0 ? "bg-gray-700 border-gray-600 cursor-pointer hover:border-gray-500" : ""}
-                    ${isSelected ? "ring-2 ring-blue-500 border-blue-500" : ""}
+                    ${isSelected ? "ring-2 ring-teal-600 border-teal-600" : ""}
                     ${isToday && day ? "ring-2 ring-yellow-500" : ""}
                   `}
                 >
@@ -472,13 +472,13 @@ export default function ClaimsPage() {
                             const statusColors = {
                               overdue: "text-red-400",
                               pending: "text-yellow-400",
-                              submitted: "text-blue-400",
+                              submitted: "text-teal-500",
                               paid: "text-green-400",
                             };
                             const dotColors = {
                               overdue: "bg-red-500",
                               pending: "bg-yellow-500",
-                              submitted: "bg-blue-500",
+                              submitted: "bg-teal-600",
                               paid: "bg-green-500",
                             };
                             return (
@@ -512,7 +512,7 @@ export default function ClaimsPage() {
               <span>Pending</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <div className="w-2 h-2 rounded-full bg-teal-600"></div>
               <span>Submitted</span>
             </div>
             <div className="flex items-center gap-1">
@@ -618,7 +618,7 @@ export default function ClaimsPage() {
                                 });
                                 setShowMarkSubmittedModal(true);
                               }}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                              className="px-3 py-1 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded"
                             >
                               Mark Submitted
                             </button>
@@ -727,7 +727,7 @@ export default function ClaimsPage() {
               </button>
               <button
                 onClick={handleMarkSubmitted}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg"
               >
                 Mark Submitted
               </button>

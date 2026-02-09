@@ -66,8 +66,8 @@ const SEVERITY_STYLES = {
     label: "Important",
   },
   info: {
-    dot: "bg-blue-500",
-    badge: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+    dot: "bg-teal-600",
+    badge: "bg-teal-600/20 text-teal-500 border border-teal-600/30",
     label: "Standard",
   },
 };
@@ -251,9 +251,9 @@ export default function PushNotificationPrompt({
                 className={`
                   relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full
                   border-2 border-transparent transition-colors duration-200 ease-in-out
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800
                   disabled:opacity-50 disabled:cursor-not-allowed
-                  ${isSubscribed ? "bg-blue-600" : "bg-gray-600"}
+                  ${isSubscribed ? "bg-teal-700" : "bg-gray-600"}
                 `}
                 role="switch"
                 aria-checked={isSubscribed}

@@ -175,7 +175,7 @@ export default function TaskDetailPage() {
           <Header currentPage="communications" />
           <main className="max-w-3xl mx-auto px-4 py-8 text-center">
             <p className="text-gray-400">Task not found</p>
-            <Link href="/follow-ups" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+            <Link href="/follow-ups" className="text-teal-500 hover:text-teal-400 mt-4 inline-block">
               Back to Follow-ups
             </Link>
           </main>
@@ -387,7 +387,7 @@ export default function TaskDetailPage() {
                     <div>
                       <span className="text-gray-400">Participant</span>
                       <p className="text-white">
-                        <Link href={`/participants/${task.linkedParticipantId}`} className="text-blue-400 hover:text-blue-300">
+                        <Link href={`/participants/${task.linkedParticipantId}`} className="text-teal-500 hover:text-teal-400">
                           {task.participant.firstName} {task.participant.lastName}
                         </Link>
                       </p>

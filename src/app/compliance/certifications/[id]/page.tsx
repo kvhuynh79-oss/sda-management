@@ -163,7 +163,7 @@ function CertificationDetailContent() {
       <div className="min-h-screen bg-gray-900">
         <Header currentPage="compliance" />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600" />
         </div>
       </div>
     );
@@ -182,7 +182,7 @@ function CertificationDetailContent() {
             <p className="text-gray-400 mb-4">Certification not found</p>
             <Link
               href="/compliance/certifications"
-              className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="inline-block px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Back to Certifications
             </Link>
@@ -205,7 +205,7 @@ function CertificationDetailContent() {
           <div>
             <Link
               href="/compliance/certifications"
-              className="text-blue-400 hover:text-blue-300 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+              className="text-teal-500 hover:text-teal-400 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             >
               &larr; Back to Certifications
             </Link>
@@ -229,7 +229,7 @@ function CertificationDetailContent() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleStartEdit}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 Edit
               </button>
@@ -306,7 +306,7 @@ function CertificationDetailContent() {
                 type="text"
                 value={editForm.certificationName}
                 onChange={(e) => setEditForm({ ...editForm, certificationName: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               />
             </div>
 
@@ -322,7 +322,7 @@ function CertificationDetailContent() {
                   value={editForm.certifyingBody}
                   onChange={(e) => setEditForm({ ...editForm, certifyingBody: e.target.value })}
                   placeholder="e.g., SAI Global, BSI"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
               </div>
               <div>
@@ -335,7 +335,7 @@ function CertificationDetailContent() {
                   value={editForm.certificateNumber}
                   onChange={(e) => setEditForm({ ...editForm, certificateNumber: e.target.value })}
                   placeholder="e.g., CERT-2024-12345"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
               </div>
             </div>
@@ -351,7 +351,7 @@ function CertificationDetailContent() {
                   type="date"
                   value={editForm.issueDate}
                   onChange={(e) => setEditForm({ ...editForm, issueDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
               </div>
               <div>
@@ -363,7 +363,7 @@ function CertificationDetailContent() {
                   type="date"
                   value={editForm.expiryDate}
                   onChange={(e) => setEditForm({ ...editForm, expiryDate: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
                 <p className="mt-1 text-xs text-gray-400">
                   Status will auto-recalculate based on expiry date
@@ -384,7 +384,7 @@ function CertificationDetailContent() {
                     type="date"
                     value={editForm.lastAuditDate}
                     onChange={(e) => setEditForm({ ...editForm, lastAuditDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                   />
                 </div>
                 <div>
@@ -396,7 +396,7 @@ function CertificationDetailContent() {
                     type="date"
                     value={editForm.nextAuditDate}
                     onChange={(e) => setEditForm({ ...editForm, nextAuditDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                   />
                 </div>
                 <div>
@@ -409,7 +409,7 @@ function CertificationDetailContent() {
                     value={editForm.auditorName}
                     onChange={(e) => setEditForm({ ...editForm, auditorName: e.target.value })}
                     placeholder="Name of auditor/assessor"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                   />
                 </div>
                 <div>
@@ -420,7 +420,7 @@ function CertificationDetailContent() {
                     id="edit-outcome"
                     value={editForm.auditOutcome}
                     onChange={(e) => setEditForm({ ...editForm, auditOutcome: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                   >
                     <option value="">No outcome recorded</option>
                     <option value="pass">Pass</option>
@@ -443,7 +443,7 @@ function CertificationDetailContent() {
                 onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                 rows={3}
                 placeholder="Any additional notes..."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               />
             </div>
 
@@ -452,7 +452,7 @@ function CertificationDetailContent() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-6 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 {isSaving ? "Saving..." : "Save Changes"}
               </button>
@@ -495,7 +495,7 @@ function CertificationDetailContent() {
                   ) : cert.property ? (
                     <Link
                       href={`/properties/${cert.property._id}`}
-                      className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                      className="text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                     >
                       {cert.property.propertyName || cert.property.addressLine1}
                       {cert.dwelling && (

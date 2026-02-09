@@ -95,7 +95,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     success: "bg-green-600 border-green-500",
     error: "bg-red-600 border-red-500",
     warning: "bg-yellow-600 border-yellow-500",
-    info: "bg-blue-600 border-blue-500",
+    info: "bg-teal-700 border-teal-600",
   };
 
   const icons: Record<ToastType, string> = {

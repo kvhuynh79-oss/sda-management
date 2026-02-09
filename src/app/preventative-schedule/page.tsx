@@ -127,7 +127,7 @@ export default function PreventativeSchedulePage() {
             </Link>
             <Link
               href="/preventative-schedule/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               + Create Schedule
             </Link>
@@ -158,7 +158,7 @@ export default function PreventativeSchedulePage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Task name, property, contractor..."
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -166,7 +166,7 @@ export default function PreventativeSchedulePage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="all">All Statuses</option>
                 <option value="active">Active</option>
@@ -180,7 +180,7 @@ export default function PreventativeSchedulePage() {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="all">All Categories</option>
                 <option value="plumbing">Plumbing</option>
@@ -197,7 +197,7 @@ export default function PreventativeSchedulePage() {
               <select
                 value={filterFrequency}
                 onChange={(e) => setFilterFrequency(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="all">All Frequencies</option>
                 <option value="weekly">Weekly</option>
@@ -256,7 +256,7 @@ function StatCard({
   color: "blue" | "green" | "yellow" | "red";
 }) {
   const colorClasses = {
-    blue: "text-blue-400",
+    blue: "text-teal-500",
     green: "text-green-400",
     yellow: "text-yellow-400",
     red: "text-red-400",
@@ -319,7 +319,7 @@ function ScheduleCard({
             >
               {getStatusText(schedule.status, schedule.daysUntilDue)}
             </span>
-            <span className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full">
+            <span className="px-3 py-1 bg-teal-700 text-white text-xs rounded-full">
               {formatCategory(schedule.category)}
             </span>
             <span className="text-gray-400 text-xs">
@@ -341,7 +341,7 @@ function ScheduleCard({
               <span className="text-gray-400">Property: </span>
               <Link
                 href={`/properties/${schedule.property._id}`}
-                className="text-blue-400 hover:text-blue-300"
+                className="text-teal-500 hover:text-teal-400"
               >
                 {schedule.property.propertyName || schedule.property.addressLine1}
               </Link>
@@ -416,7 +416,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
       {!hasFilters && (
         <Link
           href="/preventative-schedule/new"
-          className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="inline-block px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
         >
           + Create First Schedule
         </Link>

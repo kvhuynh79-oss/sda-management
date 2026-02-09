@@ -141,7 +141,7 @@ export default function NewInspectionPage() {
               </p>
               <Link
                 href="/inspections/templates"
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="inline-block px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
               >
                 Manage Templates
               </Link>
@@ -158,7 +158,7 @@ export default function NewInspectionPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, templateId: e.target.value })
                   }
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   required
                 >
                   <option value="">Select a template</option>
@@ -196,7 +196,7 @@ export default function NewInspectionPage() {
                       dwellingId: "", // Reset dwelling when property changes
                     })
                   }
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   required
                 >
                   <option value="">Select a property</option>
@@ -220,7 +220,7 @@ export default function NewInspectionPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, dwellingId: e.target.value })
                     }
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   >
                     <option value="">All dwellings / Property-wide</option>
                     {dwellings.map((dwelling) => (
@@ -245,7 +245,7 @@ export default function NewInspectionPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, inspectorId: e.target.value })
                   }
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   required
                 >
                   <option value="">Select an inspector</option>
@@ -268,7 +268,7 @@ export default function NewInspectionPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, scheduledDate: e.target.value })
                   }
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   required
                 />
               </div>
@@ -285,7 +285,7 @@ export default function NewInspectionPage() {
                     setFormData({ ...formData, location: e.target.value })
                   }
                   placeholder="e.g., Unit 1, Ground Floor"
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -301,7 +301,7 @@ export default function NewInspectionPage() {
                     setFormData({ ...formData, preparedBy: e.target.value })
                   }
                   placeholder="Name of person preparing inspection"
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -347,7 +347,7 @@ export default function NewInspectionPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  className="flex-1 px-4 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-900 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
                   {isSubmitting ? "Creating..." : "Create Inspection"}
                 </button>

@@ -155,7 +155,7 @@ export default function CommunicationDetailPage() {
           <Header currentPage="communications" />
           <main className="max-w-3xl mx-auto px-4 py-8 text-center">
             <p className="text-gray-400">Communication not found</p>
-            <Link href="/follow-ups" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+            <Link href="/follow-ups" className="text-teal-500 hover:text-teal-400 mt-4 inline-block">
               Back to Follow-ups
             </Link>
           </main>
@@ -209,7 +209,7 @@ export default function CommunicationDetailPage() {
                 <>
                   <Link
                     href={`/follow-ups/tasks/new?communicationId=${communication._id}${communication.linkedParticipantId ? `&participantId=${communication.linkedParticipantId}` : ""}`}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                   >
                     + Create Task
                   </Link>
@@ -369,7 +369,7 @@ export default function CommunicationDetailPage() {
                     <div>
                       <span className="text-gray-400">Participant</span>
                       <p className="text-white">
-                        <Link href={`/participants/${communication.linkedParticipantId}`} className="text-blue-400 hover:text-blue-300">
+                        <Link href={`/participants/${communication.linkedParticipantId}`} className="text-teal-500 hover:text-teal-400">
                           {communication.participant.firstName} {communication.participant.lastName}
                         </Link>
                       </p>
@@ -379,7 +379,7 @@ export default function CommunicationDetailPage() {
                     <div>
                       <span className="text-gray-400">Property</span>
                       <p className="text-white">
-                        <Link href={`/properties/${communication.linkedPropertyId}`} className="text-blue-400 hover:text-blue-300">
+                        <Link href={`/properties/${communication.linkedPropertyId}`} className="text-teal-500 hover:text-teal-400">
                           {communication.property.propertyName || communication.property.addressLine1}
                         </Link>
                       </p>
@@ -431,7 +431,7 @@ export default function CommunicationDetailPage() {
                         <span className="text-white">{task.title}</span>
                         <span className={`px-2 py-0.5 rounded text-xs ${
                           task.status === "completed" ? "bg-green-600" :
-                          task.status === "in_progress" ? "bg-blue-600" :
+                          task.status === "in_progress" ? "bg-teal-700" :
                           "bg-yellow-600"
                         } text-white`}>
                           {task.status.replace("_", " ")}

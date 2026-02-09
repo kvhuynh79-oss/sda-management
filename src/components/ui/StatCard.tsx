@@ -5,7 +5,7 @@ import Link from "next/link";
 type StatColor = "blue" | "green" | "yellow" | "red" | "purple" | "gray";
 
 const COLOR_MAP: Record<StatColor, string> = {
-  blue: "text-blue-400",
+  blue: "text-teal-500",
   green: "text-green-400",
   yellow: "text-yellow-400",
   red: "text-red-400",
@@ -89,7 +89,7 @@ export function StatCard({
     return (
       <Link
         href={href}
-        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
       >
         {content}
       </Link>

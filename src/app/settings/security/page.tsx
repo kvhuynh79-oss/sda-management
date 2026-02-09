@@ -245,7 +245,7 @@ function SecuritySettingsContent() {
           </div>
 
           <div class="no-print" style="margin-top: 20px;">
-            <button onclick="window.print()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">Print</button>
+            <button onclick="window.print()" style="padding: 8px 16px; background: #0f766e; color: white; border: none; border-radius: 4px; cursor: pointer;">Print</button>
             <button onclick="window.close()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 8px;">Close</button>
           </div>
         </body>
@@ -268,7 +268,7 @@ function SecuritySettingsContent() {
         <div className="mb-6">
           <Link
             href="/settings"
-            className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2 transition-colors"
+            className="text-teal-500 hover:text-teal-400 text-sm flex items-center gap-2 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -327,7 +327,7 @@ function SecuritySettingsContent() {
                   <button
                     onClick={handleRegenerateBackupCodes}
                     disabled={isGenerating}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
                   >
                     {isGenerating ? "Generating..." : "Regenerate Backup Codes"}
                   </button>
@@ -348,7 +348,7 @@ function SecuritySettingsContent() {
                 <button
                   onClick={handleEnableMfa}
                   disabled={isGenerating}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+                  className="px-6 py-2.5 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
                 >
                   {isGenerating ? "Generating..." : "Enable Two-Factor Authentication"}
                 </button>
@@ -422,7 +422,7 @@ function SecuritySettingsContent() {
             <div className="flex gap-3">
               <button
                 onClick={handleCopyBackupCodes}
-                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
               >
                 {copiedCodes ? (
                   <>
@@ -471,13 +471,13 @@ function SecuritySettingsContent() {
 
         {/* Security Best Practices */}
         {!showMfaSetup && !showBackupCodes && (
-          <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-300 mb-3">
+          <div className="bg-teal-950/20 border border-teal-900 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-teal-400 mb-3">
               Security Best Practices
             </h3>
-            <ul className="text-blue-200 text-sm space-y-2">
+            <ul className="text-teal-200 text-sm space-y-2">
               <li className="flex gap-3">
-                <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 <div>
@@ -485,7 +485,7 @@ function SecuritySettingsContent() {
                 </div>
               </li>
               <li className="flex gap-3">
-                <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
                 <div>
@@ -493,7 +493,7 @@ function SecuritySettingsContent() {
                 </div>
               </li>
               <li className="flex gap-3">
-                <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 <div>

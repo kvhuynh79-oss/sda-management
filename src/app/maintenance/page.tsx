@@ -26,7 +26,7 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
   reported: "bg-red-600",
   awaiting_quotes: "bg-orange-600",
   quoted: "bg-yellow-600",
-  approved: "bg-blue-600",
+  approved: "bg-teal-700",
   scheduled: "bg-purple-600",
   in_progress: "bg-cyan-600",
   completed: "bg-green-600",
@@ -90,7 +90,7 @@ export default function MaintenancePage() {
             </div>
             <Link
               href="/maintenance/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               + Log Request
             </Link>
@@ -120,7 +120,7 @@ export default function MaintenancePage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Title, description, property..."
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
               <div>
@@ -131,7 +131,7 @@ export default function MaintenancePage() {
                   id="status-filter"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Statuses</option>
                   <option value="open">Open</option>
@@ -153,7 +153,7 @@ export default function MaintenancePage() {
                   id="priority-filter"
                   value={filterPriority}
                   onChange={(e) => setFilterPriority(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Priorities</option>
                   <option value="urgent">Urgent</option>
@@ -170,7 +170,7 @@ export default function MaintenancePage() {
                   id="category-filter"
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Categories</option>
                   <option value="plumbing">Plumbing</option>
@@ -233,7 +233,7 @@ function RequestCard({ request }: { request: any }) {
   return (
     <Link
       href={`/maintenance/${request._id}`}
-      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
       role="listitem"
     >
       <article className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors cursor-pointer">
@@ -259,7 +259,7 @@ function RequestCard({ request }: { request: any }) {
             <h2 className="text-lg font-semibold text-white mb-1">{request.title}</h2>
             <p className="text-gray-300 text-sm mb-3">{request.description}</p>
           </div>
-          <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">Edit</span>
+          <span className="px-3 py-1 bg-teal-700 text-white rounded text-sm">Edit</span>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700 text-sm">

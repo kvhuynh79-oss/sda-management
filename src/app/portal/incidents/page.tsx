@@ -60,7 +60,7 @@ export default function SILProviderIncidents() {
       case "moderate":
         return "bg-yellow-600 text-white";
       case "minor":
-        return "bg-blue-600 text-white";
+        return "bg-teal-700 text-white";
       default:
         return "bg-gray-600 text-white";
     }
@@ -227,7 +227,7 @@ export default function SILProviderIncidents() {
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/portal/incidents/${incident._id}`}
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                      className="text-teal-500 hover:text-teal-400 text-sm font-medium"
                     >
                       View Details &rarr;
                     </Link>

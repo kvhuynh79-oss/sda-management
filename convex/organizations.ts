@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requirePermission, requireAuth } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
 
 /**
  * Organizations Module - Multi-tenant SaaS organization management
@@ -190,6 +190,7 @@ export const update = mutation({
       currency: v.optional(v.string()),
       fiscalYearStart: v.optional(v.string()),
       complianceRegion: v.optional(v.string()),
+      onboardingComplete: v.optional(v.string()),
     })),
   },
   handler: async (ctx, args) => {
@@ -278,5 +279,241 @@ export const reactivate = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// ============================================================================
+// PLAN ENFORCEMENT QUERIES (Sprint 3)
+// ============================================================================
+
+/**
+ * Plan limits configuration.
+ * Centralized definition of what each plan tier allows.
+ * Used by getPlanLimits and checkPlanLimit.
+ */
+type PlanTier = "starter" | "professional" | "enterprise";
+
+interface PlanLimitConfig {
+  maxProperties: number;
+  maxUsers: number;
+  maxDwellings: number;
+}
+
+const PLAN_LIMITS: Record<PlanTier, PlanLimitConfig> = {
+  starter: { maxProperties: 10, maxUsers: 5, maxDwellings: 20 },
+  professional: { maxProperties: 25, maxUsers: 15, maxDwellings: 75 },
+  enterprise: { maxProperties: 50, maxUsers: 50, maxDwellings: 200 },
+};
+
+/**
+ * Get the plan limits for a given plan tier.
+ * Returns the maximum allowed counts for properties, users, and dwellings.
+ *
+ * This is a public query (no auth) so it can be used on the pricing page.
+ */
+export const getPlanLimits = query({
+  args: {
+    plan: v.union(
+      v.literal("starter"),
+      v.literal("professional"),
+      v.literal("enterprise")
+    ),
+  },
+  handler: async (_ctx, args): Promise<PlanLimitConfig & { plan: string }> => {
+    const limits = PLAN_LIMITS[args.plan];
+    return { ...limits, plan: args.plan };
+  },
+});
+
+/**
+ * Check whether the organization has reached a specific plan limit.
+ * Used before creating new properties, users, or dwellings to enforce quotas.
+ *
+ * Returns:
+ * - allowed: boolean - whether the action is allowed
+ * - current: number - current count of the resource
+ * - limit: number - maximum allowed by the plan
+ * - resource: string - which resource was checked
+ */
+export const checkPlanLimit = query({
+  args: {
+    userId: v.id("users"),
+    resource: v.union(
+      v.literal("properties"),
+      v.literal("users"),
+      v.literal("dwellings")
+    ),
+  },
+  handler: async (ctx, args): Promise<{
+    allowed: boolean;
+    current: number;
+    limit: number;
+    resource: string;
+    plan: string;
+  }> => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const org = await ctx.db.get(organizationId);
+    if (!org) {
+      throw new Error("Organization not found");
+    }
+
+    const limits = PLAN_LIMITS[org.plan as PlanTier] ?? PLAN_LIMITS.starter;
+
+    let current = 0;
+    let limit = 0;
+
+    switch (args.resource) {
+      case "properties": {
+        const properties = await ctx.db
+          .query("properties")
+          .withIndex("by_organizationId", (q) =>
+            q.eq("organizationId", organizationId)
+          )
+          .collect();
+        // Only count active properties
+        current = properties.filter((p) => p.isActive !== false).length;
+        limit = limits.maxProperties;
+        break;
+      }
+
+      case "users": {
+        const users = await ctx.db
+          .query("users")
+          .withIndex("by_organizationId", (q) =>
+            q.eq("organizationId", organizationId)
+          )
+          .collect();
+        // Only count active users
+        current = users.filter((u) => u.isActive).length;
+        limit = limits.maxUsers;
+        break;
+      }
+
+      case "dwellings": {
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_organizationId", (q) =>
+            q.eq("organizationId", organizationId)
+          )
+          .collect();
+        // Only count active dwellings
+        current = dwellings.filter((d) => d.isActive !== false).length;
+        limit = limits.maxDwellings;
+        break;
+      }
+    }
+
+    return {
+      allowed: current < limit,
+      current,
+      limit,
+      resource: args.resource,
+      plan: org.plan,
+    };
+  },
+});
+
+/**
+ * Get usage statistics for an organization.
+ * Shows current counts vs plan limits for properties, users, and dwellings.
+ * Used in the admin dashboard and settings page for quota visualization.
+ */
+export const getUsageStats = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<{
+    plan: string;
+    subscriptionStatus: string;
+    properties: { current: number; limit: number; percentage: number };
+    users: { current: number; limit: number; percentage: number };
+    dwellings: { current: number; limit: number; percentage: number };
+    participants: { current: number };
+    maintenanceRequests: { active: number };
+  }> => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const org = await ctx.db.get(organizationId);
+    if (!org) {
+      throw new Error("Organization not found");
+    }
+
+    const limits = PLAN_LIMITS[org.plan as PlanTier] ?? PLAN_LIMITS.starter;
+
+    // Count active properties
+    const properties = await ctx.db
+      .query("properties")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", organizationId)
+      )
+      .collect();
+    const activeProperties = properties.filter((p) => p.isActive !== false).length;
+
+    // Count active users
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", organizationId)
+      )
+      .collect();
+    const activeUsers = users.filter((u) => u.isActive).length;
+
+    // Count active dwellings
+    const dwellings = await ctx.db
+      .query("dwellings")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", organizationId)
+      )
+      .collect();
+    const activeDwellings = dwellings.filter((d) => d.isActive !== false).length;
+
+    // Count participants (informational, not plan-limited)
+    const participants = await ctx.db
+      .query("participants")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", organizationId)
+      )
+      .collect();
+    const activeParticipants = participants.filter(
+      (p) => p.status === "active" || p.status === "pending_move_in"
+    ).length;
+
+    // Count active maintenance requests (informational)
+    const maintenanceRequests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", organizationId)
+      )
+      .collect();
+    const activeMaintenanceRequests = maintenanceRequests.filter(
+      (m) => m.status !== "completed" && m.status !== "cancelled"
+    ).length;
+
+    // Calculate percentages (capped at 100)
+    const calcPercentage = (current: number, limit: number) =>
+      limit > 0 ? Math.min(Math.round((current / limit) * 100), 100) : 0;
+
+    return {
+      plan: org.plan,
+      subscriptionStatus: org.subscriptionStatus,
+      properties: {
+        current: activeProperties,
+        limit: limits.maxProperties,
+        percentage: calcPercentage(activeProperties, limits.maxProperties),
+      },
+      users: {
+        current: activeUsers,
+        limit: limits.maxUsers,
+        percentage: calcPercentage(activeUsers, limits.maxUsers),
+      },
+      dwellings: {
+        current: activeDwellings,
+        limit: limits.maxDwellings,
+        percentage: calcPercentage(activeDwellings, limits.maxDwellings),
+      },
+      participants: { current: activeParticipants },
+      maintenanceRequests: { active: activeMaintenanceRequests },
+    };
   },
 });

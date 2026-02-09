@@ -57,7 +57,7 @@ export default function DocumentsPage() {
             </div>
             <button
               onClick={() => setIsUploadModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               + Upload Document
             </button>
@@ -87,7 +87,7 @@ export default function DocumentsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Filename, description, linked entity..."
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
               <div>
@@ -98,7 +98,7 @@ export default function DocumentsPage() {
                   id="type-filter"
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Types</option>
                   <option value="ndis_plan">NDIS Plan</option>
@@ -118,7 +118,7 @@ export default function DocumentsPage() {
                   id="category-filter"
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Categories</option>
                   <option value="participant">Participant</option>
@@ -240,7 +240,7 @@ function DocumentCard({ document }: { document: any }) {
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <span className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full">
+            <span className="px-3 py-1 bg-teal-700 text-white text-xs rounded-full">
               {formatStatus(document.documentType)}
             </span>
             <span className="px-3 py-1 bg-gray-700 text-gray-300 text-xs rounded-full capitalize">
@@ -265,7 +265,7 @@ function DocumentCard({ document }: { document: any }) {
             <a
               href={document.downloadUrl}
               download={document.fileName}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               Download
             </a>
@@ -280,7 +280,7 @@ function DocumentCard({ document }: { document: any }) {
             linkedEntity.link ? (
               <Link
                 href={linkedEntity.link}
-                className="text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:underline"
+                className="text-teal-500 hover:text-teal-400 focus:outline-none focus-visible:underline"
               >
                 {linkedEntity.name}
               </Link>

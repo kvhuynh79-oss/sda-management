@@ -191,7 +191,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                   placeholder="you@example.com"
                 />
               </div>
@@ -208,7 +208,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                    className="text-sm text-teal-500 hover:text-teal-400 transition-colors"
                   >
                     Forgot password?
                   </button>
@@ -220,7 +220,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                   placeholder="Enter your password"
                 />
               </div>
@@ -229,7 +229,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                className="w-full py-3 px-4 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-700/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 focus:ring-offset-gray-800"
               >
                 {isLoading ? "Signing in..." : "Sign in"}
               </button>
@@ -244,7 +244,7 @@ export default function LoginPage() {
               )}
 
               {/* Info Message */}
-              <div className="bg-blue-500/10 border border-blue-500 text-blue-400 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-teal-600/10 border border-teal-600 text-teal-500 px-4 py-3 rounded-lg text-sm">
                 <p>Enter the {useBackupCode ? "backup code" : "verification code"} from your authenticator app to continue.</p>
               </div>
 
@@ -272,7 +272,7 @@ export default function LoginPage() {
                   autoComplete="one-time-code"
                   inputMode={useBackupCode ? "text" : "numeric"}
                   maxLength={useBackupCode ? 12 : 6}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-wider font-mono"
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent text-center text-2xl tracking-wider font-mono"
                   placeholder={useBackupCode ? "xxxx-xxxx-xxxx" : "000000"}
                   autoFocus
                 />
@@ -289,7 +289,7 @@ export default function LoginPage() {
                   setMfaCode("");
                   setError("");
                 }}
-                className="text-sm text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1"
+                className="text-sm text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1"
               >
                 {useBackupCode ? "Use authenticator code instead" : "Use backup code instead"}
               </button>
@@ -298,7 +298,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading || (useBackupCode ? mfaCode.length < 8 : mfaCode.length !== 6)}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                className="w-full py-3 px-4 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-700/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 focus:ring-offset-gray-800"
               >
                 {isLoading ? "Verifying..." : "Verify"}
               </button>
@@ -363,7 +363,7 @@ export default function LoginPage() {
                 onChange={(e) => setResetEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 placeholder="you@example.com"
               />
             </div>
@@ -381,7 +381,7 @@ export default function LoginPage() {
               </button>
               <button
                 type="submit"
-                className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="flex-1 py-2 px-4 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 Submit
               </button>
@@ -389,8 +389,8 @@ export default function LoginPage() {
           </form>
         ) : (
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto">
-              <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-teal-700/20 rounded-full flex items-center justify-center mx-auto">
+              <svg className="w-8 h-8 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>

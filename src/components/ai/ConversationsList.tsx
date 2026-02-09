@@ -52,7 +52,7 @@ export default function ConversationsList({
     <div className="flex flex-col h-full">
       <button
         onClick={onNewConversation}
-        className="flex items-center gap-2 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors mb-4"
+        className="flex items-center gap-2 w-full px-4 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg font-medium transition-colors mb-4"
       >
         <Plus className="w-5 h-5" />
         New Chat

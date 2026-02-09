@@ -45,7 +45,7 @@ function TypeIcon({ type }: { type: string }) {
   switch (type) {
     case "email":
       return (
-        <svg className={`${iconClass} text-blue-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${iconClass} text-teal-500`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       );
@@ -269,7 +269,7 @@ export function TimelineView({
                 aria-label={`Communications on ${formatDateHeader(date)}`}
               >
                 <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full" aria-hidden="true" />
+                  <span className="w-2 h-2 bg-teal-600 rounded-full" aria-hidden="true" />
                   {formatDateHeader(date)}
                   <span className="text-xs text-gray-400 font-normal">({items.length})</span>
                 </h3>
@@ -291,7 +291,7 @@ export function TimelineView({
                             type="checkbox"
                             checked={selectedIds?.has(comm._id) || false}
                             onChange={() => onToggleSelect(comm._id)}
-                            className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                            className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-offset-0 cursor-pointer"
                             aria-label={`Select communication with ${comm.contactName}`}
                           />
                         </div>
@@ -321,7 +321,7 @@ export function TimelineView({
                         <div className="flex items-center gap-2 mt-2">
                           <Link
                             href={buildAddEntryUrl(comm)}
-                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
+                            className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
                           >
                             Add Entry
                           </Link>
@@ -351,7 +351,7 @@ export function TimelineView({
         <div className="mt-4 text-center">
           <button
             onClick={handleLoadMore}
-            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             Load More
           </button>

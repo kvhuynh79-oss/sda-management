@@ -339,7 +339,7 @@ function Step({ number, label, active, completed }: {
   return (
     <div className="flex items-center">
       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-        ${active ? "bg-blue-600 text-white" : completed ? "bg-green-600 text-white" : "bg-gray-700 text-gray-400"}`}>
+        ${active ? "bg-teal-700 text-white" : completed ? "bg-green-600 text-white" : "bg-gray-700 text-gray-400"}`}>
         {completed ? "✓" : number}
       </div>
       <span className={`ml-2 ${active ? "text-white" : "text-gray-400"}`}>{label}</span>
@@ -386,7 +386,7 @@ function OwnerStep({
               key={owner._id}
               className={`block p-4 rounded-lg border cursor-pointer transition-colors
                 ${selectedOwnerId === owner._id 
-                  ? "border-blue-500 bg-blue-500/10" 
+                  ? "border-teal-600 bg-teal-600/10" 
                   : "border-gray-600 hover:border-gray-500"}`}
             >
               <input
@@ -419,7 +419,7 @@ function OwnerStep({
                   onClick={() => setOwnerType(type.value)}
                   className={`px-4 py-3 rounded-lg border text-sm transition-colors
                     ${ownerType === type.value 
-                      ? "border-blue-500 bg-blue-500/10 text-white" 
+                      ? "border-teal-600 bg-teal-600/10 text-white" 
                       : "border-gray-600 text-gray-300 hover:border-gray-500"}`}
                 >
                   {type.label}
@@ -551,7 +551,7 @@ function OwnerStep({
         )}
         <button
           onClick={onNext}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors ml-auto"
+          className="px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors ml-auto"
         >
           Next: Add Dwellings
         </button>
@@ -714,7 +714,7 @@ function PropertyStep({ propertyData, setPropertyData, ownerType, silProviders, 
       <div className="mt-8 flex justify-end">
         <button
           onClick={onNext}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
         >
           {propertyData.propertyStatus === "sil_property" ? "Next: SIL Provider Details" : "Next: Owner Details"}
         </button>
@@ -910,7 +910,7 @@ function SilProviderStep({
                       key={owner._id}
                       className={`block p-3 rounded-lg border cursor-pointer transition-colors text-sm
                         ${selectedOwnerId === owner._id
-                          ? "border-blue-500 bg-blue-500/10"
+                          ? "border-teal-600 bg-teal-600/10"
                           : "border-gray-600 hover:border-gray-500"}`}
                     >
                       <input
@@ -942,7 +942,7 @@ function SilProviderStep({
                           onClick={() => setOwnerType(type.value)}
                           className={`px-3 py-2 rounded-lg border text-xs transition-colors
                             ${ownerType === type.value
-                              ? "border-blue-500 bg-blue-500/10 text-white"
+                              ? "border-teal-600 bg-teal-600/10 text-white"
                               : "border-gray-600 text-gray-300 hover:border-gray-500"}`}
                         >
                           {type.label}
@@ -1022,7 +1022,7 @@ function SilProviderStep({
         </button>
         <button
           onClick={onNext}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
         >
           Next: Add Dwellings
         </button>

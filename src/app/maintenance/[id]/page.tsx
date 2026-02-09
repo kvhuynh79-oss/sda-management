@@ -364,7 +364,7 @@ export default function MaintenanceRequestDetailPage() {
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <p className="text-gray-400">Maintenance request not found</p>
-            <Link href="/maintenance" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+            <Link href="/maintenance" className="text-teal-500 hover:text-teal-400 mt-4 inline-block">
               Back to Maintenance
             </Link>
           </div>
@@ -378,7 +378,7 @@ export default function MaintenanceRequestDetailPage() {
       reported: "bg-red-600",
       awaiting_quotes: "bg-orange-600",
       quoted: "bg-yellow-600",
-      approved: "bg-blue-600",
+      approved: "bg-teal-700",
       scheduled: "bg-purple-600",
       in_progress: "bg-cyan-600",
       completed: "bg-green-600",
@@ -488,7 +488,7 @@ export default function MaintenanceRequestDetailPage() {
                   <button
                     onClick={handleSave}
                     disabled={isSaving || uploadingMedia}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                   >
                     {isSaving ? (uploadingMedia ? "Uploading..." : "Saving...") : "Save Changes"}
                   </button>
@@ -496,7 +496,7 @@ export default function MaintenanceRequestDetailPage() {
               ) : (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   Edit Request
                 </button>
@@ -609,7 +609,7 @@ export default function MaintenanceRequestDetailPage() {
                   </button>
                   <button
                     onClick={() => setShowAddQuote(true)}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                    className="px-3 py-1 bg-teal-700 hover:bg-teal-800 text-white rounded text-sm"
                   >
                     + Add Quote
                   </button>
@@ -629,7 +629,7 @@ export default function MaintenanceRequestDetailPage() {
                         qr.status === "quoted"
                           ? "bg-green-600/20 text-green-400 border border-green-600"
                           : qr.status === "viewed"
-                          ? "bg-blue-600/20 text-blue-400 border border-blue-600"
+                          ? "bg-teal-700/20 text-teal-500 border border-teal-700"
                           : qr.status === "declined"
                           ? "bg-red-600/20 text-red-400 border border-red-600"
                           : "bg-yellow-600/20 text-yellow-400 border border-yellow-600"
@@ -908,7 +908,7 @@ export default function MaintenanceRequestDetailPage() {
                 {pendingMedia.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                     {pendingMedia.map((media, index) => (
-                      <div key={index} className="bg-gray-700 rounded-lg p-3 border-2 border-dashed border-blue-500">
+                      <div key={index} className="bg-gray-700 rounded-lg p-3 border-2 border-dashed border-teal-600">
                         <div className="relative aspect-video mb-2">
                           {media.isVideo ? (
                             <video
@@ -950,7 +950,7 @@ export default function MaintenanceRequestDetailPage() {
                           placeholder="Description (optional)"
                           className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
                         />
-                        <p className="text-blue-400 text-xs mt-1">
+                        <p className="text-teal-500 text-xs mt-1">
                           {media.isVideo ? "Video" : "Photo"} - will be uploaded on save
                         </p>
                       </div>
@@ -1071,7 +1071,7 @@ export default function MaintenanceRequestDetailPage() {
                 </button>
                 <button
                   onClick={handleAddQuote}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  className="flex-1 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg"
                 >
                   Add Quote
                 </button>
@@ -1331,7 +1331,7 @@ Better Living Solutions`;
                     key={contractor._id}
                     className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
                       selectedContractors.includes(contractor._id)
-                        ? "bg-blue-600/30"
+                        ? "bg-teal-700/30"
                         : "hover:bg-gray-600"
                     }`}
                   >
@@ -1388,8 +1388,8 @@ Better Living Solutions`;
         </div>
 
         {/* Info */}
-        <div className="mb-4 p-3 bg-blue-900/30 border border-blue-600 rounded-lg">
-          <p className="text-blue-300 text-sm">
+        <div className="mb-4 p-3 bg-teal-950/30 border border-teal-700 rounded-lg">
+          <p className="text-teal-400 text-sm">
             Contractors will receive an email with a unique link to submit their quote. You can track
             responses in the Quotes section above.
           </p>

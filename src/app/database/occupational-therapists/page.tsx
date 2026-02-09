@@ -260,7 +260,7 @@ export default function OccupationalTherapistsPage() {
               resetForm();
               setShowAddModal(true);
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
           >
             + Add OT
           </button>
@@ -273,12 +273,12 @@ export default function OccupationalTherapistsPage() {
             placeholder="Search by name, organization, or specialization..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
           >
             <option value="active">Active Only</option>
             <option value="inactive">Inactive Only</option>
@@ -289,7 +289,7 @@ export default function OccupationalTherapistsPage() {
         {/* Therapists List */}
         {!therapists ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600 mx-auto"></div>
             <p className="text-gray-400 mt-4">Loading...</p>
           </div>
         ) : filteredTherapists?.length === 0 ? (
@@ -300,7 +300,7 @@ export default function OccupationalTherapistsPage() {
                 resetForm();
                 setShowAddModal(true);
               }}
-              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="mt-4 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Add Your First OT
             </button>
@@ -343,7 +343,7 @@ export default function OccupationalTherapistsPage() {
                     <div className="flex flex-wrap gap-2 mt-2">
                       <a
                         href={`mailto:${therapist.email}`}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
+                        className="text-teal-500 hover:text-teal-400 text-sm"
                       >
                         {therapist.email}
                       </a>
@@ -398,7 +398,7 @@ export default function OccupationalTherapistsPage() {
                   <div className="flex gap-2">
                     <Link
                       href={`/database/occupational-therapists/${therapist._id}`}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                     >
                       View
                     </Link>
@@ -452,7 +452,7 @@ export default function OccupationalTherapistsPage() {
                       setFormData({ ...formData, firstName: e.target.value })
                     }
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
                 <div>
@@ -466,7 +466,7 @@ export default function OccupationalTherapistsPage() {
                       setFormData({ ...formData, lastName: e.target.value })
                     }
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -483,7 +483,7 @@ export default function OccupationalTherapistsPage() {
                       setFormData({ ...formData, organization: e.target.value })
                     }
                     placeholder="e.g., Allied Health Solutions"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
                 <div>
@@ -497,7 +497,7 @@ export default function OccupationalTherapistsPage() {
                       setFormData({ ...formData, ahpraNumber: e.target.value })
                     }
                     placeholder="e.g., OCC0001234567"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -514,7 +514,7 @@ export default function OccupationalTherapistsPage() {
                       setFormData({ ...formData, email: e.target.value })
                     }
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
                 <div>
@@ -527,7 +527,7 @@ export default function OccupationalTherapistsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, phone: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -559,7 +559,7 @@ export default function OccupationalTherapistsPage() {
                     setFormData({ ...formData, customArea: e.target.value })
                   }
                   placeholder="Or enter custom area(s)..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -596,7 +596,7 @@ export default function OccupationalTherapistsPage() {
                     setFormData({ ...formData, relationship: e.target.value })
                   }
                   placeholder="e.g., Referred by Support Coordinator, Regular assessor..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -644,7 +644,7 @@ export default function OccupationalTherapistsPage() {
                   }
                   rows={3}
                   placeholder="Any additional notes..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -661,7 +661,7 @@ export default function OccupationalTherapistsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   {editingId ? "Save Changes" : "Add OT"}
                 </button>

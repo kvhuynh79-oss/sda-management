@@ -541,7 +541,7 @@ function AIAssistantContent() {
         {/* Mobile sidebar toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed bottom-4 left-4 z-50 p-3 bg-blue-600 rounded-full shadow-lg"
+          className="lg:hidden fixed bottom-4 left-4 z-50 p-3 bg-teal-700 rounded-full shadow-lg"
         >
           {sidebarOpen ? (
             <X className="w-6 h-6 text-white" />
@@ -608,7 +608,7 @@ function AIAssistantContent() {
             <div className="absolute bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-4 shadow-lg">
               <div className="max-w-2xl mx-auto">
                 <div className="flex items-start gap-3 mb-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -630,7 +630,7 @@ function AIAssistantContent() {
                       ...pendingFiling,
                       selectedPropertyId: e.target.value ? e.target.value as Id<"properties"> : null
                     })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   >
                     <option value="">-- Select a property --</option>
                     {properties?.map((property) => (

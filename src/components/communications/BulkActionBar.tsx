@@ -218,7 +218,7 @@ export function BulkActionBar({
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Selection count */}
             <div className="flex items-center gap-2" aria-live="polite">
-              <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span className="text-white text-sm font-medium">
@@ -232,7 +232,7 @@ export function BulkActionBar({
               <button
                 onClick={handleMarkRead}
                 disabled={isLoading}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-wait text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-900 disabled:cursor-wait text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 {isLoading ? (
                   <span className="flex items-center gap-1.5">
@@ -255,7 +255,7 @@ export function BulkActionBar({
                     setShowFlagDropdown(false);
                   }}
                   disabled={isLoading}
-                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-wait text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 flex items-center gap-1"
+                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-wait text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 flex items-center gap-1"
                   aria-expanded={showCategoryDropdown}
                   aria-haspopup="listbox"
                 >
@@ -294,7 +294,7 @@ export function BulkActionBar({
                     setShowCategoryDropdown(false);
                   }}
                   disabled={isLoading}
-                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-wait text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 flex items-center gap-1"
+                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-wait text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 flex items-center gap-1"
                   aria-expanded={showFlagDropdown}
                   aria-haspopup="listbox"
                 >
@@ -329,7 +329,7 @@ export function BulkActionBar({
               <button
                 onClick={onDeselectAll}
                 disabled={isLoading}
-                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-gray-300 text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-gray-300 text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 Deselect All
               </button>

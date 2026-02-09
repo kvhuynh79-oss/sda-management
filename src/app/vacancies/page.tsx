@@ -110,7 +110,7 @@ export default function VacanciesPage() {
         {/* Vacancies Table */}
         {!vacancySummary ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600 mx-auto"></div>
             <p className="text-gray-400 mt-4">Loading vacancies...</p>
           </div>
         ) : vacancySummary.vacancies.length === 0 ? (
@@ -239,7 +239,7 @@ export default function VacanciesPage() {
                             setSelectedDwellingId(vacancy.dwelling._id);
                             setShowNotifyModal(true);
                           }}
-                          className="text-sm text-blue-400 hover:text-blue-300"
+                          className="text-sm text-teal-500 hover:text-teal-400"
                         >
                           Notify Coordinators
                         </button>
@@ -352,13 +352,13 @@ function NotifyCoordinatorsModal({
               type="checkbox"
               checked={showAll}
               onChange={(e) => setShowAll(e.target.checked)}
-              className="rounded border-gray-600 bg-gray-700 text-blue-500"
+              className="rounded border-gray-600 bg-gray-700 text-teal-600"
             />
             Show all coordinators
           </label>
           <button
             onClick={selectAll}
-            className="text-sm text-blue-400 hover:text-blue-300"
+            className="text-sm text-teal-500 hover:text-teal-400"
           >
             Select all available
           </button>
@@ -381,7 +381,7 @@ function NotifyCoordinatorsModal({
                     isAlreadyNotified
                       ? "bg-gray-700/50 opacity-60"
                       : isSelected
-                      ? "bg-blue-600/20 border border-blue-500"
+                      ? "bg-teal-700/20 border border-teal-600"
                       : "bg-gray-700 hover:bg-gray-600"
                   }`}
                 >
@@ -390,7 +390,7 @@ function NotifyCoordinatorsModal({
                     checked={isSelected}
                     disabled={isAlreadyNotified}
                     onChange={() => toggleCoordinator(coordinator._id)}
-                    className="rounded border-gray-600 bg-gray-700 text-blue-500 disabled:opacity-50"
+                    className="rounded border-gray-600 bg-gray-700 text-teal-600 disabled:opacity-50"
                   />
                   <div className="flex-1">
                     <p className="text-white">
@@ -438,7 +438,7 @@ function NotifyCoordinatorsModal({
             <button
               onClick={() => onNotify(selectedIds)}
               disabled={selectedIds.length === 0}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
             >
               Mark as Notified
             </button>

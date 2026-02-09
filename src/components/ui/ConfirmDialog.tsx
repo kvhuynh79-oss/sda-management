@@ -242,7 +242,7 @@ function ConfirmDialogModal({
   const confirmButtonStyles =
     variant === "danger"
       ? "bg-red-600 hover:bg-red-700 focus-visible:ring-red-500 text-white"
-      : "bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500 text-white";
+      : "bg-teal-700 hover:bg-teal-800 focus-visible:ring-teal-600 text-white";
 
   return (
     <>

@@ -249,7 +249,7 @@ export default function SILProvidersPage() {
               resetForm();
               setShowAddModal(true);
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
           >
             + Add SIL Provider
           </button>
@@ -262,12 +262,12 @@ export default function SILProvidersPage() {
             placeholder="Search by company name, contact, or area..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
           >
             <option value="active">Active Only</option>
             <option value="inactive">Inactive Only</option>
@@ -278,7 +278,7 @@ export default function SILProvidersPage() {
         {/* Providers List */}
         {!providers ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600 mx-auto"></div>
             <p className="text-gray-400 mt-4">Loading...</p>
           </div>
         ) : filteredProviders?.length === 0 ? (
@@ -289,7 +289,7 @@ export default function SILProvidersPage() {
                 resetForm();
                 setShowAddModal(true);
               }}
-              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="mt-4 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Add Your First SIL Provider
             </button>
@@ -329,7 +329,7 @@ export default function SILProvidersPage() {
                     <div className="flex flex-wrap gap-2 mt-2">
                       <a
                         href={`mailto:${provider.email}`}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
+                        className="text-teal-500 hover:text-teal-400 text-sm"
                       >
                         {provider.email}
                       </a>
@@ -357,7 +357,7 @@ export default function SILProvidersPage() {
                         {provider.services.map((service) => (
                           <span
                             key={service}
-                            className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded"
+                            className="px-2 py-1 bg-teal-600/20 text-teal-500 text-xs rounded"
                           >
                             {service}
                           </span>
@@ -379,7 +379,7 @@ export default function SILProvidersPage() {
                   <div className="flex gap-2">
                     <Link
                       href={`/database/sil-providers/${provider._id}`}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                      className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded transition-colors"
                     >
                       View
                     </Link>
@@ -432,7 +432,7 @@ export default function SILProvidersPage() {
                     setFormData({ ...formData, companyName: e.target.value })
                   }
                   required
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -447,7 +447,7 @@ export default function SILProvidersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, contactName: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
                 <div>
@@ -460,7 +460,7 @@ export default function SILProvidersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, ndisRegistrationNumber: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -477,7 +477,7 @@ export default function SILProvidersPage() {
                       setFormData({ ...formData, email: e.target.value })
                     }
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
                 <div>
@@ -490,7 +490,7 @@ export default function SILProvidersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, phone: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -522,7 +522,7 @@ export default function SILProvidersPage() {
                     setFormData({ ...formData, customArea: e.target.value })
                   }
                   placeholder="Or enter custom area(s)..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -538,7 +538,7 @@ export default function SILProvidersPage() {
                       onClick={() => toggleService(service)}
                       className={`px-3 py-2 text-sm rounded-lg transition-colors ${
                         formData.services.includes(service)
-                          ? "bg-blue-600 text-white"
+                          ? "bg-teal-700 text-white"
                           : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                       }`}
                     >
@@ -559,7 +559,7 @@ export default function SILProvidersPage() {
                     setFormData({ ...formData, relationship: e.target.value })
                   }
                   placeholder="e.g., Existing partner, Referred by..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -607,7 +607,7 @@ export default function SILProvidersPage() {
                   }
                   rows={3}
                   placeholder="Any additional notes..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -624,7 +624,7 @@ export default function SILProvidersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   {editingId ? "Save Changes" : "Add Provider"}
                 </button>

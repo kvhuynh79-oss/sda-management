@@ -8,9 +8,12 @@ import Link from "next/link";
 import Badge, { CommunicationTypeBadge } from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
+import { exportThreadToPdf } from "../../lib/threadPdfExport";
 
 function buildThreadAddEntryUrl(thread: any): string {
   const params: Record<string, string> = {};
+  // Pass threadId so the new entry gets added to this existing thread
+  if (thread.threadId) params.threadId = thread.threadId;
   if (thread.subject) params.subject = thread.subject;
   if (thread.participantId) params.participantId = thread.participantId;
   if (thread.contactType) params.contactType = thread.contactType;
@@ -67,7 +70,7 @@ function TypeIcon({ type }: { type: string }) {
   switch (type) {
     case "email":
       return (
-        <svg className={`${iconClass} text-blue-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${iconClass} text-teal-500`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       );
@@ -178,6 +181,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
   const [expandedThread, setExpandedThread] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allThreads, setAllThreads] = useState<any[]>([]);
+  const [exportingThreadId, setExportingThreadId] = useState<string | null>(null);
 
   const data = useQuery(api.communications.getThreadedView, {
     userId: userId as Id<"users">,
@@ -237,6 +241,64 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
     [updateThreadStatus, userId]
   );
 
+  const handleExportPdf = useCallback(
+    async (thread: any) => {
+      setExportingThreadId(thread.threadId);
+      try {
+        // Fetch the thread messages for the export
+        // We use the thread data we already have plus the expanded messages data
+        // The messages are available from the ThreadMessages sub-component query,
+        // but we need to fetch them directly for the PDF export
+        const exportData = {
+          thread: {
+            subject: thread.subject || "Untitled Thread",
+            status: thread.status,
+            participantNames: thread.participantNames,
+            lastContactName: thread.participantNames?.[0],
+            messageCount: thread.messageCount,
+          },
+          communications: (thread.messages || []).map((msg: any) => ({
+            contactName: msg.contactName || "Unknown",
+            type: msg.type || "other",
+            direction: msg.direction || "received",
+            subject: msg.subject,
+            content: msg.summary || msg.content || "",
+            date: msg.communicationDate || "",
+            time: msg.communicationTime,
+            complianceCategory: msg.complianceCategory,
+            complianceFlags: msg.complianceFlags,
+            contactType: msg.contactType,
+          })),
+          organization: { name: "MySDAManager" },
+          exportedAt: new Date().toISOString(),
+        };
+
+        // If no messages are available from the thread object (they come from expanded view),
+        // generate with what we have - the subject and metadata
+        if (exportData.communications.length === 0) {
+          exportData.communications = [{
+            contactName: thread.participantNames?.[0] || "Unknown",
+            type: "other",
+            direction: "received",
+            subject: thread.subject || "Untitled Thread",
+            content: thread.previewText || "No message content available. Expand the thread first to load messages.",
+            date: new Date(thread.lastActivityAt).toISOString().split("T")[0],
+            complianceCategory: undefined,
+            complianceFlags: undefined,
+            contactType: undefined,
+          }];
+        }
+
+        await exportThreadToPdf(exportData);
+      } catch (error) {
+        console.error("Failed to export thread PDF:", error);
+      } finally {
+        setExportingThreadId(null);
+      }
+    },
+    []
+  );
+
   if (!data) {
     return <LoadingScreen fullScreen={false} message="Loading threads..." />;
   }
@@ -265,9 +327,9 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
                 setCursor(undefined);
                 setAllThreads([]);
               }}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                 isActive
-                  ? "bg-blue-600 text-white"
+                  ? "bg-teal-700 text-white"
                   : "bg-gray-700 text-gray-300 hover:bg-gray-600"
               }`}
             >
@@ -312,7 +374,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
               key={thread.threadId}
               role="listitem"
               className={`bg-gray-800 rounded-lg transition-all duration-200 ${
-                thread.hasUnread ? "border-l-4 border-blue-500" : "border-l-4 border-transparent"
+                thread.hasUnread ? "border-l-4 border-teal-600" : "border-l-4 border-transparent"
               }`}
             >
               <div className="flex items-start">
@@ -323,7 +385,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
                       checked={selectedIds?.has(thread.threadId) || false}
                       onChange={() => onToggleSelect(thread.threadId)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                      className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-offset-0 cursor-pointer"
                       aria-label={`Select thread: ${thread.subject || "Untitled Thread"}`}
                     />
                   </div>
@@ -337,7 +399,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
                 }}
                 aria-expanded={isExpanded}
                 aria-label={`${isExpanded ? "Collapse" : "Expand"} thread: ${thread.subject || "Untitled Thread"}, ${thread.messageCount} messages, ${thread.hasUnread ? "unread" : "read"}`}
-                className="flex-1 text-left p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+                className="flex-1 text-left p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -415,13 +477,33 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
                   <div className="mt-3 pt-3 border-t border-gray-700 flex flex-wrap items-center gap-2">
                     <Link
                       href={buildThreadAddEntryUrl(thread)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                       Add Entry
                     </Link>
+
+                    {/* Export PDF */}
+                    <button
+                      onClick={() => handleExportPdf(thread)}
+                      disabled={exportingThreadId === thread.threadId}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 disabled:opacity-50"
+                      aria-label={`Export thread "${thread.subject || "Untitled Thread"}" as PDF`}
+                    >
+                      {exportingThreadId === thread.threadId ? (
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      )}
+                      {exportingThreadId === thread.threadId ? "Exporting..." : "Export PDF"}
+                    </button>
 
                     {/* Thread status actions */}
                     {(!thread.status || thread.status === "active") && (
@@ -451,7 +533,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
                     {(thread.status === "completed" || thread.status === "archived") && (
                       <button
                         onClick={() => handleThreadStatusUpdate(thread.threadId, "active")}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                         aria-label={`Reactivate thread "${thread.subject || "Untitled Thread"}"`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,7 +555,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
         <div className="mt-4 text-center">
           <button
             onClick={handleLoadMore}
-            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             Load More Threads
           </button>

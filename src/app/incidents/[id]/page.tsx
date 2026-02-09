@@ -323,7 +323,7 @@ export default function IncidentDetailPage() {
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <p className="text-gray-400">Incident not found</p>
-            <Link href="/incidents" className="text-blue-400 hover:text-blue-300 mt-4 inline-block">
+            <Link href="/incidents" className="text-teal-500 hover:text-teal-400 mt-4 inline-block">
               Back to Incidents
             </Link>
           </div>
@@ -453,7 +453,7 @@ export default function IncidentDetailPage() {
                   <button
                     onClick={handleSave}
                     disabled={isSaving || uploadingMedia}
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm sm:text-base"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm sm:text-base"
                   >
                     {isSaving ? (uploadingMedia ? "Uploading..." : "Saving...") : "Save"}
                   </button>
@@ -461,7 +461,7 @@ export default function IncidentDetailPage() {
               ) : (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm sm:text-base"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm sm:text-base"
                 >
                   Edit
                 </button>
@@ -666,7 +666,7 @@ export default function IncidentDetailPage() {
                     });
                     setShowAddActionModal(true);
                   }}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                  className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg transition-colors"
                 >
                   + Add Action
                 </button>
@@ -688,7 +688,7 @@ export default function IncidentDetailPage() {
                             action.status === "pending"
                               ? "bg-yellow-500/20 text-yellow-400"
                               : action.status === "in_progress"
-                              ? "bg-blue-500/20 text-blue-400"
+                              ? "bg-teal-600/20 text-teal-500"
                               : action.status === "completed"
                               ? "bg-green-500/20 text-green-400"
                               : "bg-gray-500/20 text-gray-400"
@@ -782,7 +782,7 @@ export default function IncidentDetailPage() {
                       {action.status === "in_progress" && action.assignmentType === "contractor" && action.maintenanceRequest && (
                         <Link
                           href={`/maintenance/${action.maintenanceRequestId}`}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                          className="px-3 py-1 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded transition-colors"
                         >
                           View Maintenance Request
                         </Link>
@@ -928,7 +928,7 @@ export default function IncidentDetailPage() {
                     href="https://www.ndiscommission.gov.au/providers/reportable-incidents"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 underline"
+                    className="text-teal-500 hover:text-teal-400 underline"
                   >
                     NDIS Commission Portal
                   </a>
@@ -1025,7 +1025,7 @@ export default function IncidentDetailPage() {
                 {pendingMedia.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                     {pendingMedia.map((media, index) => (
-                      <div key={index} className="bg-gray-700 rounded-lg p-3 border-2 border-dashed border-blue-500">
+                      <div key={index} className="bg-gray-700 rounded-lg p-3 border-2 border-dashed border-teal-600">
                         <div className="relative aspect-video mb-2">
                           {media.isVideo ? (
                             <video
@@ -1055,7 +1055,7 @@ export default function IncidentDetailPage() {
                           placeholder="Description (optional)"
                           className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
                         />
-                        <p className="text-blue-400 text-xs mt-1">
+                        <p className="text-teal-500 text-xs mt-1">
                           {media.isVideo ? "Video" : "Photo"} - will be uploaded on save
                         </p>
                       </div>
@@ -1204,7 +1204,7 @@ export default function IncidentDetailPage() {
                     }
                   }}
                   disabled={isSavingAction}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg"
+                  className="flex-1 px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg"
                 >
                   {isSavingAction ? "Adding..." : "Add Action"}
                 </button>

@@ -335,8 +335,8 @@ export default function NewDocumentPage() {
             </div>
           )}
           {isInsuranceDoc && (
-            <div className="mb-6 p-4 bg-blue-900/30 border border-blue-600 rounded-lg">
-              <p className="text-blue-200 text-sm">
+            <div className="mb-6 p-4 bg-teal-950/30 border border-teal-700 rounded-lg">
+              <p className="text-teal-200 text-sm">
                 <span className="font-semibold">Tip:</span> For full compliance tracking, also add this in{" "}
                 <Link href="/compliance/insurance/new" className="underline hover:text-white">Insurance Policies</Link>.
               </p>
@@ -358,7 +358,7 @@ export default function NewDocumentPage() {
               >
                 <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
                   isDragActive
-                    ? 'border-blue-500 bg-blue-500/10'
+                    ? 'border-teal-600 bg-teal-600/10'
                     : 'border-gray-600 bg-gray-700 hover:bg-gray-650'
                 }`}>
                   <div className={`flex flex-col items-center justify-center pt-5 pb-6 ${isDragActive ? 'pointer-events-none' : ''}`}>
@@ -372,7 +372,7 @@ export default function NewDocumentPage() {
                     ) : isDragActive ? (
                       <>
                         <svg
-                          className="w-8 h-8 mb-4 text-blue-400"
+                          className="w-8 h-8 mb-4 text-teal-500"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -384,7 +384,7 @@ export default function NewDocumentPage() {
                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                           />
                         </svg>
-                        <p className="text-sm text-blue-400 font-semibold">
+                        <p className="text-sm text-teal-500 font-semibold">
                           Drop file here
                         </p>
                       </>
@@ -429,7 +429,7 @@ export default function NewDocumentPage() {
                 required
                 value={formData.documentType}
                 onChange={(e) => handleDocumentTypeChange(e.target.value as DocumentType)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 {Object.entries(groupedDocTypes).map(([group, types]) => (
                   <optgroup key={group} label={group}>
@@ -463,7 +463,7 @@ export default function NewDocumentPage() {
                   });
                   setSelectedPropertyForDwelling("");
                 }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="participant">Participant</option>
                 <option value="property">Property</option>
@@ -485,7 +485,7 @@ export default function NewDocumentPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, linkedParticipantId: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="">Select a participant</option>
                   {participants?.map((participant) => (
@@ -508,7 +508,7 @@ export default function NewDocumentPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, linkedPropertyId: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="">Select a property</option>
                   {properties?.map((property) => (
@@ -533,7 +533,7 @@ export default function NewDocumentPage() {
                       setSelectedPropertyForDwelling(e.target.value);
                       setFormData({ ...formData, linkedDwellingId: "" });
                     }}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                   >
                     <option value="">Select a property first</option>
                     {properties?.map((property) => (
@@ -554,7 +554,7 @@ export default function NewDocumentPage() {
                       setFormData({ ...formData, linkedDwellingId: e.target.value })
                     }
                     disabled={!selectedPropertyForDwelling}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent disabled:opacity-50"
                   >
                     <option value="">
                       {selectedPropertyForDwelling ? "Select a dwelling" : "Select property first"}
@@ -576,7 +576,7 @@ export default function NewDocumentPage() {
                   required
                   value={formData.linkedOwnerId}
                   onChange={(e) => setFormData({ ...formData, linkedOwnerId: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="">Select an owner</option>
                   {owners?.map((owner) => (
@@ -607,7 +607,7 @@ export default function NewDocumentPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 placeholder="Additional information about this document..."
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
 
@@ -621,7 +621,7 @@ export default function NewDocumentPage() {
                 required={isCertDoc}
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
               <p className="text-xs text-gray-400 mt-1">
                 {isCertDoc
@@ -635,7 +635,7 @@ export default function NewDocumentPage() {
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedFile}
-                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                className="flex-1 px-6 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
               >
                 {isSubmitting ? "Uploading..." : "Upload Document"}
               </button>

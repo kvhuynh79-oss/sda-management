@@ -42,7 +42,7 @@ export function StatsHeader({ stats, onStatClick }: StatsHeaderProps) {
         role={onStatClick ? "button" : undefined}
         tabIndex={onStatClick ? 0 : undefined}
         aria-label={`Total Threads: ${stats.totalThreads}. Click to view all threads.`}
-        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600`}
       >
         <StatCard
           title="Total Threads"
@@ -61,7 +61,7 @@ export function StatsHeader({ stats, onStatClick }: StatsHeaderProps) {
         role={onStatClick ? "button" : undefined}
         tabIndex={onStatClick ? 0 : undefined}
         aria-label={`Unread: ${stats.unreadThreads}. Click to view unread threads.`}
-        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600`}
       >
         <StatCard
           title="Unread"
@@ -80,7 +80,7 @@ export function StatsHeader({ stats, onStatClick }: StatsHeaderProps) {
         role={onStatClick ? "button" : undefined}
         tabIndex={onStatClick ? 0 : undefined}
         aria-label={`Requires Action: ${stats.requiresAction}. Click to view threads requiring action.`}
-        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600`}
       >
         <StatCard
           title="Requires Action"
@@ -99,7 +99,7 @@ export function StatsHeader({ stats, onStatClick }: StatsHeaderProps) {
         role={onStatClick ? "button" : undefined}
         tabIndex={onStatClick ? 0 : undefined}
         aria-label={`Recent 24h Activity: ${stats.recentActivity}. Click to view timeline.`}
-        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+        className={`${onStatClick ? "cursor-pointer" : ""} rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600`}
       >
         <StatCard
           title="Recent 24h Activity"

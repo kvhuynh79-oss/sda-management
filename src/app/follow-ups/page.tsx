@@ -121,13 +121,13 @@ export default function FollowUpsPage() {
             <div className="flex gap-2">
               <Link
                 href="/follow-ups/communications/new"
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 + Log Communication
               </Link>
               <Link
                 href="/follow-ups/tasks/new"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 + New Task
               </Link>
@@ -175,7 +175,7 @@ export default function FollowUpsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search tasks..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -188,7 +188,7 @@ export default function FollowUpsPage() {
                   id="status-filter"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active (Open)</option>
@@ -208,7 +208,7 @@ export default function FollowUpsPage() {
                   id="priority-filter"
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="all">All Priorities</option>
                   <option value="urgent">Urgent</option>
@@ -227,7 +227,7 @@ export default function FollowUpsPage() {
                   id="category-filter"
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="all">All Categories</option>
                   <option value="funding">Funding</option>
@@ -287,7 +287,7 @@ export default function FollowUpsPage() {
           <div className="mt-8 border-t border-gray-700 pt-6">
             <button
               onClick={() => setShowCommunications(!showCommunications)}
-              className="flex items-center gap-2 text-lg font-semibold text-white hover:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+              className="flex items-center gap-2 text-lg font-semibold text-white hover:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
               aria-expanded={showCommunications}
             >
               <span className={`transform transition-transform ${showCommunications ? "rotate-90" : ""}`}>
@@ -307,7 +307,7 @@ export default function FollowUpsPage() {
                   <p className="text-gray-400 text-sm">Recent communications</p>
                   <Link
                     href="/follow-ups/communications/new"
-                    className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+                    className="text-teal-500 hover:text-teal-400 text-sm transition-colors"
                   >
                     + Log New
                   </Link>
@@ -341,7 +341,7 @@ export default function FollowUpsPage() {
                   <div className="mt-4 text-center">
                     <Link
                       href="/follow-ups/communications"
-                      className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+                      className="text-teal-500 hover:text-teal-400 text-sm transition-colors"
                     >
                       View All Communications →
                     </Link>

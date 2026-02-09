@@ -173,7 +173,7 @@ export default function NewPaymentPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, participantId: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="">Select a participant</option>
                 {participants?.map((participant) => (
@@ -216,7 +216,7 @@ export default function NewPaymentPage() {
                 required
                 value={formData.paymentDate}
                 onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
 
@@ -233,7 +233,7 @@ export default function NewPaymentPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, paymentPeriodStart: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
               <div>
@@ -247,7 +247,7 @@ export default function NewPaymentPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, paymentPeriodEnd: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function NewPaymentPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, expectedAmount: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
               <div>
@@ -281,7 +281,7 @@ export default function NewPaymentPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, actualAmount: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function NewPaymentPage() {
                     paymentSource: e.target.value as "ndia" | "plan_manager" | "self_managed",
                   })
                 }
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="ndia">NDIA Managed</option>
                 <option value="plan_manager">Plan Manager</option>
@@ -341,7 +341,7 @@ export default function NewPaymentPage() {
                     setFormData({ ...formData, paymentMethod: e.target.value })
                   }
                   placeholder="e.g., Bank transfer, Direct deposit"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
               <div>
@@ -355,7 +355,7 @@ export default function NewPaymentPage() {
                     setFormData({ ...formData, paymentReference: e.target.value })
                   }
                   placeholder="Transaction ID or reference number"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
             </div>
@@ -368,7 +368,7 @@ export default function NewPaymentPage() {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
                 placeholder="Any additional information about this payment..."
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
 
@@ -377,7 +377,7 @@ export default function NewPaymentPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                className="flex-1 px-6 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
               >
                 {isSubmitting ? "Recording Payment..." : "Record Payment"}
               </button>

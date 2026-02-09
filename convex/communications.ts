@@ -83,6 +83,7 @@ export const create = mutation({
     ))),
     createdBy: v.id("users"),
     skipConsultationGate: v.optional(v.boolean()), // Admin/property_manager can bypass gate
+    existingThreadId: v.optional(v.string()), // Pass existing threadId to add entry to existing thread
   },
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, args.createdBy, "communications", "create");
@@ -93,7 +94,32 @@ export const create = mutation({
     // THREADING: Find or create thread for this communication
     let threadResult: { threadId: string; isNewThread: boolean; matchScore: number; reason: string };
 
-    if (args.linkedParticipantId) {
+    if (args.existingThreadId) {
+      // Bug 1 Fix: Explicit threadId provided (e.g., "Add Entry" from ThreadView)
+      // Verify the thread exists and belongs to this organization
+      const existingThreadComms = await ctx.db
+        .query("communications")
+        .withIndex("by_thread", (q: any) => q.eq("threadId", args.existingThreadId))
+        .filter((q: any) => q.eq(q.field("organizationId"), organizationId))
+        .first();
+
+      if (existingThreadComms) {
+        threadResult = {
+          threadId: args.existingThreadId!,
+          isNewThread: false,
+          matchScore: 1.0,
+          reason: "Explicit threadId provided - adding to existing thread"
+        };
+      } else {
+        // Thread not found in this org - create new one
+        threadResult = {
+          threadId: `thread_${now}_${Math.random().toString(36).substring(2, 9)}`,
+          isNewThread: true,
+          matchScore: 0,
+          reason: "Explicit threadId not found in organization - new thread created"
+        };
+      }
+    } else if (args.linkedParticipantId) {
       // Fetch recent communications (12-hour window) for same participant within org
       const twelveHoursAgo = now - THREADING_THRESHOLDS.TIME_WINDOW_MS;
       const recentComms = await ctx.db
@@ -131,13 +157,77 @@ export const create = mutation({
         recentCommForThreading
       );
     } else {
-      // No participant linked - create new thread
-      threadResult = {
-        threadId: `thread_${now}_${Math.random().toString(36).substring(2, 9)}`,
-        isNewThread: true,
-        matchScore: 0,
-        reason: "No participant linked - new thread created"
-      };
+      // Bug 2 Fix: No participant linked - search by contactName within org
+      // Look for recent communications with the same contact name to auto-thread
+      const recentComms = await ctx.db
+        .query("communications")
+        .withIndex("by_org_contactName", (q: any) =>
+          q.eq("organizationId", organizationId).eq("contactName", args.contactName)
+        )
+        .filter((q: any) => q.neq(q.field("isDeleted"), true))
+        .collect();
+
+      if (recentComms.length > 0) {
+        // Map to threading interface for scoring
+        const recentCommForThreading: CommunicationForThreading[] = recentComms.map(comm => ({
+          _id: comm._id,
+          contactName: comm.contactName,
+          subject: comm.subject,
+          communicationType: comm.communicationType,
+          communicationDate: comm.communicationDate,
+          communicationTime: comm.communicationTime,
+          createdAt: comm.createdAt,
+          threadId: comm.threadId,
+        }));
+
+        // Find the most recent thread for this contact
+        // Since contact name is an exact match, prioritize the most recent thread
+        const threadsWithComms = new Map<string, CommunicationForThreading[]>();
+        for (const comm of recentCommForThreading) {
+          if (comm.threadId) {
+            if (!threadsWithComms.has(comm.threadId)) {
+              threadsWithComms.set(comm.threadId, []);
+            }
+            threadsWithComms.get(comm.threadId)!.push(comm);
+          }
+        }
+
+        if (threadsWithComms.size > 0) {
+          // Pick the thread with the most recent activity
+          let bestThreadId = "";
+          let bestLastActivity = 0;
+          for (const [threadId, comms] of threadsWithComms.entries()) {
+            const lastActivity = Math.max(...comms.map(c => c.createdAt));
+            if (lastActivity > bestLastActivity) {
+              bestLastActivity = lastActivity;
+              bestThreadId = threadId;
+            }
+          }
+
+          threadResult = {
+            threadId: bestThreadId,
+            isNewThread: false,
+            matchScore: 0.9,
+            reason: `Matched to existing thread by contact name "${args.contactName}"`
+          };
+        } else {
+          // Communications exist but have no threadId - create new thread
+          threadResult = {
+            threadId: `thread_${now}_${Math.random().toString(36).substring(2, 9)}`,
+            isNewThread: true,
+            matchScore: 0,
+            reason: "No existing threads for contact - new thread created"
+          };
+        }
+      } else {
+        // No communications found for this contact - create new thread
+        threadResult = {
+          threadId: `thread_${now}_${Math.random().toString(36).substring(2, 9)}`,
+          isNewThread: true,
+          matchScore: 0,
+          reason: "No prior communications for contact - new thread created"
+        };
+      }
     }
 
     // Create communication with thread assignment and organizationId
@@ -270,36 +360,40 @@ export const create = mutation({
       }
     }
 
-    // Update or create threadSummaries
-    if (args.linkedParticipantId) {
-      const existingSummary = await ctx.db
-        .query("threadSummaries")
-        .withIndex("by_thread", (q) => q.eq("threadId", threadResult.threadId))
-        .first();
+    // Update or create threadSummaries (for both participant-linked and contact-name threads)
+    const existingSummary = await ctx.db
+      .query("threadSummaries")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadResult.threadId))
+      .first();
 
-      if (existingSummary) {
-        // Update existing thread summary
-        await ctx.db.patch(existingSummary._id, {
-          lastActivityAt: now,
-          messageCount: existingSummary.messageCount + 1,
-          hasUnread: true, // New message is unread
-        });
-      } else {
-        // Create new thread summary
-        await ctx.db.insert("threadSummaries", {
-          threadId: threadResult.threadId,
-          participantId: args.linkedParticipantId,
-          startedAt: now,
-          lastActivityAt: now,
-          messageCount: 1,
-          participantNames: [args.contactName],
-          subject: args.subject || `${args.communicationType} with ${args.contactName}`,
-          previewText: args.summary.substring(0, 100),
-          hasUnread: true,
-          complianceCategories: ["none"],
-          requiresAction: false,
-        });
+    if (existingSummary) {
+      // Update existing thread summary
+      const updateFields: Record<string, any> = {
+        lastActivityAt: now,
+        messageCount: existingSummary.messageCount + 1,
+        hasUnread: true, // New message is unread
+        previewText: args.summary.substring(0, 100),
+      };
+      // Add contact name to participantNames if not already there
+      if (!existingSummary.participantNames.includes(args.contactName)) {
+        updateFields.participantNames = [...existingSummary.participantNames, args.contactName];
       }
+      await ctx.db.patch(existingSummary._id, updateFields);
+    } else {
+      // Create new thread summary
+      await ctx.db.insert("threadSummaries", {
+        threadId: threadResult.threadId,
+        participantId: args.linkedParticipantId,
+        startedAt: now,
+        lastActivityAt: now,
+        messageCount: 1,
+        participantNames: [args.contactName],
+        subject: args.subject || `${args.communicationType} with ${args.contactName}`,
+        previewText: args.summary.substring(0, 100),
+        hasUnread: true,
+        complianceCategories: ["none"],
+        requiresAction: false,
+      });
     }
 
     // Audit log for creation
@@ -2652,5 +2746,172 @@ export const autoCreateForComplaint = internalMutation({
     });
 
     return communicationId;
+  },
+});
+
+// Auto-create communication thread when a new lead is created
+export const autoCreateForLead = internalMutation({
+  args: {
+    organizationId: v.id("organizations"), // Inherit from lead
+    leadId: v.id("leads"),
+    threadId: v.string(),
+    participantName: v.string(),
+    sdaCategoryNeeded: v.string(), // Already formatted label
+    preferredAreas: v.string(), // Already formatted label
+    referrerName: v.string(),
+    referrerType: v.union(v.literal("occupational_therapist"), v.literal("support_coordinator"), v.literal("other")),
+    referrerEmail: v.optional(v.string()),
+    referrerPhone: v.optional(v.string()),
+    source: v.union(v.literal("phone"), v.literal("email"), v.literal("referral"), v.literal("website")),
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Get the user who created the lead
+    const user = await ctx.db.get(args.createdBy);
+    if (!user) return;
+
+    // Determine contact type based on referrer type
+    const contactType =
+      args.referrerType === "occupational_therapist"
+        ? ("ot" as const)
+        : args.referrerType === "support_coordinator"
+          ? ("support_coordinator" as const)
+          : ("other" as const);
+
+    // Determine communication type from source
+    const communicationType =
+      args.source === "phone"
+        ? ("phone_call" as const)
+        : args.source === "email"
+          ? ("email" as const)
+          : ("other" as const);
+
+    const subject = `Lead: ${args.participantName} - ${args.sdaCategoryNeeded} in ${args.preferredAreas}`;
+    const summary = `[Auto-created from lead] ${args.referrerName} (${args.referrerType.replace(/_/g, " ")}) inquired about SDA housing for ${args.participantName}. Category needed: ${args.sdaCategoryNeeded}. Preferred areas: ${args.preferredAreas}.`;
+
+    // Create the communication entry (inherit organizationId from lead)
+    const communicationId = await ctx.db.insert("communications", {
+      organizationId: args.organizationId,
+      communicationType,
+      direction: "received" as const,
+      communicationDate: new Date().toISOString().split("T")[0],
+      contactType,
+      contactName: args.referrerName,
+      contactEmail: args.referrerEmail,
+      contactPhone: args.referrerPhone,
+      subject,
+      summary,
+      complianceCategory: "access_request" as const,
+      complianceFlags: ["requires_documentation"],
+      createdBy: args.createdBy,
+      isThreadStarter: true,
+      requiresFollowUp: true,
+      isParticipantInvolved: false,
+      threadId: args.threadId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create thread summary
+    await ctx.db.insert("threadSummaries", {
+      organizationId: args.organizationId,
+      threadId: args.threadId,
+      startedAt: now,
+      lastActivityAt: now,
+      messageCount: 1,
+      participantNames: [args.referrerName],
+      subject,
+      previewText: summary.substring(0, 100),
+      hasUnread: true,
+      complianceCategories: ["access_request"],
+      requiresAction: true,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "communication",
+      entityId: communicationId,
+      entityName: `Auto-created from lead: ${args.participantName}`,
+      metadata: JSON.stringify({
+        autoCreated: true,
+        leadId: args.leadId,
+        referrerName: args.referrerName,
+        referrerType: args.referrerType,
+        sdaCategoryNeeded: args.sdaCategoryNeeded,
+      }),
+    });
+
+    return communicationId;
+  },
+});
+
+// Get all thread data for PDF export (compliance/transparency)
+export const getThreadExportData = query({
+  args: {
+    userId: v.id("users"),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Get thread summary
+    const thread = await ctx.db
+      .query("threadSummaries")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.eq(q.field("threadId"), args.threadId))
+      .first();
+
+    // Get all communications in thread (ordered by date)
+    const communications = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("threadId"), args.threadId),
+          q.neq(q.field("isDeleted"), true)
+        )
+      )
+      .collect();
+
+    // Sort by date ascending for chronological export
+    communications.sort(
+      (a, b) => new Date(a.communicationDate).getTime() - new Date(b.communicationDate).getTime()
+    );
+
+    // Get linked lead if this is a lead thread
+    let linkedLead = null;
+    if (args.threadId.startsWith("thread_lead_")) {
+      const leads = await ctx.db
+        .query("leads")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("threadId"), args.threadId),
+            q.neq(q.field("isDeleted"), true)
+          )
+        )
+        .first();
+      linkedLead = leads;
+    }
+
+    // Get organization details for letterhead
+    const org = organizationId ? await ctx.db.get(organizationId) : null;
+
+    return {
+      thread,
+      communications,
+      linkedLead,
+      organization: org
+        ? { name: org.name, primaryColor: org.primaryColor }
+        : null,
+      exportedAt: new Date().toISOString(),
+      totalMessages: communications.length,
+    };
   },
 });

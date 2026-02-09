@@ -30,7 +30,7 @@ export default function PropertiesPage() {
             </div>
             <Link
               href="/properties/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               + Add Property
             </Link>
@@ -94,7 +94,7 @@ function PropertyCard({ property }: { property: any }) {
   return (
     <Link
       href={`/properties/${property._id}`}
-      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
       role="listitem"
     >
       <article className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors cursor-pointer">

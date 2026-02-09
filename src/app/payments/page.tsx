@@ -102,7 +102,7 @@ function PaymentsContent() {
             </Link>
             <Link
               href="/payments/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               + Record Payment
             </Link>
@@ -240,7 +240,7 @@ function PaymentRow({ payment }: { payment: any }) {
         {payment.participant ? (
           <Link
             href={`/participants/${payment.participant._id}`}
-            className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:underline"
+            className="text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:underline"
           >
             {payment.participant.firstName} {payment.participant.lastName}
           </Link>

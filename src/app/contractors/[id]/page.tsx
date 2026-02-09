@@ -48,7 +48,7 @@ export default function ContractorDetailPage() {
       <div className="min-h-screen bg-gray-900">
         <Header currentPage="contractors" />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ export default function ContractorDetailPage() {
             <p className="text-gray-400">Contractor not found</p>
             <Link
               href="/contractors"
-              className="mt-4 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="mt-4 inline-block px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Back to Contractors
             </Link>
@@ -120,7 +120,7 @@ export default function ContractorDetailPage() {
         <div className="mb-6">
           <Link
             href="/contractors"
-            className="text-blue-400 hover:text-blue-300"
+            className="text-teal-500 hover:text-teal-400"
           >
             &larr; Back to Contractors
           </Link>
@@ -160,7 +160,7 @@ export default function ContractorDetailPage() {
                     >
                       {contractor.isActive ? "Active" : "Inactive"}
                     </span>
-                    <span className="px-2 py-0.5 text-sm rounded-full bg-blue-500/20 text-blue-400">
+                    <span className="px-2 py-0.5 text-sm rounded-full bg-teal-600/20 text-teal-500">
                       {SPECIALTY_LABELS[contractor.specialty] || contractor.specialty}
                     </span>
                   </div>
@@ -206,7 +206,7 @@ export default function ContractorDetailPage() {
                   </button>
                   <a
                     href={`mailto:${contractor.email}`}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                   >
                     Send Email
                   </a>
@@ -275,7 +275,7 @@ export default function ContractorDetailPage() {
                   <p className="text-sm text-gray-400">Email</p>
                   <a
                     href={`mailto:${contractor.email}`}
-                    className="text-blue-400 hover:text-blue-300"
+                    className="text-teal-500 hover:text-teal-400"
                   >
                     {contractor.email}
                   </a>
@@ -341,7 +341,7 @@ export default function ContractorDetailPage() {
                 {contractor.secondarySpecialties.map((spec) => (
                   <span
                     key={spec}
-                    className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded"
+                    className="px-3 py-1 bg-teal-600/20 text-teal-500 rounded"
                   >
                     {spec}
                   </span>
@@ -403,7 +403,7 @@ export default function ContractorDetailPage() {
               <p className="text-sm text-gray-400">Jobs Won</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-teal-500">
                 ${((jobHistory?.totalValue || 0) / 1000).toFixed(1)}k
               </p>
               <p className="text-sm text-gray-400">Total Value</p>
@@ -449,7 +449,7 @@ export default function ContractorDetailPage() {
                         job.request.status === "completed"
                           ? "bg-green-500/20 text-green-400"
                           : job.request.status === "in_progress"
-                            ? "bg-blue-500/20 text-blue-400"
+                            ? "bg-teal-600/20 text-teal-500"
                             : "bg-gray-500/20 text-gray-400"
                       }`}>
                         {job.request.status?.replace(/_/g, " ") || "pending"}

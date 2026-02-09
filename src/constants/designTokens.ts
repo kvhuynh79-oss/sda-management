@@ -80,7 +80,7 @@ export const COMPONENT_TOKENS = {
   },
   // Button base styles
   button: {
-    base: "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+    base: "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600",
     sizes: {
       xs: "px-2 py-1 text-xs",
       sm: "px-3 py-1.5 text-sm",
@@ -90,7 +90,7 @@ export const COMPONENT_TOKENS = {
   },
   // Input styles
   input: {
-    base: "w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors",
+    base: "w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent transition-colors",
     error: "border-red-500 focus:ring-red-500",
     disabled: "opacity-50 cursor-not-allowed",
   },
@@ -122,9 +122,9 @@ export const COMPONENT_TOKENS = {
 
 // Brand colors
 export const BRAND = {
-  primary: "#3b82f6",     // Blue-500
-  primaryHover: "#2563eb", // Blue-600
-  primaryLight: "#60a5fa", // Blue-400
+  primary: "#0d9488",     // Teal-600
+  primaryHover: "#0f766e", // Teal-700
+  primaryLight: "#14b8a6", // Teal-500
   secondary: "#6366f1",   // Indigo-500
   accent: "#8b5cf6",      // Violet-500
 } as const;
@@ -150,10 +150,10 @@ export const SEMANTIC = {
     solid: "bg-red-600",
   },
   info: {
-    bg: "bg-blue-500/20",
-    text: "text-blue-400",
-    border: "border-blue-500/30",
-    solid: "bg-blue-600",
+    bg: "bg-teal-600/20",
+    text: "text-teal-500",
+    border: "border-teal-600/30",
+    solid: "bg-teal-700",
   },
   neutral: {
     bg: "bg-gray-500/20",

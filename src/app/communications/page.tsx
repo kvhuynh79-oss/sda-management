@@ -17,6 +17,8 @@ import StakeholderView from "@/components/communications/StakeholderView";
 import ComplianceView from "@/components/communications/ComplianceView";
 import FilterSidebar, { type CommunicationFilters } from "@/components/communications/FilterSidebar";
 import BulkActionBar from "@/components/communications/BulkActionBar";
+import LeadsView from "@/components/communications/LeadsView";
+import LeadForm from "@/components/communications/LeadForm";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 
 function CommunicationsContent() {
@@ -26,6 +28,7 @@ function CommunicationsContent() {
   // Auth state from localStorage (useAuth pattern)
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [showDeletedItems, setShowDeletedItems] = useState(false);
+  const [showNewLeadForm, setShowNewLeadForm] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -210,12 +213,20 @@ function CommunicationsContent() {
         {/* Page title */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Communications</h1>
-          <Link
-            href="/follow-ups/communications/new"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          >
-            + New Communication
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowNewLeadForm(true)}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg border border-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+            >
+              + New Lead
+            </button>
+            <Link
+              href="/follow-ups/communications/new"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+            >
+              + New Communication
+            </Link>
+          </div>
         </div>
 
         {/* Stats Header */}
@@ -242,6 +253,7 @@ function CommunicationsContent() {
                   .reduce((sum, [, count]) => sum + (count as number), 0)
               : 0,
             tasks: taskStats?.open,
+            leads: 0, // TODO: Replace with leads count from api.leads.getStats once backend is created
           }}
         />
 
@@ -250,7 +262,7 @@ function CommunicationsContent() {
           <div className="flex justify-end">
             <button
               onClick={() => setShowDeletedItems(!showDeletedItems)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                 showDeletedItems
                   ? "bg-red-900/30 text-red-400 border border-red-600/50"
                   : "bg-gray-800 text-gray-400 hover:text-gray-300 border border-gray-700"
@@ -387,7 +399,7 @@ function CommunicationsContent() {
                       id="task-status"
                       value={taskStatusFilter}
                       onChange={(e) => updateUrl({ taskStatus: e.target.value === "active" ? undefined : e.target.value })}
-                      className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                     >
                       <option value="all">All</option>
                       <option value="active">Active</option>
@@ -402,7 +414,7 @@ function CommunicationsContent() {
                       id="task-priority"
                       value={taskPriorityFilter}
                       onChange={(e) => updateUrl({ taskPriority: e.target.value === "all" ? undefined : e.target.value })}
-                      className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                     >
                       <option value="all">All Priorities</option>
                       <option value="urgent">Urgent</option>
@@ -414,7 +426,7 @@ function CommunicationsContent() {
                   <div className="flex items-end gap-2">
                     <Link
                       href="/follow-ups/tasks/new"
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                     >
                       + New Task
                     </Link>
@@ -449,8 +461,21 @@ function CommunicationsContent() {
                 )}
               </div>
             )}
+            {activeView === "leads" && (
+              <LeadsView
+                userId={user.id}
+                userRole={user.role}
+              />
+            )}
           </div>
         </div>
+
+        {/* New Lead Form Modal */}
+        <LeadForm
+          userId={user.id}
+          isOpen={showNewLeadForm}
+          onClose={() => setShowNewLeadForm(false)}
+        />
 
         {/* Bulk Action Bar */}
         <BulkActionBar

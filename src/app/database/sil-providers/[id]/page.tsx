@@ -109,7 +109,7 @@ export default function SILProviderDetailPage() {
         <Header currentPage="database" />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600 mx-auto"></div>
             <p className="text-gray-400 mt-4">Loading...</p>
           </div>
         </main>
@@ -174,7 +174,7 @@ export default function SILProviderDetailPage() {
             <div className="flex flex-wrap gap-3 mt-2">
               <a
                 href={`mailto:${provider.email}`}
-                className="text-blue-400 hover:text-blue-300 text-sm"
+                className="text-teal-500 hover:text-teal-400 text-sm"
               >
                 {provider.email}
               </a>
@@ -289,7 +289,7 @@ export default function SILProviderDetailPage() {
                     {provider.services.map((service) => (
                       <span
                         key={service}
-                        className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded"
+                        className="px-2 py-1 bg-teal-600/20 text-teal-500 text-xs rounded"
                       >
                         {service}
                       </span>
@@ -305,7 +305,7 @@ export default function SILProviderDetailPage() {
                 <h2 className="text-lg font-semibold text-white">Portal Users</h2>
                 <button
                   onClick={() => setShowLinkUserModal(true)}
-                  className="text-sm text-blue-400 hover:text-blue-300"
+                  className="text-sm text-teal-500 hover:text-teal-400"
                 >
                   + Link User
                 </button>
@@ -326,7 +326,7 @@ export default function SILProviderDetailPage() {
                         <p className="text-gray-400 text-xs">{user.email}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 text-xs rounded bg-blue-500/20 text-blue-400">
+                        <span className="px-2 py-0.5 text-xs rounded bg-teal-600/20 text-teal-500">
                           Portal Access
                         </span>
                         <button
@@ -367,7 +367,7 @@ export default function SILProviderDetailPage() {
                       <div>
                         <Link
                           href={`/properties/${allocation.property?._id}`}
-                          className="text-white font-medium hover:text-blue-400"
+                          className="text-white font-medium hover:text-teal-500"
                         >
                           {allocation.dwelling?.dwellingName}
                         </Link>
@@ -390,7 +390,7 @@ export default function SILProviderDetailPage() {
                               href={`/participants/${p._id}`}
                               className="flex items-center gap-2 text-sm text-gray-300 hover:text-white"
                             >
-                              <span className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white">
+                              <span className="w-6 h-6 rounded-full bg-teal-700 flex items-center justify-center text-xs text-white">
                                 {p.firstName[0]}{p.lastName[0]}
                               </span>
                               {p.firstName} {p.lastName}
@@ -435,7 +435,7 @@ export default function SILProviderDetailPage() {
                         href={`/participants/${link.participant?._id}`}
                         className="flex items-center gap-3 hover:opacity-80"
                       >
-                        <span className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+                        <span className="w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center text-white font-medium">
                           {link.participant?.firstName[0]}{link.participant?.lastName[0]}
                         </span>
                         <div>
@@ -515,7 +515,7 @@ export default function SILProviderDetailPage() {
                   <select
                     value={selectedUserId}
                     onChange={(e) => setSelectedUserId(e.target.value as Id<"users">)}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 mb-4"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 mb-4"
                   >
                     <option value="">Select a user...</option>
                     {availableUsers.map((user) => (
@@ -534,7 +534,7 @@ export default function SILProviderDetailPage() {
                     <button
                       onClick={handleLinkUser}
                       disabled={!selectedUserId || isSubmitting}
-                      className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                      className="flex-1 py-2 px-4 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                     >
                       {isSubmitting ? "Linking..." : "Link User"}
                     </button>

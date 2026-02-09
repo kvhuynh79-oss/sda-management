@@ -60,7 +60,7 @@ const CATEGORY_COLORS: Record<string, { border: string; badge: "error" | "warnin
   incident_related: { border: "border-l-red-500", badge: "error" },
   complaint: { border: "border-l-yellow-500", badge: "warning" },
   safeguarding: { border: "border-l-red-600", badge: "error" },
-  plan_review: { border: "border-l-blue-500", badge: "info" },
+  plan_review: { border: "border-l-teal-600", badge: "info" },
   access_request: { border: "border-l-purple-500", badge: "purple" },
   quality_audit: { border: "border-l-green-500", badge: "success" },
   advocacy: { border: "border-l-cyan-500", badge: "cyan" },
@@ -221,9 +221,9 @@ export function ComplianceView({
               tabIndex={isActive ? 0 : -1}
               onClick={() => handleCategoryChange(cat.key)}
               onKeyDown={(e) => handleTabKeyDown(e, index)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                 isActive
-                  ? "bg-blue-600 text-white"
+                  ? "bg-teal-700 text-white"
                   : "text-gray-300 hover:bg-gray-600"
               }`}
             >
@@ -279,7 +279,7 @@ export function ComplianceView({
                         type="checkbox"
                         checked={selectedIds?.has(comm._id) || false}
                         onChange={() => onToggleSelect(comm._id)}
-                        className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                        className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-offset-0 cursor-pointer"
                         aria-label={`Select ${comm.contactName} communication`}
                       />
                     </div>
@@ -320,7 +320,7 @@ export function ComplianceView({
                     <div className="flex items-center gap-2 mt-2">
                       <Link
                         href={buildAddEntryUrl(comm)}
-                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
+                        className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
                       >
                         Add Entry
                       </Link>
@@ -353,7 +353,7 @@ export function ComplianceView({
         <div className="mt-4 text-center">
           <button
             onClick={handleLoadMore}
-            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             Load More
           </button>

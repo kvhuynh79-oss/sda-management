@@ -72,7 +72,7 @@ function CollapsibleSection({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="flex items-center justify-between w-full py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+        className="flex items-center justify-between w-full py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
       >
         {title}
         <svg
@@ -162,7 +162,7 @@ export function FilterSidebar({ filters, onChange, activeFilterCount }: FilterSi
         {activeFilterCount && activeFilterCount > 0 ? (
           <button
             onClick={handleClearAll}
-            className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-1"
+            className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-1"
           >
             Clear All ({activeFilterCount})
           </button>
@@ -240,7 +240,7 @@ export function FilterSidebar({ filters, onChange, activeFilterCount }: FilterSi
       <div className="lg:hidden mb-4">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           aria-label="Toggle filters"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,7 +248,7 @@ export function FilterSidebar({ filters, onChange, activeFilterCount }: FilterSi
           </svg>
           Filters
           {activeFilterCount && activeFilterCount > 0 ? (
-            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-bold bg-blue-600 text-white rounded-full">
+            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-bold bg-teal-700 text-white rounded-full">
               {activeFilterCount}
             </span>
           ) : null}
@@ -277,7 +277,7 @@ export function FilterSidebar({ filters, onChange, activeFilterCount }: FilterSi
           <h2 className="text-lg font-semibold text-white">Filters</h2>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            className="p-2 text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             aria-label="Close filters"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

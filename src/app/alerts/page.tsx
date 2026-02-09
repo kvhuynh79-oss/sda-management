@@ -15,7 +15,7 @@ import { formatStatus } from "@/utils/format";
 const SEVERITY_BADGE_COLORS: Record<string, string> = {
   critical: "bg-red-600",
   warning: "bg-yellow-600",
-  info: "bg-blue-600",
+  info: "bg-teal-700",
 };
 
 // Alert status badge colors
@@ -104,7 +104,7 @@ export default function AlertsPage() {
             </div>
             <button
               onClick={handleGenerateAlerts}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               Generate Alerts
             </button>
@@ -132,7 +132,7 @@ export default function AlertsPage() {
                   id="status-filter"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active</option>
@@ -149,7 +149,7 @@ export default function AlertsPage() {
                   id="severity-filter"
                   value={filterSeverity}
                   onChange={(e) => setFilterSeverity(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Severities</option>
                   <option value="critical">Critical</option>
@@ -165,7 +165,7 @@ export default function AlertsPage() {
                   id="type-filter"
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Types</option>
                   <option value="claim_due">Claim Due</option>
@@ -312,7 +312,7 @@ function AlertCard({
               {linkedEntity.link ? (
                 <Link
                   href={linkedEntity.link}
-                  className="text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:underline"
+                  className="text-teal-500 hover:text-teal-400 focus:outline-none focus-visible:underline"
                 >
                   {linkedEntity.name}
                 </Link>

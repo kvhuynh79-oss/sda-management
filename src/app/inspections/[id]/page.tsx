@@ -310,7 +310,7 @@ export default function InspectionDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "scheduled": return "bg-blue-600";
+      case "scheduled": return "bg-teal-700";
       case "in_progress": return "bg-yellow-600";
       case "completed": return "bg-green-600";
       case "cancelled": return "bg-gray-600";
@@ -379,7 +379,7 @@ export default function InspectionDetailPage() {
               {inspection.status === "scheduled" && (
                 <button
                   onClick={handleStartInspection}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm font-medium"
                 >
                   Start Inspection
                 </button>
@@ -410,7 +410,7 @@ export default function InspectionDetailPage() {
             </div>
             <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-600 transition-all duration-300"
+                className="h-full bg-teal-700 transition-all duration-300"
                 style={{
                   width: `${inspection.totalItems > 0
                     ? (inspection.completedItems / inspection.totalItems) * 100
@@ -507,7 +507,7 @@ export default function InspectionDetailPage() {
                                   })
                                 }
                                 placeholder="Add remarks..."
-                                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
                                 autoFocus
                               />
                               <button
@@ -517,7 +517,7 @@ export default function InspectionDetailPage() {
                                     itemRemarks[item._id] || item.remarks || ""
                                   )
                                 }
-                                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                                className="px-3 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm"
                               >
                                 Save
                               </button>
@@ -544,7 +544,7 @@ export default function InspectionDetailPage() {
                                     });
                                     setEditingItem(item._id);
                                   }}
-                                  className="text-blue-400 hover:text-blue-300 text-sm"
+                                  className="text-teal-500 hover:text-teal-400 text-sm"
                                 >
                                   {item.remarks ? "Edit" : "+ Add Remarks"}
                                 </button>
@@ -714,7 +714,7 @@ export default function InspectionDetailPage() {
                   onChange={(e) => setAdditionalComments(e.target.value)}
                   placeholder="Any final observations or recommendations..."
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -756,7 +756,7 @@ export default function InspectionDetailPage() {
                   <select
                     value={newItemCategory}
                     onChange={(e) => setNewItemCategory(e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   >
                     <option value="">Select a category...</option>
                     {sortedCategories.map((cat) => (
@@ -779,7 +779,7 @@ export default function InspectionDetailPage() {
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
                       placeholder="e.g., Pool Area, Outdoor Furniture..."
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
                     />
                   </div>
                 )}
@@ -794,7 +794,7 @@ export default function InspectionDetailPage() {
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     placeholder="e.g., Check pool pump working..."
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -814,7 +814,7 @@ export default function InspectionDetailPage() {
                 <button
                   onClick={handleAddCustomItem}
                   disabled={!newItemName.trim() || (!newItemCategory || (newItemCategory === "__custom__" && !customCategory.trim()))}
-                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  className="flex-1 px-4 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-700/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
                   Add Item
                 </button>

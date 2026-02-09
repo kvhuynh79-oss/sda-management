@@ -2,7 +2,7 @@
 
 import { useRef, useCallback } from "react";
 
-export type ViewMode = "thread" | "timeline" | "stakeholder" | "compliance" | "tasks";
+export type ViewMode = "thread" | "timeline" | "stakeholder" | "compliance" | "tasks" | "leads";
 
 interface ViewToggleProps {
   activeView: ViewMode;
@@ -12,6 +12,7 @@ interface ViewToggleProps {
     unread?: number;
     compliance?: number;
     tasks?: number;
+    leads?: number;
   };
 }
 
@@ -21,6 +22,7 @@ const VIEW_TABS: { key: ViewMode; label: string; countKey?: keyof NonNullable<Vi
   { key: "stakeholder", label: "Stakeholders" },
   { key: "compliance", label: "Compliance", countKey: "compliance" },
   { key: "tasks", label: "Tasks", countKey: "tasks" },
+  { key: "leads", label: "Leads", countKey: "leads" },
 ];
 
 export function ViewToggle({ activeView, onChange, counts }: ViewToggleProps) {
@@ -73,9 +75,9 @@ export function ViewToggle({ activeView, onChange, counts }: ViewToggleProps) {
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(tab.key)}
             onKeyDown={(e) => handleKeyDown(e, index)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
               isActive
-                ? "bg-blue-600 text-white"
+                ? "bg-teal-700 text-white"
                 : "bg-transparent text-gray-300 hover:bg-gray-600 hover:text-white"
             }`}
           >
@@ -85,7 +87,7 @@ export function ViewToggle({ activeView, onChange, counts }: ViewToggleProps) {
                 className={`inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-bold rounded-full ${
                   isActive
                     ? "bg-white/20 text-white"
-                    : "bg-blue-500/20 text-blue-400"
+                    : "bg-teal-600/20 text-teal-500"
                 }`}
               >
                 {count > 99 ? "99+" : count}

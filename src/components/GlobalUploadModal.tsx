@@ -479,7 +479,7 @@ export default function GlobalUploadModal({
           <h2 className="text-2xl font-bold text-white">Upload Document</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            className="text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             aria-label="Close modal"
           >
             <XMarkIcon className="w-6 h-6" />
@@ -502,7 +502,7 @@ export default function GlobalUploadModal({
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                 isDragOver
-                  ? "border-blue-500 bg-blue-500/10"
+                  ? "border-teal-600 bg-teal-600/10"
                   : "border-gray-600 hover:border-gray-500 bg-gray-700/50"
               }`}
               onDragOver={handleDragOver}
@@ -545,7 +545,7 @@ export default function GlobalUploadModal({
                 type="button"
                 onClick={handleAIAnalysis}
                 disabled={isAnalyzing}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-lg transition-all font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-teal-700 hover:from-purple-700 hover:to-teal-800 disabled:from-gray-600 disabled:to-gray-700 text-white rounded-lg transition-all font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
               >
                 {isAnalyzing ? (
                   <>
@@ -607,9 +607,9 @@ export default function GlobalUploadModal({
               <button
                 type="button"
                 onClick={() => setCategory("property")}
-                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                   category === "property"
-                    ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                    ? "border-teal-600 bg-teal-600/20 text-teal-500"
                     : "border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500"
                 }`}
               >
@@ -621,9 +621,9 @@ export default function GlobalUploadModal({
               <button
                 type="button"
                 onClick={() => setCategory("participant")}
-                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                   category === "participant"
-                    ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                    ? "border-teal-600 bg-teal-600/20 text-teal-500"
                     : "border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500"
                 }`}
               >
@@ -635,9 +635,9 @@ export default function GlobalUploadModal({
               <button
                 type="button"
                 onClick={() => setCategory("organisation")}
-                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                   category === "organisation"
-                    ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                    ? "border-teal-600 bg-teal-600/20 text-teal-500"
                     : "border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500"
                 }`}
               >
@@ -649,9 +649,9 @@ export default function GlobalUploadModal({
               <button
                 type="button"
                 onClick={() => setCategory("organisation")}
-                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                   category === "organisation"
-                    ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                    ? "border-teal-600 bg-teal-600/20 text-teal-500"
                     : "border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500"
                 }`}
               >
@@ -670,7 +670,7 @@ export default function GlobalUploadModal({
               <select
                 value={linkedEntityId}
                 onChange={(e) => setLinkedEntityId(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
               >
                 <option value="">-- Select Property --</option>
                 {properties?.map((property) => (
@@ -690,7 +690,7 @@ export default function GlobalUploadModal({
               <select
                 value={linkedEntityId}
                 onChange={(e) => setLinkedEntityId(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
               >
                 <option value="">-- Select Participant --</option>
                 {participants?.map((participant) => (
@@ -704,7 +704,7 @@ export default function GlobalUploadModal({
           )}
 
           {category === "organisation" && (
-            <div className="bg-blue-900/20 border border-blue-500 text-blue-400 px-4 py-3 rounded">
+            <div className="bg-teal-950/20 border border-teal-600 text-teal-500 px-4 py-3 rounded">
               <p className="text-sm">
                 <strong>Compliance documents</strong> with expiry dates will automatically
                 create compliance certifications.
@@ -716,7 +716,7 @@ export default function GlobalUploadModal({
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Document Type {aiFilledFields.has("documentType") && (
-                <span className="ml-2 text-xs text-blue-400">✨ AI-filled</span>
+                <span className="ml-2 text-xs text-teal-500">✨ AI-filled</span>
               )}
             </label>
             <select
@@ -730,9 +730,9 @@ export default function GlobalUploadModal({
                   setAiFilledFields(newFields);
                 }
               }}
-              className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600 ${
                 aiFilledFields.has("documentType")
-                  ? "border-2 border-blue-500 bg-blue-500/10"
+                  ? "border-2 border-teal-600 bg-teal-600/10"
                   : "border border-gray-600"
               }`}
             >
@@ -754,7 +754,7 @@ export default function GlobalUploadModal({
                 <select
                   value={linkedEntityId}
                   onChange={(e) => setLinkedEntityId(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="">-- Organisation Wide --</option>
                   {properties?.map((property) => (
@@ -770,7 +770,7 @@ export default function GlobalUploadModal({
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Description (Optional) {aiFilledFields.has("description") && (
-                <span className="ml-2 text-xs text-blue-400">✨ AI-filled</span>
+                <span className="ml-2 text-xs text-teal-500">✨ AI-filled</span>
               )}
             </label>
             <textarea
@@ -784,9 +784,9 @@ export default function GlobalUploadModal({
                 }
               }}
               rows={3}
-              className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600 ${
                 aiFilledFields.has("description")
-                  ? "border-2 border-blue-500 bg-blue-500/10"
+                  ? "border-2 border-teal-600 bg-teal-600/10"
                   : "border border-gray-600"
               }`}
               placeholder="Add notes about this document..."
@@ -802,7 +802,7 @@ export default function GlobalUploadModal({
                   <span className="text-red-400 ml-1">*</span>
                 )}
                 {aiFilledFields.has("expiryDate") && (
-                  <span className="ml-2 text-xs text-blue-400">✨ AI-filled</span>
+                  <span className="ml-2 text-xs text-teal-500">✨ AI-filled</span>
                 )}
               </label>
               <input
@@ -816,9 +816,9 @@ export default function GlobalUploadModal({
                     setAiFilledFields(newFields);
                   }
                 }}
-                className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600 ${
                   aiFilledFields.has("expiryDate")
-                    ? "border-2 border-blue-500 bg-blue-500/10"
+                    ? "border-2 border-teal-600 bg-teal-600/10"
                     : "border border-gray-600"
                 }`}
               />
@@ -833,7 +833,7 @@ export default function GlobalUploadModal({
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     Invoice Number {aiFilledFields.has("invoiceNumber") && (
-                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                      <span className="ml-2 text-xs text-teal-500">✨ AI</span>
                     )}
                   </label>
                   <input
@@ -847,9 +847,9 @@ export default function GlobalUploadModal({
                         setAiFilledFields(newFields);
                       }
                     }}
-                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600 ${
                       aiFilledFields.has("invoiceNumber")
-                        ? "border-2 border-blue-500 bg-blue-500/10"
+                        ? "border-2 border-teal-600 bg-teal-600/10"
                         : "border border-gray-600"
                     }`}
                     placeholder="INV-12345"
@@ -859,7 +859,7 @@ export default function GlobalUploadModal({
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     Invoice Date {aiFilledFields.has("invoiceDate") && (
-                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                      <span className="ml-2 text-xs text-teal-500">✨ AI</span>
                     )}
                   </label>
                   <input
@@ -873,9 +873,9 @@ export default function GlobalUploadModal({
                         setAiFilledFields(newFields);
                       }
                     }}
-                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600 ${
                       aiFilledFields.has("invoiceDate")
-                        ? "border-2 border-blue-500 bg-blue-500/10"
+                        ? "border-2 border-teal-600 bg-teal-600/10"
                         : "border border-gray-600"
                     }`}
                   />
@@ -884,7 +884,7 @@ export default function GlobalUploadModal({
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     Amount {aiFilledFields.has("invoiceAmount") && (
-                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                      <span className="ml-2 text-xs text-teal-500">✨ AI</span>
                     )}
                   </label>
                   <div className="relative">
@@ -901,9 +901,9 @@ export default function GlobalUploadModal({
                           setAiFilledFields(newFields);
                         }
                       }}
-                      className={`w-full pl-8 pr-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full pl-8 pr-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600 ${
                         aiFilledFields.has("invoiceAmount")
-                          ? "border-2 border-blue-500 bg-blue-500/10"
+                          ? "border-2 border-teal-600 bg-teal-600/10"
                           : "border border-gray-600"
                       }`}
                       placeholder="0.00"
@@ -914,7 +914,7 @@ export default function GlobalUploadModal({
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     Vendor {aiFilledFields.has("vendor") && (
-                      <span className="ml-2 text-xs text-blue-400">✨ AI</span>
+                      <span className="ml-2 text-xs text-teal-500">✨ AI</span>
                     )}
                   </label>
                   <input
@@ -928,9 +928,9 @@ export default function GlobalUploadModal({
                         setAiFilledFields(newFields);
                       }
                     }}
-                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    className={`w-full px-3 py-2 bg-gray-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-teal-600 ${
                       aiFilledFields.has("vendor")
-                        ? "border-2 border-blue-500 bg-blue-500/10"
+                        ? "border-2 border-teal-600 bg-teal-600/10"
                         : "border border-gray-600"
                     }`}
                     placeholder="Vendor name"
@@ -944,7 +944,7 @@ export default function GlobalUploadModal({
                     type="checkbox"
                     checked={isPaid}
                     onChange={(e) => setIsPaid(e.target.checked)}
-                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded focus:ring-2 focus:ring-teal-600"
                   />
                   <span className="text-sm">Paid</span>
                 </label>
@@ -958,14 +958,14 @@ export default function GlobalUploadModal({
           <button
             onClick={onClose}
             disabled={isUploading}
-            className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!isFormValid() || isUploading}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-teal-700 text-white rounded hover:bg-teal-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading ? "Uploading..." : "Upload & File"}
           </button>

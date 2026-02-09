@@ -50,8 +50,8 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
           aria-invalid={!!error}
           aria-describedby={describedBy || undefined}
           className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white placeholder-gray-400
-            focus:outline-none focus:ring-2 focus:ring-blue-500
-            focus-visible:ring-2 focus-visible:ring-blue-500
+            focus:outline-none focus:ring-2 focus:ring-teal-600
+            focus-visible:ring-2 focus-visible:ring-teal-600
             transition-colors resize-y
             ${error ? "border-red-500" : "border-gray-600"}
             ${props.disabled ? "opacity-50 cursor-not-allowed" : ""}`}

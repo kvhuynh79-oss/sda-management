@@ -445,7 +445,7 @@ export default function NewIncidentPage() {
                       followUpRequired: e.target.checked,
                     })
                   }
-                  className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600"
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-teal-700"
                 />
                 <span className="text-gray-300">Follow-up required</span>
               </label>

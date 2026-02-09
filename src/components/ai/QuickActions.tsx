@@ -43,7 +43,7 @@ const quickActions = [
     label: "Recent payments",
     query: "Show recent payment activity summary",
     icon: DollarSign,
-    color: "bg-blue-600 hover:bg-blue-700",
+    color: "bg-teal-700 hover:bg-teal-800",
   },
   {
     label: "All participants",

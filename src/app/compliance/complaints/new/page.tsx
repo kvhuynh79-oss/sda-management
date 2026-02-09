@@ -104,7 +104,7 @@ export default function NewComplaintPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Link href="/compliance" className="text-blue-400 hover:text-blue-300 text-sm mb-2 block">
+            <Link href="/compliance" className="text-teal-500 hover:text-teal-400 text-sm mb-2 block">
               &larr; Back to Compliance
             </Link>
             <h1 className="text-2xl font-bold text-white">Log Complaint</h1>
@@ -114,7 +114,7 @@ export default function NewComplaintPage() {
 
         {/* Link to Compliance Guides */}
         <div className="mb-4">
-          <Link href="/compliance" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2">
+          <Link href="/compliance" className="text-teal-500 hover:text-teal-400 text-sm flex items-center gap-2">
             <span>ℹ️</span> View Complaints Handling Guide in Compliance Dashboard
           </Link>
         </div>
@@ -371,7 +371,7 @@ export default function NewComplaintPage() {
             <button
               type="submit"
               disabled={isSaving || !formData.complainantType || !formData.category}
-              className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg"
+              className="flex-1 px-4 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg"
             >
               {isSaving ? "Saving..." : "Log Complaint"}
             </button>

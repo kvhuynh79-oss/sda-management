@@ -28,6 +28,7 @@ export const rolePermissions: Record<UserRole, {
   auditLogs: { view: boolean };
   communications: { view: boolean; create: boolean; update: boolean; delete: boolean };
   tasks: { view: boolean; create: boolean; update: boolean; delete: boolean };
+  leads: { view: boolean; create: boolean; update: boolean; delete: boolean };
 }> = {
   admin: {
     properties: { view: true, create: true, update: true, delete: true },
@@ -42,6 +43,7 @@ export const rolePermissions: Record<UserRole, {
     auditLogs: { view: true },
     communications: { view: true, create: true, update: true, delete: true },
     tasks: { view: true, create: true, update: true, delete: true },
+    leads: { view: true, create: true, update: true, delete: true },
   },
   property_manager: {
     properties: { view: true, create: true, update: true, delete: false },
@@ -56,6 +58,7 @@ export const rolePermissions: Record<UserRole, {
     auditLogs: { view: false },
     communications: { view: true, create: true, update: true, delete: true },
     tasks: { view: true, create: true, update: true, delete: true },
+    leads: { view: true, create: true, update: true, delete: false },
   },
   staff: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -70,6 +73,7 @@ export const rolePermissions: Record<UserRole, {
     auditLogs: { view: false },
     communications: { view: true, create: true, update: true, delete: false },
     tasks: { view: true, create: true, update: true, delete: false },
+    leads: { view: true, create: true, update: true, delete: false },
   },
   accountant: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -84,6 +88,7 @@ export const rolePermissions: Record<UserRole, {
     auditLogs: { view: false },
     communications: { view: true, create: true, update: false, delete: false },
     tasks: { view: true, create: true, update: false, delete: false },
+    leads: { view: true, create: false, update: false, delete: false },
   },
   sil_provider: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -98,6 +103,7 @@ export const rolePermissions: Record<UserRole, {
     auditLogs: { view: false },
     communications: { view: true, create: true, update: true, delete: false },
     tasks: { view: true, create: true, update: true, delete: false },
+    leads: { view: true, create: false, update: false, delete: false },
   },
 };
 

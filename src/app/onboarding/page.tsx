@@ -1326,7 +1326,7 @@ export default function OnboardingPage() {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={handleSaveRrcSettings}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
               >
                 Save RRC Settings
               </button>
@@ -1454,7 +1454,7 @@ export default function OnboardingPage() {
               <button
                 onClick={generateSdaQuotation}
                 disabled={!selectedParticipant || isGenerating}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                className="w-full px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
                 {isGenerating ? "Generating..." : "Generate SDA Quotation"}
               </button>

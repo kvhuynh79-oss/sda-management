@@ -216,7 +216,7 @@ export default function EditParticipantPage() {
         <div className="mb-6">
           <Link
             href={`/participants/${participantId}`}
-            className="text-blue-400 hover:text-blue-300 mb-4 inline-block"
+            className="text-teal-500 hover:text-teal-400 mb-4 inline-block"
           >
             &larr; Back to {participant.firstName} {participant.lastName}
           </Link>
@@ -238,7 +238,7 @@ export default function EditParticipantPage() {
             onClick={() => setActiveTab("participant")}
             className={`px-4 py-2 rounded-lg transition-colors ${
               activeTab === "participant"
-                ? "bg-blue-600 text-white"
+                ? "bg-teal-700 text-white"
                 : "bg-gray-700 text-gray-300 hover:bg-gray-600"
             }`}
           >
@@ -248,7 +248,7 @@ export default function EditParticipantPage() {
             onClick={() => setActiveTab("plan")}
             className={`px-4 py-2 rounded-lg transition-colors ${
               activeTab === "plan"
-                ? "bg-blue-600 text-white"
+                ? "bg-teal-700 text-white"
                 : "bg-gray-700 text-gray-300 hover:bg-gray-600"
             }`}
           >

@@ -72,7 +72,7 @@ export default function InstallPrompt() {
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gray-800 border-t border-gray-700 shadow-lg animate-slide-up safe-area-inset-bottom">
       <div className="max-w-lg mx-auto flex items-center gap-4">
         <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0">
-          <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
         </div>
@@ -94,7 +94,7 @@ export default function InstallPrompt() {
           {!isIOS && (
             <button
               onClick={handleInstall}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Install
             </button>

@@ -27,8 +27,8 @@ export const FormCheckbox = forwardRef<HTMLInputElement, FormCheckboxProps>(
               type="checkbox"
               aria-invalid={!!error}
               aria-describedby={error ? errorId : undefined}
-              className={`w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600
-                focus:ring-2 focus:ring-blue-500 focus:ring-offset-gray-800
+              className={`w-4 h-4 rounded bg-gray-700 border-gray-600 text-teal-700
+                focus:ring-2 focus:ring-teal-600 focus:ring-offset-gray-800
                 ${props.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               {...props}
             />

@@ -3,7 +3,7 @@ export const STATUS_COLORS = {
   active: "bg-green-500/20 text-green-400",
   inactive: "bg-gray-500/20 text-gray-400",
   pending: "bg-yellow-500/20 text-yellow-400",
-  completed: "bg-blue-500/20 text-blue-400",
+  completed: "bg-teal-600/20 text-teal-500",
   cancelled: "bg-red-500/20 text-red-400",
   archived: "bg-gray-500/20 text-gray-400",
 } as const;
@@ -11,7 +11,7 @@ export const STATUS_COLORS = {
 // Maintenance request status colors
 export const MAINTENANCE_STATUS_COLORS = {
   open: "bg-yellow-500/20 text-yellow-400",
-  in_progress: "bg-blue-500/20 text-blue-400",
+  in_progress: "bg-teal-600/20 text-teal-500",
   awaiting_parts: "bg-purple-500/20 text-purple-400",
   awaiting_quote: "bg-orange-500/20 text-orange-400",
   scheduled: "bg-cyan-500/20 text-cyan-400",
@@ -42,7 +42,7 @@ export const INCIDENT_TYPE_COLORS = {
   property_damage: "bg-orange-500/20 text-orange-400",
   behavioral: "bg-yellow-500/20 text-yellow-400",
   medication: "bg-purple-500/20 text-purple-400",
-  near_miss: "bg-blue-500/20 text-blue-400",
+  near_miss: "bg-teal-600/20 text-teal-500",
   complaint: "bg-pink-500/20 text-pink-400",
   safeguarding: "bg-red-600/30 text-red-300",
   other: "bg-gray-500/20 text-gray-400",
@@ -51,7 +51,7 @@ export const INCIDENT_TYPE_COLORS = {
 // Payment status colors
 export const PAYMENT_STATUS_COLORS = {
   pending: "bg-yellow-500/20 text-yellow-400",
-  submitted: "bg-blue-500/20 text-blue-400",
+  submitted: "bg-teal-600/20 text-teal-500",
   paid: "bg-green-500/20 text-green-400",
   rejected: "bg-red-500/20 text-red-400",
   partial: "bg-orange-500/20 text-orange-400",
@@ -59,7 +59,7 @@ export const PAYMENT_STATUS_COLORS = {
 
 // Document type colors
 export const DOCUMENT_TYPE_COLORS = {
-  ndis_plan: "bg-blue-500/20 text-blue-400",
+  ndis_plan: "bg-teal-600/20 text-teal-500",
   service_agreement: "bg-purple-500/20 text-purple-400",
   lease: "bg-green-500/20 text-green-400",
   insurance: "bg-orange-500/20 text-orange-400",
@@ -70,7 +70,7 @@ export const DOCUMENT_TYPE_COLORS = {
 // Relationship type colors (Support Coordinators, SIL Providers)
 export const RELATIONSHIP_TYPE_COLORS = {
   referred: "bg-green-500/20 text-green-400",
-  current: "bg-blue-500/20 text-blue-400",
+  current: "bg-teal-600/20 text-teal-500",
   past: "bg-gray-500/20 text-gray-400",
   inquiry: "bg-yellow-500/20 text-yellow-400",
 } as const;
@@ -86,7 +86,7 @@ export const RATING_COLORS = {
 
 // SDA Category colors
 export const SDA_CATEGORY_COLORS = {
-  improved_liveability: "bg-blue-500/20 text-blue-400",
+  improved_liveability: "bg-teal-600/20 text-teal-500",
   fully_accessible: "bg-purple-500/20 text-purple-400",
   robust: "bg-orange-500/20 text-orange-400",
   high_physical_support: "bg-green-500/20 text-green-400",
@@ -96,7 +96,7 @@ export const SDA_CATEGORY_COLORS = {
 export const ALERT_TYPE_COLORS = {
   expiry_warning: "bg-yellow-500/20 text-yellow-400",
   overdue: "bg-red-500/20 text-red-400",
-  reminder: "bg-blue-500/20 text-blue-400",
+  reminder: "bg-teal-600/20 text-teal-500",
   vacancy: "bg-purple-500/20 text-purple-400",
   compliance: "bg-orange-500/20 text-orange-400",
 } as const;
@@ -112,7 +112,7 @@ export const OCCUPANCY_COLORS = {
 export const PROPERTY_STATUS_COLORS = {
   active: { bg: "bg-green-600", label: "Active" },
   under_construction: { bg: "bg-yellow-600", label: "Under Construction" },
-  planning: { bg: "bg-blue-600", label: "Planning" },
+  planning: { bg: "bg-teal-700", label: "Planning" },
   sil_property: { bg: "bg-purple-600", label: "SIL Property" },
   inactive: { bg: "bg-gray-600", label: "Inactive" },
 } as const;
@@ -127,7 +127,7 @@ export const INSPECTION_STATUS_COLORS = {
 
 // Contractor specialty colors
 export const SPECIALTY_COLORS = {
-  plumbing: "bg-blue-600",
+  plumbing: "bg-teal-700",
   electrical: "bg-yellow-600",
   hvac: "bg-cyan-600",
   general: "bg-gray-600",
@@ -158,7 +158,7 @@ export type RelationshipType = keyof typeof RELATIONSHIP_TYPE_COLORS;
 
 // Communication type colors
 export const COMMUNICATION_TYPE_COLORS = {
-  email: "bg-blue-500/20 text-blue-400",
+  email: "bg-teal-600/20 text-teal-500",
   sms: "bg-green-500/20 text-green-400",
   phone_call: "bg-purple-500/20 text-purple-400",
   meeting: "bg-orange-500/20 text-orange-400",
@@ -167,14 +167,14 @@ export const COMMUNICATION_TYPE_COLORS = {
 
 // Communication direction colors
 export const DIRECTION_COLORS = {
-  sent: "bg-blue-600",
+  sent: "bg-teal-700",
   received: "bg-green-600",
 } as const;
 
 // Contact type colors (for communications)
 export const CONTACT_TYPE_COLORS = {
   ndia: "bg-purple-500/20 text-purple-400",
-  support_coordinator: "bg-blue-500/20 text-blue-400",
+  support_coordinator: "bg-teal-600/20 text-teal-500",
   sil_provider: "bg-orange-500/20 text-orange-400",
   participant: "bg-green-500/20 text-green-400",
   family: "bg-cyan-500/20 text-cyan-400",
@@ -187,7 +187,7 @@ export const CONTACT_TYPE_COLORS = {
 // Task status colors
 export const TASK_STATUS_COLORS = {
   pending: "bg-yellow-500/20 text-yellow-400",
-  in_progress: "bg-blue-500/20 text-blue-400",
+  in_progress: "bg-teal-600/20 text-teal-500",
   completed: "bg-green-500/20 text-green-400",
   cancelled: "bg-gray-500/20 text-gray-400",
 } as const;
@@ -197,7 +197,7 @@ export const TASK_CATEGORY_COLORS = {
   funding: "bg-purple-500/20 text-purple-400",
   plan_approval: "bg-cyan-500/20 text-cyan-400",
   documentation: "bg-orange-500/20 text-orange-400",
-  follow_up: "bg-blue-500/20 text-blue-400",
+  follow_up: "bg-teal-600/20 text-teal-500",
   general: "bg-gray-500/20 text-gray-400",
 } as const;
 
@@ -207,7 +207,7 @@ export const COMPLIANCE_CATEGORY_COLORS = {
   incident_related: "bg-red-500/20 text-red-400",
   complaint: "bg-yellow-500/20 text-yellow-400",
   safeguarding: "bg-red-600/30 text-red-300",
-  plan_review: "bg-blue-500/20 text-blue-400",
+  plan_review: "bg-teal-600/20 text-teal-500",
   access_request: "bg-purple-500/20 text-purple-400",
   quality_audit: "bg-green-500/20 text-green-400",
   advocacy: "bg-teal-500/20 text-teal-400",
@@ -218,7 +218,7 @@ export const COMPLIANCE_CATEGORY_COLORS = {
 export const COMPLIANCE_FLAG_COLORS = {
   requires_documentation: "bg-yellow-500/20 text-yellow-400",
   time_sensitive: "bg-red-500/20 text-red-400",
-  participant_consent: "bg-blue-500/20 text-blue-400",
+  participant_consent: "bg-teal-600/20 text-teal-500",
   ndia_reportable: "bg-purple-500/20 text-purple-400",
   escalation_required: "bg-red-600/30 text-red-300",
   legal_hold: "bg-orange-500/20 text-orange-400",
@@ -226,14 +226,14 @@ export const COMPLIANCE_FLAG_COLORS = {
 
 // Stakeholder type colors
 export const STAKEHOLDER_TYPE_COLORS = {
-  support_coordinator: "bg-blue-500/20 text-blue-400",
+  support_coordinator: "bg-teal-600/20 text-teal-500",
   sil_provider: "bg-orange-500/20 text-orange-400",
   ndia: "bg-purple-500/20 text-purple-400",
   occupational_therapist: "bg-green-500/20 text-green-400",
   guardian: "bg-teal-500/20 text-teal-400",
   advocate: "bg-yellow-500/20 text-yellow-400",
   contractor: "bg-gray-500/20 text-gray-400",
-  participant: "bg-blue-500/20 text-blue-400",
+  participant: "bg-teal-600/20 text-teal-500",
   family: "bg-green-500/20 text-green-400",
   other: "bg-gray-500/20 text-gray-400",
 } as const;

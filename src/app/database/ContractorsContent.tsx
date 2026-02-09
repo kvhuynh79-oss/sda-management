@@ -62,7 +62,7 @@ export default function ContractorsContent() {
 
   const getSpecialtyBadge = (specialty: string) => {
     const colors: Record<string, string> = {
-      plumbing: "bg-blue-600",
+      plumbing: "bg-teal-700",
       electrical: "bg-yellow-600",
       appliances: "bg-purple-600",
       building: "bg-orange-600",
@@ -85,7 +85,7 @@ export default function ContractorsContent() {
         <div />
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
         >
           + Add Contractor
         </button>
@@ -120,11 +120,11 @@ export default function ContractorsContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-gray-800 rounded-lg p-4">
           <p className="text-gray-400 text-sm">Total Contractors</p>
-          <p className="text-2xl font-bold text-blue-400">{contractors?.length || 0}</p>
+          <p className="text-2xl font-bold text-teal-500">{contractors?.length || 0}</p>
         </div>
         <div className="bg-gray-800 rounded-lg p-4">
           <p className="text-gray-400 text-sm">Plumbers</p>
-          <p className="text-2xl font-bold text-blue-400">
+          <p className="text-2xl font-bold text-teal-500">
             {contractors?.filter((c) => c.specialty === "plumbing").length || 0}
           </p>
         </div>
@@ -150,7 +150,7 @@ export default function ContractorsContent() {
           <p className="text-gray-400">No contractors found</p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="mt-4 text-blue-400 hover:text-blue-300"
+            className="mt-4 text-teal-500 hover:text-teal-400"
           >
             Add your first contractor
           </button>
@@ -422,7 +422,7 @@ function ContractorModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
             >
               {isSubmitting ? "Saving..." : contractor ? "Save Changes" : "Add Contractor"}
             </button>

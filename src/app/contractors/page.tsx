@@ -33,7 +33,7 @@ const SPECIALTIES: { value: Specialty; label: string }[] = [
 ];
 
 const SPECIALTY_BADGE_COLORS: Record<string, string> = {
-  plumbing: "bg-blue-600",
+  plumbing: "bg-teal-700",
   electrical: "bg-yellow-600",
   appliances: "bg-purple-600",
   building: "bg-orange-600",
@@ -103,7 +103,7 @@ export default function ContractorsPage() {
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex-shrink-0 self-start sm:self-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors flex-shrink-0 self-start sm:self-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               + Add Contractor
             </button>
@@ -123,7 +123,7 @@ export default function ContractorsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by name or email..."
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
               <div>
@@ -134,7 +134,7 @@ export default function ContractorsPage() {
                   id="specialty-filter"
                   value={filterSpecialty}
                   onChange={(e) => setFilterSpecialty(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="all">All Specialties</option>
                   {SPECIALTIES.map((s) => (
@@ -321,13 +321,13 @@ function ContractorCard({
       <div className="flex gap-2 mt-4 pt-3 border-t border-gray-700">
         <Link
           href={`/contractors/${contractor._id}`}
-          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex-1 px-3 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
         >
           View
         </Link>
         <button
           onClick={onEdit}
-          className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
         >
           Edit
         </button>
@@ -422,7 +422,7 @@ function ContractorModal({
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -434,7 +434,7 @@ function ContractorModal({
                 type="text"
                 value={formData.contactName}
                 onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -447,7 +447,7 @@ function ContractorModal({
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -459,7 +459,7 @@ function ContractorModal({
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
           </div>
@@ -475,7 +475,7 @@ function ContractorModal({
                 value={formData.specialty}
                 onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 {SPECIALTIES.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -493,7 +493,7 @@ function ContractorModal({
                 type="text"
                 value={formData.abn}
                 onChange={(e) => setFormData({ ...formData, abn: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -505,7 +505,7 @@ function ContractorModal({
                 type="text"
                 value={formData.licenseNumber}
                 onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -517,7 +517,7 @@ function ContractorModal({
                 type="date"
                 value={formData.insuranceExpiry}
                 onChange={(e) => setFormData({ ...formData, insuranceExpiry: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
           </div>
@@ -533,7 +533,7 @@ function ContractorModal({
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -545,7 +545,7 @@ function ContractorModal({
                 type="text"
                 value={formData.suburb}
                 onChange={(e) => setFormData({ ...formData, suburb: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
             <div>
@@ -557,7 +557,7 @@ function ContractorModal({
                 type="text"
                 value={formData.postcode}
                 onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
           </div>
@@ -576,7 +576,7 @@ function ContractorModal({
                         type="checkbox"
                         checked={formData.preferredProperties.includes(prop._id)}
                         onChange={() => toggleProperty(prop._id)}
-                        className="rounded bg-gray-600 border-gray-500 focus:ring-2 focus:ring-blue-500"
+                        className="rounded bg-gray-600 border-gray-500 focus:ring-2 focus:ring-teal-600"
                       />
                       <span className="text-gray-300 text-sm">
                         {prop.propertyName || prop.addressLine1} - {prop.suburb}
@@ -601,7 +601,7 @@ function ContractorModal({
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             />
           </div>
 
@@ -617,7 +617,7 @@ function ContractorModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               {isSubmitting ? "Saving..." : contractor ? "Update" : "Add Contractor"}
             </button>

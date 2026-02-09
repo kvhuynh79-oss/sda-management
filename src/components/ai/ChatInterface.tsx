@@ -320,14 +320,14 @@ export default function ChatInterface({
             }
             disabled={isLoading || !!pendingAction}
             rows={1}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent resize-none disabled:opacity-50"
             style={{ minHeight: "48px", maxHeight: "120px" }}
           />
           <button
             type={selectedFile ? "button" : "submit"}
             onClick={selectedFile ? handleFileUpload : undefined}
             disabled={selectedFile ? isLoading : (!input.trim() || isLoading || !!pendingAction)}
-            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            className="px-4 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />

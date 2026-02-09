@@ -115,7 +115,7 @@ function InspectionsContent() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "scheduled": return "bg-blue-600";
+      case "scheduled": return "bg-teal-700";
       case "in_progress": return "bg-yellow-600";
       case "completed": return "bg-green-600";
       case "cancelled": return "bg-gray-600";
@@ -128,12 +128,12 @@ function InspectionsContent() {
     const passRate = passed / total;
     if (failed > 0) return "bg-yellow-600";
     if (passRate === 1) return "bg-green-600";
-    return "bg-blue-600";
+    return "bg-teal-700";
   };
 
   const FILTER_BUTTONS = [
-    { value: "all", label: "All", activeClass: "bg-blue-600 text-white" },
-    { value: "scheduled", label: "Scheduled", activeClass: "bg-blue-600 text-white" },
+    { value: "all", label: "All", activeClass: "bg-teal-700 text-white" },
+    { value: "scheduled", label: "Scheduled", activeClass: "bg-teal-700 text-white" },
     { value: "in_progress", label: "In Progress", activeClass: "bg-yellow-600 text-white" },
     { value: "completed", label: "Completed", activeClass: "bg-green-600 text-white" },
   ];
@@ -160,13 +160,13 @@ function InspectionsContent() {
           <div className="flex gap-2">
             <Link
               href="/inspections/templates"
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               Manage Templates
             </Link>
             <Link
               href="/inspections/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               + New Inspection
             </Link>
@@ -213,7 +213,7 @@ function InspectionsContent() {
                 key={btn.value}
                 onClick={() => setStatusFilter(btn.value)}
                 aria-pressed={statusFilter === btn.value}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                   statusFilter === btn.value
                     ? btn.activeClass
                     : "bg-gray-700 text-gray-300 hover:bg-gray-600"
@@ -235,7 +235,7 @@ function InspectionsContent() {
                 <Link
                   key={inspection._id}
                   href={`/inspections/${inspection._id}`}
-                  className="block p-4 hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+                  className="block p-4 hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-inset"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex-1">
@@ -297,7 +297,7 @@ function InspectionsContent() {
                         <button
                           onClick={(e) => handleDownloadPdf(e, inspection._id)}
                           disabled={generatingPdfId === inspection._id}
-                          className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-wait rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                          className="p-2 text-teal-500 hover:text-teal-400 hover:bg-teal-950/30 disabled:opacity-50 disabled:cursor-wait rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                           aria-label={`Download PDF report for ${inspection.property?.propertyName || inspection.property?.addressLine1 || "Unknown Property"}`}
                         >
                           {generatingPdfId === inspection._id ? (
@@ -363,7 +363,7 @@ function InspectionsContent() {
               <button
                 onClick={() => setDeleteConfirm(null)}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 Cancel
               </button>

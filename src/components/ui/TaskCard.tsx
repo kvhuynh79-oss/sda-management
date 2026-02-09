@@ -72,7 +72,7 @@ export default function TaskCard({ task, onStatusChange, showQuickActions = true
               {task.status === "pending" && (
                 <button
                   onClick={() => onStatusChange(task._id, "in_progress")}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="px-3 py-1 bg-teal-700 hover:bg-teal-800 text-white rounded text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   aria-label={`Start task: ${task.title}`}
                 >
                   Start
@@ -91,7 +91,7 @@ export default function TaskCard({ task, onStatusChange, showQuickActions = true
           )}
           <Link
             href={`/follow-ups/tasks/${task._id}`}
-            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             View
           </Link>

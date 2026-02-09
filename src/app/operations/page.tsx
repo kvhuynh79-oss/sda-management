@@ -177,7 +177,7 @@ function OperationsContent() {
             {activeTab === "maintenance" && (
               <Link
                 href="/maintenance/new"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 + Log Request
               </Link>
@@ -185,7 +185,7 @@ function OperationsContent() {
             {activeTab === "inspections" && (
               <Link
                 href="/inspections/new"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 + New Inspection
               </Link>
@@ -193,7 +193,7 @@ function OperationsContent() {
             {activeTab === "schedule" && (
               <Link
                 href="/preventative-schedule/new"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 + Add Schedule
               </Link>
@@ -221,9 +221,9 @@ function OperationsContent() {
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => handleTabChange(tab.id)}
                   onKeyDown={(e) => handleTabKeyDown(e, index)}
-                  className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 text-sm sm:text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 text-sm sm:text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                     isActive
-                      ? "border-blue-500 text-blue-400"
+                      ? "border-teal-600 text-teal-500"
                       : "border-transparent text-gray-400 hover:text-white hover:border-gray-600"
                   }`}
                 >
@@ -381,7 +381,7 @@ function MaintenanceCard({ request }: { request: any }) {
     switch (status) {
       case "reported": return "bg-gray-600";
       case "awaiting_quotes": return "bg-purple-600";
-      case "quoted": return "bg-blue-600";
+      case "quoted": return "bg-teal-700";
       case "approved": return "bg-cyan-600";
       case "scheduled": return "bg-indigo-600";
       case "in_progress": return "bg-yellow-600";
@@ -394,7 +394,7 @@ function MaintenanceCard({ request }: { request: any }) {
   return (
     <Link
       href={`/maintenance/${request._id}`}
-      className="block bg-gray-800 rounded-lg p-4 border border-gray-700 hover:bg-gray-700/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+      className="block bg-gray-800 rounded-lg p-4 border border-gray-700 hover:bg-gray-700/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-inset"
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">
@@ -416,7 +416,7 @@ function MaintenanceCard({ request }: { request: any }) {
         </div>
         <div className="text-right text-sm text-gray-400">
           <p>{request.reportedDate}</p>
-          {request.scheduledDate && <p className="text-blue-400">Scheduled: {request.scheduledDate}</p>}
+          {request.scheduledDate && <p className="text-teal-500">Scheduled: {request.scheduledDate}</p>}
         </div>
       </div>
     </Link>
@@ -469,7 +469,7 @@ function InspectionsTab({ userId }: { userId: string }) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "scheduled": return "bg-blue-600";
+      case "scheduled": return "bg-teal-700";
       case "in_progress": return "bg-yellow-600";
       case "completed": return "bg-green-600";
       case "cancelled": return "bg-gray-600";
@@ -508,7 +508,7 @@ function InspectionsTab({ userId }: { userId: string }) {
           </div>
           <Link
             href="/inspections/templates"
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             Manage Templates
           </Link>
@@ -537,7 +537,7 @@ function InspectionsTab({ userId }: { userId: string }) {
               <div className="flex justify-between items-start">
                 <Link
                   href={`/inspections/${inspection._id}`}
-                  className="flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                  className="flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`px-2 py-1 text-xs text-white rounded ${getStatusColor(inspection.status)}`}>
@@ -589,7 +589,7 @@ function InspectionsTab({ userId }: { userId: string }) {
               <button
                 onClick={() => setDeleteConfirm(null)}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 Cancel
               </button>

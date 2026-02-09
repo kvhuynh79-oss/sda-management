@@ -93,6 +93,7 @@ export default defineSchema({
       currency: v.optional(v.string()),
       fiscalYearStart: v.optional(v.string()), // ISO date (e.g., "07-01" for July 1)
       complianceRegion: v.optional(v.string()), // "AU-NSW", "AU-VIC", etc.
+      onboardingComplete: v.optional(v.string()), // "true" when onboarding wizard finished
     })),
     createdAt: v.number(),
     isActive: v.boolean(),       // Organization active status
@@ -732,7 +733,9 @@ export default defineSchema({
       // Complaint alerts
       v.literal("complaint_acknowledgment_overdue"), // Complaint not acknowledged within 24hrs
       v.literal("new_website_complaint"), // New complaint from website
-      v.literal("complaint_resolution_overdue") // Complaint not resolved within 21 days
+      v.literal("complaint_resolution_overdue"), // Complaint not resolved within 21 days
+      // Billing alerts
+      v.literal("subscription_payment_failed") // Stripe subscription payment failed
     ),
     severity: v.union(
       v.literal("critical"),
@@ -2029,13 +2032,14 @@ export default defineSchema({
     .index("by_follow_up", ["requiresFollowUp", "followUpDueDate"])
     .index("by_linked_incident", ["linkedIncidentId"])
     .index("by_isDeleted", ["isDeleted"])
-    .index("by_organizationId", ["organizationId"]),
+    .index("by_organizationId", ["organizationId"])
+    .index("by_org_contactName", ["organizationId", "contactName"]),
 
   // Thread summaries table - performance cache for thread views
   threadSummaries: defineTable({
     organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
     threadId: v.string(),
-    participantId: v.id("participants"),
+    participantId: v.optional(v.id("participants")), // Optional: not all threads are linked to a participant (e.g., contact-name-based threads)
     startedAt: v.number(),
     lastActivityAt: v.number(),
     messageCount: v.number(),
@@ -2131,4 +2135,65 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_endpoint", ["endpoint"])
     .index("by_userId_endpoint", ["userId", "endpoint"]),
+
+  // Leads table - track SDA housing inquiries from OTs and SCs
+  leads: defineTable({
+    organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to
+    // Referrer info
+    referrerType: v.union(v.literal("occupational_therapist"), v.literal("support_coordinator"), v.literal("other")),
+    referrerId: v.optional(v.string()), // ID of OT or SC from database
+    referrerName: v.string(),
+    referrerPhone: v.optional(v.string()),
+    referrerEmail: v.optional(v.string()),
+    referrerOrganization: v.optional(v.string()),
+    // Participant info
+    participantName: v.string(),
+    participantNdisNumber: v.optional(v.string()),
+    participantAge: v.optional(v.number()),
+    participantGender: v.optional(v.union(v.literal("male"), v.literal("female"), v.literal("other"), v.literal("prefer_not_to_say"))),
+    // Housing requirements
+    sdaCategoryNeeded: v.union(
+      v.literal("improved_liveability"),
+      v.literal("fully_accessible"),
+      v.literal("robust"),
+      v.literal("high_physical_support")
+    ),
+    preferredAreas: v.array(v.string()), // suburbs/regions
+    preferredState: v.optional(v.string()),
+    specificRequirements: v.optional(v.string()), // free text - wheelchair, ground floor, etc.
+    budgetNotes: v.optional(v.string()),
+    // Tracking
+    status: v.union(
+      v.literal("new"),
+      v.literal("contacted"),
+      v.literal("viewing"),
+      v.literal("waiting_list"),
+      v.literal("placed"),
+      v.literal("no_availability"),
+      v.literal("lost")
+    ),
+    urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
+    source: v.union(v.literal("phone"), v.literal("email"), v.literal("referral"), v.literal("website")),
+    // Outcome
+    matchedPropertyId: v.optional(v.id("properties")),
+    matchedDwellingId: v.optional(v.id("dwellings")),
+    placedDate: v.optional(v.string()),
+    lostReason: v.optional(v.union(v.literal("competitor"), v.literal("timing"), v.literal("unsuitable"), v.literal("budget"), v.literal("other"))),
+    lostNotes: v.optional(v.string()),
+    // Linking
+    threadId: v.optional(v.string()), // Links to communication thread
+    // Metadata
+    notes: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    isDeleted: v.optional(v.boolean()),
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("users")),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_status", ["status"])
+    .index("by_sdaCategory", ["sdaCategoryNeeded"])
+    .index("by_referrerType", ["referrerType"])
+    .index("by_createdAt", ["createdAt"]),
 });

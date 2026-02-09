@@ -187,7 +187,7 @@ export default function SupportCoordinatorsContent() {
             resetForm();
             setShowAddModal(true);
           }}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
         >
           + Add Coordinator
         </button>
@@ -200,12 +200,12 @@ export default function SupportCoordinatorsContent() {
           placeholder="Search by name, organization, or area..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
-          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
         >
           <option value="active">Active Only</option>
           <option value="inactive">Inactive Only</option>
@@ -216,7 +216,7 @@ export default function SupportCoordinatorsContent() {
       {/* Coordinators List */}
       {!coordinators ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600 mx-auto"></div>
           <p className="text-gray-400 mt-4">Loading...</p>
         </div>
       ) : filteredCoordinators?.length === 0 ? (
@@ -227,7 +227,7 @@ export default function SupportCoordinatorsContent() {
               resetForm();
               setShowAddModal(true);
             }}
-            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="mt-4 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
           >
             Add Your First Coordinator
           </button>
@@ -262,7 +262,7 @@ export default function SupportCoordinatorsContent() {
                     <p className="text-gray-400 mt-1">{coordinator.organization}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <a href={`mailto:${coordinator.email}`} className="text-blue-400 hover:text-blue-300 text-sm">
+                    <a href={`mailto:${coordinator.email}`} className="text-teal-500 hover:text-teal-400 text-sm">
                       {coordinator.email}
                     </a>
                     {coordinator.phone && (
@@ -345,7 +345,7 @@ export default function SupportCoordinatorsContent() {
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
                 <div>
@@ -355,7 +355,7 @@ export default function SupportCoordinatorsContent() {
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -367,7 +367,7 @@ export default function SupportCoordinatorsContent() {
                   value={formData.organization}
                   onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                   placeholder="e.g., NDIS Support Services"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -379,7 +379,7 @@ export default function SupportCoordinatorsContent() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
                 <div>
@@ -388,7 +388,7 @@ export default function SupportCoordinatorsContent() {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                   />
                 </div>
               </div>
@@ -416,7 +416,7 @@ export default function SupportCoordinatorsContent() {
                   value={formData.customArea}
                   onChange={(e) => setFormData({ ...formData, customArea: e.target.value })}
                   placeholder="Or enter custom area(s)..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -427,7 +427,7 @@ export default function SupportCoordinatorsContent() {
                   value={formData.relationship}
                   onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
                   placeholder="e.g., Referred by John Smith, Met at conference..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -463,7 +463,7 @@ export default function SupportCoordinatorsContent() {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
                   placeholder="Any additional notes..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -480,7 +480,7 @@ export default function SupportCoordinatorsContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   {editingId ? "Save Changes" : "Add Coordinator"}
                 </button>

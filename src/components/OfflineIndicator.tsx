@@ -52,7 +52,7 @@ export function OfflineIndicator() {
 
       {/* Syncing Banner */}
       {isSyncing && (
-        <div className="bg-blue-600 text-white px-4 py-3">
+        <div className="bg-teal-700 text-white px-4 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg

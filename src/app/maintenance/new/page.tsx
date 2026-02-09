@@ -334,7 +334,7 @@ function NewMaintenanceRequestContent() {
                     setSelectedPropertyId(e.target.value);
                     setFormData({ ...formData, propertyId: e.target.value, dwellingId: "" });
                   }}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="">Select a property</option>
                   {properties?.map((property) => (
@@ -353,7 +353,7 @@ function NewMaintenanceRequestContent() {
                   value={formData.dwellingId}
                   onChange={(e) => setFormData({ ...formData, dwellingId: e.target.value })}
                   disabled={!formData.propertyId}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent disabled:opacity-50"
                 >
                   <option value="">
                     {formData.propertyId ? "Select a dwelling" : "Select property first"}
@@ -382,7 +382,7 @@ function NewMaintenanceRequestContent() {
                       requestType: e.target.value as "reactive" | "preventative",
                     })
                   }
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="reactive">Reactive (Issue/Problem)</option>
                   <option value="preventative">Preventative (Scheduled)</option>
@@ -396,7 +396,7 @@ function NewMaintenanceRequestContent() {
                   required
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 >
                   <option value="plumbing">Plumbing</option>
                   <option value="electrical">Electrical</option>
@@ -445,7 +445,7 @@ function NewMaintenanceRequestContent() {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Brief summary of the issue or task"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
 
@@ -460,7 +460,7 @@ function NewMaintenanceRequestContent() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
                 placeholder="Detailed description of the issue, symptoms, or work required..."
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
 
@@ -475,7 +475,7 @@ function NewMaintenanceRequestContent() {
                   value={formData.reportedBy}
                   onChange={(e) => setFormData({ ...formData, reportedBy: e.target.value })}
                   placeholder="Name of person reporting (optional)"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
               <div>
@@ -487,7 +487,7 @@ function NewMaintenanceRequestContent() {
                   required
                   value={formData.reportedDate}
                   onChange={(e) => setFormData({ ...formData, reportedDate: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
             </div>
@@ -505,7 +505,7 @@ function NewMaintenanceRequestContent() {
                     value={formData.contractorName}
                     onChange={(e) => setFormData({ ...formData, contractorName: e.target.value })}
                     placeholder="Optional"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -519,7 +519,7 @@ function NewMaintenanceRequestContent() {
                       setFormData({ ...formData, contractorContact: e.target.value })
                     }
                     placeholder="Phone or email"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -533,7 +533,7 @@ function NewMaintenanceRequestContent() {
                   value={formData.quotedAmount}
                   onChange={(e) => setFormData({ ...formData, quotedAmount: e.target.value })}
                   placeholder="0.00"
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
                 />
               </div>
             </div>
@@ -548,7 +548,7 @@ function NewMaintenanceRequestContent() {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
                 placeholder="Any other relevant information..."
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
             </div>
 
@@ -624,7 +624,7 @@ function NewMaintenanceRequestContent() {
               <button
                 type="submit"
                 disabled={isSubmitting || uploadingPhotos}
-                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
+                className="flex-1 px-6 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors font-medium"
               >
                 {isSubmitting
                   ? uploadingPhotos

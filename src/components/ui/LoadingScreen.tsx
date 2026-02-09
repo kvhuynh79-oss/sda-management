@@ -19,7 +19,7 @@ export function LoadingScreen({
         aria-live="polite"
         aria-busy="true"
       >
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-3" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-600 mb-3" />
         <p className="text-gray-400">{message}</p>
         <span className="sr-only">Loading content</span>
       </div>
@@ -34,7 +34,7 @@ export function LoadingScreen({
       aria-busy="true"
     >
       <div className="flex flex-col items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600 mb-4" />
         <p className="text-white">{message}</p>
         <span className="sr-only">Loading content</span>
       </div>

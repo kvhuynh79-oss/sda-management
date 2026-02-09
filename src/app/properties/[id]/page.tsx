@@ -253,7 +253,7 @@ export default function PropertyDetailPage() {
                 <h2 className="text-lg font-semibold text-white">Dwellings</h2>
                 <Link
                   href={`/properties/${propertyId}/dwellings/new`}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   + Add Dwelling
                 </Link>
@@ -265,7 +265,7 @@ export default function PropertyDetailPage() {
                   <p className="text-gray-400 mb-4">No dwellings added yet</p>
                   <Link
                     href={`/properties/${propertyId}/dwellings/new`}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                   >
                     + Add First Dwelling
                   </Link>
@@ -451,7 +451,7 @@ function RelatedDocuments({
                 href={doc.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
+                className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-xs rounded-lg transition-colors"
               >
                 Download
               </a>
@@ -506,7 +506,7 @@ function RelatedDocuments({
         <h2 className="text-xl font-semibold text-white">Related Documents</h2>
         <button
           onClick={onUploadClick}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+          className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm"
         >
           + Upload
         </button>
@@ -541,7 +541,7 @@ function StatCard({
   color?: "blue" | "green" | "yellow" | "red";
 }) {
   const colorClasses = {
-    blue: "text-blue-400",
+    blue: "text-teal-500",
     green: "text-green-400",
     yellow: "text-yellow-400",
     red: "text-red-400",
@@ -666,7 +666,7 @@ function DwellingCard({
     <div className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors">
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="text-lg font-semibold text-white bg-blue-900/50 px-2 py-1 rounded">{fullAddress}</h3>
+          <h3 className="text-lg font-semibold text-white bg-teal-950/50 px-2 py-1 rounded">{fullAddress}</h3>
           <p className="text-gray-400 text-sm capitalize mt-1">{dwelling.dwellingType}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -718,7 +718,7 @@ function DwellingCard({
           <p className="text-gray-400 text-xs">SIL Provider:</p>
           <button
             onClick={() => setShowAddProvider(true)}
-            className="text-xs text-blue-400 hover:text-blue-300"
+            className="text-xs text-teal-500 hover:text-teal-400"
           >
             + Allocate
           </button>
@@ -826,7 +826,7 @@ function DwellingCard({
                   <p className="text-gray-400">No available SIL providers to allocate.</p>
                   <Link
                     href="/database/sil-providers"
-                    className="text-blue-400 text-sm hover:text-blue-300 mt-2 inline-block"
+                    className="text-teal-500 text-sm hover:text-teal-400 mt-2 inline-block"
                   >
                     Add a SIL provider first &rarr;
                   </Link>
@@ -840,7 +840,7 @@ function DwellingCard({
                     <select
                       value={selectedProvider}
                       onChange={(e) => setSelectedProvider(e.target.value as Id<"silProviders">)}
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600"
                     >
                       <option value="">Choose a provider...</option>
                       {availableProviders.map((provider) => (
@@ -861,7 +861,7 @@ function DwellingCard({
                           key={level.value}
                           className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
                             accessLevel === level.value
-                              ? "border-blue-500 bg-blue-600/10"
+                              ? "border-teal-600 bg-teal-700/10"
                               : "border-gray-600 hover:border-gray-500"
                           }`}
                         >
@@ -878,7 +878,7 @@ function DwellingCard({
                             <p className="text-gray-400 text-xs">{level.description}</p>
                           </div>
                           {accessLevel === level.value && (
-                            <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 text-teal-600" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                             </svg>
                           )}
@@ -895,7 +895,7 @@ function DwellingCard({
                       value={providerNotes}
                       onChange={(e) => setProviderNotes(e.target.value)}
                       rows={2}
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-teal-600"
                       placeholder="Any notes about this allocation..."
                     />
                   </div>
@@ -910,7 +910,7 @@ function DwellingCard({
                     <button
                       onClick={handleAddProvider}
                       disabled={!selectedProvider || isSubmitting}
-                      className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                      className="flex-1 py-2 px-4 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                     >
                       {isSubmitting ? "Allocating..." : "Allocate"}
                     </button>
@@ -1107,7 +1107,7 @@ function MediaGallery({
     <div
       ref={dropZoneRef}
       className={`relative bg-gray-800 rounded-lg p-6 transition-all ${
-        isDragOver ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900" : ""
+        isDragOver ? "ring-2 ring-teal-600 ring-offset-2 ring-offset-gray-900" : ""
       }`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -1133,7 +1133,7 @@ function MediaGallery({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
           >
             {isUploading ? uploadProgress || "Uploading..." : "+ Add Photos/Videos"}
           </button>
@@ -1142,8 +1142,8 @@ function MediaGallery({
 
       {/* Drag overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 bg-blue-600/20 rounded-lg flex items-center justify-center z-10 pointer-events-none">
-          <div className="bg-gray-800 px-6 py-4 rounded-lg shadow-lg border-2 border-blue-500">
+        <div className="absolute inset-0 bg-teal-700/20 rounded-lg flex items-center justify-center z-10 pointer-events-none">
+          <div className="bg-gray-800 px-6 py-4 rounded-lg shadow-lg border-2 border-teal-600">
             <p className="text-white font-medium">Drop files to upload</p>
           </div>
         </div>
@@ -1152,10 +1152,10 @@ function MediaGallery({
       {media.length === 0 ? (
         <div
           className={`text-center py-12 border-2 border-dashed rounded-lg transition-colors ${
-            isDragOver ? "border-blue-500 bg-blue-600/10" : "border-gray-700"
+            isDragOver ? "border-teal-600 bg-teal-700/10" : "border-gray-700"
           }`}
         >
-          <div className="flex justify-center mb-4">{isDragOver ? <svg className="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3 3m0 0l3-3m-3 3V2.25" /></svg> : <svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>}</div>
+          <div className="flex justify-center mb-4">{isDragOver ? <svg className="w-12 h-12 text-teal-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3 3m0 0l3-3m-3 3V2.25" /></svg> : <svg className="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>}</div>
           <p className="text-gray-400 mb-2">
             {isDragOver ? "Drop files here" : "No photos or videos yet"}
           </p>
@@ -1165,7 +1165,7 @@ function MediaGallery({
           {!isDragOver && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Upload Media
             </button>

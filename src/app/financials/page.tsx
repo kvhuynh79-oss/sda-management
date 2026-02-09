@@ -96,7 +96,7 @@ function FinancialsContent() {
                 </Link>
                 <Link
                   href="/payments/new"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   + Record Payment
                 </Link>
@@ -166,7 +166,7 @@ function TabButton({
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
         isActive
-          ? "border-blue-500 text-blue-400"
+          ? "border-teal-600 text-teal-500"
           : "border-transparent text-gray-400 hover:text-white hover:border-gray-600"
       }`}
     >
@@ -536,7 +536,7 @@ function ClaimsTab({ userId }: { userId: string }) {
             })()}
           </h3>
           {selectedDay !== null && (
-            <button onClick={() => setSelectedDay(null)} className="text-sm text-blue-400 hover:text-blue-300">
+            <button onClick={() => setSelectedDay(null)} className="text-sm text-teal-500 hover:text-teal-400">
               Clear filter (Day {selectedDay})
             </button>
           )}
@@ -558,7 +558,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                   ${!day ? "bg-transparent border-transparent" : ""}
                   ${day && (!dayData || dayData.length === 0) ? "bg-gray-700 border-gray-700" : ""}
                   ${day && dayData && dayData.length > 0 ? "bg-gray-700 border-gray-600 cursor-pointer hover:border-gray-500" : ""}
-                  ${isSelected ? "ring-2 ring-blue-500 border-blue-500" : ""}
+                  ${isSelected ? "ring-2 ring-teal-600 border-teal-600" : ""}
                   ${isToday && day ? "ring-2 ring-yellow-500" : ""}`}
               >
                 {day && (
@@ -567,7 +567,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                     {dayData && dayData.length > 0 && (
                       <div className="mt-1 space-y-0.5 overflow-hidden">
                         {dayData.slice(0, 3).map((claim, idx) => {
-                          const colors = { overdue: "bg-red-500", pending: "bg-yellow-500", submitted: "bg-blue-500", paid: "bg-green-500" };
+                          const colors = { overdue: "bg-red-500", pending: "bg-yellow-500", submitted: "bg-teal-600", paid: "bg-green-500" };
                           return (
                             <div key={idx} className="flex items-center gap-1">
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors[claim.status]}`}></div>
@@ -587,7 +587,7 @@ function ClaimsTab({ userId }: { userId: string }) {
         <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-400">
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div><span>Overdue</span></div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-500"></div><span>Pending</span></div>
-          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div><span>Submitted</span></div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-teal-600"></div><span>Submitted</span></div>
           <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div><span>Paid</span></div>
         </div>
       </div>
@@ -614,7 +614,7 @@ function ClaimsTab({ userId }: { userId: string }) {
         <div className="flex items-center gap-4">
           <button
             onClick={selectedClaims.size === filteredClaims?.length ? clearAllSelections : selectAllClaims}
-            className="text-sm text-blue-400 hover:text-blue-300"
+            className="text-sm text-teal-500 hover:text-teal-400"
           >
             {selectedClaims.size === filteredClaims?.length && filteredClaims?.length > 0 ? "Deselect All" : "Select All"}
           </button>
@@ -661,7 +661,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                         type="checkbox"
                         checked={selectedClaims.has(claimKey)}
                         onChange={() => toggleClaimSelection(claimKey)}
-                        className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 cursor-pointer"
+                        className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-offset-gray-800 cursor-pointer"
                       />
                       <div>
                         <p className="text-white font-medium">{claim.participant.firstName} {claim.participant.lastName}</p>
@@ -678,7 +678,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                         {claim.status === "pending" && !claim.existingClaim && (
                           <button
                             onClick={() => handleCreateAndSubmit(claim)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                            className="px-3 py-1 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded"
                           >
                             Submit
                           </button>
@@ -695,7 +695,7 @@ function ClaimsTab({ userId }: { userId: string }) {
                               });
                               setShowMarkSubmittedModal(true);
                             }}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                            className="px-3 py-1 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded"
                           >
                             Mark Submitted
                           </button>
@@ -857,7 +857,7 @@ function ClaimModal({
           </button>
           <button
             onClick={() => onSubmit(parseFloat(amount), notes || undefined, reference || undefined)}
-            className={`px-4 py-2 ${buttonColor === "blue" ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"} text-white rounded-lg`}
+            className={`px-4 py-2 ${buttonColor === "blue" ? "bg-teal-700 hover:bg-teal-800" : "bg-green-600 hover:bg-green-700"} text-white rounded-lg`}
           >
             {buttonLabel}
           </button>
@@ -1775,7 +1775,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
   const getPaymentTypeBadge = (type: string) => {
     const styles: Record<string, string> = {
       interim: "bg-orange-600 text-white",
-      sda_share: "bg-blue-600 text-white",
+      sda_share: "bg-teal-700 text-white",
       rent_contribution: "bg-purple-600 text-white",
       other: "bg-gray-600 text-white",
     };
@@ -1909,7 +1909,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); generateOwnerStatement(propertyName, payments); }}
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-2"
+                      className="px-3 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg flex items-center gap-2"
                       title="Generate PDF Statement"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1987,7 +1987,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
                       </div>
                       <button
                         onClick={() => generateStatementFromPlans(property)}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-2"
+                        className="px-3 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg flex items-center gap-2"
                         title="Generate PDF Statement from Plan Data"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2258,7 +2258,7 @@ function AddOwnerPaymentModal({
 // SHARED COMPONENTS
 // ============================================
 function StatCard({ label, value, color = "blue" }: { label: string; value: string; color?: "blue" | "green" | "yellow" | "red" }) {
-  const colorClasses = { blue: "text-blue-400", green: "text-green-400", yellow: "text-yellow-400", red: "text-red-400" };
+  const colorClasses = { blue: "text-teal-500", green: "text-green-400", yellow: "text-yellow-400", red: "text-red-400" };
   return (
     <div className="bg-gray-800 rounded-lg p-4">
       <p className="text-gray-400 text-sm">{label}</p>

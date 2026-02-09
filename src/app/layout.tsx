@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmDialogProvider } from "@/components/ui/ConfirmDialog";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
+import CommandPalette from "@/components/CommandPalette";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -66,7 +67,10 @@ export default function RootLayout({
           <OrganizationProvider>
             <ThemeProvider>
               <ToastProvider>
-                <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+                <ConfirmDialogProvider>
+                  <CommandPalette />
+                  {children}
+                </ConfirmDialogProvider>
               </ToastProvider>
             </ThemeProvider>
           </OrganizationProvider>

@@ -58,7 +58,7 @@ export default function OwnerDistributionsPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link href="/payments" className="text-blue-400 hover:text-blue-300 mb-4 inline-block">
+          <Link href="/payments" className="text-teal-500 hover:text-teal-400 mb-4 inline-block">
             &larr; Back to Payments
           </Link>
           <div className="flex justify-between items-center">
@@ -82,7 +82,7 @@ export default function OwnerDistributionsPage() {
 
         {/* Company Summary */}
         {distributions && (
-          <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg p-6 mb-8 border border-blue-700/50">
+          <div className="bg-gradient-to-r from-teal-950/50 to-purple-900/50 rounded-lg p-6 mb-8 border border-teal-800/50">
             <h3 className="text-lg font-semibold text-white mb-4">
               Company Summary - {formatMonth(selectedMonth)}
             </h3>
@@ -101,7 +101,7 @@ export default function OwnerDistributionsPage() {
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Total Income</p>
-                <p className="text-2xl font-bold text-blue-400">
+                <p className="text-2xl font-bold text-teal-500">
                   {formatCurrency(distributions.companyTotals.totalIncome)}
                 </p>
               </div>
@@ -187,7 +187,7 @@ export default function OwnerDistributionsPage() {
                           <td className="py-2 text-right text-gray-300">
                             {formatCurrency(p.monthlyRrc)}
                           </td>
-                          <td className="py-2 text-right text-blue-400">
+                          <td className="py-2 text-right text-teal-500">
                             {formatCurrency(p.totalIncome)}
                           </td>
                           <td className="py-2 text-right text-gray-400">
@@ -211,7 +211,7 @@ export default function OwnerDistributionsPage() {
                         <td className="py-2 text-right text-gray-300">
                           {formatCurrency(propDist.totalRrc)}
                         </td>
-                        <td className="py-2 text-right text-blue-400">
+                        <td className="py-2 text-right text-teal-500">
                           {formatCurrency(propDist.totalIncome)}
                         </td>
                         <td className="py-2 text-right text-gray-400">-</td>
@@ -240,7 +240,7 @@ export default function OwnerDistributionsPage() {
               </div>
               <div>
                 <p className="text-gray-400">Total Income</p>
-                <p className="text-blue-400 font-medium">{formatCurrency(ownerDist.grandTotalIncome)}</p>
+                <p className="text-teal-500 font-medium">{formatCurrency(ownerDist.grandTotalIncome)}</p>
               </div>
               <div>
                 <p className="text-gray-400">Management Fees</p>

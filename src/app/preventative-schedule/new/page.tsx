@@ -100,7 +100,7 @@ export default function NewPreventativeSchedulePage() {
         <div className="mb-8">
           <Link
             href="/preventative-schedule"
-            className="text-blue-400 hover:text-blue-300 mb-4 inline-block"
+            className="text-teal-500 hover:text-teal-400 mb-4 inline-block"
           >
             ← Back to Preventative Schedule
           </Link>
@@ -121,7 +121,7 @@ export default function NewPreventativeSchedulePage() {
                 setFormData({ ...formData, propertyId: e.target.value, dwellingId: "" });
               }}
               required
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             >
               <option value="">Select property...</option>
               {properties?.map((property) => (
@@ -141,7 +141,7 @@ export default function NewPreventativeSchedulePage() {
               <select
                 value={formData.dwellingId}
                 onChange={(e) => setFormData({ ...formData, dwellingId: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="">Entire Property</option>
                 {dwellings?.map((dwelling) => (
@@ -164,7 +164,7 @@ export default function NewPreventativeSchedulePage() {
               onChange={(e) => setFormData({ ...formData, taskName: e.target.value })}
               required
               placeholder="e.g., Pool maintenance, HVAC servicing"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             />
           </div>
 
@@ -176,7 +176,7 @@ export default function NewPreventativeSchedulePage() {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
               placeholder="Details about the maintenance task..."
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             />
           </div>
 
@@ -194,7 +194,7 @@ export default function NewPreventativeSchedulePage() {
                 })
               }
               required
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             >
               <option value="general">General</option>
               <option value="plumbing">Plumbing</option>
@@ -221,7 +221,7 @@ export default function NewPreventativeSchedulePage() {
                   })
                 }
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
@@ -241,7 +241,7 @@ export default function NewPreventativeSchedulePage() {
                 onChange={(e) => setFormData({ ...formData, frequencyInterval: e.target.value })}
                 required
                 placeholder="1"
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               />
               <p className="text-xs text-gray-400 mt-1">
                 E.g., "2" with "Monthly" = every 2 months
@@ -259,7 +259,7 @@ export default function NewPreventativeSchedulePage() {
               value={formData.nextDueDate}
               onChange={(e) => setFormData({ ...formData, nextDueDate: e.target.value })}
               required
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             />
           </div>
 
@@ -273,7 +273,7 @@ export default function NewPreventativeSchedulePage() {
               value={formData.estimatedCost}
               onChange={(e) => setFormData({ ...formData, estimatedCost: e.target.value })}
               placeholder="0.00"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             />
           </div>
 
@@ -287,7 +287,7 @@ export default function NewPreventativeSchedulePage() {
               value={formData.contractorName}
               onChange={(e) => setFormData({ ...formData, contractorName: e.target.value })}
               placeholder="Preferred contractor for this task"
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             />
           </div>
 
@@ -299,7 +299,7 @@ export default function NewPreventativeSchedulePage() {
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               placeholder="Additional notes or instructions..."
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
             />
           </div>
 
@@ -307,7 +307,7 @@ export default function NewPreventativeSchedulePage() {
           <div className="flex gap-4 pt-4">
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Create Schedule
             </button>

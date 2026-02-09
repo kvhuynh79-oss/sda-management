@@ -102,7 +102,7 @@ export default function CommunicationCard({ communication, compact = false }: Co
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link
             href={`/follow-ups/communications/${communication._id}`}
-            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             View
           </Link>

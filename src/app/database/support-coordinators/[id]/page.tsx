@@ -44,7 +44,7 @@ export default function SupportCoordinatorDetailPage() {
       <div className="min-h-screen bg-gray-900">
         <Header currentPage="database" />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
         </div>
       </div>
     );
@@ -59,7 +59,7 @@ export default function SupportCoordinatorDetailPage() {
             <p className="text-gray-400">Support coordinator not found</p>
             <Link
               href="/database/support-coordinators"
-              className="mt-4 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="mt-4 inline-block px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Back to List
             </Link>
@@ -118,7 +118,7 @@ export default function SupportCoordinatorDetailPage() {
       case "referred":
         return "bg-green-500/20 text-green-400";
       case "current":
-        return "bg-blue-500/20 text-blue-400";
+        return "bg-teal-600/20 text-teal-500";
       case "past":
         return "bg-gray-500/20 text-gray-400";
       case "inquiry":
@@ -137,7 +137,7 @@ export default function SupportCoordinatorDetailPage() {
         <div className="mb-6">
           <Link
             href="/database/support-coordinators"
-            className="text-blue-400 hover:text-blue-300"
+            className="text-teal-500 hover:text-teal-400"
           >
             ← Back to Support Coordinators
           </Link>
@@ -184,7 +184,7 @@ export default function SupportCoordinatorDetailPage() {
               </button>
               <a
                 href={`mailto:${coordinator.email}`}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
               >
                 Send Email
               </a>
@@ -197,7 +197,7 @@ export default function SupportCoordinatorDetailPage() {
               <p className="text-sm text-gray-400">Email</p>
               <a
                 href={`mailto:${coordinator.email}`}
-                className="text-blue-400 hover:text-blue-300"
+                className="text-teal-500 hover:text-teal-400"
               >
                 {coordinator.email}
               </a>
@@ -265,7 +265,7 @@ export default function SupportCoordinatorDetailPage() {
               <p className="text-sm text-gray-400">Referrals</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-teal-500">
                 {coordinator.participantHistory?.filter(
                   (h) => h.relationshipType === "current"
                 ).length || 0}
@@ -289,7 +289,7 @@ export default function SupportCoordinatorDetailPage() {
             <h2 className="text-xl font-semibold text-white">Participant History</h2>
             <button
               onClick={() => setShowLinkModal(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               + Link Participant
             </button>
@@ -382,7 +382,7 @@ export default function SupportCoordinatorDetailPage() {
                     setSelectedParticipantId(e.target.value as Id<"participants">)
                   }
                   required
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="">Select a participant...</option>
                   {availableParticipants?.map((p) => (
@@ -404,7 +404,7 @@ export default function SupportCoordinatorDetailPage() {
                       e.target.value as "referred" | "current" | "past" | "inquiry"
                     )
                   }
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="current">Current - Currently their coordinator</option>
                   <option value="referred">Referred - They referred this participant</option>
@@ -422,7 +422,7 @@ export default function SupportCoordinatorDetailPage() {
                   onChange={(e) => setLinkNotes(e.target.value)}
                   rows={2}
                   placeholder="Any notes about this relationship..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -436,7 +436,7 @@ export default function SupportCoordinatorDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   Link Participant
                 </button>

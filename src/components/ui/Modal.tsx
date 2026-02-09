@@ -149,7 +149,7 @@ export function Modal({
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+            className="text-gray-400 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             aria-label="Close modal"
           >
             <svg

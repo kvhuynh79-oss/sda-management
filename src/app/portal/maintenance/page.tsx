@@ -64,7 +64,7 @@ export default function SILProviderMaintenance() {
       case "medium":
         return "bg-yellow-600 text-white";
       case "low":
-        return "bg-blue-600 text-white";
+        return "bg-teal-700 text-white";
       default:
         return "bg-gray-600 text-white";
     }
@@ -73,7 +73,7 @@ export default function SILProviderMaintenance() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "reported":
-        return "bg-blue-600/20 text-blue-400";
+        return "bg-teal-700/20 text-teal-500";
       case "awaiting_quotes":
       case "quoted":
         return "bg-yellow-600/20 text-yellow-400";
@@ -257,7 +257,7 @@ export default function SILProviderMaintenance() {
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/portal/maintenance/${request._id}`}
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                      className="text-teal-500 hover:text-teal-400 text-sm font-medium"
                     >
                       View Details &rarr;
                     </Link>

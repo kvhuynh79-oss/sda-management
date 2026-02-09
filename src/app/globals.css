@@ -54,12 +54,12 @@ html.light header.bg-gray-800 {
   background-color: #ffffff !important;
   border-bottom-color: #d1d5db !important;
 }
-/* Blue info boxes - better contrast in light mode */
-html.light .bg-blue-900\/20 { background-color: #dbeafe !important; }
-html.light .border-blue-800 { border-color: #3b82f6 !important; }
-html.light .text-blue-300 { color: #1d4ed8 !important; }
-html.light .text-blue-200 { color: #1e40af !important; }
-html.light .bg-blue-950 { background-color: #bfdbfe !important; }
+/* Teal info boxes - better contrast in light mode */
+html.light .bg-teal-950\/20 { background-color: #ccfbf1 !important; }
+html.light .border-teal-900 { border-color: #0d9488 !important; }
+html.light .text-teal-400 { color: #0f766e !important; }
+html.light .text-teal-200 { color: #115e59 !important; }
+html.light .bg-teal-950 { background-color: #99f6e4 !important; }
 /* Red/error boxes */
 html.light .bg-red-900\/30 { background-color: #fee2e2 !important; }
 html.light .border-red-800 { border-color: #dc2626 !important; }
@@ -149,7 +149,7 @@ textarea,
 
 /* Smooth focus transitions */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #0d9488;
   outline-offset: 2px;
   transition: outline-offset 0.1s ease;
 }

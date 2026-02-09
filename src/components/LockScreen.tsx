@@ -233,7 +233,7 @@ export function LockScreen({ onUnlock, onLogout }: LockScreenProps) {
             key={i}
             className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
               i < pin.length
-                ? "bg-blue-500 border-blue-500 scale-110"
+                ? "bg-teal-600 border-teal-600 scale-110"
                 : "bg-transparent border-gray-500"
             }`}
             aria-hidden="true"
@@ -277,7 +277,7 @@ export function LockScreen({ onUnlock, onLogout }: LockScreenProps) {
                   type="button"
                   onClick={deleteDigit}
                   disabled={pin.length === 0 || isSubmitting}
-                  className="w-[72px] h-[72px] rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center text-gray-400 hover:bg-gray-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform"
+                  className="w-[72px] h-[72px] rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center text-gray-400 hover:bg-gray-700 focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform"
                   aria-label="Delete last digit"
                 >
                   <svg
@@ -306,7 +306,7 @@ export function LockScreen({ onUnlock, onLogout }: LockScreenProps) {
                 type="button"
                 onClick={() => appendDigit(key)}
                 disabled={pin.length >= PIN_LENGTH || isSubmitting}
-                className="w-[72px] h-[72px] rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center text-2xl font-semibold text-white hover:bg-gray-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform"
+                className="w-[72px] h-[72px] rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center text-2xl font-semibold text-white hover:bg-gray-700 focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:outline-none disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform"
                 aria-label={`Digit ${key}`}
               >
                 {key}
@@ -325,7 +325,7 @@ export function LockScreen({ onUnlock, onLogout }: LockScreenProps) {
       <button
         type="button"
         onClick={onLogout}
-        className="text-gray-400 hover:text-white text-sm underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none rounded px-2 py-1"
+        className="text-gray-400 hover:text-white text-sm underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:outline-none rounded px-2 py-1"
       >
         Forgot PIN? Logout
       </button>

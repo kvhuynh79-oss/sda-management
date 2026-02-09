@@ -249,7 +249,7 @@ export default function NewMaintenancePage() {
                     {
                       value: "low",
                       label: "Low",
-                      color: "bg-blue-600",
+                      color: "bg-teal-700",
                       desc: "Can wait",
                     },
                     {

@@ -127,7 +127,7 @@ export default function InspectionTemplatesPage() {
           </div>
           <button
             onClick={handleSeedTemplate}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm"
           >
             + Create BLS Template
           </button>
@@ -148,7 +148,7 @@ export default function InspectionTemplatesPage() {
               </p>
               <button
                 onClick={handleSeedTemplate}
-                className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="inline-block px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
               >
                 Create BLS Template
               </button>

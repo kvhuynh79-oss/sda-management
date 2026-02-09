@@ -84,7 +84,7 @@ function DatabaseContent() {
               onClick={() => handleTabChange("properties")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "properties"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-teal-600 text-teal-500"
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >
@@ -94,7 +94,7 @@ function DatabaseContent() {
               onClick={() => handleTabChange("participants")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "participants"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-teal-600 text-teal-500"
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >
@@ -104,7 +104,7 @@ function DatabaseContent() {
               onClick={() => handleTabChange("support-coordinators")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "support-coordinators"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-teal-600 text-teal-500"
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >
@@ -114,7 +114,7 @@ function DatabaseContent() {
               onClick={() => handleTabChange("sil-providers")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "sil-providers"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-teal-600 text-teal-500"
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >
@@ -124,7 +124,7 @@ function DatabaseContent() {
               onClick={() => handleTabChange("occupational-therapists")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "occupational-therapists"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-teal-600 text-teal-500"
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >
@@ -134,7 +134,7 @@ function DatabaseContent() {
               onClick={() => handleTabChange("contractors")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "contractors"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-teal-600 text-teal-500"
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >
@@ -144,7 +144,7 @@ function DatabaseContent() {
               onClick={() => handleTabChange("documents")}
               className={`pb-3 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === "documents"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-teal-600 text-teal-500"
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >

@@ -8,7 +8,7 @@ const VARIANTS = {
   success: "bg-green-500/20 text-green-400 border-green-500/30",
   warning: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   error: "bg-red-500/20 text-red-400 border-red-500/30",
-  info: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  info: "bg-teal-600/20 text-teal-500 border-teal-600/30",
   neutral: "bg-gray-500/20 text-gray-400 border-gray-500/30",
   purple: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   orange: "bg-orange-500/20 text-orange-400 border-orange-500/30",
@@ -18,7 +18,7 @@ const VARIANTS = {
   "success-solid": "bg-green-600 text-white border-green-600",
   "warning-solid": "bg-yellow-600 text-white border-yellow-600",
   "error-solid": "bg-red-600 text-white border-red-600",
-  "info-solid": "bg-blue-600 text-white border-blue-600",
+  "info-solid": "bg-teal-700 text-white border-teal-700",
   "neutral-solid": "bg-gray-600 text-white border-gray-600",
   "purple-solid": "bg-purple-600 text-white border-purple-600",
 } as const;

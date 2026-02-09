@@ -26,7 +26,7 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 const DIRECTION_COLORS: Record<string, string> = {
-  sent: "bg-blue-900/50 text-blue-300",
+  sent: "bg-teal-950/50 text-teal-400",
   received: "bg-green-900/50 text-green-300",
 };
 
@@ -36,7 +36,7 @@ function CommunicationTypeIcon({ type }: { type: string }) {
   switch (type) {
     case "email":
       return (
-        <svg className={`${iconClass} text-blue-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${iconClass} text-teal-500`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       );
@@ -162,7 +162,7 @@ export default function CommunicationsHistory({
         </h2>
         <Link
           href={logCommLink}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+          className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg transition-colors"
         >
           + Add Entry
         </Link>
@@ -206,7 +206,7 @@ export default function CommunicationsHistory({
                     <button
                       onClick={() => setExpandedThreadId(isExpanded ? null : thread.threadId)}
                       aria-expanded={isExpanded}
-                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
@@ -276,7 +276,7 @@ export default function CommunicationsHistory({
                 <div className="mt-3 text-center">
                   <Link
                     href="/communications"
-                    className="text-sm text-blue-400 hover:text-blue-300"
+                    className="text-sm text-teal-500 hover:text-teal-400"
                   >
                     View all {threadedData.threads.length} threads
                   </Link>
@@ -355,7 +355,7 @@ export default function CommunicationsHistory({
             <div className="mt-3 text-center">
               <Link
                 href={buildViewAllLink({ participantId, propertyId, stakeholderEntityType, stakeholderEntityId })}
-                className="text-sm text-blue-400 hover:text-blue-300"
+                className="text-sm text-teal-500 hover:text-teal-400"
               >
                 View all {totalCount} communications
               </Link>

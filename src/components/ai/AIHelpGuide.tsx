@@ -62,7 +62,7 @@ const promptCategories: PromptCategory[] = [
   {
     title: "Participants",
     icon: Users,
-    color: "text-blue-400",
+    color: "text-teal-500",
     prompts: [
       {
         prompt: "List all active participants with their locations",
@@ -284,9 +284,9 @@ export default function AIHelpGuide({ onTryPrompt, disabled }: AIHelpGuideProps)
             {/* Content */}
             <div className="overflow-y-auto flex-1 p-4">
               {/* Tips */}
-              <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4 mb-6">
-                <h3 className="text-blue-200 font-semibold mb-2">Tips for Best Results</h3>
-                <ul className="text-blue-300 text-sm space-y-1">
+              <div className="bg-teal-950/30 border border-teal-800 rounded-lg p-4 mb-6">
+                <h3 className="text-teal-200 font-semibold mb-2">Tips for Best Results</h3>
+                <ul className="text-teal-400 text-sm space-y-1">
                   <li>- Use natural language - ask like you're talking to a colleague</li>
                   <li>- Be specific with names and locations when needed</li>
                   <li>- For actions (moving, creating), you'll be asked to confirm</li>
@@ -339,7 +339,7 @@ export default function AIHelpGuide({ onTryPrompt, disabled }: AIHelpGuideProps)
                             disabled={disabled}
                             className="w-full text-left p-3 bg-gray-800 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
                           >
-                            <p className="text-white text-sm group-hover:text-blue-300 transition-colors">
+                            <p className="text-white text-sm group-hover:text-teal-400 transition-colors">
                               "{item.prompt}"
                             </p>
                             <p className="text-gray-400 text-xs mt-1">{item.description}</p>

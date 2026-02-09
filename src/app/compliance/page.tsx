@@ -158,9 +158,9 @@ function ComplianceContent() {
                 aria-controls={`panel-${tab.id}`}
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-teal-700 text-white"
                     : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                 }`}
               >
@@ -197,7 +197,7 @@ function ComplianceContent() {
                     </div>
                     <Link
                       href="/compliance/certifications"
-                      className="mt-4 inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                      className="mt-4 inline-flex items-center gap-1 text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                     >
                       View all certifications &rarr;
                     </Link>
@@ -224,7 +224,7 @@ function ComplianceContent() {
                     </div>
                     <button
                       onClick={() => setActiveTab("insurance")}
-                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                      className="mt-4 text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                     >
                       View all policies →
                     </button>
@@ -257,7 +257,7 @@ function ComplianceContent() {
                     </div>
                     <button
                       onClick={() => setActiveTab("complaints")}
-                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                      className="mt-4 text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                     >
                       View all complaints →
                     </button>
@@ -290,7 +290,7 @@ function ComplianceContent() {
                     </div>
                     <button
                       onClick={() => setActiveTab("incidents")}
-                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                      className="mt-4 text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                     >
                       View reportable incidents →
                     </button>
@@ -310,7 +310,7 @@ function ComplianceContent() {
                 onClick={() => setExpandedGuide(expandedGuide === "certifications" ? null : "certifications")}
                 aria-expanded={expandedGuide === "certifications"}
                 aria-controls="guide-certifications"
-                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
               >
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" /></svg>
@@ -375,13 +375,13 @@ function ComplianceContent() {
                 <div className="flex items-center gap-3">
                   <Link
                     href="/compliance/certifications"
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   >
                     View Full Page
                   </Link>
                   <Link
                     href="/compliance/certifications/new"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   >
                     + Add Certification
                   </Link>
@@ -450,7 +450,7 @@ function ComplianceContent() {
                 <h2 className="text-lg font-semibold text-white">Insurance Policies</h2>
                 <Link
                   href="/compliance/insurance/new"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                 >
                   + Add Policy
                 </Link>
@@ -515,7 +515,7 @@ function ComplianceContent() {
                           <p className="text-gray-400 text-sm">Policy #: {policy.policyNumber}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-blue-400 font-medium">
+                          <p className="text-teal-500 font-medium">
                             ${(policy.coverageAmount / 1000000).toFixed(1)}M
                           </p>
                           <p className="text-gray-400 text-sm">Expires</p>
@@ -545,7 +545,7 @@ function ComplianceContent() {
                 onClick={() => setExpandedGuide(expandedGuide === "complaints" ? null : "complaints")}
                 aria-expanded={expandedGuide === "complaints"}
                 aria-controls="guide-complaints"
-                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
               >
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
@@ -564,7 +564,7 @@ function ComplianceContent() {
                     </div>
                     <button
                       onClick={() => setShowSopOverlay(true)}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-sm rounded-lg flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
                       View Full Procedure
@@ -592,7 +592,7 @@ function ComplianceContent() {
                     <h4 className="text-green-300 font-semibold mb-3">5-Step Resolution Lifecycle</h4>
                     <div className="space-y-2">
                       <div className="flex items-start gap-3 bg-gray-700/30 rounded-lg p-3">
-                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center">1</span>
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-teal-700 text-white text-sm font-bold flex items-center justify-center">1</span>
                         <div>
                           <p className="text-white font-medium text-sm">Receipt &amp; Initial Triage</p>
                           <p className="text-gray-400 text-xs">Log complaint in MySDAManager with date, source, category. Assess if it involves a Reportable Incident.</p>
@@ -647,7 +647,7 @@ function ComplianceContent() {
                       <div>
                         <p className="text-gray-400 text-xs uppercase">NDIS Quality &amp; Safeguards Commission</p>
                         <p className="text-white text-sm font-medium">1800 035 544</p>
-                        <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">www.ndiscommission.gov.au</a>
+                        <a href="https://www.ndiscommission.gov.au/participants/complaints" target="_blank" rel="noopener noreferrer" className="text-teal-500 text-xs underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded">www.ndiscommission.gov.au</a>
                       </div>
                       <div>
                         <p className="text-gray-400 text-xs uppercase">Internal Escalation</p>
@@ -666,7 +666,7 @@ function ComplianceContent() {
                 <h2 className="text-lg font-semibold text-white">Complaints Register</h2>
                 <Link
                   href="/compliance/complaints/new"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                 >
                   + Log Complaint
                 </Link>
@@ -690,7 +690,7 @@ function ComplianceContent() {
               <p className="text-gray-400 text-center py-4">
                 <Link
                   href="/compliance/complaints"
-                  className="text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                  className="text-teal-500 hover:text-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                 >
                   View full complaints register →
                 </Link>
@@ -708,7 +708,7 @@ function ComplianceContent() {
                 onClick={() => setExpandedGuide(expandedGuide === "incidents" ? null : "incidents")}
                 aria-expanded={expandedGuide === "incidents"}
                 aria-controls="guide-incidents"
-                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                className="w-full flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
               >
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
@@ -748,7 +748,7 @@ function ComplianceContent() {
                   <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
                     <h4 className="text-white font-semibold mb-2">How to Report</h4>
                     <ol className="text-gray-300 text-sm space-y-1 ml-4 list-decimal">
-                      <li>Log into <a href="https://www.ndiscommission.gov.au/providers/provider-portal" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">NDIS Commission Provider Portal</a></li>
+                      <li>Log into <a href="https://www.ndiscommission.gov.au/providers/provider-portal" target="_blank" rel="noopener noreferrer" className="text-teal-500 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded">NDIS Commission Provider Portal</a></li>
                       <li>Navigate to &quot;Reportable Incidents&quot;</li>
                       <li>Complete and submit notification</li>
                       <li>Record reference number</li>
@@ -813,7 +813,7 @@ function ComplianceContent() {
                   <p className="text-gray-400 text-center py-4">
                     <Link
                       href="/incidents"
-                      className="text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                      className="text-teal-500 hover:text-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                     >
                       View all incidents →
                     </Link>

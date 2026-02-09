@@ -208,7 +208,7 @@ function Step({ number, label, active, completed }: {
   return (
     <div className="flex items-center">
       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-        ${active ? "bg-blue-600 text-white" : completed ? "bg-green-600 text-white" : "bg-gray-700 text-gray-400"}`}>
+        ${active ? "bg-teal-700 text-white" : completed ? "bg-green-600 text-white" : "bg-gray-700 text-gray-400"}`}>
         {completed ? "✓" : number}
       </div>
       <span className={`ml-2 ${active ? "text-white" : "text-gray-400"}`}>{label}</span>
@@ -371,7 +371,7 @@ function ParticipantDetailsStep({ data, setData, onNext }: any) {
         <button
           onClick={onNext}
           disabled={!data.ndisNumber || !data.firstName || !data.lastName}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+          className="px-6 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
         >
           Next: Select Dwelling
         </button>
@@ -423,7 +423,7 @@ function DwellingSelectionStep({
                     className={`block p-4 rounded-lg border cursor-pointer transition-colors
                       ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}
                       ${selectedDwellingId === dwelling._id 
-                        ? "border-blue-500 bg-blue-500/10" 
+                        ? "border-teal-600 bg-teal-600/10" 
                         : "border-gray-600 hover:border-gray-500"}`}
                   >
                     <input
@@ -479,7 +479,7 @@ function DwellingSelectionStep({
         <button
           onClick={onNext}
           disabled={!selectedDwellingId}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+          className="px-6 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
         >
           Next: NDIS Plan
         </button>

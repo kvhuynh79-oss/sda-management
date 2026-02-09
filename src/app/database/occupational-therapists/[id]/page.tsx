@@ -47,7 +47,7 @@ export default function OccupationalTherapistDetailPage() {
       <div className="min-h-screen bg-gray-900">
         <Header currentPage="database" />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
         </div>
       </div>
     );
@@ -62,7 +62,7 @@ export default function OccupationalTherapistDetailPage() {
             <p className="text-gray-400">Occupational therapist not found</p>
             <Link
               href="/database/occupational-therapists"
-              className="mt-4 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="mt-4 inline-block px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Back to List
             </Link>
@@ -153,7 +153,7 @@ export default function OccupationalTherapistDetailPage() {
       case "sda_assessment":
         return "bg-green-500/20 text-green-400";
       case "ongoing":
-        return "bg-blue-500/20 text-blue-400";
+        return "bg-teal-600/20 text-teal-500";
       case "at_prescription":
         return "bg-purple-500/20 text-purple-400";
       case "home_mod":
@@ -185,7 +185,7 @@ export default function OccupationalTherapistDetailPage() {
         <div className="mb-6">
           <Link
             href="/database/occupational-therapists"
-            className="text-blue-400 hover:text-blue-300"
+            className="text-teal-500 hover:text-teal-400"
           >
             &larr; Back to Occupational Therapists
           </Link>
@@ -281,7 +281,7 @@ export default function OccupationalTherapistDetailPage() {
                   </button>
                   <a
                     href={`mailto:${therapist.email}`}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                   >
                     Send Email
                   </a>
@@ -325,7 +325,7 @@ export default function OccupationalTherapistDetailPage() {
                   <p className="text-sm text-gray-400">Email</p>
                   <a
                     href={`mailto:${therapist.email}`}
-                    className="text-blue-400 hover:text-blue-300"
+                    className="text-teal-500 hover:text-teal-400"
                   >
                     {therapist.email}
                   </a>
@@ -444,7 +444,7 @@ export default function OccupationalTherapistDetailPage() {
               <p className="text-sm text-gray-400">Total Assessments</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-teal-500">
                 {therapist.participantHistory?.filter(
                   (h) => h.relationshipType === "ongoing"
                 ).length || 0}
@@ -468,7 +468,7 @@ export default function OccupationalTherapistDetailPage() {
             <h2 className="text-xl font-semibold text-white">Participant History</h2>
             <button
               onClick={() => setShowLinkModal(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               + Link Participant
             </button>
@@ -561,7 +561,7 @@ export default function OccupationalTherapistDetailPage() {
                     setSelectedParticipantId(e.target.value as Id<"participants">)
                   }
                   required
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="">Select a participant...</option>
                   {availableParticipants?.map((p) => (
@@ -583,7 +583,7 @@ export default function OccupationalTherapistDetailPage() {
                       e.target.value as "sda_assessment" | "ongoing" | "at_prescription" | "home_mod" | "inquiry"
                     )
                   }
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 >
                   <option value="sda_assessment">SDA Assessment</option>
                   <option value="ongoing">Ongoing - Regular OT services</option>
@@ -601,7 +601,7 @@ export default function OccupationalTherapistDetailPage() {
                   type="date"
                   value={assessmentDate}
                   onChange={(e) => setAssessmentDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -614,7 +614,7 @@ export default function OccupationalTherapistDetailPage() {
                   onChange={(e) => setLinkNotes(e.target.value)}
                   rows={2}
                   placeholder="Any notes about this relationship..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
                 />
               </div>
 
@@ -628,7 +628,7 @@ export default function OccupationalTherapistDetailPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   Link Participant
                 </button>

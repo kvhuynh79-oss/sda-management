@@ -195,7 +195,7 @@ export default function XeroSettingsPage() {
         <div className="mb-6">
           <Link
             href="/settings"
-            className="text-blue-400 hover:text-blue-300 text-sm"
+            className="text-teal-500 hover:text-teal-400 text-sm"
           >
             &larr; Back to Settings
           </Link>
@@ -241,7 +241,7 @@ export default function XeroSettingsPage() {
               </p>
               <button
                 onClick={handleConnect}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
               >
                 Connect to Xero
               </button>
@@ -305,7 +305,7 @@ export default function XeroSettingsPage() {
               {!isConnected && (
                 <button
                   onClick={handleConnect}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
                 >
                   Reconnect to Xero
                 </button>
@@ -324,7 +324,7 @@ export default function XeroSettingsPage() {
               <button
                 onClick={handleFetchXeroAccounts}
                 disabled={isFetchingAccounts}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm"
               >
                 {isFetchingAccounts ? "Fetching..." : "Fetch Accounts"}
               </button>
@@ -390,7 +390,7 @@ export default function XeroSettingsPage() {
                     <span
                       className={`px-2 py-1 text-xs rounded ${
                         account.accountType === "operating"
-                          ? "bg-blue-900/50 text-blue-300"
+                          ? "bg-teal-950/50 text-teal-400"
                           : "bg-purple-900/50 text-purple-300"
                       }`}
                     >
@@ -402,7 +402,7 @@ export default function XeroSettingsPage() {
                     <div className="flex items-center gap-3">
                       <select
                         data-account-id={account._id}
-                        className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-blue-500 focus:outline-none"
+                        className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg border border-gray-500 focus:border-teal-600 focus:outline-none"
                         defaultValue=""
                       >
                         <option value="" disabled>
@@ -461,7 +461,7 @@ export default function XeroSettingsPage() {
                   handleToggleAutoSync(!connection.autoSyncEnabled)
                 }
                 className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                  connection.autoSyncEnabled ? "bg-blue-600" : "bg-gray-600"
+                  connection.autoSyncEnabled ? "bg-teal-700" : "bg-gray-600"
                 } cursor-pointer`}
               >
                 <span
@@ -477,42 +477,42 @@ export default function XeroSettingsPage() {
         )}
 
         {/* Setup Instructions */}
-        <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-blue-300 mb-2">
+        <div className="bg-teal-950/20 border border-teal-900 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-semibold text-teal-400 mb-2">
             Setup Requirements
           </h3>
-          <p className="text-blue-200 text-sm mb-3">
+          <p className="text-teal-200 text-sm mb-3">
             To enable Xero integration, you need to configure the following
             environment variables:
           </p>
-          <ul className="text-blue-200 text-sm space-y-2 list-disc list-inside">
+          <ul className="text-teal-200 text-sm space-y-2 list-disc list-inside">
             <li>
-              <code className="bg-blue-950 px-2 py-0.5 rounded">
+              <code className="bg-teal-950 px-2 py-0.5 rounded">
                 XERO_CLIENT_ID
               </code>{" "}
               - Your Xero app client ID
             </li>
             <li>
-              <code className="bg-blue-950 px-2 py-0.5 rounded">
+              <code className="bg-teal-950 px-2 py-0.5 rounded">
                 XERO_CLIENT_SECRET
               </code>{" "}
               - Your Xero app client secret
             </li>
             <li>
-              <code className="bg-blue-950 px-2 py-0.5 rounded">
+              <code className="bg-teal-950 px-2 py-0.5 rounded">
                 XERO_REDIRECT_URI
               </code>{" "}
               - OAuth callback URL (e.g.,
               https://yourapp.com/api/xero/callback)
             </li>
           </ul>
-          <p className="text-blue-300 text-xs mt-3">
+          <p className="text-teal-400 text-xs mt-3">
             Create a Xero app at{" "}
             <a
               href="https://developer.xero.com/app/manage"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-blue-200"
+              className="underline hover:text-teal-200"
             >
               developer.xero.com
             </a>
@@ -523,7 +523,7 @@ export default function XeroSettingsPage() {
         <div className="flex gap-4">
           <Link
             href="/financials/reconciliation"
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+            className="px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors font-medium"
           >
             Go to Reconciliation
           </Link>

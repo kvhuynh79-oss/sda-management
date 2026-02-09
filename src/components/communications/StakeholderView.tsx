@@ -47,7 +47,7 @@ const CONTACT_TYPE_LABELS: Record<string, string> = {
 
 const AVATAR_COLORS: Record<string, string> = {
   ndia: "bg-purple-600",
-  support_coordinator: "bg-blue-600",
+  support_coordinator: "bg-teal-700",
   sil_provider: "bg-orange-600",
   participant: "bg-green-600",
   family: "bg-cyan-600",
@@ -263,7 +263,7 @@ export function StakeholderView({
                         <div className="flex items-center gap-2 mt-2">
                           <Link
                             href={buildStakeholderAddEntryUrl(stakeholder)}
-                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
+                            className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
                           >
                             Add Entry
                           </Link>
@@ -293,7 +293,7 @@ export function StakeholderView({
         <div className="mt-4 text-center">
           <button
             onClick={handleLoadMore}
-            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
           >
             Load More Stakeholders
           </button>

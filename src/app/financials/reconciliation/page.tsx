@@ -213,7 +213,7 @@ function ReconciliationContent() {
               <button
                 onClick={handleXeroSync}
                 disabled={!selectedAccountId || isSyncing}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
               >
                 {isSyncing ? (
                   <>
@@ -235,7 +235,7 @@ function ReconciliationContent() {
             ) : (
               <Link
                 href="/settings/integrations/xero"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -284,7 +284,7 @@ function ReconciliationContent() {
               <select
                 value={selectedAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="">All Accounts</option>
                 {accounts?.map((account) => (
@@ -299,7 +299,7 @@ function ReconciliationContent() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="all">All Statuses</option>
                 <option value="unmatched">Unmatched</option>
@@ -312,7 +312,7 @@ function ReconciliationContent() {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
               >
                 <option value="all">All Categories</option>
                 <option value="sda_income">SDA Income</option>
@@ -504,7 +504,7 @@ function TransactionRow({
   const getCategoryBadge = (category?: string) => {
     if (!category) return "";
     const styles: Record<string, string> = {
-      sda_income: "bg-blue-600/20 text-blue-400",
+      sda_income: "bg-teal-700/20 text-teal-500",
       rrc_income: "bg-purple-600/20 text-purple-400",
       owner_payment: "bg-orange-600/20 text-orange-400",
       maintenance: "bg-red-600/20 text-red-400",
@@ -774,7 +774,7 @@ function ImportModal({
             </p>
             <button
               onClick={onClose}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-6 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Done
             </button>
@@ -817,7 +817,7 @@ function ImportModal({
                   type="file"
                   accept=".csv"
                   onChange={handleFileUpload}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:bg-teal-700 file:text-white file:cursor-pointer"
                 />
               </div>
 
@@ -863,7 +863,7 @@ function ImportModal({
               <button
                 onClick={handleImport}
                 disabled={importing || !csvText || !accountId}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
                 {importing ? "Importing..." : "Import Transactions"}
               </button>
@@ -885,7 +885,7 @@ function StatCard({
   color: "blue" | "green" | "yellow" | "red";
 }) {
   const colorClasses = {
-    blue: "text-blue-400",
+    blue: "text-teal-500",
     green: "text-green-400",
     yellow: "text-yellow-400",
     red: "text-red-400",
@@ -920,7 +920,7 @@ function EmptyAccountState() {
       </p>
       <Link
         href="/financials/bank-accounts"
-        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors inline-block"
+        className="px-6 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors inline-block"
       >
         Add Bank Account
       </Link>
@@ -944,14 +944,14 @@ function EmptyTransactionState({ onImport, isXeroConnected }: { onImport: () => 
       </p>
       <div className="flex gap-3 justify-center">
         {isXeroConnected ? (
-          <p className="text-blue-400 text-sm">
+          <p className="text-teal-500 text-sm">
             Use the &quot;Sync from Xero&quot; button above to get started
           </p>
         ) : (
           <>
             <Link
               href="/settings/integrations/xero"
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-6 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               Connect Xero
             </Link>

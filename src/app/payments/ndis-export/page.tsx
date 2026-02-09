@@ -180,7 +180,7 @@ export default function NDISExportPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link href="/payments" className="text-blue-400 hover:text-blue-300 mb-4 inline-block">
+          <Link href="/payments" className="text-teal-500 hover:text-teal-400 mb-4 inline-block">
             &larr; Back to Payments
           </Link>
           <div className="flex justify-between items-center">
@@ -301,7 +301,7 @@ export default function NDISExportPage() {
                     !settingsForm.abn ||
                     !settingsForm.defaultSupportItemNumber
                   }
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                  className="flex-1 px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg transition-colors"
                 >
                   Save Settings
                 </button>
@@ -371,7 +371,7 @@ export default function NDISExportPage() {
                   checked={selectedParticipants.includes(participant._id)}
                   onChange={() => handleToggleParticipant(participant._id)}
                   disabled={!participant.hasPlan}
-                  className="w-5 h-5 text-blue-600 bg-gray-600 border-gray-500 rounded"
+                  className="w-5 h-5 text-teal-700 bg-gray-600 border-gray-500 rounded"
                 />
                 <div className="ml-3 flex-1">
                   <span className="text-white">

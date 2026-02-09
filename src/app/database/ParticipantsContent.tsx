@@ -51,7 +51,7 @@ export default function ParticipantsContent() {
         </div>
         <Link
           href="/participants/new"
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+          className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
         >
           + Add Participant
         </Link>
@@ -71,7 +71,7 @@ export default function ParticipantsContent() {
               placeholder="Search by name or NDIS number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600"
               aria-describedby="search-hint"
             />
             <span id="search-hint" className="sr-only">
@@ -86,7 +86,7 @@ export default function ParticipantsContent() {
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -190,7 +190,7 @@ function ParticipantCard({ participant }: { participant: any }) {
   return (
     <Link
       href={`/participants/${participant._id}`}
-      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
       role="listitem"
     >
       <article className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:bg-gray-700/80 transition-colors cursor-pointer">

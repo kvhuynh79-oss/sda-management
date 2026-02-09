@@ -548,34 +548,37 @@ worker/
     - Internal mutations skip tenant checks (e.g., `autoCreateForIncident`, `autoCreateForComplaint`)
   - **Status**:
     - ✅ Backend: 100% complete - all 26 backend files tenant-scoped
-    - ⏳ Frontend: Pending - 50-100+ pages need `userId` parameter added to `useQuery` calls (next session)
-    - ✅ Build: Backend compiles clean, Convex schema deployed to dev
-  - **Files Modified**: 35 files (30 backend, schema.ts, authHelpers.ts, OrganizationContext.tsx, layout.tsx, seed.ts)
-  - **Commit**: db8ab40 - "Sprint 1 & 2 Complete: Multi-Tenant SaaS Foundation"
+    - ✅ Frontend: 100% complete - 64 files updated with userId parameter
+    - ✅ Build: 82 pages, 0 TypeScript errors
+  - **Files Modified**: 99 files total (35 backend + 64 frontend)
+  - **Commits**: db8ab40 (backend), c9de9b7 (frontend)
+- **Sprint 2 Frontend (2026-02-09)** ✅
+  - Updated **64 frontend files** with `userId` parameter on all `useQuery` calls
+  - **6 parallel Frontend Developer agents** (one per batch of 10-17 files)
+  - Pattern: `useQuery(api.module.fn, user ? { userId: user.id as Id<"users"> } : "skip")`
+  - Only refactored backend modules targeted (26 files with requireTenant)
+  - Non-refactored modules (claims, reports, xero, etc.) left unchanged
+  - Build: 82 pages, 0 errors. Commit c9de9b7.
 
-## Next Session: Sprint 2 Frontend + Seed Script (Start Here)
+## Next Session: Seed Script + Sprint 3 (Start Here)
 
 ### Immediate Tasks
 1. **Run seed script**: Execute `seedBlsOrganization` mutation to create BLS org and backfill all users with `organizationId`
-2. **Frontend query updates**: Add `userId` parameter to all `useQuery` calls (50-100+ pages)
-   - Pattern: `useQuery(api.properties.getAll, { userId: user._id })` (user from useAuth)
-   - Most common queries: properties.getAll, participants.getAll, payments.getAll, maintenance.getAll, etc.
-   - Use Backend Architect agent to generate list of affected pages, then Frontend Developer agent to update in batches
-3. **Test tenant isolation**: Create 2nd test organization, verify complete data isolation
-4. **Run full build**: `npm run build` must pass with 0 errors
-5. **Deploy to dev**: `npx convex dev` to deploy updated queries
+2. **Test tenant isolation**: Create 2nd test organization, verify complete data isolation
+3. **Deploy to dev**: `npx convex dev` to deploy updated queries
+4. **Begin Sprint 3+4+5** in parallel (Stripe, Brand, Navigation)
 
-### SaaS Transformation Plan (Approved 2026-02-08)
+### SaaS Transformation Plan (Approved 2026-02-08, Updated 2026-02-09)
 **Full plan:** `.claude/plans/transient-wobbling-floyd.md`
 
-| Sprint | Duration | Focus | Window Assignment |
-|---|---|---|---|
-| **0** | 1 week | Stabilization & testing | W1: QA, W2: Backend, W3: Frontend |
-| **1** | 2 weeks | Organizations table + tenant context (CRITICAL PATH) | W2: Backend Architect, W3: Frontend Developer |
-| **2** | 2 weeks | Query refactoring for tenant isolation (37+ files) | W2: Backend Architect (x2 batches) |
-| **3** | 2 weeks | Stripe integration + registration + onboarding | W2: Backend, W3: Frontend + UI Designer |
-| **4** | 2 weeks | Brand identity (teal-600) + public website (parallel w/ S2) | W3: Brand Guardian + UI Designer |
-| **5** | 1 week | Navigation redesign (14 items -> 6 clusters) | W3: Frontend Developer + UX Researcher |
+| Sprint | Status | Focus |
+|---|---|---|
+| **0, 0.5, 0.75** | ✅ DONE | Stabilization, Document Intake, AI Analysis |
+| **1** | ✅ DONE | Organizations table + tenant context |
+| **2** | ✅ DONE | Query refactoring (backend 26 files + frontend 64 files) |
+| **3** | Next | Stripe integration + registration + onboarding |
+| **4** | Next (parallel) | Brand identity (teal-600) + public website |
+| **5** | Next (parallel) | Navigation redesign (14 items -> 6 clusters) |
 | **6** | 2 weeks | Admin super-dashboard | W2: Backend, W3: Frontend |
 | **7** | 2 weeks | White-label + REST API | W2: Backend, W3: Frontend + Brand Guardian |
 | **8** | 2 weeks | Security audit + performance + launch prep | All windows |

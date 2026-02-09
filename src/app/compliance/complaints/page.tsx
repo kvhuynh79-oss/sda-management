@@ -178,7 +178,7 @@ function ComplaintsRegisterContent() {
           <div>
             <Link
               href="/compliance"
-              className="text-blue-400 hover:text-blue-300 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+              className="text-teal-500 hover:text-teal-400 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             >
               &larr; Back to Compliance Dashboard
             </Link>
@@ -198,7 +198,7 @@ function ComplaintsRegisterContent() {
             </button>
             <Link
               href="/compliance/complaints/new"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
               + Log Complaint
             </Link>
@@ -298,7 +298,7 @@ function ComplaintsRegisterContent() {
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Ref #, name, description..."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               />
             </div>
 
@@ -311,7 +311,7 @@ function ComplaintsRegisterContent() {
                 id="complaint-status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               >
                 <option value="">All Statuses</option>
                 <option value="received">Received</option>
@@ -332,7 +332,7 @@ function ComplaintsRegisterContent() {
                 id="complaint-category-filter"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               >
                 <option value="">All Categories</option>
                 {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
@@ -352,7 +352,7 @@ function ComplaintsRegisterContent() {
                 id="complaint-severity-filter"
                 value={severityFilter}
                 onChange={(e) => setSeverityFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               >
                 <option value="">All Severities</option>
                 <option value="low">Low</option>
@@ -371,7 +371,7 @@ function ComplaintsRegisterContent() {
                 id="complaint-source-filter"
                 value={sourceFilter}
                 onChange={(e) => setSourceFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               >
                 <option value="">All Sources</option>
                 <option value="website">Website</option>
@@ -393,7 +393,7 @@ function ComplaintsRegisterContent() {
                 setSeverityFilter("");
                 setSourceFilter("");
               }}
-              className="mt-3 text-sm text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+              className="mt-3 text-sm text-teal-500 hover:text-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             >
               Clear all filters
             </button>
@@ -427,7 +427,7 @@ function ComplaintsRegisterContent() {
             {!hasFilters && (
               <Link
                 href="/compliance/complaints/new"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 + Log First Complaint
               </Link>
@@ -558,7 +558,7 @@ function ComplaintsRegisterContent() {
                         <td className="px-4 py-3 text-right">
                           <Link
                             href={`/compliance/complaints/${complaint._id}`}
-                            className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                            className="text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                             onClick={(e) => e.stopPropagation()}
                           >
                             View

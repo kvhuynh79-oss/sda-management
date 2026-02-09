@@ -29,7 +29,7 @@ import {
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
   create: <Plus className="w-4 h-4 text-green-400" />,
-  update: <Edit className="w-4 h-4 text-blue-400" />,
+  update: <Edit className="w-4 h-4 text-teal-500" />,
   delete: <Trash2 className="w-4 h-4 text-red-400" />,
   login: <LogIn className="w-4 h-4 text-purple-400" />,
   logout: <LogOut className="w-4 h-4 text-gray-400" />,
@@ -40,7 +40,7 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
 
 const ACTION_COLORS: Record<string, string> = {
   create: "bg-green-900/30 text-green-400 border-green-700",
-  update: "bg-blue-900/30 text-blue-400 border-blue-700",
+  update: "bg-teal-950/30 text-teal-500 border-teal-800",
   delete: "bg-red-900/30 text-red-400 border-red-700",
   login: "bg-purple-900/30 text-purple-400 border-purple-700",
   logout: "bg-gray-800/30 text-gray-400 border-gray-600",
@@ -167,7 +167,7 @@ function AuditLogContent() {
             </div>
             <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
               <div className="text-sm text-gray-400">Updates</div>
-              <div className="text-2xl font-bold text-blue-400">{stats.actionCounts.update || 0}</div>
+              <div className="text-2xl font-bold text-teal-500">{stats.actionCounts.update || 0}</div>
             </div>
             <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
               <div className="text-sm text-gray-400">Deletes</div>

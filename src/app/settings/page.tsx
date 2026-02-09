@@ -313,7 +313,7 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={handleOpenCreateUser}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm font-medium"
               >
                 + Add User
               </button>
@@ -330,14 +330,14 @@ export default function SettingsPage() {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                      <div className="w-10 h-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-medium">
                         {u.firstName[0]}{u.lastName[0]}
                       </div>
                       <div>
                         <h4 className="text-white font-medium">
                           {u.firstName} {u.lastName}
                           {u.id === user.id && (
-                            <span className="ml-2 text-xs text-blue-400">(You)</span>
+                            <span className="ml-2 text-xs text-teal-500">(You)</span>
                           )}
                         </h4>
                         <p className="text-gray-400 text-sm">{u.email}</p>
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-4">
                     <span className={`px-2 py-1 text-xs rounded font-medium ${
                       u.role === "admin" ? "bg-purple-600 text-white" :
-                      u.role === "property_manager" ? "bg-blue-600 text-white" :
+                      u.role === "property_manager" ? "bg-teal-700 text-white" :
                       u.role === "accountant" ? "bg-green-600 text-white" :
                       u.role === "sil_provider" ? "bg-orange-600 text-white" :
                       "bg-gray-600 text-white"
@@ -476,7 +476,7 @@ export default function SettingsPage() {
                   onClick={() => setTheme("dark")}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     theme === "dark"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-teal-700 text-white"
                       : "bg-gray-600 text-gray-300 hover:bg-gray-500"
                   }`}
                 >
@@ -486,7 +486,7 @@ export default function SettingsPage() {
                   onClick={() => setTheme("light")}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     theme === "light"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-teal-700 text-white"
                       : "bg-gray-600 text-gray-300 hover:bg-gray-500"
                   }`}
                 >
@@ -589,7 +589,7 @@ export default function SettingsPage() {
             <button
               onClick={() => handleTestNotification("email")}
               disabled={isTesting || !formData.emailEnabled}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
+              className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
             >
               {isTesting ? "Sending..." : "Send Test Email"}
             </button>
@@ -616,14 +616,14 @@ export default function SettingsPage() {
         </div>
 
         {/* Setup Instructions */}
-        <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-blue-300 mb-2">
+        <div className="bg-teal-950/20 border border-teal-900 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-semibold text-teal-400 mb-2">
             Setup Required
           </h3>
-          <p className="text-blue-200 text-sm mb-3">
+          <p className="text-teal-200 text-sm mb-3">
             To enable email and SMS notifications, your administrator needs to configure external services:
           </p>
-          <ul className="text-blue-200 text-sm space-y-2 list-disc list-inside">
+          <ul className="text-teal-200 text-sm space-y-2 list-disc list-inside">
             <li>
               <strong>Email:</strong> Configure Resend API (add RESEND_API_KEY to environment variables)
             </li>
@@ -631,8 +631,8 @@ export default function SettingsPage() {
               <strong>SMS:</strong> Configure Twilio API (add TWILIO credentials to environment variables)
             </li>
           </ul>
-          <p className="text-blue-300 text-xs mt-3">
-            See <code className="bg-blue-950 px-2 py-1 rounded">convex/notifications.ts</code> for detailed setup instructions
+          <p className="text-teal-400 text-xs mt-3">
+            See <code className="bg-teal-950 px-2 py-1 rounded">convex/notifications.ts</code> for detailed setup instructions
           </p>
         </div>
 
@@ -641,7 +641,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+            className="px-6 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
           >
             {isSaving ? "Saving..." : "Save Settings"}
           </button>
@@ -768,7 +768,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleSubmitUser}
                 disabled={isSubmittingUser || !userFormData.firstName || !userFormData.lastName || (!editingUserId && (!userFormData.email || !userFormData.password))}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
                 {isSubmittingUser ? "Saving..." : editingUserId ? "Save Changes" : "Create User"}
               </button>
@@ -800,7 +800,7 @@ function ToggleRow({
   const badgeColors = {
     critical: "bg-red-600",
     warning: "bg-yellow-600",
-    info: "bg-blue-600",
+    info: "bg-teal-700",
   };
 
   return (
@@ -827,7 +827,7 @@ function ToggleRow({
         onClick={onChange}
         disabled={disabled}
         className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-          checked ? "bg-blue-600" : "bg-gray-600"
+          checked ? "bg-teal-700" : "bg-gray-600"
         } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <span

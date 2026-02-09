@@ -22,7 +22,7 @@ export default function ChatMessage({ role, content, timestamp }: ChatMessagePro
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
       <div
         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          isUser ? "bg-blue-600" : "bg-purple-600"
+          isUser ? "bg-teal-700" : "bg-purple-600"
         }`}
       >
         {isUser ? (
@@ -35,7 +35,7 @@ export default function ChatMessage({ role, content, timestamp }: ChatMessagePro
         <div
           className={`px-4 py-2 rounded-2xl ${
             isUser
-              ? "bg-blue-600 text-white rounded-br-sm"
+              ? "bg-teal-700 text-white rounded-br-sm"
               : "bg-gray-700 text-gray-100 rounded-bl-sm"
           }`}
         >

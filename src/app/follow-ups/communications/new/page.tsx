@@ -86,6 +86,9 @@ export default function NewCommunicationPage() {
     }
   }, []);
 
+  // Track existing threadId for "Add Entry" from ThreadView
+  const [existingThreadId, setExistingThreadId] = useState<string | null>(null);
+
   // Pre-fill from URL search params (when linked from detail pages)
   useEffect(() => {
     const participantId = searchParams.get("participantId");
@@ -99,6 +102,12 @@ export default function NewCommunicationPage() {
     const subject = searchParams.get("subject");
     const complianceCategory = searchParams.get("complianceCategory");
     const linkedIncidentId = searchParams.get("linkedIncidentId");
+    const threadId = searchParams.get("threadId");
+
+    // Capture threadId for "Add Entry" to existing thread
+    if (threadId) {
+      setExistingThreadId(threadId);
+    }
 
     if (participantId || propertyId || contactType || contactName || subject || complianceCategory || linkedIncidentId) {
       setFormData((prev) => ({
@@ -365,6 +374,7 @@ export default function NewCommunicationPage() {
         attachmentFileName,
         attachmentFileType,
         createdBy: user.id as Id<"users">,
+        existingThreadId: existingThreadId || undefined,
       });
 
       // Create follow-up task if requested
@@ -383,7 +393,8 @@ export default function NewCommunicationPage() {
         });
       }
 
-      router.push("/follow-ups");
+      // Navigate to communications page (thread view) so user can see the result
+      router.push(existingThreadId ? "/communications?view=thread" : "/follow-ups");
     } catch (err) {
       console.error("Failed to create communication:", err);
       setError("Failed to create communication. Please try again.");
@@ -414,9 +425,27 @@ export default function NewCommunicationPage() {
         <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-xl sm:text-2xl font-bold text-white">Log Communication</h1>
-            <p className="text-gray-400 mt-1">Record a communication for follow-up tracking</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
+              {existingThreadId ? "Add Entry to Thread" : "Log Communication"}
+            </h1>
+            <p className="text-gray-400 mt-1">
+              {existingThreadId
+                ? "Adding a new entry to an existing conversation thread"
+                : "Record a communication for follow-up tracking"}
+            </p>
           </div>
+
+          {/* Existing thread banner */}
+          {existingThreadId && formData.subject && (
+            <div className="mb-6 p-3 bg-teal-900/30 border border-teal-700/50 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-teal-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span className="text-sm text-teal-300">
+                Adding to thread: <strong>{formData.subject}</strong>
+              </span>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg text-red-200">
@@ -563,7 +592,7 @@ export default function NewCommunicationPage() {
               {/* Linked entity indicator */}
               {isEntityLinked && (
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-700">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-950/50 text-teal-400 border border-teal-800">
                     Linked to database record
                   </span>
                   <button
@@ -592,7 +621,7 @@ export default function NewCommunicationPage() {
                   <button
                     type="button"
                     onClick={() => setUseManualEntry(false)}
-                    className="text-xs text-blue-400 hover:text-blue-300 underline"
+                    className="text-xs text-teal-500 hover:text-teal-400 underline"
                   >
                     Select from database instead
                   </button>
@@ -651,7 +680,7 @@ export default function NewCommunicationPage() {
                           type="checkbox"
                           checked={formData.complianceFlags.includes(flag.value)}
                           onChange={() => handleFlagToggle(flag.value)}
-                          className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                          className="w-4 h-4 rounded border-gray-600 text-teal-700 focus:ring-teal-600 bg-gray-700"
                         />
                         <span className="text-sm text-gray-300 group-hover:text-white">
                           {flag.label}
@@ -747,13 +776,13 @@ export default function NewCommunicationPage() {
                   aria-label="Upload attachment. Click or drag and drop a file."
                   className={`w-full p-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
                     isDragOver
-                      ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                      ? "border-teal-600 bg-teal-600/10 text-teal-500"
                       : "border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300"
                   }`}
                 >
                   <div className="flex flex-col items-center gap-2">
                     <svg
-                      className={`w-8 h-8 ${isDragOver ? "text-blue-400" : "text-gray-400"}`}
+                      className={`w-8 h-8 ${isDragOver ? "text-teal-500" : "text-gray-400"}`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -791,7 +820,7 @@ export default function NewCommunicationPage() {
                   id="createFollowUpTask"
                   checked={createFollowUpTask}
                   onChange={(e) => setCreateFollowUpTask(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-gray-600 text-teal-700 focus:ring-teal-600"
                 />
                 <label htmlFor="createFollowUpTask" className="text-lg font-semibold text-white">
                   Create Follow-up Task

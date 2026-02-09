@@ -196,7 +196,7 @@ function StageProgressBar({ status }: { status: string }) {
                     : isCompleted
                       ? "border-green-500 bg-green-600 text-white"
                       : isCurrent
-                        ? "border-blue-500 bg-blue-600 text-white animate-pulse"
+                        ? "border-teal-600 bg-teal-700 text-white animate-pulse"
                         : "border-gray-600 bg-gray-700 text-gray-400"
                 }`}
                 aria-label={`${stage.label}: ${isCompleted ? "completed" : isCurrent ? "current" : "pending"}`}
@@ -210,7 +210,7 @@ function StageProgressBar({ status }: { status: string }) {
                 )}
               </div>
               <span className={`mt-1 text-xs whitespace-nowrap ${
-                isCompleted ? "text-green-400" : isCurrent ? "text-blue-400 font-semibold" : "text-gray-400"
+                isCompleted ? "text-green-400" : isCurrent ? "text-teal-500 font-semibold" : "text-gray-400"
               }`}>
                 {stage.label}
               </span>
@@ -256,7 +256,7 @@ function VerticalStageProgressBar({ status }: { status: string }) {
                     : isCompleted
                       ? "border-green-500 bg-green-600 text-white"
                       : isCurrent
-                        ? "border-blue-500 bg-blue-600 text-white"
+                        ? "border-teal-600 bg-teal-700 text-white"
                         : "border-gray-600 bg-gray-700 text-gray-400"
                 }`}
               >
@@ -274,7 +274,7 @@ function VerticalStageProgressBar({ status }: { status: string }) {
             </div>
             {/* Label */}
             <span className={`text-sm pt-0.5 ${
-              isCompleted ? "text-green-400" : isCurrent ? "text-blue-400 font-semibold" : "text-gray-400"
+              isCompleted ? "text-green-400" : isCurrent ? "text-teal-500 font-semibold" : "text-gray-400"
             }`}>
               {stage.label}
             </span>
@@ -307,7 +307,7 @@ const CHECKLIST_STEPS = [
 // Audit action colors for chain of custody
 const AUDIT_ACTION_COLORS: Record<string, string> = {
   create: "bg-green-500",
-  view: "bg-blue-500",
+  view: "bg-teal-600",
   update: "bg-yellow-500",
   acknowledge: "bg-green-500",
   delete: "bg-red-500",
@@ -639,7 +639,7 @@ function ComplaintDetailContent() {
             <p className="text-gray-400 mb-4">Complaint not found</p>
             <Link
               href="/compliance/complaints"
-              className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="inline-block px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               Back to Complaints
             </Link>
@@ -664,7 +664,7 @@ function ComplaintDetailContent() {
           <div>
             <Link
               href="/compliance/complaints"
-              className="text-blue-400 hover:text-blue-300 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+              className="text-teal-500 hover:text-teal-400 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             >
               &larr; Back to Complaints
             </Link>
@@ -818,7 +818,7 @@ function ComplaintDetailContent() {
                         <p className="text-sm text-gray-400 mb-0.5">Participant</p>
                         <Link
                           href={`/participants/${complaint.participantId}`}
-                          className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                          className="text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                         >
                           {complaint.participant.firstName} {complaint.participant.lastName}
                         </Link>
@@ -829,7 +829,7 @@ function ComplaintDetailContent() {
                         <p className="text-sm text-gray-400 mb-0.5">Property</p>
                         <Link
                           href={`/properties/${complaint.propertyId}`}
-                          className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                          className="text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                         >
                           {complaint.property.propertyName || complaint.property.addressLine1}
                         </Link>
@@ -854,7 +854,7 @@ function ComplaintDetailContent() {
                   {complaint.status === "received" && (
                     <button
                       onClick={() => setShowAckModal(true)}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                       aria-label="Acknowledge this complaint"
                     >
                       Acknowledge
@@ -920,7 +920,7 @@ function ComplaintDetailContent() {
                     id="assigned-to"
                     value={assignedTo}
                     onChange={(e) => setAssignedTo(e.target.value)}
-                    className="w-full sm:w-64 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full sm:w-64 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                     aria-label="Assign complaint to user"
                   >
                     <option value="">-- Unassigned --</option>
@@ -951,13 +951,13 @@ function ComplaintDetailContent() {
                     onChange={(e) => setInvestigationNotes(e.target.value)}
                     rows={5}
                     placeholder="Document investigation findings, interviews, and evidence gathered..."
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                     aria-label="Investigation notes"
                   />
                   <button
                     onClick={handleSaveNotes}
                     disabled={notesSaving}
-                    className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="mt-3 px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   >
                     {notesSaving ? "Saving..." : "Save Notes"}
                   </button>
@@ -1015,7 +1015,7 @@ function ComplaintDetailContent() {
                         type="checkbox"
                         checked={advocacyOffered}
                         onChange={(e) => setAdvocacyOffered(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-2"
                         aria-label="Advocacy offered"
                       />
                       <span className="text-sm text-gray-300">Advocacy Offered</span>
@@ -1025,7 +1025,7 @@ function ComplaintDetailContent() {
                         type="checkbox"
                         checked={advocacyAccepted}
                         onChange={(e) => setAdvocacyAccepted(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-2"
                         aria-label="Advocacy accepted"
                       />
                       <span className="text-sm text-gray-300">Advocacy Accepted</span>
@@ -1041,13 +1041,13 @@ function ComplaintDetailContent() {
                       value={advocacyProvider}
                       onChange={(e) => setAdvocacyProvider(e.target.value)}
                       placeholder="e.g., Disability Advocacy NSW"
-                      className="w-full sm:w-80 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                      className="w-full sm:w-80 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                     />
                   </div>
                   <button
                     onClick={handleSaveAdvocacy}
                     disabled={advocacySaving}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   >
                     {advocacySaving ? "Saving..." : "Save Advocacy Details"}
                   </button>
@@ -1076,7 +1076,7 @@ function ComplaintDetailContent() {
               <h2 className="text-lg font-semibold text-white mb-4">Chain of Custody</h2>
               {chainOfCustody === undefined ? (
                 <div className="flex items-center gap-2 text-gray-400 text-sm">
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-teal-600" />
                   Loading audit trail...
                 </div>
               ) : chainOfCustody.length === 0 ? (
@@ -1152,7 +1152,7 @@ function ComplaintDetailContent() {
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Complaints Procedure</h3>
                 <button
                   onClick={() => setShowSopOverlay(true)}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-teal-700/20 hover:bg-teal-700/30 text-teal-500 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   aria-label="View full complaint handling procedure SOP-001"
                 >
                   <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1160,12 +1160,12 @@ function ComplaintDetailContent() {
                   </svg>
                   <div className="text-left">
                     <p className="text-sm font-medium">View Full Procedure (SOP-001)</p>
-                    <p className="text-xs text-blue-400/60">5-step NDIS complaint handling</p>
+                    <p className="text-xs text-teal-500/60">5-step NDIS complaint handling</p>
                   </div>
                 </button>
                 <button
                   onClick={handleOpenProcedurePdf}
-                  className="w-full flex items-center gap-2 mt-2 px-3 py-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 rounded transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="w-full flex items-center gap-2 mt-2 px-3 py-2 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 rounded transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   aria-label="Download procedure PDF"
                 >
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1191,7 +1191,7 @@ function ComplaintDetailContent() {
                 {/* Progress indicator */}
                 <div className="w-full h-1.5 bg-gray-700 rounded-full mb-4 overflow-hidden" aria-hidden="true">
                   <div
-                    className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                    className="h-full bg-teal-600 rounded-full transition-all duration-300"
                     style={{
                       width: `${(CHECKLIST_STEPS.filter(s => complaint.complianceChecklist?.[s.key]).length / CHECKLIST_STEPS.length) * 100}%`,
                     }}
@@ -1209,13 +1209,13 @@ function ComplaintDetailContent() {
                           className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
                             isCompleted
                               ? "bg-green-900/20 border border-green-600/20"
-                              : "bg-gray-700/30 border border-gray-700/50 hover:border-blue-600/30 hover:bg-gray-700/50"
+                              : "bg-gray-700/30 border border-gray-700/50 hover:border-teal-700/30 hover:bg-gray-700/50"
                           }`}
                         >
                           <div className="pt-0.5 shrink-0">
                             {isSaving ? (
-                              <div className="w-4 h-4 rounded border-2 border-blue-500 flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                              <div className="w-4 h-4 rounded border-2 border-teal-600 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
                               </div>
                             ) : (
                               <input
@@ -1223,7 +1223,7 @@ function ComplaintDetailContent() {
                                 checked={isCompleted}
                                 onChange={() => handleChecklistToggle(step.key, isCompleted)}
                                 disabled={!canEdit || isSaving}
-                                className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-2 disabled:opacity-50"
+                                className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-2 disabled:opacity-50"
                                 aria-label={`Step: ${step.label} - ${step.description}`}
                               />
                             )}
@@ -1324,7 +1324,7 @@ function ComplaintDetailContent() {
                   href="https://www.ndiscommission.gov.au/providers/complaints-management"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 text-sm underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                  className="text-teal-500 hover:text-teal-400 text-sm underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                 >
                   NDIS Commission Complaints Guide
                 </a>
@@ -1360,7 +1360,7 @@ function ComplaintDetailContent() {
                   type="date"
                   value={ackDate}
                   onChange={(e) => setAckDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
               </div>
               <div>
@@ -1371,7 +1371,7 @@ function ComplaintDetailContent() {
                   id="ack-method"
                   value={ackMethod}
                   onChange={(e) => setAckMethod(e.target.value as typeof ackMethod)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 >
                   <option value="email">Email</option>
                   <option value="phone">Phone</option>
@@ -1385,7 +1385,7 @@ function ComplaintDetailContent() {
               <button
                 onClick={handleAcknowledge}
                 disabled={ackLoading}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="px-6 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
               >
                 {ackLoading ? "Acknowledging..." : "Confirm Acknowledgment"}
               </button>
@@ -1423,7 +1423,7 @@ function ComplaintDetailContent() {
                   type="date"
                   value={resolveDate}
                   onChange={(e) => setResolveDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
               </div>
 
@@ -1435,7 +1435,7 @@ function ComplaintDetailContent() {
                   id="resolve-outcome"
                   value={resolveOutcome}
                   onChange={(e) => setResolveOutcome(e.target.value as typeof resolveOutcome)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 >
                   <option value="upheld">Upheld</option>
                   <option value="partially_upheld">Partially Upheld</option>
@@ -1454,7 +1454,7 @@ function ComplaintDetailContent() {
                   onChange={(e) => setResolveDescription(e.target.value)}
                   rows={4}
                   placeholder="Describe the resolution and how it was communicated to the complainant..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                   required
                 />
               </div>
@@ -1469,7 +1469,7 @@ function ComplaintDetailContent() {
                   onChange={(e) => setResolveCorrectiveActions(e.target.value)}
                   rows={3}
                   placeholder="Any corrective actions implemented..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
               </div>
 
@@ -1479,7 +1479,7 @@ function ComplaintDetailContent() {
                     type="checkbox"
                     checked={resolveSatisfied}
                     onChange={(e) => setResolveSatisfied(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-2"
                     aria-label="Complainant satisfied with resolution"
                   />
                   <span className="text-sm text-gray-300">Complainant Satisfied</span>
@@ -1489,7 +1489,7 @@ function ComplaintDetailContent() {
                     type="checkbox"
                     checked={resolveSystemic}
                     onChange={(e) => setResolveSystemic(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-teal-700 focus:ring-teal-600 focus:ring-2"
                     aria-label="Systemic issue identified"
                   />
                   <span className="text-sm text-gray-300">Systemic Issue Identified</span>
@@ -1543,7 +1543,7 @@ function ComplaintDetailContent() {
                   type="date"
                   value={escalateDate}
                   onChange={(e) => setEscalateDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                 />
               </div>
               <div>
@@ -1556,7 +1556,7 @@ function ComplaintDetailContent() {
                   onChange={(e) => setEscalateReason(e.target.value)}
                   rows={4}
                   placeholder="Why is this complaint being escalated to the NDIS Commission?"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
                   required
                 />
               </div>

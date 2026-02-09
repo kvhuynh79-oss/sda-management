@@ -262,7 +262,7 @@ export default function DashboardPage() {
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Upcoming Tasks</h3>
-              <Link href="/follow-ups" className="text-blue-400 hover:text-blue-300 text-sm">
+              <Link href="/follow-ups" className="text-teal-500 hover:text-teal-400 text-sm">
                 View all →
               </Link>
             </div>
@@ -318,7 +318,7 @@ export default function DashboardPage() {
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Upcoming Preventative Maintenance</h3>
-              <Link href="/operations?tab=schedule" className="text-blue-400 hover:text-blue-300 text-sm">
+              <Link href="/operations?tab=schedule" className="text-teal-500 hover:text-teal-400 text-sm">
                 View all →
               </Link>
             </div>
@@ -370,7 +370,7 @@ export default function DashboardPage() {
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Recent Properties</h3>
-              <Link href="/properties" className="text-blue-400 hover:text-blue-300 text-sm">
+              <Link href="/properties" className="text-teal-500 hover:text-teal-400 text-sm">
                 View all →
               </Link>
             </div>
@@ -404,7 +404,7 @@ export default function DashboardPage() {
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-white">Compliance Certifications</h3>
-              <Link href="/compliance/certifications" className="text-blue-400 hover:text-blue-300 text-sm">
+              <Link href="/compliance/certifications" className="text-teal-500 hover:text-teal-400 text-sm">
                 View Certifications →
               </Link>
             </div>
@@ -499,7 +499,7 @@ function DashboardCard({
   color: "blue" | "green" | "yellow" | "red" | "orange";
 }) {
   const colorClasses = {
-    blue: "bg-blue-600",
+    blue: "bg-teal-700",
     green: "bg-green-600",
     yellow: "bg-yellow-600",
     red: "bg-red-600",

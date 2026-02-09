@@ -128,7 +128,7 @@ function CertificationsContent() {
           <div>
             <Link
               href="/compliance"
-              className="text-blue-400 hover:text-blue-300 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+              className="text-teal-500 hover:text-teal-400 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             >
               &larr; Back to Compliance Dashboard
             </Link>
@@ -139,7 +139,7 @@ function CertificationsContent() {
           </div>
           <Link
             href="/compliance/certifications/new"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
           >
             + Add Certification
           </Link>
@@ -199,7 +199,7 @@ function CertificationsContent() {
                       </span>
                       <Link
                         href={`/compliance/certifications/new`}
-                        className="text-blue-400 hover:text-blue-300 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                        className="text-teal-500 hover:text-teal-400 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                       >
                         Renew
                       </Link>
@@ -226,7 +226,7 @@ function CertificationsContent() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Name, certifier, number..."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               />
             </div>
 
@@ -239,7 +239,7 @@ function CertificationsContent() {
                 id="cert-type-filter"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               >
                 <option value="">All Types</option>
                 {Object.entries(CERT_TYPE_LABELS).map(([value, label]) => (
@@ -259,7 +259,7 @@ function CertificationsContent() {
                 id="cert-status-filter"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               >
                 <option value="">All Statuses</option>
                 <option value="current">Current</option>
@@ -278,7 +278,7 @@ function CertificationsContent() {
                 id="cert-property-filter"
                 value={filterProperty}
                 onChange={(e) => setFilterProperty(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
               >
                 <option value="">All Properties</option>
                 {properties?.map((p) => (
@@ -299,7 +299,7 @@ function CertificationsContent() {
                 setFilterProperty("");
                 setSearchTerm("");
               }}
-              className="mt-3 text-sm text-blue-400 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+              className="mt-3 text-sm text-teal-500 hover:text-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             >
               Clear all filters
             </button>
@@ -322,7 +322,7 @@ function CertificationsContent() {
             {!hasFilters && (
               <Link
                 href="/compliance/certifications/new"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
               >
                 + Add First Certification
               </Link>
@@ -404,7 +404,7 @@ function CertificationsContent() {
                           ) : cert.property ? (
                             <Link
                               href={`/properties/${cert.property._id}`}
-                              className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                              className="text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                             >
                               {cert.property.propertyName || cert.property.addressLine1}
                             </Link>
@@ -473,7 +473,7 @@ function CertificationsContent() {
                             <div className="flex items-center justify-end gap-2">
                               <Link
                                 href={`/compliance/certifications/${cert._id}`}
-                                className="text-blue-400 hover:text-blue-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                                className="text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
                               >
                                 View
                               </Link>

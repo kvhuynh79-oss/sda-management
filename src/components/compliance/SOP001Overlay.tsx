@@ -103,7 +103,7 @@ const STEPS = [
 ];
 
 const STEP_COLORS: Record<string, { bg: string; border: string; text: string; badge: string }> = {
-  blue: { bg: "bg-blue-900/30", border: "border-blue-600/40", text: "text-blue-400", badge: "bg-blue-600" },
+  blue: { bg: "bg-teal-950/30", border: "border-teal-700/40", text: "text-teal-500", badge: "bg-teal-700" },
   green: { bg: "bg-green-900/30", border: "border-green-600/40", text: "text-green-400", badge: "bg-green-600" },
   purple: { bg: "bg-purple-900/30", border: "border-purple-600/40", text: "text-purple-400", badge: "bg-purple-600" },
   yellow: { bg: "bg-yellow-900/30", border: "border-yellow-600/40", text: "text-yellow-400", badge: "bg-yellow-600" },
@@ -147,7 +147,7 @@ export default function SOP001Overlay({ isOpen, onClose }: SOP001OverlayProps) {
         <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700 rounded-t-xl px-6 py-4 flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-xs font-mono rounded">
+              <span className="px-2 py-0.5 bg-teal-700/20 text-teal-500 text-xs font-mono rounded">
                 BLS-SOP-001
               </span>
               <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs font-mono rounded">
@@ -167,7 +167,7 @@ export default function SOP001Overlay({ isOpen, onClose }: SOP001OverlayProps) {
           <button
             ref={closeRef}
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shrink-0"
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 shrink-0"
             aria-label="Close procedure document"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,8 +213,8 @@ export default function SOP001Overlay({ isOpen, onClose }: SOP001OverlayProps) {
         </div>
 
         {/* Key Timeframes */}
-        <div className="px-6 py-4 bg-blue-900/10 border-b border-gray-700">
-          <h2 className="text-sm font-semibold text-blue-400 mb-3">Key Compliance Timeframes</h2>
+        <div className="px-6 py-4 bg-teal-950/10 border-b border-gray-700">
+          <h2 className="text-sm font-semibold text-teal-500 mb-3">Key Compliance Timeframes</h2>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="flex items-center gap-3 p-3 bg-gray-800/60 rounded-lg">
               <div className="w-10 h-10 bg-red-600/20 rounded-lg flex items-center justify-center shrink-0">
@@ -336,7 +336,7 @@ export default function SOP001Overlay({ isOpen, onClose }: SOP001OverlayProps) {
                 href="https://www.ndiscommission.gov.au/participants/complaints"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 text-xs hover:text-blue-300 underline mt-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                className="text-teal-500 text-xs hover:text-teal-400 underline mt-1 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
               >
                 www.ndiscommission.gov.au
               </a>

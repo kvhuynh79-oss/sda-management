@@ -40,7 +40,7 @@ function SeedPageContent() {
       <Header currentPage="settings" />
       <main className="max-w-4xl mx-auto p-6">
         <div className="mb-6">
-          <Link href="/settings" className="text-blue-400 hover:underline">
+          <Link href="/settings" className="text-teal-500 hover:underline">
             ← Back to Settings
           </Link>
         </div>
@@ -65,7 +65,7 @@ function SeedPageContent() {
           <button
             onClick={handleSeed}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-6 py-2 rounded font-medium"
+            className="bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white px-6 py-2 rounded font-medium"
           >
             {loading ? "Running..." : "Run Seed"}
           </button>

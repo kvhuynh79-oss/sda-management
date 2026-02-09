@@ -90,7 +90,7 @@ export function MfaSetup({
           <button
             type="button"
             onClick={() => setShowManualEntry(!showManualEntry)}
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded px-2 py-1"
+            className="text-sm text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1"
           >
             {showManualEntry ? "Hide manual entry" : "Can't scan? Enter manually"}
           </button>
@@ -108,7 +108,7 @@ export function MfaSetup({
                 <button
                   type="button"
                   onClick={handleCopySecret}
-                  className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                   aria-label="Copy secret to clipboard"
                 >
                   {copied ? (

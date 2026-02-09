@@ -655,11 +655,12 @@ All 8 sprints of the SaaS transformation are complete.
 - **Multi-File Document Upload**: Lead creation form supports multiple document uploads
 - **Dashboard Leads UI**: Property filtering fix + leads wired to backend
 
+- **Field-Level Encryption Activated (2026-02-10)**: ENCRYPTION_KEY + HMAC_KEY set in Convex env, data migration confirmed (12 participants, 1 incident, 21 owners already encrypted)
+
 ### Remaining Launch Tasks
 - Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
 - Configure Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
 - Performance load testing with multiple orgs
-- Field-level encryption for NDIS numbers, DOB at rest
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:
@@ -746,7 +747,7 @@ See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.
 2. Configure Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
 3. Load test with 10+ simultaneous organizations
 4. DNS/domain configuration for custom org subdomains
-5. Field-level encryption for NDIS numbers, DOB at rest
+5. ~~Field-level encryption for NDIS numbers, DOB at rest~~ DONE (2026-02-10)
 
 ## Commands
 ```bash
@@ -757,4 +758,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-09 (v2.1.1 - ConfirmDialog migration complete, DB page cleanup, leads UI, multi-file upload. 82 pages, 0 errors)
+**Last Updated**: 2026-02-10 (v2.1.2 - Field-level encryption activated, .env.local.example updated. 82 pages, 0 errors)

@@ -656,7 +656,7 @@ All 8 sprints of the SaaS transformation are complete.
 - **Dashboard Leads UI**: Property filtering fix + leads wired to backend
 
 - **Field-Level Encryption Activated (2026-02-10)**: ENCRYPTION_KEY + HMAC_KEY set in Convex env, data migration confirmed (12 participants, 1 incident, 21 owners already encrypted)
-- **SIL Provider Role Restriction (2026-02-10)**: SECURITY FIX - SIL Provider users now restricted to `/portal/*` routes only. RequireAuth auto-redirects to `/portal/dashboard`. Header nav filters Finance/Database clusters by role. Defense-in-depth: both redirect AND nav filtering applied.
+- **SIL Provider Role Restriction (2026-02-10)**: SECURITY FIX - SIL Provider users now restricted to `/portal/*` routes only. RequireAuth auto-redirects to `/portal/dashboard`. Header nav filters Finance/Database clusters by role. Added RequireAuth to 8 previously unprotected pages (dashboard, claims, database, financials, preventative-schedule, reports, settings, vacancies). Defense-in-depth: RequireAuth redirect + render block + nav filtering.
 
 ### Remaining Launch Tasks
 - Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)

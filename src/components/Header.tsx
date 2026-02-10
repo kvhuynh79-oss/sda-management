@@ -3,7 +3,6 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSession } from "../hooks/useSession";
 import { logout } from "../lib/auth";
 import { useOrganization } from "../contexts/OrganizationContext";
@@ -696,13 +695,10 @@ export default function Header({ currentPage }: HeaderProps) {
                     className="rounded object-contain h-7 w-auto max-w-[80px]"
                   />
                 ) : (
-                  <Image
-                    src="/Logo.jpg"
+                  <img
+                    src="/mysda-logo-dark.svg"
                     alt="MySDAManager"
-                    width={80}
-                    height={32}
-                    className="rounded object-contain h-7 w-auto"
-                    priority
+                    className="h-7 w-auto"
                   />
                 )}
               </Link>

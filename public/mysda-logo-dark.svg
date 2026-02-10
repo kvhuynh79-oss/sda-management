@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 48" fill="none">
+  <!-- Shield-house icon -->
+  <g transform="translate(0, 2)">
+    <!-- Shield filled -->
+    <path d="M22 2L4 10v12c0 11 7.7 21.3 18 24 10.3-2.7 18-13 18-24V10L22 2z" fill="#0d9488" opacity="0.15"/>
+    <path d="M22 2L4 10v12c0 11 7.7 21.3 18 24 10.3-2.7 18-13 18-24V10L22 2z" stroke="#14b8a6" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+    <!-- House inside shield -->
+    <path d="M22 14l-10 8h3v8h5v-5h4v5h5v-8h3L22 14z" fill="#14b8a6"/>
+  </g>
+  <!-- MySDAManager text - brighter for dark backgrounds -->
+  <text x="52" y="34" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="28" font-weight="700">
+    <tspan fill="#14b8a6">My</tspan><tspan fill="#f3f4f6">SDA</tspan><tspan fill="#14b8a6">Manager</tspan>
+  </text>
+</svg>

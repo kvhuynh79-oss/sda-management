@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 export default function Home() {
@@ -35,17 +34,11 @@ export default function Home() {
       <header className="border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image
-              src="/Logo.jpg"
+            <img
+              src="/mysda-logo-dark.svg"
               alt="MySDAManager"
-              width={80}
-              height={32}
-              className="rounded object-contain h-7 w-auto"
-              priority
+              className="h-8 w-auto"
             />
-            <span className="text-white font-semibold text-lg hidden sm:inline">
-              MySDAManager
-            </span>
           </div>
           <nav className="flex items-center gap-4">
             <Link

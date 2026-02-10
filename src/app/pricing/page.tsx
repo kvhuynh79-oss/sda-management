@@ -210,8 +210,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
-              <ShieldIcon />
-              <span className="text-xl font-bold text-white">MySDAManager</span>
+              <img src="/mysda-logo-dark.svg" alt="MySDAManager" className="h-8 w-auto" />
             </Link>
             <nav className="flex items-center gap-6">
               <Link

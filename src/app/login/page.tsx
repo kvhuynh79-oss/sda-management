@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Modal from "@/components/ui/Modal";
 import { storeTokens } from "@/lib/auth";
 
@@ -146,16 +145,12 @@ export default function LoginPage() {
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Image
-              src="/Logo.jpg"
+            <img
+              src="/mysda-logo-dark.svg"
               alt="MySDAManager"
-              width={280}
-              height={80}
-              className="rounded object-contain"
-              priority
+              className="h-12 w-auto"
             />
           </div>
-          <h2 className="text-xl font-semibold text-white tracking-wide mb-1">MySDAManager</h2>
           <p className="text-gray-400">
             Specialist Disability Accommodation Portal
           </p>

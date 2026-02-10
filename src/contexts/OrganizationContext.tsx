@@ -41,6 +41,7 @@ export interface Organization {
   maxProperties: number;
   primaryColor?: string;
   logoUrl?: string;
+  resolvedLogoUrl?: string;
   isActive: boolean;
   settings?: {
     timezone?: string;

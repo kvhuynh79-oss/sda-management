@@ -66,7 +66,7 @@ function OrganizationSettingsContent() {
     if (organization) {
       setName(organization.name || "");
       setPrimaryColor(organization.primaryColor || "#0d9488");
-      setLogoPreviewUrl(organization.logoUrl || null);
+      setLogoPreviewUrl((organization as any).resolvedLogoUrl || null);
     }
   }, [organization]);
 

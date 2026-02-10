@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "../hooks/useSession";
 import { logout } from "../lib/auth";
+import { useOrganization } from "../contexts/OrganizationContext";
 import GlobalUploadModal from "./GlobalUploadModal";
 import {
   Building2,
@@ -616,6 +617,7 @@ function MobileNav({
 export default function Header({ currentPage }: HeaderProps) {
   const router = useRouter();
   const { user, loading } = useSession();
+  const { organization } = useOrganization();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [openClusterId, setOpenClusterId] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -687,14 +689,22 @@ export default function Header({ currentPage }: HeaderProps) {
                 href="/dashboard"
                 className="flex-shrink-0 flex items-center gap-2"
               >
-                <Image
-                  src="/Logo.jpg"
-                  alt="Better Living Solutions"
-                  width={80}
-                  height={32}
-                  className="rounded object-contain h-7 w-auto"
-                  priority
-                />
+                {organization?.resolvedLogoUrl ? (
+                  <img
+                    src={organization.resolvedLogoUrl}
+                    alt={organization.name}
+                    className="rounded object-contain h-7 w-auto max-w-[80px]"
+                  />
+                ) : (
+                  <Image
+                    src="/Logo.jpg"
+                    alt="MySDAManager"
+                    width={80}
+                    height={32}
+                    className="rounded object-contain h-7 w-auto"
+                    priority
+                  />
+                )}
               </Link>
             </div>
 

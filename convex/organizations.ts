@@ -33,7 +33,18 @@ export const getById = query({
       throw new Error("Organization not found");
     }
 
-    return organization;
+    // Resolve logoUrl from storageId to actual URL
+    let resolvedLogoUrl: string | undefined;
+    if (organization.logoUrl) {
+      try {
+        const url = await ctx.storage.getUrl(organization.logoUrl as any);
+        resolvedLogoUrl = url ?? undefined;
+      } catch {
+        // Storage ID invalid or file deleted
+      }
+    }
+
+    return { ...organization, resolvedLogoUrl };
   },
 });
 

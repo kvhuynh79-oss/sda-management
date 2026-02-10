@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { RequireAuth } from "@/components/RequireAuth";
 import Link from "next/link";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -203,6 +204,7 @@ export default function ReportsPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="reports" />
 
@@ -778,6 +780,7 @@ export default function ReportsPage() {
         )}
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

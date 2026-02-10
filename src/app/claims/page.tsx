@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../convex/_generated/dataModel";
 
@@ -320,6 +321,7 @@ export default function ClaimsPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="payments" />
 
@@ -806,5 +808,6 @@ export default function ClaimsPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

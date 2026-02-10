@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../convex/_generated/dataModel";
 
@@ -13,9 +14,11 @@ type TabType = "payments" | "claims" | "owner_payments";
 
 export default function FinancialsPage() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <FinancialsContent />
-    </Suspense>
+    <RequireAuth>
+      <Suspense fallback={<LoadingScreen />}>
+        <FinancialsContent />
+      </Suspense>
+    </RequireAuth>
   );
 }
 

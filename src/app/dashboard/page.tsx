@@ -7,6 +7,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
+import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingScreen } from "@/components/ui";
 import { SEVERITY_COLORS } from "@/constants/colors";
 import { formatCurrency } from "@/utils/format";
@@ -60,6 +61,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="dashboard" />
 
@@ -484,6 +486,7 @@ export default function DashboardPage() {
       </main>
       <BottomNav currentPage="dashboard" />
     </div>
+    </RequireAuth>
   );
 }
 

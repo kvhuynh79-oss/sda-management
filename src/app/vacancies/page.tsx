@@ -7,6 +7,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 import Header from "../../components/Header";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { RequireAuth } from "@/components/RequireAuth";
 
 export default function VacanciesPage() {
   const { user } = useAuth();
@@ -68,6 +69,7 @@ export default function VacanciesPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="operations" />
 
@@ -291,6 +293,7 @@ export default function VacanciesPage() {
         />
       )}
     </div>
+    </RequireAuth>
   );
 }
 

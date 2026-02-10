@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 
 // Import the content from support coordinators and contractors pages
 import SupportCoordinatorsContent from "./support-coordinators/SupportCoordinatorsContent";
@@ -23,9 +24,11 @@ function LoadingScreen() {
 
 export default function DatabasePage() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <DatabaseContent />
-    </Suspense>
+    <RequireAuth>
+      <Suspense fallback={<LoadingScreen />}>
+        <DatabaseContent />
+      </Suspense>
+    </RequireAuth>
   );
 }
 

@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import { useTheme } from "@/components/ThemeProvider";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
+import { RequireAuth } from "@/components/RequireAuth";
 
 type UserRole = "admin" | "property_manager" | "staff" | "accountant" | "sil_provider";
 
@@ -268,6 +269,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="settings" />
 
@@ -820,6 +822,7 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }
 

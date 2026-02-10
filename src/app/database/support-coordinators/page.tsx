@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -187,6 +188,7 @@ export default function SupportCoordinatorsPage() {
   });
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="database" />
 
@@ -562,5 +564,6 @@ export default function SupportCoordinatorsPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

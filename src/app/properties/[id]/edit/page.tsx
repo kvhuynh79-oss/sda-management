@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
 const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
@@ -192,6 +193,7 @@ export default function EditPropertyPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="properties" />
 
@@ -566,6 +568,7 @@ export default function EditPropertyPage() {
         </form>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

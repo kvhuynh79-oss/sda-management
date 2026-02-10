@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -219,6 +220,7 @@ export default function ScheduleTemplatesPage() {
   }, 0);
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="schedule" />
 
@@ -391,6 +393,7 @@ export default function ScheduleTemplatesPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

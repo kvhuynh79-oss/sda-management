@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { addToQueue } from "@/lib/offlineQueue";
@@ -302,6 +303,7 @@ export default function NewIncidentPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <OfflineIndicator />
       <Header currentPage="incidents" />
@@ -752,6 +754,7 @@ export default function NewIncidentPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import CommunicationsHistory from "@/components/CommunicationsHistory";
 import GlobalUploadModal from "@/components/GlobalUploadModal";
 import Badge from "@/components/ui/Badge";
@@ -112,6 +113,7 @@ export default function PropertyDetailPage() {
   const vacancies = totalCapacity - currentOccupancy;
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="properties" />
 
@@ -344,6 +346,7 @@ export default function PropertyDetailPage() {
         prefillEntityId={propertyId}
       />
     </div>
+    </RequireAuth>
   );
 }
 

@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import Header from "../../../../components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import Link from "next/link";
 
 // Guidance for NDIS SDA providers on required insurance
@@ -162,6 +163,7 @@ export default function NewInsurancePage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="compliance" />
 
@@ -486,6 +488,7 @@ export default function NewInsurancePage() {
         </form>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

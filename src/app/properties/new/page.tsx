@@ -6,6 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 type PropertyStatusType = "active" | "under_construction" | "sil_property";
@@ -242,9 +243,10 @@ export default function NewPropertyPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="properties" />
-      
+
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
@@ -327,6 +329,7 @@ export default function NewPropertyPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

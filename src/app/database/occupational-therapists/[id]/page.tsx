@@ -9,6 +9,7 @@ import Header from "../../../../components/Header";
 import CommunicationsHistory from "../../../../components/CommunicationsHistory";
 import Link from "next/link";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { RequireAuth } from "@/components/RequireAuth";
 
 export default function OccupationalTherapistDetailPage() {
   const params = useParams();
@@ -179,6 +180,7 @@ export default function OccupationalTherapistDetailPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="database" />
 
@@ -640,5 +642,6 @@ export default function OccupationalTherapistDetailPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -65,6 +66,7 @@ export default function BankAccountsPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="financials" />
 
@@ -158,6 +160,7 @@ export default function BankAccountsPage() {
         />
       )}
     </div>
+    </RequireAuth>
   );
 }
 

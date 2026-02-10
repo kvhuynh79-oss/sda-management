@@ -6,6 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NewParticipantPage() {
@@ -298,6 +299,7 @@ export default function NewParticipantPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="participants" />
 
@@ -369,6 +371,7 @@ export default function NewParticipantPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

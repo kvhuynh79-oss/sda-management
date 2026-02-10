@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import Link from "next/link";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -234,6 +235,7 @@ export default function SILProvidersPage() {
   });
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="database" />
 
@@ -636,5 +638,6 @@ export default function SILProvidersPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

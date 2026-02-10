@@ -6,6 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Link from "next/link";
 import Header from "../../../components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useRouter } from "next/navigation";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -245,6 +246,7 @@ export default function OccupationalTherapistsPage() {
   });
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="database" />
 
@@ -673,5 +675,6 @@ export default function OccupationalTherapistsPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

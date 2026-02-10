@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function NewPaymentPage() {
@@ -129,6 +130,7 @@ export default function NewPaymentPage() {
       : 0;
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="payments" />
 
@@ -392,6 +394,7 @@ export default function NewPaymentPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

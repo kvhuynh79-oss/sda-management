@@ -9,6 +9,7 @@ import Link from "next/link";
 import Header from "../../../../components/Header";
 import CommunicationsHistory from "../../../../components/CommunicationsHistory";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { RequireAuth } from "@/components/RequireAuth";
 
 const ACCESS_LEVELS = [
   { value: "full", label: "Full Access", color: "green" },
@@ -120,6 +121,7 @@ export default function SILProviderDetailPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="database" />
 
@@ -548,5 +550,6 @@ export default function SILProviderDetailPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

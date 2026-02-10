@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -107,6 +108,7 @@ export default function NewInspectionPage() {
   const selectedProperty = properties?.find((p) => p._id === formData.propertyId);
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="inspections" />
 
@@ -359,6 +361,7 @@ export default function NewInspectionPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

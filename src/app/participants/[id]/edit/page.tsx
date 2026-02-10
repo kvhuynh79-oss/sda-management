@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
 export default function EditParticipantPage() {
@@ -407,6 +408,7 @@ export default function EditParticipantPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="participants" />
 
@@ -1003,6 +1005,7 @@ export default function EditParticipantPage() {
         )}
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

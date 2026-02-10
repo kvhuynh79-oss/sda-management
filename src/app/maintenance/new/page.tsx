@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 interface PendingPhoto {
@@ -648,9 +649,11 @@ function NewMaintenanceRequestContent() {
 
 export default function NewMaintenanceRequestPage() {
   return (
+    <RequireAuth>
     <Suspense fallback={<LoadingScreen />}>
       <NewMaintenanceRequestContent />
     </Suspense>
+    </RequireAuth>
   );
 }
 

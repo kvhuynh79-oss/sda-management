@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 // Document type definitions with suggested categories
@@ -288,6 +289,7 @@ export default function NewDocumentPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="database" />
 
@@ -650,6 +652,7 @@ export default function NewDocumentPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

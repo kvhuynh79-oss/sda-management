@@ -9,6 +9,7 @@ import Header from "../../../../components/Header";
 import CommunicationsHistory from "../../../../components/CommunicationsHistory";
 import Link from "next/link";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { RequireAuth } from "@/components/RequireAuth";
 
 export default function SupportCoordinatorDetailPage() {
   const params = useParams();
@@ -131,6 +132,7 @@ export default function SupportCoordinatorDetailPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="database" />
 
@@ -448,5 +450,6 @@ export default function SupportCoordinatorDetailPage() {
         </div>
       )}
     </div>
+    </RequireAuth>
   );
 }

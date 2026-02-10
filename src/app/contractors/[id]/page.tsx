@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import CommunicationsHistory from "../../../components/CommunicationsHistory";
 import Link from "next/link";
 
@@ -112,6 +113,7 @@ export default function ContractorDetailPage() {
     : false;
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="contractors" />
 
@@ -475,5 +477,6 @@ export default function ContractorDetailPage() {
         />
       </main>
     </div>
+    </RequireAuth>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -180,6 +181,7 @@ export default function NDISExportPage() {
   const needsSettings = !providerSettings;
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="payments" />
 
@@ -471,6 +473,7 @@ export default function NDISExportPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

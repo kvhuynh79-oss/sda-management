@@ -6,6 +6,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -415,6 +416,7 @@ export default function MaintenanceRequestDetailPage() {
   const acceptedQuote = quotes?.find((q) => q.status === "accepted");
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="maintenance" />
 
@@ -1188,6 +1190,7 @@ export default function MaintenanceRequestDetailPage() {
         )}
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 
 export default function OwnerDistributionsPage() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function OwnerDistributionsPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="payments" />
 
@@ -255,6 +257,7 @@ export default function OwnerDistributionsPage() {
         ))}
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

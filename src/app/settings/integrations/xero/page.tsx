@@ -6,6 +6,7 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 
@@ -190,6 +191,7 @@ export default function XeroSettingsPage() {
   const isConnected = connection?.connectionStatus === "connected";
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="settings" />
 
@@ -539,5 +541,6 @@ export default function XeroSettingsPage() {
         </div>
       </main>
     </div>
+    </RequireAuth>
   );
 }

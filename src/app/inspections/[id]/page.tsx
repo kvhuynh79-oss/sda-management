@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -322,6 +323,7 @@ export default function InspectionDetailPage() {
   const canComplete = inspection.status !== "completed" && allItemsCompleted;
 
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-gray-900">
       <Header currentPage="inspections" />
 
@@ -824,6 +826,7 @@ export default function InspectionDetailPage() {
         )}
       </main>
     </div>
+    </RequireAuth>
   );
 }
 

@@ -656,7 +656,8 @@ All 8 sprints of the SaaS transformation are complete.
 - **Dashboard Leads UI**: Property filtering fix + leads wired to backend
 
 - **Field-Level Encryption Activated (2026-02-10)**: ENCRYPTION_KEY + HMAC_KEY set in Convex env, data migration confirmed (12 participants, 1 incident, 21 owners already encrypted)
-- **SIL Provider Role Restriction (2026-02-10)**: SECURITY FIX - SIL Provider users now restricted to `/portal/*` routes only. RequireAuth auto-redirects to `/portal/dashboard`. Header nav filters Finance/Database clusters by role. Added RequireAuth to 8 previously unprotected pages (dashboard, claims, database, financials, preventative-schedule, reports, settings, vacancies). Defense-in-depth: RequireAuth redirect + render block + nav filtering.
+- **SIL Provider Role Restriction (2026-02-10)**: SECURITY FIX - SIL Provider users now restricted to `/portal/*` routes only. RequireAuth auto-redirects to `/portal/dashboard`. Header nav filters Finance/Database clusters by role. Defense-in-depth: RequireAuth redirect + render block + nav filtering.
+- **RequireAuth Full Migration (2026-02-10)**: Added RequireAuth to all 72 protected pages (was 40). Migrated 32 detail/creation/sub-pages from inline localStorage auth. Only public pages (login, register, pricing, etc.) and portal pages (own auth) remain without RequireAuth.
 
 ### Remaining Launch Tasks
 - Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
@@ -759,4 +760,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-10 (v2.1.3 - SIL Provider role restriction, field-level encryption. 82 pages, 0 errors)
+**Last Updated**: 2026-02-10 (v2.1.4 - RequireAuth on all 72 protected pages. 82 pages, 0 errors)

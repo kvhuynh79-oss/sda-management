@@ -656,6 +656,7 @@ All 8 sprints of the SaaS transformation are complete.
 - **Dashboard Leads UI**: Property filtering fix + leads wired to backend
 
 - **Field-Level Encryption Activated (2026-02-10)**: ENCRYPTION_KEY + HMAC_KEY set in Convex env, data migration confirmed (12 participants, 1 incident, 21 owners already encrypted)
+- **SIL Provider Role Restriction (2026-02-10)**: SECURITY FIX - SIL Provider users now restricted to `/portal/*` routes only. RequireAuth auto-redirects to `/portal/dashboard`. Header nav filters Finance/Database clusters by role. Defense-in-depth: both redirect AND nav filtering applied.
 
 ### Remaining Launch Tasks
 - Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
@@ -758,4 +759,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-10 (v2.1.2 - Field-level encryption activated, .env.local.example updated. 82 pages, 0 errors)
+**Last Updated**: 2026-02-10 (v2.1.3 - SIL Provider role restriction, field-level encryption. 82 pages, 0 errors)

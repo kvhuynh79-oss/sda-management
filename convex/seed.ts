@@ -1,5 +1,7 @@
-import { mutation } from "./_generated/server";
+import { mutation, action, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import bcrypt from "bcryptjs";
 
 /**
  * Seed Script - Sprint 1 Organization Migration
@@ -96,6 +98,121 @@ export const seedBlsOrganization = mutation({
         usersUpdated: updatedCount,
         totalUsers: usersWithoutOrg.length + updatedCount,
       },
+    };
+  },
+});
+
+/**
+ * Seed a new organization with an admin user.
+ * Uses bcrypt for password hashing (requires action context).
+ *
+ * Usage: npx convex run seed:seedNewOrganization '{"name":"Org Name","slug":"org-slug","email":"admin@org.com","password":"pass","firstName":"First","lastName":"Last"}'
+ */
+export const seedNewOrganization = action({
+  args: {
+    name: v.string(),
+    slug: v.string(),
+    email: v.string(),
+    password: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    plan: v.optional(v.union(v.literal("starter"), v.literal("professional"), v.literal("enterprise"))),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; organizationId: string; userId: string; message: string }> => {
+    const passwordHash = await bcrypt.hash(args.password, 12);
+
+    const result = await ctx.runMutation(internal.seed.createOrgWithAdmin, {
+      name: args.name,
+      slug: args.slug,
+      email: args.email.toLowerCase(),
+      passwordHash,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      plan: args.plan || "professional",
+    });
+
+    return result;
+  },
+});
+
+/** Internal mutation for seedNewOrganization (inserts org + user) */
+export const createOrgWithAdmin = internalMutation({
+  args: {
+    name: v.string(),
+    slug: v.string(),
+    email: v.string(),
+    passwordHash: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    plan: v.union(v.literal("starter"), v.literal("professional"), v.literal("enterprise")),
+  },
+  handler: async (ctx, args) => {
+    // Check if org slug already exists
+    const existingOrg = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+
+    if (existingOrg) {
+      throw new Error(`Organization with slug "${args.slug}" already exists`);
+    }
+
+    // Check if email already exists
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (existingUser) {
+      throw new Error(`User with email "${args.email}" already exists`);
+    }
+
+    const planLimits = {
+      starter: { maxUsers: 5, maxProperties: 50 },
+      professional: { maxUsers: 20, maxProperties: 200 },
+      enterprise: { maxUsers: 999999, maxProperties: 999999 },
+    };
+
+    const limits = planLimits[args.plan];
+    const now = Date.now();
+
+    // Create organization
+    const organizationId = await ctx.db.insert("organizations", {
+      name: args.name,
+      slug: args.slug,
+      plan: args.plan,
+      subscriptionStatus: "active",
+      maxUsers: limits.maxUsers,
+      maxProperties: limits.maxProperties,
+      primaryColor: "#0d9488",
+      isActive: true,
+      createdAt: now,
+      settings: {
+        timezone: "Australia/Sydney",
+        currency: "AUD",
+        fiscalYearStart: "07-01",
+        complianceRegion: "AU-NSW",
+      },
+    });
+
+    // Create admin user linked to the org
+    const userId = await ctx.db.insert("users", {
+      email: args.email,
+      passwordHash: args.passwordHash,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      role: "admin",
+      organizationId,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      organizationId: organizationId as string,
+      userId: userId as string,
+      message: `Created org "${args.name}" with admin user ${args.email}`,
     };
   },
 });

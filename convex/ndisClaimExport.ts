@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireTenant } from "./authHelpers";
+import { decryptField } from "./lib/encryption";
 
 // Get provider settings
 export const getProviderSettings = query({
@@ -123,7 +124,7 @@ export const generateClaimData = query({
 
       claims.push({
         RegistrationNumber: providerSettings.ndisRegistrationNumber,
-        NDISNumber: participant.ndisNumber,
+        NDISNumber: (await decryptField(participant.ndisNumber)) || participant.ndisNumber,
         SupportsDeliveredFrom: args.periodStart,
         SupportsDeliveredTo: args.periodEnd,
         SupportNumber: plan.supportItemNumber || providerSettings.defaultSupportItemNumber,

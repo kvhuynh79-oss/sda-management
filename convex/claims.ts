@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
+import { decryptField } from "./lib/encryption";
 
 // Get all claims for a specific period (month)
 export const getByPeriod = query({
@@ -527,7 +528,7 @@ export const getPaceExport = query({
         const plan = await ctx.db.get(claim.planId);
 
         return {
-          ndisNumber: participant?.ndisNumber || "",
+          ndisNumber: (participant ? (await decryptField(participant.ndisNumber)) || participant.ndisNumber : ""),
           firstName: participant?.firstName || "",
           lastName: participant?.lastName || "",
           supportItemNumber: plan?.supportItemNumber || "01_021_0115_1_1",

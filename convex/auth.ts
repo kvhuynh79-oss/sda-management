@@ -95,6 +95,24 @@ export const verifyAdminInternal = internalMutation({
   },
 });
 
+// Internal mutation to verify two users belong to the same organization
+export const verifySameOrganization = internalMutation({
+  args: {
+    actingUserId: v.id("users"),
+    targetUserId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const actingUser = await ctx.db.get(args.actingUserId);
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!actingUser || !targetUser) {
+      throw new Error("User not found");
+    }
+    if (actingUser.organizationId && targetUser.organizationId !== actingUser.organizationId) {
+      throw new Error("Access denied: Cannot modify users from another organization");
+    }
+  },
+});
+
 // Internal mutation to check if any users exist (for initial setup)
 export const checkUsersExist = internalMutation({
   args: {},
@@ -135,6 +153,15 @@ export const createUserInternal = internalMutation({
       throw new Error("User with this email already exists");
     }
 
+    // Inherit organizationId from the acting user (admin creating the new user)
+    let organizationId: Id<"organizations"> | undefined;
+    if (args.actingUserId) {
+      const actingUser = await ctx.db.get(args.actingUserId);
+      if (actingUser?.organizationId) {
+        organizationId = actingUser.organizationId;
+      }
+    }
+
     const now = Date.now();
     const userId = await ctx.db.insert("users", {
       email: args.email.toLowerCase(),
@@ -144,6 +171,7 @@ export const createUserInternal = internalMutation({
       role: args.role,
       phone: args.phone,
       silProviderId: args.silProviderId,
+      organizationId,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -398,7 +426,18 @@ export const getAllUsers = query({
       throw new Error("Access denied: Admin permission required to view all users");
     }
 
-    const users = await ctx.db.query("users").collect();
+    // SECURITY: Filter by organizationId for tenant isolation
+    const orgId = requestingUser.organizationId;
+    let users;
+    if (orgId) {
+      users = await ctx.db
+        .query("users")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", orgId))
+        .collect();
+    } else {
+      // Fallback for users without org (shouldn't happen in production)
+      users = await ctx.db.query("users").collect();
+    }
 
     return users.map((user) => ({
       _id: user._id,
@@ -451,6 +490,11 @@ export const updateUser = mutation({
     const targetUser = await ctx.db.get(args.targetUserId);
     if (!targetUser) {
       throw new Error("Target user not found");
+    }
+
+    // SECURITY: Verify target user belongs to same organization
+    if (actingUser.organizationId && targetUser.organizationId !== actingUser.organizationId) {
+      throw new Error("Access denied: Cannot modify users from another organization");
     }
 
     const { actingUserId, targetUserId, ...updates } = args;
@@ -542,6 +586,12 @@ export const resetPassword = action({
     // SECURITY: Verify acting user is an admin via internal mutation
     const actingUser = await ctx.runMutation(internal.auth.verifyAdminInternal, {
       userId: args.actingUserId,
+    });
+
+    // SECURITY: Verify target user belongs to same organization
+    await ctx.runMutation(internal.auth.verifySameOrganization, {
+      actingUserId: args.actingUserId,
+      targetUserId: args.targetUserId,
     });
 
     // Hash new password with bcrypt
@@ -637,6 +687,11 @@ export const updateUserEmail = mutation({
     const targetUser = await ctx.db.get(args.userId);
     if (!targetUser) {
       throw new Error("User not found");
+    }
+
+    // SECURITY: Verify target user belongs to same organization
+    if (actingUser.organizationId && targetUser.organizationId !== actingUser.organizationId) {
+      throw new Error("Access denied: Cannot modify users from another organization");
     }
 
     await ctx.db.patch(args.userId, {

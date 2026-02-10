@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -111,34 +111,66 @@ const PLAN_FEATURES: Record<PlanTier, PlanLimits> = {
 
 interface OrganizationProviderProps {
   children: ReactNode;
-  organizationId?: Id<"organizations">; // During Sprint 1, this is optional
-  userId?: Id<"users">; // Needed to fetch org from user's record
 }
 
 /**
  * OrganizationProvider
- * Wraps the app to provide organization context
+ * Wraps the app to provide organization context.
+ * Self-bootstraps by reading userId from localStorage (sda_user),
+ * then fetching the user's organizationId from the DB.
  *
  * Usage in layout.tsx:
- * <AuthProvider>
- *   <OrganizationProvider userId={currentUserId}>
- *     {children}
- *   </OrganizationProvider>
- * </AuthProvider>
+ *   <OrganizationProvider>{children}</OrganizationProvider>
  */
 export function OrganizationProvider({
   children,
-  organizationId,
-  userId,
 }: OrganizationProviderProps) {
-  // If organizationId is provided directly (after migration), fetch org
-  // Use "skip" when org/user not available (Sprint 1 migration phase)
+  const [userId, setUserId] = useState<Id<"users"> | null>(null);
+
+  // Read userId from localStorage (same pattern as useAuth)
+  useEffect(() => {
+    const readUser = () => {
+      const stored = localStorage.getItem("sda_user");
+      if (stored) {
+        try {
+          const userData = JSON.parse(stored);
+          if (userData.id) {
+            setUserId(userData.id as Id<"users">);
+          } else {
+            setUserId(null);
+          }
+        } catch {
+          setUserId(null);
+        }
+      } else {
+        setUserId(null);
+      }
+    };
+
+    readUser();
+
+    // Listen for storage changes (login/logout in other tabs)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "sda_user") readUser();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  // Step 1: Get user record (includes organizationId)
+  const dbUser = useQuery(
+    userId ? api.auth.getUser : ("skip" as any),
+    userId ? { userId } : ("skip" as any)
+  );
+
+  // Step 2: Fetch the full organization
+  const organizationId = dbUser?.organizationId as Id<"organizations"> | undefined;
   const organization = useQuery(
-    organizationId && userId ? api.organizations.getById : ("skip" as any),
-    organizationId && userId ? { userId, organizationId } : ("skip" as any)
+    userId && organizationId ? api.organizations.getById : ("skip" as any),
+    userId && organizationId ? { userId, organizationId } : ("skip" as any)
   ) as Organization | undefined;
 
-  const isLoading = organizationId && userId ? organization === undefined : false;
+  const isLoading = userId ? organization === undefined : false;
 
   // Calculate plan limits and feature flags
   const planLimits = organization ? PLAN_FEATURES[organization.plan] : null;

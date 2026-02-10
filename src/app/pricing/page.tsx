@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
 // ---------------------------------------------------------------------------
 // Types & Data
@@ -183,6 +184,7 @@ function CreditCardIcon() {
 
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
+  const { canInstall, isInstalled, isIOS, promptInstall } = useInstallPrompt();
 
   const formatPrice = (plan: PricingPlan) => {
     if (billingPeriod === "annual") {
@@ -462,12 +464,30 @@ export default function PricingPage() {
             <p className="text-gray-400 mb-6">
               Join Australian SDA providers who trust MySDAManager for compliance, reporting, and property management.
             </p>
-            <Link
-              href="/register"
-              className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium px-8 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              Start Your Free Trial
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/register"
+                className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium px-8 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                Start Your Free Trial
+              </Link>
+              {canInstall && !isInstalled && (
+                <button
+                  onClick={() => promptInstall()}
+                  className="inline-flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-medium px-8 py-3 rounded-lg border border-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Install App
+                </button>
+              )}
+              {isIOS && !isInstalled && (
+                <span className="text-sm text-gray-400">
+                  On iOS: Tap Share then &quot;Add to Home Screen&quot;
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </section>

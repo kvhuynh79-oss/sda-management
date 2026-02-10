@@ -86,6 +86,8 @@ interface NavCluster {
   icon: React.ReactNode;
   items: NavItem[];
   pageKeys: CurrentPage[];
+  /** If set, only users with these roles see this cluster */
+  allowedRoles?: string[];
 }
 
 const NAV_CLUSTERS: NavCluster[] = [
@@ -152,6 +154,7 @@ const NAV_CLUSTERS: NavCluster[] = [
     label: "Finance",
     icon: <DollarSign className="w-5 h-5" aria-hidden="true" />,
     pageKeys: ["financials", "payments", "claims", "reports"],
+    allowedRoles: ["admin", "property_manager", "staff", "accountant"],
     items: [
       {
         href: "/financials",
@@ -210,6 +213,7 @@ const NAV_CLUSTERS: NavCluster[] = [
     label: "Database",
     icon: <Database className="w-5 h-5" aria-hidden="true" />,
     pageKeys: ["database", "contractors"],
+    allowedRoles: ["admin", "property_manager", "staff"],
     items: [
       {
         href: "/database",
@@ -422,10 +426,12 @@ function MobileNav({
   isOpen,
   onClose,
   currentPage,
+  userRole,
 }: {
   isOpen: boolean;
   onClose: () => void;
   currentPage?: CurrentPage;
+  userRole?: string;
 }) {
   const activeClusterId = getActiveClusterId(currentPage);
 
@@ -512,8 +518,8 @@ function MobileNav({
             <span className="text-sm font-medium">Dashboard</span>
           </Link>
 
-          {/* Clusters */}
-          {NAV_CLUSTERS.map((cluster) => {
+          {/* Clusters (filtered by role) */}
+          {NAV_CLUSTERS.filter((c) => !c.allowedRoles || !userRole || c.allowedRoles.includes(userRole)).map((cluster) => {
             const clusterIsActive = cluster.id === activeClusterId;
             return (
               <div key={cluster.id}>
@@ -721,8 +727,10 @@ export default function Header({ currentPage }: HeaderProps) {
                 )}
               </Link>
 
-              {/* Dropdown clusters */}
-              {NAV_CLUSTERS.map((cluster) => (
+              {/* Dropdown clusters (filtered by role) */}
+              {NAV_CLUSTERS
+                .filter((c) => !c.allowedRoles || !user?.role || c.allowedRoles.includes(user.role))
+                .map((cluster) => (
                 <NavDropdown
                   key={cluster.id}
                   cluster={cluster}
@@ -807,6 +815,7 @@ export default function Header({ currentPage }: HeaderProps) {
         isOpen={isMobileNavOpen}
         onClose={() => setIsMobileNavOpen(false)}
         currentPage={currentPage}
+        userRole={user?.role}
       />
 
       {/* Global Upload Modal */}

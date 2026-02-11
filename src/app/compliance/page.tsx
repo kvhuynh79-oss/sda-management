@@ -13,7 +13,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatStatus } from "@/utils/format";
 import SOP001Overlay from "@/components/compliance/SOP001Overlay";
 
-type TabType = "overview" | "certifications" | "insurance" | "complaints" | "incidents";
+type TabType = "overview" | "certifications" | "insurance" | "complaints" | "incidents" | "emergency";
 
 const TAB_ITEMS: { id: TabType; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -21,6 +21,7 @@ const TAB_ITEMS: { id: TabType; label: string }[] = [
   { id: "insurance", label: "Insurance" },
   { id: "complaints", label: "Complaints" },
   { id: "incidents", label: "NDIS Incidents" },
+  { id: "emergency", label: "Emergency & BCP" },
 ];
 
 function ComplianceContent() {
@@ -35,6 +36,8 @@ function ComplianceContent() {
   const insuranceCoverage = useQuery(api.insurancePolicies.checkRequiredCoverage, user ? { userId: user.id as Id<"users"> } : "skip");
   const complaintsStats = useQuery(api.complaints.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const incidentStats = useQuery(api.incidents.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
+  const empStats = useQuery(api.emergencyManagementPlans.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
+  const bcpStats = useQuery(api.businessContinuityPlans.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -88,8 +91,17 @@ function ComplianceContent() {
       issues += complaintsStats.overdueAcknowledgments;
     }
 
+    if (empStats) {
+      score -= (empStats.overdueReview || 0) * 10;
+      issues += empStats.overdueReview || 0;
+    }
+    if (bcpStats && !bcpStats.hasActivePlan) {
+      score -= 20;
+      issues += 1;
+    }
+
     return { score: Math.max(0, score), issues };
-  }, [certifications, insuranceCoverage, incidentStats, complaintsStats]);
+  }, [certifications, insuranceCoverage, incidentStats, complaintsStats, empStats, bcpStats]);
 
   if (!user) {
     return <LoadingScreen />;
@@ -820,6 +832,43 @@ function ComplianceContent() {
                   </p>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Emergency & BCP Tab */}
+        {activeTab === "emergency" && (
+          <div role="tabpanel" id="panel-emergency" aria-labelledby="tab-emergency" className="space-y-6">
+            {/* EMP Stats */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white">Emergency Management Plans</h2>
+                <Link href="/compliance/emergency-plans" className="text-teal-400 hover:text-teal-300 text-sm">
+                  View All Plans →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="Total Plans" value={empStats?.total ?? 0} color="blue" />
+                <StatCard title="Active" value={empStats?.active ?? 0} color="green" />
+                <StatCard title="Needs Review" value={empStats?.overdueReview ?? 0} color={empStats?.overdueReview ? "red" : "gray"} />
+                <StatCard title="Properties Without Plan" value={empStats?.propertiesWithoutPlan ?? 0} color={empStats?.propertiesWithoutPlan ? "yellow" : "gray"} />
+              </div>
+            </div>
+
+            {/* BCP Status */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white">Business Continuity Plan</h2>
+                <Link href="/compliance/business-continuity" className="text-teal-400 hover:text-teal-300 text-sm">
+                  {bcpStats?.hasActivePlan ? "View Plan →" : "Create Plan →"}
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="Status" value={bcpStats?.hasActivePlan ? "Active" : "No Plan"} color={bcpStats?.hasActivePlan ? "green" : "red"} />
+                <StatCard title="Version" value={bcpStats?.currentVersion || "N/A"} color="blue" />
+                <StatCard title="Last Reviewed" value={bcpStats?.lastReviewDate || "Never"} color="gray" />
+                <StatCard title="Next Review" value={bcpStats?.nextReviewDate || "Not Set"} color={bcpStats?.isOverdueReview ? "red" : "gray"} />
+              </div>
             </div>
           </div>
         )}

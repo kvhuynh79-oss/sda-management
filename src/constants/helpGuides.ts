@@ -1650,4 +1650,292 @@ export const HELP_GUIDES: Record<string, HelpGuide> = {
       { label: "Documents", href: "/documents" },
     ],
   },
+
+  // ---------------------------------------------------------------------------
+  // 12. EMERGENCY MANAGEMENT PLANS
+  // ---------------------------------------------------------------------------
+  "emergency-plans": {
+    id: "emergency-plans",
+    title: "Emergency Management Plans",
+    subtitle: "NDIS Practice Standard 5 — per-property emergency preparedness",
+    overview:
+      "Emergency Management Plans (EMPs) ensure every SDA property has documented procedures for responding to emergencies such as fire, flood, severe weather, medical emergencies, and utility failures. Under NDIS Practice Standard 5 (Service Environment), providers must maintain current emergency plans for each property and ensure all staff and participants are familiar with them.",
+    sections: [
+      {
+        id: "ndis-requirement",
+        title: "NDIS Practice Standard 5 Requirement",
+        icon: "shield",
+        color: "red",
+        badge: "MANDATORY",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "NDIS Practice Standard 5 (Service Environment) requires providers to maintain a safe environment that is fit for purpose. This includes documented emergency and disaster management plans for each service delivery location.",
+          },
+          {
+            type: "list",
+            value: [
+              "Each SDA property must have its own Emergency Management Plan tailored to the property layout, participant needs, and local risks",
+              "Plans must be reviewed at least annually and updated after any emergency event or significant change",
+              "All staff working at the property must be familiar with the plan and know their assigned roles",
+              "Participants must be informed of emergency procedures in an accessible format appropriate to their needs",
+              "Emergency plans must be readily accessible at the property — not locked in an office or stored only digitally",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "Failure to maintain current emergency plans is a non-compliance finding in NDIS audits. Properties without plans may receive conditions on their registration or face enforcement action.",
+          },
+        ],
+      },
+      {
+        id: "key-plan-sections",
+        title: "Key Plan Sections",
+        icon: "list",
+        color: "teal",
+        badge: "TEMPLATE",
+        content: [
+          {
+            type: "text",
+            value:
+              "A comprehensive Emergency Management Plan covers the following sections. MySDAManager provides a structured template to ensure nothing is missed.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Management Contacts**: Property manager, on-call staff, and escalation contacts with phone numbers. These are the first people called in an emergency.",
+              "**Emergency Services Contacts**: Fire (000), Ambulance (000), Police (000), SES (132 500), Poisons Info (13 11 26), plus local hospital and GP details.",
+              "**Evacuation Procedures**: Step-by-step evacuation instructions including primary and secondary routes, assembly points, participant mobility considerations, and wheelchair-accessible exits.",
+              "**Emergency Kit Contents**: First aid supplies, torch, battery-powered radio, medications list, participant emergency profiles, spare keys, and any participant-specific equipment (e.g. oxygen, communication devices).",
+              "**Team Roles & Responsibilities**: Who does what during an emergency — fire warden, first aider, evacuation assistant, communications coordinator, and participant support roles.",
+              "**Emergency Procedures**: Specific procedures for fire, flood, severe weather, power failure, gas leak, medical emergency, missing participant, and security threat.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "review-frequency",
+        title: "Review Frequency",
+        icon: "clock",
+        color: "yellow",
+        badge: "ANNUAL",
+        content: [
+          {
+            type: "text",
+            value:
+              "Emergency plans must be reviewed regularly to remain effective. A plan that has not been reviewed may contain outdated contacts, incorrect procedures, or missing information about new participants.",
+          },
+          {
+            type: "list",
+            value: [
+              "Annual review: Every plan must be reviewed at least once per year, even if no changes are needed. Record the review date.",
+              "After any emergency event: If the plan was activated (even partially), review it within 7 days to capture lessons learned.",
+              "After any incident at the property: Incidents may reveal gaps in emergency preparedness.",
+              "When participants change: New participants may have different mobility, communication, or medical needs that affect evacuation procedures.",
+              "When staff change: New staff need to be assigned roles and trained on the plan.",
+              "When the property is modified: Renovations, new equipment, or changes to exits require plan updates.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "The system tracks review dates and generates alerts when a plan is overdue for review. Plans not reviewed within 12 months are flagged as non-compliant on the Compliance Dashboard.",
+          },
+        ],
+      },
+      {
+        id: "audit-tips",
+        title: "Audit & Compliance Tips",
+        icon: "check",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Keep plans current — an outdated plan is worse than no plan because staff may follow incorrect procedures",
+              "Ensure all staff know the assembly point for each property they work at",
+              "Test evacuation procedures at least annually — document the drill date, participants involved, and time taken",
+              "Include participant-specific considerations: mobility aids, sensory impairments, behavioural triggers during stress",
+              "Store a printed copy of the plan at the property in an accessible location (not behind a locked door)",
+              "Review and update emergency contact numbers quarterly — staff turnover makes these go stale quickly",
+              "During NDIS audits, auditors will ask staff about emergency procedures — ensure staff can explain the plan without reading it",
+              "Photograph the posted emergency plan and evacuation map at each property as evidence for audit files",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Run a fire drill at each property at least once per year. Record the date, who participated, how long evacuation took, and any issues identified. This is strong evidence of compliance during audits.",
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Compliance Dashboard", href: "/compliance" },
+      { label: "Properties", href: "/properties" },
+      { label: "Incidents", href: "/incidents" },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // 13. BUSINESS CONTINUITY PLANNING
+  // ---------------------------------------------------------------------------
+  "business-continuity": {
+    id: "business-continuity",
+    title: "Business Continuity Planning",
+    subtitle: "Ensuring continuity of supports for NDIS participants",
+    overview:
+      "A Business Continuity Plan (BCP) ensures your organisation can continue delivering essential supports to NDIS participants during and after disruptive events such as natural disasters, pandemics, key staff loss, IT failures, or supply chain disruptions. The NDIS Practice Standards require providers to plan for continuity of supports.",
+    sections: [
+      {
+        id: "ndis-continuity-requirement",
+        title: "NDIS Continuity of Supports Requirement",
+        icon: "shield",
+        color: "red",
+        badge: "MANDATORY",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text",
+            value:
+              "The NDIS Practice Standards require registered providers to plan for the continuity of supports to participants. Participants depend on SDA providers for safe and accessible housing — any disruption to services can directly affect participant safety and wellbeing.",
+          },
+          {
+            type: "list",
+            value: [
+              "Providers must have a documented plan for maintaining services during disruptive events",
+              "The plan must identify critical services and the risks that could disrupt them",
+              "Alternative arrangements must be identified for key personnel, systems, and suppliers",
+              "Participants and their support networks must be informed of continuity arrangements",
+              "The plan must be tested and reviewed regularly to ensure it remains effective",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "During NDIS audits, providers are expected to demonstrate they have considered business continuity. Not having a BCP is a finding that can result in conditions on registration.",
+          },
+        ],
+      },
+      {
+        id: "risk-assessment",
+        title: "Risk Assessment Methodology",
+        icon: "alert",
+        color: "yellow",
+        badge: "KEY SKILL",
+        content: [
+          {
+            type: "text",
+            value:
+              "The BCP is built around a risk assessment that identifies threats, evaluates their likelihood and impact, and determines mitigation strategies. MySDAManager uses a standard likelihood x impact matrix.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Likelihood**: Rare (1), Unlikely (2), Possible (3), Likely (4), Almost Certain (5). Based on historical data and expert judgement.",
+              "**Impact**: Insignificant (1), Minor (2), Moderate (3), Major (4), Catastrophic (5). Assessed from the perspective of participant safety and service continuity.",
+              "**Risk Rating**: Likelihood x Impact = Risk Score. Low (1-4), Medium (5-9), High (10-15), Extreme (16-25). High and Extreme risks require specific mitigation strategies.",
+              "**Mitigation Strategy**: What actions reduce the likelihood or impact of the risk. Every High and Extreme risk must have at least one documented mitigation.",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Common risks for SDA providers include: pandemic or infectious disease outbreak, key staff member illness or departure, natural disaster (flood, bushfire, storm), IT system failure, power outage, insurance lapse, and contractor unavailability.",
+          },
+        ],
+      },
+      {
+        id: "key-plan-sections",
+        title: "Key Plan Sections",
+        icon: "list",
+        color: "teal",
+        badge: "TEMPLATE",
+        content: [
+          {
+            type: "text",
+            value:
+              "A comprehensive BCP addresses the following areas. MySDAManager provides structured sections for each.",
+          },
+          {
+            type: "fields",
+            value: [
+              "**Key Personnel & Succession**: Identify critical roles and their backups. Who takes over if the property manager, director, or on-call staff are unavailable? Include contact details for all backup personnel.",
+              "**Critical Services**: List the essential services participants depend on — accommodation, utilities, maintenance response, medication management, and communication with support networks.",
+              "**Insurance Coverage**: Summary of current insurance policies including property, public liability, professional indemnity, and business interruption cover. Reference policy numbers and contact details.",
+              "**Risk Scenarios**: Documented risk scenarios with likelihood, impact, risk rating, and specific mitigation strategies for each.",
+              "**Data Backup & IT Recovery**: How is participant data protected? What are the backup procedures? How quickly can systems be restored? MySDAManager data is cloud-hosted, but local files and credentials need backup procedures.",
+              "**Communication Plan**: How will staff, participants, families, Support Coordinators, and SIL providers be notified during a disruption? Include templates and contact lists.",
+              "**Recovery Checklist**: Step-by-step actions to restore normal operations after a disruption. Includes damage assessment, service restoration priorities, and post-incident review.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "review-frequency",
+        title: "Review Frequency",
+        icon: "clock",
+        color: "yellow",
+        badge: "ANNUAL",
+        content: [
+          {
+            type: "text",
+            value:
+              "The BCP must be a living document that is reviewed and updated regularly. An untested plan may fail when it is needed most.",
+          },
+          {
+            type: "list",
+            value: [
+              "Annual review: The BCP must be fully reviewed at least once per year. Record the review date and any changes made.",
+              "After activation: If the BCP was activated (even partially), conduct a formal review within 14 days to capture lessons learned.",
+              "After any significant incident: Major incidents may reveal gaps in continuity planning that need to be addressed.",
+              "When organisational changes occur: New properties, staff changes, new service agreements, or changes to insurance should trigger a plan review.",
+              "After regulatory changes: Updates to NDIS Practice Standards or state regulations may require plan amendments.",
+            ],
+          },
+          {
+            type: "warning",
+            value:
+              "The system tracks the BCP review date and flags it as overdue if not reviewed within 12 months. An overdue BCP reduces your compliance score on the Compliance Dashboard.",
+          },
+        ],
+      },
+      {
+        id: "audit-tips",
+        title: "Audit & Compliance Tips",
+        icon: "check",
+        color: "green",
+        badge: "BEST PRACTICE",
+        content: [
+          {
+            type: "list",
+            value: [
+              "Test the BCP regularly — a desktop exercise or tabletop scenario at least annually demonstrates preparedness",
+              "Train all staff on BCP activation procedures during onboarding and at annual refreshers",
+              "Keep the communication plan contact list up to date — check quarterly for phone number and email changes",
+              "Document any BCP activations in detail, including what worked and what needs improvement",
+              "Ensure backup personnel have the access and credentials they need before they are needed",
+              "Review insurance coverage annually to ensure it matches current property portfolio and risk profile",
+              "Store a printed copy of key contact numbers and critical procedures in a secure but accessible location",
+              "During NDIS audits, be prepared to explain your BCP, when it was last reviewed, and how staff are trained on it",
+            ],
+          },
+          {
+            type: "tip",
+            value:
+              "Run a tabletop exercise annually where your team walks through a disruption scenario (e.g. 'What happens if the property manager is hospitalised and a major storm damages two properties on the same day?'). Document the exercise and outcomes as audit evidence.",
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Compliance Dashboard", href: "/compliance" },
+      { label: "Emergency Plans", href: "/compliance/emergency-plans" },
+      { label: "Insurance Policies", href: "/compliance/insurance" },
+    ],
+  },
 };

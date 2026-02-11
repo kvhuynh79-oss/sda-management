@@ -37,6 +37,8 @@ import {
   Search,
   Settings,
   UserCheck,
+  Flame,
+  LifeBuoy,
 } from "lucide-react";
 
 // ── Type definitions ──────────────────────────────────────────────
@@ -212,6 +214,20 @@ const NAV_CLUSTERS: NavCluster[] = [
         label: "Staff Files",
         description: "Staff records and screening compliance",
         icon: <UserCheck className="w-5 h-5 text-gray-400" aria-hidden="true" />,
+        pageKeys: ["compliance"],
+      },
+      {
+        href: "/compliance/emergency-plans",
+        label: "Emergency Plans",
+        description: "Emergency management plans per property",
+        icon: <Flame className="w-5 h-5 text-gray-400" aria-hidden="true" />,
+        pageKeys: ["compliance"],
+      },
+      {
+        href: "/compliance/business-continuity",
+        label: "Business Continuity",
+        description: "Organisation business continuity planning",
+        icon: <LifeBuoy className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["compliance"],
       },
     ],

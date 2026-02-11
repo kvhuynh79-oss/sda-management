@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatStatus } from "@/utils/format";
 import SOP001Overlay from "@/components/compliance/SOP001Overlay";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 type TabType = "overview" | "certifications" | "insurance" | "complaints" | "incidents" | "emergency";
 
@@ -29,6 +30,8 @@ function ComplianceContent() {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [expandedGuide, setExpandedGuide] = useState<"incidents" | "complaints" | "certifications" | null>(null);
   const [showSopOverlay, setShowSopOverlay] = useState(false);
+  const { organization } = useOrganization();
+  const isBls = organization?.slug === "better-living-solutions";
 
   const certifications = useQuery(api.complianceCertifications.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const expiringSoonCerts = useQuery(api.complianceCertifications.getExpiringSoon, user ? { userId: user.id as Id<"users"> } : "skip");
@@ -36,8 +39,8 @@ function ComplianceContent() {
   const insuranceCoverage = useQuery(api.insurancePolicies.checkRequiredCoverage, user ? { userId: user.id as Id<"users"> } : "skip");
   const complaintsStats = useQuery(api.complaints.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const incidentStats = useQuery(api.incidents.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
-  const empStats = useQuery(api.emergencyManagementPlans.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
-  const bcpStats = useQuery(api.businessContinuityPlans.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
+  const empStats = useQuery(api.emergencyManagementPlans.getStats, user && isBls ? { userId: user.id as Id<"users"> } : "skip");
+  const bcpStats = useQuery(api.businessContinuityPlans.getStats, user && isBls ? { userId: user.id as Id<"users"> } : "skip");
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -159,7 +162,7 @@ function ComplianceContent() {
           aria-label="Compliance sections"
           className="flex gap-2 mb-6 overflow-x-auto pb-2"
         >
-          {TAB_ITEMS.map((tab) => {
+          {TAB_ITEMS.filter((tab) => tab.id !== "emergency" || isBls).map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button

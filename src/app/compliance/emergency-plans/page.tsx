@@ -11,6 +11,7 @@ import { LoadingScreen, StatCard } from "@/components/ui";
 import Badge from "@/components/ui/Badge";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatDate } from "@/utils/format";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 const STATUS_BADGE: Record<string, { variant: "success" | "warning" | "error" | "neutral"; label: string }> = {
   active: { variant: "success", label: "Active" },
@@ -324,10 +325,31 @@ function EmergencyPlansContent() {
   );
 }
 
+function BlsGate({ children }: { children: React.ReactNode }) {
+  const { organization, isLoading } = useOrganization();
+  if (isLoading) return null;
+  if (organization?.slug !== "better-living-solutions") {
+    return (
+      <div className="min-h-screen bg-gray-900">
+        <Header currentPage="compliance" />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-24">
+            <h1 className="text-2xl font-bold text-white mb-2">Emergency Management Plans</h1>
+            <p className="text-gray-400">This feature is not available for your organisation.</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 export default function EmergencyPlansPage() {
   return (
     <RequireAuth>
-      <EmergencyPlansContent />
+      <BlsGate>
+        <EmergencyPlansContent />
+      </BlsGate>
     </RequireAuth>
   );
 }

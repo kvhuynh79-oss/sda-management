@@ -81,6 +81,8 @@ interface NavItem {
   description: string;
   icon: React.ReactNode;
   pageKeys: CurrentPage[];
+  /** If true, only shown for BLS organization (slug: better-living-solutions) */
+  blsOnly?: boolean;
 }
 
 interface NavCluster {
@@ -222,6 +224,7 @@ const NAV_CLUSTERS: NavCluster[] = [
         description: "Emergency management plans per property",
         icon: <Flame className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["compliance"],
+        blsOnly: true,
       },
       {
         href: "/compliance/business-continuity",
@@ -229,6 +232,7 @@ const NAV_CLUSTERS: NavCluster[] = [
         description: "Organisation business continuity planning",
         icon: <LifeBuoy className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["compliance"],
+        blsOnly: true,
       },
     ],
   },
@@ -313,12 +317,14 @@ function NavDropdown({
   isOpen,
   onToggle,
   onClose,
+  orgSlug,
 }: {
   cluster: NavCluster;
   isActive: boolean;
   isOpen: boolean;
   onToggle: () => void;
   onClose: () => void;
+  orgSlug?: string;
 }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -416,7 +422,9 @@ function NavDropdown({
         `}
       >
         <div className="py-2">
-          {cluster.items.map((item) => (
+          {cluster.items
+            .filter((item) => !item.blsOnly || orgSlug === "better-living-solutions")
+            .map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -451,11 +459,13 @@ function MobileNav({
   onClose,
   currentPage,
   userRole,
+  orgSlug,
 }: {
   isOpen: boolean;
   onClose: () => void;
   currentPage?: CurrentPage;
   userRole?: string;
+  orgSlug?: string;
 }) {
   const activeClusterId = getActiveClusterId(currentPage);
 
@@ -557,7 +567,9 @@ function MobileNav({
                   <span>{cluster.label}</span>
                 </div>
                 <div className="space-y-0.5">
-                  {cluster.items.map((item) => {
+                  {cluster.items
+                    .filter((item) => !item.blsOnly || orgSlug === "better-living-solutions")
+                    .map((item) => {
                     const isItemActive = item.pageKeys.includes(
                       currentPage as CurrentPage
                     );
@@ -768,6 +780,7 @@ export default function Header({ currentPage }: HeaderProps) {
                   isOpen={openClusterId === cluster.id}
                   onToggle={() => toggleCluster(cluster.id)}
                   onClose={() => setOpenClusterId(null)}
+                  orgSlug={organization?.slug}
                 />
               ))}
             </nav>
@@ -846,6 +859,7 @@ export default function Header({ currentPage }: HeaderProps) {
         onClose={() => setIsMobileNavOpen(false)}
         currentPage={currentPage}
         userRole={user?.role}
+        orgSlug={organization?.slug}
       />
 
       {/* Global Upload Modal */}

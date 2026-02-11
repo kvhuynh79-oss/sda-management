@@ -22,6 +22,7 @@ export const create = mutation({
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedOwnerId: v.optional(v.id("owners")),
     linkedLeadId: v.optional(v.id("leads")),
+    linkedStaffMemberId: v.optional(v.id("staffMembers")),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
     // Invoice fields
@@ -120,6 +121,31 @@ export const getByParticipant = query({
       .query("documents")
       .withIndex("by_participant", (q) =>
         q.eq("linkedParticipantId", args.participantId)
+      )
+      .collect();
+
+    const documents = allDocuments.filter(d => d.organizationId === organizationId);
+
+    const documentsWithUrls = await Promise.all(
+      documents.map(async (doc) => {
+        const downloadUrl = await ctx.storage.getUrl(doc.storageId);
+        return { ...doc, downloadUrl };
+      })
+    );
+
+    return documentsWithUrls.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+// Get documents by staff member
+export const getByStaffMember = query({
+  args: { userId: v.id("users"), staffMemberId: v.id("staffMembers") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const allDocuments = await ctx.db
+      .query("documents")
+      .withIndex("by_staffMember", (q) =>
+        q.eq("linkedStaffMemberId", args.staffMemberId)
       )
       .collect();
 

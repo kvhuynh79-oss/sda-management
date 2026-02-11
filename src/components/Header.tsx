@@ -36,6 +36,7 @@ import {
   ListChecks,
   Search,
   Settings,
+  UserCheck,
 } from "lucide-react";
 
 // ── Type definitions ──────────────────────────────────────────────
@@ -204,6 +205,13 @@ const NAV_CLUSTERS: NavCluster[] = [
         label: "Complaints",
         description: "NDIS complaints and SOP-001 procedure",
         icon: <MessageCircleWarning className="w-5 h-5 text-gray-400" aria-hidden="true" />,
+        pageKeys: ["compliance"],
+      },
+      {
+        href: "/compliance/staff",
+        label: "Staff Files",
+        description: "Staff records and screening compliance",
+        icon: <UserCheck className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["compliance"],
       },
     ],

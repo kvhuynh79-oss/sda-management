@@ -646,6 +646,14 @@ export default defineSchema({
       v.literal("ndis_practice_standards_cert"),
       v.literal("sda_registration_cert"),
       v.literal("ndis_worker_screening"),
+      // Staff documents
+      v.literal("police_check"),
+      v.literal("ndis_worker_screening_doc"),
+      v.literal("wwcc_check"),
+      v.literal("first_aid_cert"),
+      v.literal("employment_contract"),
+      v.literal("training_record"),
+      v.literal("identity_document"),
       // General
       v.literal("invoice"),
       v.literal("receipt"),
@@ -662,13 +670,15 @@ export default defineSchema({
       v.literal("property"),
       v.literal("dwelling"),
       v.literal("owner"),
-      v.literal("organisation")
+      v.literal("organisation"),
+      v.literal("staff")
     ),
     linkedParticipantId: v.optional(v.id("participants")),
     linkedPropertyId: v.optional(v.id("properties")),
     linkedDwellingId: v.optional(v.id("dwellings")),
     linkedOwnerId: v.optional(v.id("owners")),
     linkedLeadId: v.optional(v.id("leads")),
+    linkedStaffMemberId: v.optional(v.id("staffMembers")),
     description: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
     // Invoice-specific fields
@@ -691,6 +701,7 @@ export default defineSchema({
     .index("by_property_type", ["linkedPropertyId", "documentType"])
     .index("by_vendor", ["vendor"])
     .index("by_lead", ["linkedLeadId"])
+    .index("by_staffMember", ["linkedStaffMemberId"])
     .index("by_organizationId", ["organizationId"]),
 
   // Provider Settings table - NDIS provider configuration
@@ -745,7 +756,13 @@ export default defineSchema({
       v.literal("new_website_complaint"), // New complaint from website
       v.literal("complaint_resolution_overdue"), // Complaint not resolved within 21 days
       // Billing alerts
-      v.literal("subscription_payment_failed") // Stripe subscription payment failed
+      v.literal("subscription_payment_failed"), // Stripe subscription payment failed
+      // Emergency & BCP alerts
+      v.literal("emergency_plan_review_due"), // Emergency management plan review overdue
+      v.literal("bcp_review_due"), // Business continuity plan review overdue
+      v.literal("property_missing_emergency_plan"), // Property has no active emergency plan
+      // Staff screening alerts
+      v.literal("staff_screening_expiry") // Staff NDIS/police/WWCC screening expiring or expired
     ),
     severity: v.union(
       v.literal("critical"),
@@ -761,6 +778,7 @@ export default defineSchema({
     linkedPreventativeScheduleId: v.optional(v.id("preventativeSchedule")),
     linkedPlanId: v.optional(v.id("participantPlans")), // For claim_due alerts
     linkedOwnerId: v.optional(v.id("owners")), // For owner_payment_due alerts
+    linkedStaffMemberId: v.optional(v.id("staffMembers")), // For staff_screening_expiry alerts
     triggerDate: v.string(),
     dueDate: v.optional(v.string()),
     status: v.union(
@@ -1099,6 +1117,56 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_specialty", ["specialty"])
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId", ["organizationId"]),
+
+  // Staff Members table - employee records and NDIS screening compliance
+  staffMembers: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    // Personal
+    firstName: v.string(),
+    lastName: v.string(),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    suburb: v.optional(v.string()),
+    state: v.optional(v.string()),
+    postcode: v.optional(v.string()),
+    dateOfBirth: v.optional(v.string()),
+    emergencyContactName: v.optional(v.string()),
+    emergencyContactPhone: v.optional(v.string()),
+    // Employment
+    position: v.optional(v.string()),
+    employmentType: v.union(
+      v.literal("full_time"),
+      v.literal("part_time"),
+      v.literal("casual"),
+      v.literal("contractor")
+    ),
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+    assignedProperties: v.optional(v.array(v.id("properties"))),
+    // NDIS Screening & Compliance
+    policeCheckNumber: v.optional(v.string()),
+    policeCheckDate: v.optional(v.string()),
+    policeCheckExpiry: v.optional(v.string()),
+    ndisWorkerScreeningNumber: v.optional(v.string()),
+    ndisWorkerScreeningDate: v.optional(v.string()),
+    ndisWorkerScreeningExpiry: v.optional(v.string()),
+    workingWithChildrenNumber: v.optional(v.string()),
+    workingWithChildrenDate: v.optional(v.string()),
+    workingWithChildrenExpiry: v.optional(v.string()),
+    ndisWorkerOrientation: v.optional(v.boolean()),
+    ndisWorkerOrientationDate: v.optional(v.string()),
+    firstAidCertDate: v.optional(v.string()),
+    firstAidCertExpiry: v.optional(v.string()),
+    // Standard
+    notes: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["email"])
     .index("by_isActive", ["isActive"])
     .index("by_organizationId", ["organizationId"]),
 
@@ -2226,4 +2294,119 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_organizationId", ["organizationId"])
     .index("by_isActive", ["isActive"]),
+
+  // Emergency Management Plans - per-property emergency procedures (NDIS compliance)
+  emergencyManagementPlans: defineTable({
+    organizationId: v.id("organizations"),
+    propertyId: v.id("properties"),
+    dwellingId: v.optional(v.id("dwellings")),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("under_review"), v.literal("archived")),
+    version: v.string(),
+    lastReviewDate: v.optional(v.string()),
+    nextReviewDate: v.optional(v.string()),
+    managementContacts: v.array(v.object({
+      name: v.string(),
+      role: v.string(),
+      phone: v.string(),
+      email: v.optional(v.string()),
+    })),
+    emergencyContacts: v.array(v.object({
+      service: v.string(),
+      phone: v.string(),
+      notes: v.optional(v.string()),
+    })),
+    evacuationProcedure: v.optional(v.string()),
+    assemblyPoint: v.optional(v.string()),
+    emergencyKit: v.array(v.object({
+      item: v.string(),
+      location: v.optional(v.string()),
+      lastChecked: v.optional(v.string()),
+    })),
+    emergencyTeam: v.array(v.object({
+      name: v.string(),
+      role: v.string(),
+      responsibilities: v.optional(v.string()),
+      phone: v.string(),
+    })),
+    procedures: v.array(v.object({
+      type: v.string(),
+      steps: v.string(),
+    })),
+    participantSpecificNotes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_propertyId", ["propertyId"])
+    .index("by_status", ["status"]),
+
+  // Business Continuity Plans - org-level disaster recovery and continuity (NDIS compliance)
+  businessContinuityPlans: defineTable({
+    organizationId: v.id("organizations"),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("under_review"), v.literal("archived")),
+    version: v.string(),
+    lastReviewDate: v.optional(v.string()),
+    nextReviewDate: v.optional(v.string()),
+    businessDetails: v.optional(v.object({
+      name: v.string(),
+      abn: v.optional(v.string()),
+      address: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      email: v.optional(v.string()),
+    })),
+    keyPersonnel: v.array(v.object({
+      name: v.string(),
+      role: v.string(),
+      phone: v.string(),
+      email: v.optional(v.string()),
+      responsibilities: v.optional(v.string()),
+    })),
+    criticalServices: v.array(v.object({
+      service: v.string(),
+      provider: v.string(),
+      contactPhone: v.optional(v.string()),
+      contactEmail: v.optional(v.string()),
+      alternativeProvider: v.optional(v.string()),
+    })),
+    insuranceDetails: v.array(v.object({
+      type: v.string(),
+      provider: v.string(),
+      policyNumber: v.optional(v.string()),
+      coverage: v.optional(v.string()),
+      expiryDate: v.optional(v.string()),
+    })),
+    riskScenarios: v.array(v.object({
+      scenario: v.string(),
+      likelihood: v.string(),
+      impact: v.string(),
+      riskLevel: v.string(),
+      mitigationSteps: v.optional(v.string()),
+      recoverySteps: v.optional(v.string()),
+      rto: v.optional(v.string()),
+    })),
+    dataBackupProcedures: v.optional(v.object({
+      method: v.optional(v.string()),
+      frequency: v.optional(v.string()),
+      location: v.optional(v.string()),
+      responsiblePerson: v.optional(v.string()),
+      lastTestedDate: v.optional(v.string()),
+    })),
+    communicationPlan: v.optional(v.object({
+      internalNotification: v.optional(v.string()),
+      externalNotification: v.optional(v.string()),
+      mediaResponse: v.optional(v.string()),
+    })),
+    recoveryChecklist: v.array(v.object({
+      step: v.string(),
+      description: v.optional(v.string()),
+      responsible: v.optional(v.string()),
+      completed: v.optional(v.boolean()),
+    })),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_status", ["status"]),
 });

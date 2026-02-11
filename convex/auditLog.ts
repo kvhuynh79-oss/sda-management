@@ -81,6 +81,7 @@ export type AuditEntityType =
   | "task"
   | "complaint"
   | "lead"
+  | "staffMember"
   | "system";
 
 // Internal mutation for logging - used by other mutations

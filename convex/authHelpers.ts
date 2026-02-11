@@ -29,6 +29,7 @@ export const rolePermissions: Record<UserRole, {
   communications: { view: boolean; create: boolean; update: boolean; delete: boolean };
   tasks: { view: boolean; create: boolean; update: boolean; delete: boolean };
   leads: { view: boolean; create: boolean; update: boolean; delete: boolean };
+  staffMembers: { view: boolean; create: boolean; update: boolean; delete: boolean };
 }> = {
   admin: {
     properties: { view: true, create: true, update: true, delete: true },
@@ -44,6 +45,7 @@ export const rolePermissions: Record<UserRole, {
     communications: { view: true, create: true, update: true, delete: true },
     tasks: { view: true, create: true, update: true, delete: true },
     leads: { view: true, create: true, update: true, delete: true },
+    staffMembers: { view: true, create: true, update: true, delete: true },
   },
   property_manager: {
     properties: { view: true, create: true, update: true, delete: false },
@@ -59,6 +61,7 @@ export const rolePermissions: Record<UserRole, {
     communications: { view: true, create: true, update: true, delete: true },
     tasks: { view: true, create: true, update: true, delete: true },
     leads: { view: true, create: true, update: true, delete: false },
+    staffMembers: { view: false, create: false, update: false, delete: false },
   },
   staff: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -74,6 +77,7 @@ export const rolePermissions: Record<UserRole, {
     communications: { view: true, create: true, update: true, delete: false },
     tasks: { view: true, create: true, update: true, delete: false },
     leads: { view: true, create: true, update: true, delete: false },
+    staffMembers: { view: false, create: false, update: false, delete: false },
   },
   accountant: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -89,6 +93,7 @@ export const rolePermissions: Record<UserRole, {
     communications: { view: true, create: true, update: false, delete: false },
     tasks: { view: true, create: true, update: false, delete: false },
     leads: { view: true, create: false, update: false, delete: false },
+    staffMembers: { view: false, create: false, update: false, delete: false },
   },
   sil_provider: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -104,6 +109,7 @@ export const rolePermissions: Record<UserRole, {
     communications: { view: true, create: true, update: true, delete: false },
     tasks: { view: true, create: true, update: true, delete: false },
     leads: { view: true, create: false, update: false, delete: false },
+    staffMembers: { view: false, create: false, update: false, delete: false },
   },
 };
 

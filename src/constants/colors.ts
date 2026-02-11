@@ -19,6 +19,22 @@ export const MAINTENANCE_STATUS_COLORS = {
   cancelled: "bg-gray-500/20 text-gray-400",
 } as const;
 
+// Employment type colors
+export const EMPLOYMENT_TYPE_COLORS = {
+  full_time: "bg-green-500/20 text-green-400",
+  part_time: "bg-blue-500/20 text-blue-400",
+  casual: "bg-yellow-500/20 text-yellow-400",
+  contractor: "bg-purple-500/20 text-purple-400",
+} as const;
+
+// Screening status colors
+export const SCREENING_STATUS_COLORS = {
+  current: "bg-green-500/20 text-green-400",
+  expiring_soon: "bg-yellow-500/20 text-yellow-400",
+  expired: "bg-red-500/20 text-red-400",
+  not_recorded: "bg-gray-500/20 text-gray-400",
+} as const;
+
 // Priority colors
 export const PRIORITY_COLORS = {
   low: "bg-gray-500/20 text-gray-400",

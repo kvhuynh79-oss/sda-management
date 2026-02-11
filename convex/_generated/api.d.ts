@@ -61,6 +61,7 @@ import type * as paginationHelpers from "../paginationHelpers.js";
 import type * as participantPlans from "../participantPlans.js";
 import type * as participants from "../participants.js";
 import type * as payments from "../payments.js";
+import type * as policies from "../policies.js";
 import type * as preventativeSchedule from "../preventativeSchedule.js";
 import type * as preventativeScheduleTemplates from "../preventativeScheduleTemplates.js";
 import type * as properties from "../properties.js";
@@ -149,6 +150,7 @@ declare const fullApi: ApiFromModules<{
   participantPlans: typeof participantPlans;
   participants: typeof participants;
   payments: typeof payments;
+  policies: typeof policies;
   preventativeSchedule: typeof preventativeSchedule;
   preventativeScheduleTemplates: typeof preventativeScheduleTemplates;
   properties: typeof properties;

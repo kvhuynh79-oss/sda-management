@@ -14,15 +14,16 @@ import { formatDate, formatStatus } from "@/utils/format";
 import SOP001Overlay from "@/components/compliance/SOP001Overlay";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
-type TabType = "overview" | "certifications" | "insurance" | "complaints" | "incidents" | "emergency";
+type TabType = "overview" | "certifications" | "insurance" | "complaints" | "incidents" | "emergency" | "policies";
 
-const TAB_ITEMS: { id: TabType; label: string }[] = [
+const TAB_ITEMS: { id: TabType; label: string; blsOnly?: boolean }[] = [
   { id: "overview", label: "Overview" },
   { id: "certifications", label: "Certifications" },
   { id: "insurance", label: "Insurance" },
   { id: "complaints", label: "Complaints" },
   { id: "incidents", label: "NDIS Incidents" },
-  { id: "emergency", label: "Emergency & BCP" },
+  { id: "emergency", label: "Emergency & BCP", blsOnly: true },
+  { id: "policies", label: "Policies", blsOnly: true },
 ];
 
 function ComplianceContent() {
@@ -41,6 +42,7 @@ function ComplianceContent() {
   const incidentStats = useQuery(api.incidents.getStats, user ? { userId: user.id as Id<"users"> } : "skip");
   const empStats = useQuery(api.emergencyManagementPlans.getStats, user && isBls ? { userId: user.id as Id<"users"> } : "skip");
   const bcpStats = useQuery(api.businessContinuityPlans.getStats, user && isBls ? { userId: user.id as Id<"users"> } : "skip");
+  const policyStats = useQuery(api.policies.getStats, user && isBls ? { userId: user.id as Id<"users"> } : "skip");
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -103,8 +105,13 @@ function ComplianceContent() {
       issues += 1;
     }
 
+    if (policyStats) {
+      score -= (policyStats.overdueReview || 0) * 5;
+      issues += policyStats.overdueReview || 0;
+    }
+
     return { score: Math.max(0, score), issues };
-  }, [certifications, insuranceCoverage, incidentStats, complaintsStats, empStats, bcpStats]);
+  }, [certifications, insuranceCoverage, incidentStats, complaintsStats, empStats, bcpStats, policyStats]);
 
   if (!user) {
     return <LoadingScreen />;
@@ -162,7 +169,7 @@ function ComplianceContent() {
           aria-label="Compliance sections"
           className="flex gap-2 mb-6 overflow-x-auto pb-2"
         >
-          {TAB_ITEMS.filter((tab) => tab.id !== "emergency" || isBls).map((tab) => {
+          {TAB_ITEMS.filter((tab) => !tab.blsOnly || isBls).map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -312,6 +319,41 @@ function ComplianceContent() {
                   </>
                 )}
               </div>
+
+              {/* Policies Card (BLS only) */}
+              {isBls && (
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Policies</h3>
+                  {!policyStats ? (
+                    <LoadingScreen fullScreen={false} message="Loading..." />
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Active</span>
+                          <span className="text-green-400">{policyStats.active}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Due for Review</span>
+                          <span className={policyStats.overdueReview > 0 ? "text-red-400" : "text-green-400"}>
+                            {policyStats.overdueReview}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Draft</span>
+                          <span className="text-gray-300">{policyStats.draft}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("policies")}
+                        className="mt-4 text-teal-500 hover:text-teal-400 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+                      >
+                        View policy library →
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -835,6 +877,59 @@ function ComplianceContent() {
                   </p>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Policies Tab */}
+        {activeTab === "policies" && (
+          <div role="tabpanel" id="panel-policies" aria-labelledby="tab-policies" className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white">Policies &amp; Procedures</h2>
+                <Link href="/compliance/policies" className="text-teal-400 hover:text-teal-300 text-sm">
+                  View Full Library →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard title="Total Policies" value={policyStats?.total ?? 0} color="blue" />
+                <StatCard title="Active" value={policyStats?.active ?? 0} color="green" />
+                <StatCard title="Due for Review" value={policyStats?.overdueReview ?? 0} color={policyStats?.overdueReview ? "red" : "gray"} />
+                <StatCard title="Under Review" value={policyStats?.underReview ?? 0} color="yellow" />
+              </div>
+            </div>
+
+            {policyStats && policyStats.overdueReview > 0 && (
+              <div className="p-4 bg-yellow-900/30 border border-yellow-600 rounded-lg" role="alert">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                  <div>
+                    <p className="text-yellow-200 font-semibold">
+                      {policyStats.overdueReview} polic{policyStats.overdueReview === 1 ? "y" : "ies"} overdue for review
+                    </p>
+                    <p className="text-yellow-300 text-sm">
+                      Regular policy review is required for NDIS compliance. Visit the library to update review dates.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {policyStats && policyStats.reviewingSoon > 0 && (
+              <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                <p className="text-gray-300 text-sm">
+                  <span className="text-yellow-400 font-medium">{policyStats.reviewingSoon}</span> polic{policyStats.reviewingSoon === 1 ? "y" : "ies"} due for review within the next 30 days.
+                </p>
+              </div>
+            )}
+
+            <div className="text-center py-4">
+              <Link
+                href="/compliance/policies"
+                className="px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-lg inline-block transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+              >
+                Open Policy Library
+              </Link>
             </div>
           </div>
         )}

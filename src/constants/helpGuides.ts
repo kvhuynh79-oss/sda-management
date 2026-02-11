@@ -1938,4 +1938,76 @@ export const HELP_GUIDES: Record<string, HelpGuide> = {
       { label: "Insurance Policies", href: "/compliance/insurance" },
     ],
   },
+
+  // ---------------------------------------------------------------------------
+  // 14. POLICIES & PROCEDURES
+  // ---------------------------------------------------------------------------
+  policies: {
+    id: "policies",
+    title: "Policies & Procedures Guide",
+    subtitle: "Managing your organisational policy library",
+    overview: "The Policies & Procedures library stores all organisational policies, standard operating procedures, and guidelines. Keeping policies current and reviewed on schedule is a core NDIS Practice Standard requirement.",
+    sections: [
+      {
+        id: "why-policies-matter",
+        title: "Why Policy Management Matters",
+        icon: "shield",
+        color: "red",
+        badge: "NDIS",
+        defaultExpanded: true,
+        content: [
+          {
+            type: "text" as const,
+            value: "NDIS registered providers must maintain documented policies and procedures as part of the NDIS Practice Standards. Auditors will check that policies exist, are current, and are reviewed regularly.",
+          },
+          {
+            type: "list" as const,
+            value: [
+              "Incident management policy (mandatory)",
+              "Complaints handling policy (mandatory)",
+              "Privacy and confidentiality policy",
+              "Work health and safety policy",
+              "Human resources and worker screening policy",
+              "Continuity of supports policy",
+            ],
+          },
+        ],
+      },
+      {
+        id: "adding-a-policy",
+        title: "Adding a Policy",
+        icon: "file",
+        color: "teal",
+        content: [
+          {
+            type: "steps" as const,
+            value: [
+              "Click '+ Add Policy' from the policies list page",
+              "Enter the policy title and select or type a category",
+              "Upload the policy document (PDF recommended)",
+              "Set the version number, effective date, and review due date",
+              "Set status to Draft while developing, Active when approved",
+            ],
+          },
+        ],
+      },
+      {
+        id: "review-cycle",
+        title: "Policy Review Cycle",
+        icon: "clock",
+        color: "yellow",
+        badge: "ANNUAL",
+        content: [
+          {
+            type: "text" as const,
+            value: "Most NDIS policies should be reviewed at least annually. Overdue reviews are flagged on the compliance dashboard and reduce your compliance score.",
+          },
+        ],
+      },
+    ],
+    relatedLinks: [
+      { label: "Compliance Dashboard", href: "/compliance" },
+      { label: "Certifications", href: "/compliance/certifications" },
+    ],
+  },
 };

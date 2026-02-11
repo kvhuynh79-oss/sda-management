@@ -39,6 +39,7 @@ import {
   UserCheck,
   Flame,
   LifeBuoy,
+  BookOpen,
 } from "lucide-react";
 
 // ── Type definitions ──────────────────────────────────────────────
@@ -216,6 +217,13 @@ const NAV_CLUSTERS: NavCluster[] = [
         label: "Staff Files",
         description: "Staff records and screening compliance",
         icon: <UserCheck className="w-5 h-5 text-gray-400" aria-hidden="true" />,
+        pageKeys: ["compliance"],
+      },
+      {
+        href: "/compliance/policies",
+        label: "Policies & Procedures",
+        description: "Organisational policy document library",
+        icon: <BookOpen className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["compliance"],
       },
       {

@@ -2409,4 +2409,32 @@ export default defineSchema({
   })
     .index("by_organizationId", ["organizationId"])
     .index("by_status", ["status"]),
+
+  // Policies & Procedures - organisational policy document library
+  policies: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    title: v.string(),
+    description: v.optional(v.string()),
+    category: v.string(),
+    documentStorageId: v.optional(v.id("_storage")),
+    documentFileName: v.optional(v.string()),
+    version: v.optional(v.string()),
+    effectiveDate: v.optional(v.string()),
+    reviewDueDate: v.optional(v.string()),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("active"),
+      v.literal("under_review"),
+      v.literal("archived")
+    ),
+    notes: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_status", ["status"])
+    .index("by_category", ["category"])
+    .index("by_reviewDueDate", ["reviewDueDate"]),
 });

@@ -263,3 +263,13 @@ export type TaskCategoryType = keyof typeof TASK_CATEGORY_COLORS;
 export type ComplianceCategoryType = keyof typeof COMPLIANCE_CATEGORY_COLORS;
 export type ComplianceFlagType = keyof typeof COMPLIANCE_FLAG_COLORS;
 export type StakeholderType = keyof typeof STAKEHOLDER_TYPE_COLORS;
+
+// Policy status colors
+export const POLICY_STATUS_COLORS = {
+  draft: "bg-gray-500/20 text-gray-400",
+  active: "bg-green-500/20 text-green-400",
+  under_review: "bg-yellow-500/20 text-yellow-400",
+  archived: "bg-purple-500/20 text-purple-400",
+} as const;
+
+export type PolicyStatusType = keyof typeof POLICY_STATUS_COLORS;

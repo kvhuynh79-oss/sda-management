@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
@@ -77,6 +77,11 @@ export default function NewCertificationPage() {
 
   const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
   const createCertification = useMutation(api.complianceCertifications.create);
+  const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     certificationType: "" as
@@ -120,6 +125,24 @@ export default function NewCertificationPage() {
     setError("");
 
     try {
+      // Upload file if selected
+      let certificateStorageId: Id<"_storage"> | undefined;
+      if (selectedFile) {
+        setIsUploading(true);
+        const uploadUrl = await generateUploadUrl();
+        const uploadResult = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": selectedFile.type },
+          body: selectedFile,
+        });
+        if (!uploadResult.ok) {
+          throw new Error("File upload failed");
+        }
+        const { storageId } = await uploadResult.json();
+        certificateStorageId = storageId as Id<"_storage">;
+        setIsUploading(false);
+      }
+
       await createCertification({
         certificationType: formData.certificationType,
         certificationName: formData.certificationName || CERTIFICATION_GUIDANCE[formData.certificationType]?.name || formData.certificationType,
@@ -133,6 +156,7 @@ export default function NewCertificationPage() {
         nextAuditDate: formData.nextAuditDate || undefined,
         auditorName: formData.auditorName || undefined,
         auditOutcome: formData.auditOutcome || undefined,
+        certificateStorageId,
         notes: formData.notes || undefined,
         userId: user.id as Id<"users">,
       });
@@ -142,6 +166,7 @@ export default function NewCertificationPage() {
       setError(err.message || "Failed to create certification");
     } finally {
       setIsSaving(false);
+      setIsUploading(false);
     }
   };
 
@@ -419,6 +444,63 @@ export default function NewCertificationPage() {
             </div>
           </div>
 
+          {/* Certificate Document Upload */}
+          <div className="border-t border-gray-700 pt-4">
+            <h3 className="text-lg font-medium text-white mb-4">Certificate Document</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Upload Certificate (PDF, image, or document)
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setSelectedFile(file);
+                }}
+                className="hidden"
+                aria-label="Upload certificate file"
+              />
+              {!selectedFile ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full px-4 py-6 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-teal-600 hover:text-teal-400 transition-colors flex flex-col items-center gap-2"
+                >
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                  </svg>
+                  <span className="text-sm">Click to upload certificate file</span>
+                  <span className="text-xs text-gray-500">PDF, JPG, PNG, DOC up to 10MB</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-3 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
+                  <svg className="w-5 h-5 text-teal-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white truncate">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-400">{(selectedFile.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    className="text-gray-400 hover:text-red-400 p-1"
+                    aria-label="Remove file"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -446,7 +528,7 @@ export default function NewCertificationPage() {
               disabled={isSaving || !formData.certificationType}
               className="flex-1 px-4 py-3 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg"
             >
-              {isSaving ? "Saving..." : "Add Certification"}
+              {isUploading ? "Uploading file..." : isSaving ? "Saving..." : "Add Certification"}
             </button>
           </div>
         </form>

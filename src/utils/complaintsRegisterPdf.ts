@@ -80,7 +80,8 @@ const STATUS_COLORS: Record<string, [number, number, number]> = {
 export function generateComplaintsRegisterPdf(
   complaints: ComplaintData[],
   stats: ComplaintStats,
-  chainOfCustody?: Record<string, ChainOfCustodyEntry[]>
+  chainOfCustody?: Record<string, ChainOfCustodyEntry[]>,
+  organizationName?: string
 ): void {
   const doc = new jsPDF({ orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -101,7 +102,7 @@ export function generateComplaintsRegisterPdf(
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
-  doc.text("Better Living Solutions - NDIS Compliance Document", margin, 38);
+  doc.text(`${organizationName || "MySDAManager"} - NDIS Compliance Document`, margin, 38);
 
   // Generation info
   yPos = 60;

@@ -73,6 +73,10 @@ export default function NewCommunicationPage() {
   const [isEntityLinked, setIsEntityLinked] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
 
+  const [useManualParticipant, setUseManualParticipant] = useState(false);
+  const [manualParticipantName, setManualParticipantName] = useState("");
+  const [propertyTbd, setPropertyTbd] = useState(false);
+
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [createFollowUpTask, setCreateFollowUpTask] = useState(false);
@@ -353,12 +357,14 @@ export default function NewCommunicationPage() {
         contactPhone: formData.contactPhone || undefined,
         subject: formData.subject || undefined,
         summary: formData.summary,
-        linkedParticipantId: formData.linkedParticipantId
+        linkedParticipantId: formData.linkedParticipantId && !useManualParticipant
           ? (formData.linkedParticipantId as Id<"participants">)
           : undefined,
-        linkedPropertyId: formData.linkedPropertyId
+        linkedPropertyId: formData.linkedPropertyId && !propertyTbd
           ? (formData.linkedPropertyId as Id<"properties">)
           : undefined,
+        freeTextParticipantName: useManualParticipant ? manualParticipantName : undefined,
+        propertyTbd: propertyTbd || undefined,
         linkedIncidentId: formData.linkedIncidentId
           ? (formData.linkedIncidentId as Id<"incidents">)
           : undefined,
@@ -385,7 +391,7 @@ export default function NewCommunicationPage() {
           dueDate: followUpTaskDueDate,
           priority: "medium",
           category: "follow_up",
-          linkedParticipantId: formData.linkedParticipantId
+          linkedParticipantId: formData.linkedParticipantId && !useManualParticipant
             ? (formData.linkedParticipantId as Id<"participants">)
             : undefined,
           linkedCommunicationId: result.communicationId,
@@ -697,33 +703,69 @@ export default function NewCommunicationPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Link to Record</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormSelect
-                  label="Participant"
-                  value={formData.linkedParticipantId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, linkedParticipantId: e.target.value })
-                  }
-                  options={[
-                    { value: "", label: "-- Select Participant --" },
-                    ...participants.map((p) => ({
-                      value: p._id,
-                      label: `${p.firstName} ${p.lastName}`,
-                    })),
-                  ]}
-                />
+                {useManualParticipant ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Participant Name</label>
+                    <input
+                      type="text"
+                      value={manualParticipantName}
+                      onChange={(e) => setManualParticipantName(e.target.value)}
+                      placeholder="Enter participant name"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseManualParticipant(false);
+                        setManualParticipantName("");
+                      }}
+                      className="mt-1 text-xs text-teal-400 hover:text-teal-300"
+                    >
+                      Back to dropdown
+                    </button>
+                  </div>
+                ) : (
+                  <FormSelect
+                    label="Participant"
+                    value={formData.linkedParticipantId}
+                    onChange={(e) => {
+                      if (e.target.value === "__manual__") {
+                        setUseManualParticipant(true);
+                        setFormData({ ...formData, linkedParticipantId: "" });
+                      } else {
+                        setFormData({ ...formData, linkedParticipantId: e.target.value });
+                      }
+                    }}
+                    options={[
+                      { value: "", label: "-- Select Participant --" },
+                      ...(participants || []).map((p) => ({
+                        value: p._id,
+                        label: `${p.firstName} ${p.lastName}`,
+                      })),
+                      { value: "__manual__", label: "Enter name manually..." },
+                    ]}
+                  />
+                )}
 
                 <FormSelect
                   label="Property"
-                  value={formData.linkedPropertyId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, linkedPropertyId: e.target.value })
-                  }
+                  value={propertyTbd ? "__tbd__" : formData.linkedPropertyId}
+                  onChange={(e) => {
+                    if (e.target.value === "__tbd__") {
+                      setPropertyTbd(true);
+                      setFormData({ ...formData, linkedPropertyId: "" });
+                    } else {
+                      setPropertyTbd(false);
+                      setFormData({ ...formData, linkedPropertyId: e.target.value });
+                    }
+                  }}
                   options={[
                     { value: "", label: "-- Select Property --" },
-                    ...properties.map((p) => ({
+                    ...(properties || []).map((p) => ({
                       value: p._id,
                       label: p.propertyName || p.addressLine1,
                     })),
+                    { value: "__tbd__", label: "Unidentified / TBD" },
                   ]}
                 />
               </div>

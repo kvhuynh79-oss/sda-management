@@ -2000,6 +2000,8 @@ export default defineSchema({
     participantId: v.optional(v.id("participants")), // TODO: Make required after migration - renamed from linkedParticipantId
     linkedParticipantIds: v.optional(v.array(v.id("participants"))), // Multi-participant communications
     linkedPropertyId: v.optional(v.id("properties")),
+    freeTextParticipantName: v.optional(v.string()),  // Manual participant name when not in DB
+    propertyTbd: v.optional(v.boolean()),              // Property not yet identified
     linkedIncidentId: v.optional(v.id("incidents")),
 
     // Legacy fields - kept during migration transition

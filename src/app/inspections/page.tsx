@@ -13,6 +13,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatStatus } from "@/utils/format";
 import { generateInspectionPDF } from "@/utils/inspectionPdf";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import HelpGuideButton from "@/components/ui/HelpGuideButton";
 import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
@@ -26,6 +27,7 @@ function InspectionsContent() {
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const { alert: alertDialog } = useConfirmDialog();
+  const { organization } = useOrganization();
   const convex = useConvex();
 
   useEffect(() => {
@@ -92,7 +94,7 @@ function InspectionsContent() {
         inspectionId,
         userId: user.id as Id<"users">,
       });
-      await generateInspectionPDF(reportData);
+      await generateInspectionPDF(reportData, organization?.name);
     } catch (error) {
       console.error("Error generating PDF:", error);
       await alertDialog("Error generating PDF. Please try again.");

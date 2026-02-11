@@ -555,7 +555,7 @@ export const getStats = query({
 export const createFollowUpTask = internalMutation({
   args: {
     communicationId: v.id("communications"),
-    organizationId: v.id("organizations"), // Inherit from communication
+    organizationId: v.optional(v.id("organizations")), // Optional during migration
     userId: v.id("users"), // User who created the communication
     participantId: v.optional(v.id("participants")),
     propertyId: v.optional(v.id("properties")),

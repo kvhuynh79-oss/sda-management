@@ -9,6 +9,7 @@ import Badge, { CommunicationTypeBadge } from "../ui/Badge";
 import { LoadingScreen } from "../ui/LoadingScreen";
 import { EmptyState } from "../ui/EmptyState";
 import { exportThreadToPdf } from "../../lib/threadPdfExport";
+import { useOrganization } from "../../contexts/OrganizationContext";
 import { useConfirmDialog } from "../ui/ConfirmDialog";
 
 function buildThreadAddEntryUrl(thread: any): string {
@@ -139,23 +140,28 @@ function ThreadMessages({ threadId, userId, userRole }: { threadId: string; user
       {data.messages.map((msg) => (
         <div
           key={msg._id}
-          className="flex gap-3 p-3 bg-gray-900/50 rounded-lg group/msg"
+          className="flex gap-3 p-3 bg-gray-900/50 rounded-lg group/msg hover:bg-gray-800/70 transition-colors"
         >
-          <TypeIcon type={msg.type} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-medium text-white">{msg.contactName}</span>
-              <CommunicationTypeBadge type={msg.type as "email" | "sms" | "phone_call" | "meeting" | "other"} size="xs" />
-              <span className="text-xs text-gray-400">
-                {msg.communicationDate}
-                {msg.communicationTime && ` ${msg.communicationTime}`}
-              </span>
+          <Link
+            href={`/follow-ups/communications/${msg._id}`}
+            className="flex gap-3 flex-1 min-w-0"
+          >
+            <TypeIcon type={msg.type} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium text-white">{msg.contactName}</span>
+                <CommunicationTypeBadge type={msg.type as "email" | "sms" | "phone_call" | "meeting" | "other"} size="xs" />
+                <span className="text-xs text-gray-400">
+                  {msg.communicationDate}
+                  {msg.communicationTime && ` ${msg.communicationTime}`}
+                </span>
+              </div>
+              {msg.subject && (
+                <p className="text-sm text-gray-300 font-medium">{msg.subject}</p>
+              )}
+              <p className="text-sm text-gray-400 mt-0.5 line-clamp-2">{msg.summary}</p>
             </div>
-            {msg.subject && (
-              <p className="text-sm text-gray-300 font-medium">{msg.subject}</p>
-            )}
-            <p className="text-sm text-gray-400 mt-0.5">{msg.summary}</p>
-          </div>
+          </Link>
           {canDelete && (
             <button
               onClick={() => handleDeleteMessage(msg._id, msg.contactName)}
@@ -184,6 +190,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allThreads, setAllThreads] = useState<any[]>([]);
   const [exportingThreadId, setExportingThreadId] = useState<string | null>(null);
+  const { organization } = useOrganization();
 
   const data = useQuery(api.communications.getThreadedView, {
     userId: userId as Id<"users">,
@@ -271,7 +278,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
             complianceFlags: msg.complianceFlags,
             contactType: msg.contactType,
           })),
-          organization: { name: "MySDAManager" },
+          organization: { name: organization?.name || "MySDAManager" },
           exportedAt: new Date().toISOString(),
         };
 

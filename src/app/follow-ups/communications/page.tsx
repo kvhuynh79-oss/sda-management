@@ -46,8 +46,8 @@ export default function CommunicationsPage() {
         const matchesSubject = comm.subject?.toLowerCase().includes(search);
         const matchesSummary = comm.summary.toLowerCase().includes(search);
         const matchesParticipant = comm.participant
-          ? `${comm.participant.firstName} ${comm.participant.lastName}`.toLowerCase().includes(search)
-          : false;
+          ? `${comm.participant?.firstName || ""} ${comm.participant?.lastName || ""}`.toLowerCase().includes(search)
+          : (comm.freeTextParticipantName || "").toLowerCase().includes(search);
         if (!matchesContact && !matchesSubject && !matchesSummary && !matchesParticipant) {
           return false;
         }

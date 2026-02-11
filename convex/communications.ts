@@ -49,6 +49,8 @@ export const create = mutation({
     summary: v.string(),
     linkedParticipantId: v.optional(v.id("participants")),
     linkedPropertyId: v.optional(v.id("properties")),
+    freeTextParticipantName: v.optional(v.string()),
+    propertyTbd: v.optional(v.boolean()),
     linkedIncidentId: v.optional(v.id("incidents")),
     attachmentStorageId: v.optional(v.id("_storage")),
     attachmentFileName: v.optional(v.string()),
@@ -244,9 +246,28 @@ export const create = mutation({
     }
 
     // Create communication with thread assignment and organizationId
+    // Note: explicitly list fields instead of ...args to avoid inserting non-schema fields
+    // (skipConsultationGate, existingThreadId are mutation args only, not stored)
     const communicationId = await ctx.db.insert("communications", {
-      ...args,
-      organizationId, // Add tenant isolation
+      organizationId,
+      communicationType: args.communicationType,
+      direction: args.direction,
+      communicationDate: args.communicationDate,
+      communicationTime: args.communicationTime,
+      contactType: args.contactType,
+      contactName: args.contactName,
+      contactEmail: args.contactEmail,
+      contactPhone: args.contactPhone,
+      subject: args.subject,
+      summary: args.summary,
+      linkedParticipantId: args.linkedParticipantId,
+      linkedPropertyId: args.linkedPropertyId,
+      freeTextParticipantName: args.freeTextParticipantName,
+      propertyTbd: args.propertyTbd,
+      linkedIncidentId: args.linkedIncidentId,
+      attachmentStorageId: args.attachmentStorageId,
+      attachmentFileName: args.attachmentFileName,
+      attachmentFileType: args.attachmentFileType,
       // NDIS Compliance fields (from form or defaults)
       complianceCategory: args.complianceCategory || ("none" as const),
       complianceFlags: args.complianceFlags || undefined,
@@ -254,11 +275,12 @@ export const create = mutation({
       stakeholderEntityType: args.stakeholderEntityType || undefined,
       stakeholderEntityId: args.stakeholderEntityId || undefined,
       // Threading fields
-      isThreadStarter: threadResult.isNewThread, // True if new thread
-      requiresFollowUp: false, // Default, will be updated if gate triggers
-      isParticipantInvolved: args.linkedParticipantId != null, // True if participant linked
-      threadId: threadResult.threadId, // Thread ID from threading engine
-      participantId: args.linkedParticipantId, // Copy to new field for migration compatibility
+      isThreadStarter: threadResult.isNewThread,
+      requiresFollowUp: false,
+      isParticipantInvolved: args.linkedParticipantId != null,
+      threadId: threadResult.threadId,
+      participantId: args.linkedParticipantId,
+      createdBy: args.createdBy,
       createdAt: now,
       updatedAt: now,
     });
@@ -395,6 +417,7 @@ export const create = mutation({
     } else {
       // Create new thread summary
       await ctx.db.insert("threadSummaries", {
+        organizationId,
         threadId: threadResult.threadId,
         participantId: args.linkedParticipantId,
         startedAt: now,
@@ -477,6 +500,8 @@ export const update = mutation({
     summary: v.optional(v.string()),
     linkedParticipantId: v.optional(v.id("participants")),
     linkedPropertyId: v.optional(v.id("properties")),
+    freeTextParticipantName: v.optional(v.string()),
+    propertyTbd: v.optional(v.boolean()),
     attachmentStorageId: v.optional(v.id("_storage")),
     attachmentFileName: v.optional(v.string()),
     attachmentFileType: v.optional(v.string()),
@@ -2553,7 +2578,7 @@ export const deleteByContactName = mutation({
  */
 export const autoCreateForIncident = internalMutation({
   args: {
-    organizationId: v.id("organizations"), // Inherit from incident
+    organizationId: v.optional(v.id("organizations")), // Optional during migration
     incidentId: v.id("incidents"),
     incidentTitle: v.string(),
     incidentDescription: v.string(),
@@ -2624,6 +2649,7 @@ export const autoCreateForIncident = internalMutation({
     // Create thread summary if participant is linked
     if (args.participantId) {
       await ctx.db.insert("threadSummaries", {
+        organizationId: args.organizationId,
         threadId,
         participantId: args.participantId,
         startedAt: now,
@@ -2727,6 +2753,7 @@ export const autoCreateForComplaint = internalMutation({
     // Create thread summary if participant is linked
     if (args.participantId) {
       await ctx.db.insert("threadSummaries", {
+        organizationId: args.organizationId,
         threadId,
         participantId: args.participantId,
         startedAt: now,
@@ -2765,7 +2792,7 @@ export const autoCreateForComplaint = internalMutation({
 // Auto-create communication thread when a new lead is created
 export const autoCreateForLead = internalMutation({
   args: {
-    organizationId: v.id("organizations"), // Inherit from lead
+    organizationId: v.optional(v.id("organizations")), // Optional during migration
     leadId: v.id("leads"),
     threadId: v.string(),
     participantName: v.string(),

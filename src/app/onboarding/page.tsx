@@ -7,6 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import Header from "@/components/Header";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../convex/_generated/dataModel";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import jsPDF from "jspdf";
 
 // Types for AI parsing
@@ -44,6 +45,7 @@ interface ExtractedData {
 export default function OnboardingPage() {
   const router = useRouter();
   const { alert: alertDialog } = useConfirmDialog();
+  const { organization } = useOrganization();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string>("");
   const [selectedDwellingId, setSelectedDwellingId] = useState<string>("");
@@ -261,7 +263,8 @@ export default function OnboardingPage() {
       const moveInDateFormatted = effectiveMoveInDate
         ? new Date(effectiveMoveInDate).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
         : "TBC";
-      const para1 = `Congratulations! Better Living Solutions P/L is delighted to offer you accommodation in our Specialist Disability Accommodation (SDA) at the above address. The accommodation is set to commence on the ${moveInDateFormatted}.`;
+      const orgDisplayName = providerSettings?.providerName || organization?.name || "MySDAManager";
+      const para1 = `Congratulations! ${orgDisplayName} is delighted to offer you accommodation in our Specialist Disability Accommodation (SDA) at the above address. The accommodation is set to commence on the ${moveInDateFormatted}.`;
       const splitPara1 = doc.splitTextToSize(para1, pageWidth - margin * 2);
       doc.text(splitPara1, margin, y);
       y += splitPara1.length * 5 + 5;
@@ -294,7 +297,7 @@ export default function OnboardingPage() {
 
       // Agreement paragraph
       doc.setFont("helvetica", "normal");
-      const para3 = "This agreement ensures that Better Living Solutions can continue providing high-quality service and accommodation tailored to your needs. Please note that a service booking must be created before the move-in date.";
+      const para3 = `This agreement ensures that ${orgDisplayName} can continue providing high-quality service and accommodation tailored to your needs. Please note that a service booking must be created before the move-in date.`;
       const splitPara3 = doc.splitTextToSize(para3, pageWidth - margin * 2);
       doc.text(splitPara3, margin, y);
       y += splitPara3.length * 5 + 5;
@@ -306,7 +309,11 @@ export default function OnboardingPage() {
       y += splitPara4.length * 5 + 5;
 
       // Contact paragraph
-      const para5 = "Should you have any questions or require further information, please do not hesitate to contact us at 0410 646 223 or via email at khen@betterlivingsolutions.com.au";
+      const contactPhone = providerSettings?.contactPhone || "our office";
+      const contactEmail = providerSettings?.contactEmail || "";
+      const para5 = contactEmail
+        ? `Should you have any questions or require further information, please do not hesitate to contact us at ${contactPhone} or via email at ${contactEmail}`
+        : `Should you have any questions or require further information, please do not hesitate to contact us at ${contactPhone}`;
       const splitPara5 = doc.splitTextToSize(para5, pageWidth - margin * 2);
       doc.text(splitPara5, margin, y);
       y += splitPara5.length * 5 + 10;
@@ -325,11 +332,16 @@ export default function OnboardingPage() {
       doc.text("Khen Huynh", margin, y);
       y += 5;
       doc.setFont("helvetica", "normal");
-      doc.text("Better Living Solutions P/L | ABN: 87 630 237 277", margin, y);
+      const footerAbn = providerSettings?.abn ? ` | ABN: ${providerSettings.abn}` : "";
+      doc.text(`${orgDisplayName}${footerAbn}`, margin, y);
       y += 5;
-      doc.text("T:1300 339 485 M: 0410 646 223 W: betterlivingsolutions.com.au", margin, y);
-      y += 5;
-      doc.text("Address: Suite 7, Level 1, 210-216 Hume Hwy Lansvale 2166 NSW", margin, y);
+      const footerContact = [
+        providerSettings?.contactPhone ? `T: ${providerSettings.contactPhone}` : "",
+        providerSettings?.contactEmail ? `E: ${providerSettings.contactEmail}` : "",
+      ].filter(Boolean).join(" | ");
+      if (footerContact) doc.text(footerContact, margin, y);
+      if (footerContact) y += 5;
+      if (providerSettings?.address) doc.text(`Address: ${providerSettings.address}`, margin, y);
 
       // Save the PDF
       const fileName = `SDA_Quotation_${selectedParticipant.firstName}_${selectedParticipant.lastName}_${new Date().toISOString().split("T")[0]}.pdf`;
@@ -471,11 +483,14 @@ export default function OnboardingPage() {
       doc.setFont("helvetica", "bold");
       doc.text("Accommodation Provider", margin, y);
       doc.setFont("helvetica", "bolditalic");
-      doc.text("Better Living Solutions PTY LTD", margin + 60, y);
+      const agreementOrgName = providerSettings?.providerName || organization?.name || "MySDAManager";
+      doc.text(agreementOrgName, margin + 60, y);
       y += 5;
-      doc.text("NDIS Provider number: 405 005 2336", margin + 60, y);
-      y += 5;
-      doc.text("Reg # 4-AXTSZUC and ABN 87 630 237 277", margin + 60, y);
+      const ndisNumber = providerSettings?.ndisRegistrationNumber || "";
+      if (ndisNumber) doc.text(`NDIS Provider number: ${ndisNumber}`, margin + 60, y);
+      if (ndisNumber) y += 5;
+      const agreementAbn = providerSettings?.abn || "";
+      if (agreementAbn) doc.text(`ABN ${agreementAbn}`, margin + 60, y);
       y += 15;
 
       // The Property section
@@ -656,7 +671,8 @@ export default function OnboardingPage() {
       doc.text("BSB number: 032 373", margin, y);
       doc.text("account number: 23 6901", margin + 50, y);
       y += 6;
-      doc.text("account name: Better Living Solutions", margin, y);
+      const bankAccountName = providerSettings?.providerName || organization?.name || "MySDAManager";
+      doc.text(`account name: ${bankAccountName}`, margin, y);
       y += 6;
       doc.text(`payment reference: ${selectedParticipant.firstName} ${selectedParticipant.lastName}`, margin, y);
       y += 6;
@@ -1106,7 +1122,8 @@ export default function OnboardingPage() {
       // Provider signature
       doc.text("Signed by Authorised Representative", margin, y);
       y += 5;
-      doc.text("of Better Living Solutions", margin, y);
+      const sigOrgName = providerSettings?.providerName || organization?.name || "MySDAManager";
+      doc.text(`of ${sigOrgName}`, margin, y);
       y += 10;
 
       doc.line(margin + 80, y, margin + 150, y);

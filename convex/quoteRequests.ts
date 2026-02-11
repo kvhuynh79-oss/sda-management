@@ -66,6 +66,21 @@ export const getByToken = query({
     const dwelling = await ctx.db.get(maintenanceRequest.dwellingId);
     const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
+    // Get organization for branding
+    const organization = maintenanceRequest.organizationId
+      ? await ctx.db.get(maintenanceRequest.organizationId)
+      : null;
+
+    let orgLogoUrl: string | undefined;
+    if (organization?.logoUrl) {
+      try {
+        const url = await ctx.storage.getUrl(organization.logoUrl as any);
+        orgLogoUrl = url ?? undefined;
+      } catch {
+        // ignore - logo not critical
+      }
+    }
+
     // Get photos
     const photos = await ctx.db
       .query("maintenancePhotos")
@@ -101,6 +116,8 @@ export const getByToken = query({
         : null,
       photos: photosWithUrls,
       contractor,
+      organizationName: organization?.name,
+      organizationLogoUrl: orgLogoUrl,
     };
   },
 });
@@ -350,6 +367,21 @@ export const getQuoteRequestData = internalMutation({
     const dwelling = await ctx.db.get(maintenanceRequest.dwellingId);
     const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
+    // Get organization for branding
+    const organization = maintenanceRequest.organizationId
+      ? await ctx.db.get(maintenanceRequest.organizationId)
+      : null;
+
+    let resolvedLogoUrl: string | undefined;
+    if (organization?.logoUrl) {
+      try {
+        const url = await ctx.storage.getUrl(organization.logoUrl as any);
+        resolvedLogoUrl = url ?? undefined;
+      } catch {
+        // ignore - logo not critical
+      }
+    }
+
     // Get photos
     const photos = await ctx.db
       .query("maintenancePhotos")
@@ -373,6 +405,8 @@ export const getQuoteRequestData = internalMutation({
       dwelling,
       property,
       photoUrls: photoUrls.filter(Boolean) as string[],
+      organizationName: organization?.name,
+      organizationLogoUrl: resolvedLogoUrl,
     };
   },
 });
@@ -389,7 +423,7 @@ export const sendQuoteRequestEmail = internalAction({
       quoteRequestId: args.quoteRequestId,
     });
 
-    const { quoteRequest, contractor, maintenanceRequest, dwelling, property, photoUrls } = data;
+    const { quoteRequest, contractor, maintenanceRequest, dwelling, property, photoUrls, organizationName, organizationLogoUrl } = data;
 
     // Check if RESEND_API_KEY is configured
     if (!process.env.RESEND_API_KEY) {
@@ -438,7 +472,7 @@ export const sendQuoteRequestEmail = internalAction({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || "quotes@betterlivingsolutions.com.au",
+          from: process.env.RESEND_FROM_EMAIL || "noreply@mysdamanager.com",
           to: contractor.email,
           subject: quoteRequest.emailSubject,
           html: `
@@ -453,7 +487,7 @@ export const sendQuoteRequestEmail = internalAction({
                   <!-- Header -->
                   <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 30px; text-align: center;">
                     <h1 style="color: white; margin: 0; font-size: 24px;">Quote Request</h1>
-                    <p style="color: #d1d5db; margin: 8px 0 0 0;">Better Living Solutions</p>
+                    <p style="color: #d1d5db; margin: 8px 0 0 0;">${organizationName || "MySDAManager"}</p>
                   </div>
 
                   <!-- Content -->
@@ -529,7 +563,7 @@ export const sendQuoteRequestEmail = internalAction({
                   <!-- Footer -->
                   <div style="background-color: #1f2937; padding: 20px; text-align: center;">
                     <p style="color: #9ca3af; margin: 0; font-size: 12px;">
-                      Better Living Solutions - SDA Property Management
+                      ${organizationName || "MySDAManager"} - SDA Property Management
                     </p>
                     <p style="color: #6b7280; margin: 8px 0 0 0; font-size: 11px;">
                       This is an automated message. Please do not reply to this email.

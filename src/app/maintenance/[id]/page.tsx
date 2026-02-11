@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface PendingMedia {
   file: File;
@@ -1217,6 +1218,7 @@ function RequestQuoteModal({
   onClose: () => void;
   onSend: (contractorId: string, subject: string, body: string, includesPhotos: boolean) => Promise<void>;
 }) {
+  const { organization } = useOrganization();
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
   const [includePhotos, setIncludePhotos] = useState(true);
   const [customMessage, setCustomMessage] = useState("");
@@ -1254,7 +1256,7 @@ Please review the details and submit your quote using the link provided. Include
 We look forward to hearing from you.
 
 Best regards,
-Better Living Solutions`;
+${organization?.name || "MySDAManager"}`;
 
   const toggleContractor = (id: string) => {
     setSelectedContractors((prev) =>

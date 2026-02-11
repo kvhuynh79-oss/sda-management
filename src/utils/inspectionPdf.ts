@@ -94,7 +94,7 @@ function getStatusColor(status: string): [number, number, number] {
   }
 }
 
-export async function generateInspectionPDF(data: InspectionReportData): Promise<void> {
+export async function generateInspectionPDF(data: InspectionReportData, organizationName?: string): Promise<void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
@@ -112,7 +112,7 @@ export async function generateInspectionPDF(data: InspectionReportData): Promise
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("MySDAManager", margin, 28);
+  doc.text(organizationName || "MySDAManager", margin, 28);
   doc.text(data.template?.name || "Inspection Report", margin, 34);
 
   // Property details

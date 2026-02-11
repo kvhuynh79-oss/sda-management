@@ -37,6 +37,10 @@ export default function CommunicationDetailPage() {
     linkedPropertyId: "",
   });
 
+  const [useManualParticipant, setUseManualParticipant] = useState(false);
+  const [manualParticipantName, setManualParticipantName] = useState("");
+  const [propertyTbd, setPropertyTbd] = useState(false);
+
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
     if (storedUser) {
@@ -74,6 +78,9 @@ export default function CommunicationDetailPage() {
         linkedParticipantId: communication.linkedParticipantId || "",
         linkedPropertyId: communication.linkedPropertyId || "",
       });
+      setUseManualParticipant(!!communication.freeTextParticipantName && !communication.linkedParticipantId);
+      setManualParticipantName(communication.freeTextParticipantName || "");
+      setPropertyTbd(!!communication.propertyTbd && !communication.linkedPropertyId);
     }
   }, [communication]);
 
@@ -94,12 +101,14 @@ export default function CommunicationDetailPage() {
         contactPhone: formData.contactPhone || undefined,
         subject: formData.subject || undefined,
         summary: formData.summary,
-        linkedParticipantId: formData.linkedParticipantId
+        linkedParticipantId: formData.linkedParticipantId && !useManualParticipant
           ? (formData.linkedParticipantId as Id<"participants">)
           : undefined,
-        linkedPropertyId: formData.linkedPropertyId
+        linkedPropertyId: formData.linkedPropertyId && !propertyTbd
           ? (formData.linkedPropertyId as Id<"properties">)
           : undefined,
+        freeTextParticipantName: useManualParticipant ? manualParticipantName : undefined,
+        propertyTbd: propertyTbd || undefined,
         userId: user.id as Id<"users">,
       });
       setIsEditing(false);
@@ -329,16 +338,68 @@ export default function CommunicationDetailPage() {
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   />
+                  {useManualParticipant ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Participant Name</label>
+                      <input
+                        type="text"
+                        value={manualParticipantName}
+                        onChange={(e) => setManualParticipantName(e.target.value)}
+                        placeholder="Enter participant name"
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseManualParticipant(false);
+                          setManualParticipantName("");
+                        }}
+                        className="mt-1 text-xs text-teal-400 hover:text-teal-300"
+                      >
+                        Back to dropdown
+                      </button>
+                    </div>
+                  ) : (
+                    <FormSelect
+                      label="Participant"
+                      value={formData.linkedParticipantId}
+                      onChange={(e) => {
+                        if (e.target.value === "__manual__") {
+                          setUseManualParticipant(true);
+                          setFormData({ ...formData, linkedParticipantId: "" });
+                        } else {
+                          setFormData({ ...formData, linkedParticipantId: e.target.value });
+                        }
+                      }}
+                      options={[
+                        { value: "", label: "-- None --" },
+                        ...(participants || []).map((p) => ({
+                          value: p._id,
+                          label: `${p.firstName} ${p.lastName}`,
+                        })),
+                        { value: "__manual__", label: "Enter name manually..." },
+                      ]}
+                    />
+                  )}
                   <FormSelect
-                    label="Participant"
-                    value={formData.linkedParticipantId}
-                    onChange={(e) => setFormData({ ...formData, linkedParticipantId: e.target.value })}
+                    label="Property"
+                    value={propertyTbd ? "__tbd__" : formData.linkedPropertyId}
+                    onChange={(e) => {
+                      if (e.target.value === "__tbd__") {
+                        setPropertyTbd(true);
+                        setFormData({ ...formData, linkedPropertyId: "" });
+                      } else {
+                        setPropertyTbd(false);
+                        setFormData({ ...formData, linkedPropertyId: e.target.value });
+                      }
+                    }}
                     options={[
                       { value: "", label: "-- None --" },
-                      ...participants.map((p) => ({
+                      ...(properties || []).map((p) => ({
                         value: p._id,
-                        label: `${p.firstName} ${p.lastName}`,
+                        label: p.propertyName || p.addressLine1,
                       })),
+                      { value: "__tbd__", label: "Unidentified / TBD" },
                     ]}
                   />
                 </div>
@@ -377,6 +438,15 @@ export default function CommunicationDetailPage() {
                       </p>
                     </div>
                   )}
+                  {communication.freeTextParticipantName && !communication.linkedParticipantId && (
+                    <div>
+                      <span className="text-gray-400">Participant</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white">{communication.freeTextParticipantName}</span>
+                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">Unlinked</span>
+                      </div>
+                    </div>
+                  )}
                   {communication.property && (
                     <div>
                       <span className="text-gray-400">Property</span>
@@ -385,6 +455,15 @@ export default function CommunicationDetailPage() {
                           {communication.property.propertyName || communication.property.addressLine1}
                         </Link>
                       </p>
+                    </div>
+                  )}
+                  {communication.propertyTbd && !communication.linkedPropertyId && (
+                    <div>
+                      <span className="text-gray-400">Property</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-400">Unidentified / TBD</span>
+                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">TBD</span>
+                      </div>
                     </div>
                   )}
                   {communication.createdByUser && (

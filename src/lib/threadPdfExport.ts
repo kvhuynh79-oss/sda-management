@@ -710,7 +710,7 @@ export async function exportThreadToPdf(data: ThreadExportData): Promise<void> {
   const marginRight = 20;
   const contentWidth = pageWidth - marginLeft - marginRight;
 
-  const orgName = data.organization?.name || "Better Living Solutions";
+  const orgName = data.organization?.name || "MySDAManager";
   const exportDate = formatDateLong(data.exportedAt);
 
   // Sort communications chronologically

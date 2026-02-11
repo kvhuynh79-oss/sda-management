@@ -11,6 +11,7 @@ import { LoadingScreen, StatCard } from "../../../components/ui";
 import Badge from "../../../components/ui/Badge";
 import { formatDate, formatStatus } from "../../../utils/format";
 import { generateComplaintsRegisterPdf } from "../../../utils/complaintsRegisterPdf";
+import { useOrganization } from "../../../contexts/OrganizationContext";
 import Link from "next/link";
 import HelpGuideButton from "@/components/ui/HelpGuideButton";
 import HelpGuidePanel from "@/components/ui/HelpGuidePanel";
@@ -70,6 +71,7 @@ function hoursBetween(a: Date, b: Date): number {
 function ComplaintsRegisterContent() {
   const router = useRouter();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+  const { organization } = useOrganization();
 
   const [showHelp, setShowHelp] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -237,7 +239,7 @@ function ComplaintsRegisterContent() {
         };
       });
 
-      generateComplaintsRegisterPdf(pdfData, complaintsStats);
+      generateComplaintsRegisterPdf(pdfData, complaintsStats, undefined, organization?.name);
     } catch (error) {
       console.error("Error generating PDF:", error);
     } finally {

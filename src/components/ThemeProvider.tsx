@@ -12,13 +12,29 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function getThemeKey(): string {
+  try {
+    const raw = localStorage.getItem("sda_user");
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user.organizationId) {
+        return `sda_theme_${user.organizationId}`;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return "sda_theme";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
-  // Load theme from localStorage on mount
+  // Load theme from localStorage on mount (org-scoped key)
   useEffect(() => {
-    const savedTheme = localStorage.getItem("sda_theme") as Theme | null;
+    const key = getThemeKey();
+    const savedTheme = localStorage.getItem(key) as Theme | null;
     if (savedTheme && (savedTheme === "dark" || savedTheme === "light")) {
       setThemeState(savedTheme);
     }
@@ -28,9 +44,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Apply theme class to document
   useEffect(() => {
     if (mounted) {
+      const key = getThemeKey();
       document.documentElement.classList.remove("light", "dark");
       document.documentElement.classList.add(theme);
-      localStorage.setItem("sda_theme", theme);
+      localStorage.setItem(key, theme);
     }
   }, [theme, mounted]);
 

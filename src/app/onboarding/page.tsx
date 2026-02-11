@@ -136,7 +136,7 @@ export default function OnboardingPage() {
     }).format(amount);
   };
 
-  const loadLogoAsBase64 = (logoUrl?: string): Promise<string> => {
+  const loadLogoAsBase64 = (logoUrl?: string): Promise<{ data: string; width: number; height: number }> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -147,7 +147,7 @@ export default function OnboardingPage() {
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/jpeg"));
+          resolve({ data: canvas.toDataURL("image/jpeg"), width: img.width, height: img.height });
         } else {
           reject(new Error("Could not get canvas context"));
         }
@@ -181,10 +181,14 @@ export default function OnboardingPage() {
       const property = selectedParticipant.property;
       const sdaAmount = dwelling?.sdaRegisteredAmount || 0;
 
-      // Load and add logo on left
+      // Load and add logo on left (max 45mm wide, 22mm tall, preserving aspect ratio)
       try {
-        const logoBase64 = await loadLogoAsBase64(organization?.resolvedLogoUrl);
-        doc.addImage(logoBase64, "JPEG", margin, y, 45, 22);
+        const logo = await loadLogoAsBase64(organization?.resolvedLogoUrl);
+        const maxW = 45, maxH = 22;
+        const ratio = Math.min(maxW / logo.width, maxH / logo.height);
+        const w = logo.width * ratio;
+        const h = logo.height * ratio;
+        doc.addImage(logo.data, "JPEG", margin, y, w, h);
       } catch {
         console.log("Logo could not be loaded");
       }
@@ -409,10 +413,14 @@ export default function OnboardingPage() {
       };
 
       // ==================== PAGE 1 - COVER PAGE ====================
-      // Logo centered
+      // Logo centered (max 60mm wide, 30mm tall, preserving aspect ratio)
       try {
-        const logoBase64 = await loadLogoAsBase64(organization?.resolvedLogoUrl);
-        doc.addImage(logoBase64, "JPEG", pageWidth / 2 - 30, 30, 60, 30);
+        const logo = await loadLogoAsBase64(organization?.resolvedLogoUrl);
+        const maxW = 60, maxH = 30;
+        const ratio = Math.min(maxW / logo.width, maxH / logo.height);
+        const w = logo.width * ratio;
+        const h = logo.height * ratio;
+        doc.addImage(logo.data, "JPEG", pageWidth / 2 - w / 2, 30, w, h);
       } catch {
         console.log("Logo could not be loaded");
       }

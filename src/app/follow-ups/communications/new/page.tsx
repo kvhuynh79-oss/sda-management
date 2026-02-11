@@ -73,6 +73,9 @@ export default function NewCommunicationPage() {
   const [isEntityLinked, setIsEntityLinked] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
 
+  // Track whether contact type was set from URL params (skip reset effect)
+  const isContactTypeFromUrl = useRef(false);
+
   const [useManualParticipant, setUseManualParticipant] = useState(false);
   const [manualParticipantName, setManualParticipantName] = useState("");
   const [propertyTbd, setPropertyTbd] = useState(false);
@@ -114,6 +117,10 @@ export default function NewCommunicationPage() {
     }
 
     if (participantId || propertyId || contactType || contactName || subject || complianceCategory || linkedIncidentId) {
+      // Flag that contactType was set from URL so the reset effect doesn't wipe contact details
+      if (contactType) {
+        isContactTypeFromUrl.current = true;
+      }
       setFormData((prev) => ({
         ...prev,
         linkedParticipantId: participantId || prev.linkedParticipantId,
@@ -130,6 +137,7 @@ export default function NewCommunicationPage() {
 
     if (stakeholderType && stakeholderId) {
       setSelectedEntityId(stakeholderId);
+      setIsEntityLinked(true);
     }
   }, [searchParams]);
 
@@ -241,8 +249,12 @@ export default function NewCommunicationPage() {
     }
   };
 
-  // Reset entity state when contact type changes
+  // Reset entity state when contact type changes (but not on initial URL pre-fill)
   useEffect(() => {
+    if (isContactTypeFromUrl.current) {
+      isContactTypeFromUrl.current = false;
+      return;
+    }
     setSelectedEntityId("");
     setIsEntityLinked(false);
     setUseManualEntry(false);

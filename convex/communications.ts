@@ -1273,6 +1273,25 @@ export const getThreadedView = query({
 
     const orgThreadIds = new Set(allComms.map(c => c.threadId).filter(Boolean));
 
+    // Build lookup: threadId -> thread-starting communication (for contact/property pre-fill)
+    const threadStarterMap = new Map<string, typeof allComms[0]>();
+    for (const c of allComms) {
+      if (c.threadId && c.isThreadStarter) {
+        threadStarterMap.set(c.threadId, c);
+      }
+    }
+    // Fallback: if no isThreadStarter flag, use the oldest message per thread
+    for (const c of allComms) {
+      if (c.threadId && !threadStarterMap.has(c.threadId)) {
+        threadStarterMap.set(c.threadId, c);
+      } else if (c.threadId) {
+        const existing = threadStarterMap.get(c.threadId)!;
+        if (c.createdAt < existing.createdAt) {
+          threadStarterMap.set(c.threadId, c);
+        }
+      }
+    }
+
     let allSummaries = await ctx.db
       .query("threadSummaries")
       .collect();
@@ -1310,19 +1329,30 @@ export const getThreadedView = query({
     const hasMore = startIndex + limit < allSummaries.length;
 
     return {
-      threads: page.map(s => ({
-        threadId: s.threadId,
-        subject: s.subject,
-        previewText: s.previewText,
-        lastActivityAt: s.lastActivityAt,
-        messageCount: s.messageCount,
-        participantNames: s.participantNames,
-        hasUnread: s.hasUnread,
-        complianceCategories: s.complianceCategories,
-        requiresAction: s.requiresAction,
-        participantId: s.participantId,
-        status: s.status || "active",
-      })),
+      threads: page.map(s => {
+        const starter = threadStarterMap.get(s.threadId);
+        return {
+          threadId: s.threadId,
+          subject: s.subject,
+          previewText: s.previewText,
+          lastActivityAt: s.lastActivityAt,
+          messageCount: s.messageCount,
+          participantNames: s.participantNames,
+          hasUnread: s.hasUnread,
+          complianceCategories: s.complianceCategories,
+          requiresAction: s.requiresAction,
+          participantId: s.participantId,
+          status: s.status || "active",
+          // Contact/property details from thread-starting message (for "Add Entry" pre-fill)
+          contactType: starter?.contactType,
+          contactName: starter?.contactName,
+          contactEmail: starter?.contactEmail,
+          contactPhone: starter?.contactPhone,
+          linkedPropertyId: starter?.linkedPropertyId,
+          stakeholderEntityType: starter?.stakeholderEntityType,
+          stakeholderEntityId: starter?.stakeholderEntityId,
+        };
+      }),
       nextCursor: hasMore ? String(page[page.length - 1].lastActivityAt) : null,
     };
   },
@@ -1366,7 +1396,22 @@ export const getThreadMessages = query({
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .first();
 
-    // Resolve attachment URLs and linked entity names
+    // Batch fetch users, participants, properties for all messages
+    const creatorIds = [...new Set(limited.map(m => m.createdBy))];
+    const participantIds = [...new Set(limited.map(m => m.linkedParticipantId || m.participantId).filter(Boolean))];
+    const propertyIds = [...new Set(limited.map(m => m.linkedPropertyId).filter(Boolean))];
+
+    const [creators, participants, properties] = await Promise.all([
+      Promise.all(creatorIds.map(id => ctx.db.get(id))),
+      Promise.all(participantIds.map(id => ctx.db.get(id!))),
+      Promise.all(propertyIds.map(id => ctx.db.get(id!))),
+    ]);
+
+    const creatorMap = new Map(creators.filter(Boolean).map(u => [u!._id, u!]));
+    const participantMap = new Map(participants.filter(Boolean).map(p => [p!._id, p!]));
+    const propertyMap = new Map(properties.filter(Boolean).map(p => [p!._id, p!]));
+
+    // Resolve attachment URLs and enrich messages
     const enrichedMessages = await Promise.all(
       limited.map(async (m) => {
         let attachmentUrl: string | null = null;
@@ -1374,18 +1419,10 @@ export const getThreadMessages = query({
           attachmentUrl = await ctx.storage.getUrl(m.attachmentStorageId);
         }
 
-        let participantName: string | undefined;
         const pid = m.linkedParticipantId || m.participantId;
-        if (pid) {
-          const p = await ctx.db.get(pid);
-          if (p) participantName = `${p.firstName} ${p.lastName}`;
-        }
-
-        let propertyAddress: string | undefined;
-        if (m.linkedPropertyId) {
-          const prop = await ctx.db.get(m.linkedPropertyId);
-          if (prop) propertyAddress = prop.addressLine1 || prop.propertyName;
-        }
+        const participant = pid ? participantMap.get(pid) : undefined;
+        const property = m.linkedPropertyId ? propertyMap.get(m.linkedPropertyId) : undefined;
+        const creator = creatorMap.get(m.createdBy);
 
         return {
           _id: m._id,
@@ -1408,8 +1445,9 @@ export const getThreadMessages = query({
           attachmentFileName: m.attachmentFileName,
           attachmentFileType: m.attachmentFileType,
           attachmentUrl,
-          participantName,
-          propertyAddress,
+          participantName: participant ? `${participant.firstName} ${participant.lastName}` : undefined,
+          propertyAddress: property ? (property.addressLine1 || property.propertyName) : undefined,
+          createdByName: creator ? `${creator.firstName} ${creator.lastName}` : "Unknown",
         };
       })
     );

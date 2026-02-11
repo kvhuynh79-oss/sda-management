@@ -18,8 +18,16 @@ function buildThreadAddEntryUrl(thread: any): string {
   if (thread.threadId) params.threadId = thread.threadId;
   if (thread.subject) params.subject = thread.subject;
   if (thread.participantId) params.participantId = thread.participantId;
+  // Contact details from thread-starting message
   if (thread.contactType) params.contactType = thread.contactType;
-  if (thread.participantNames?.[0]) params.contactName = thread.participantNames[0];
+  if (thread.contactName) params.contactName = thread.contactName;
+  if (thread.contactEmail) params.contactEmail = thread.contactEmail;
+  if (thread.contactPhone) params.contactPhone = thread.contactPhone;
+  // Linked property
+  if (thread.linkedPropertyId) params.propertyId = thread.linkedPropertyId;
+  // Stakeholder entity (support coordinator, SIL provider, OT, contractor)
+  if (thread.stakeholderEntityType) params.stakeholderType = thread.stakeholderEntityType;
+  if (thread.stakeholderEntityId) params.stakeholderId = thread.stakeholderEntityId;
   return `/follow-ups/communications/new?${new URLSearchParams(params).toString()}`;
 }
 
@@ -225,8 +233,8 @@ function ThreadMessages({ threadId, userId, userRole }: { threadId: string; user
           {/* Full summary */}
           <p className="text-sm text-gray-400 whitespace-pre-line">{msg.summary}</p>
 
-          {/* Meta row: contact info + linked entities */}
-          {(msg.contactEmail || msg.contactPhone || msg.participantName || msg.propertyAddress) && (
+          {/* Meta row: contact info + linked entities + creator */}
+          {(msg.contactEmail || msg.contactPhone || msg.participantName || msg.propertyAddress || msg.createdByName) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
               {msg.contactEmail && (
                 <span className="flex items-center gap-1">
@@ -250,6 +258,12 @@ function ThreadMessages({ threadId, userId, userRole }: { threadId: string; user
                 <span className="flex items-center gap-1">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" /></svg>
                   {msg.propertyAddress}
+                </span>
+              )}
+              {msg.createdByName && (
+                <span className="flex items-center gap-1 ml-auto text-gray-500">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Added by {msg.createdByName}
                 </span>
               )}
             </div>

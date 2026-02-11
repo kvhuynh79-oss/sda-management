@@ -103,6 +103,52 @@ function TypeIcon({ type }: { type: string }) {
   }
 }
 
+function DirectionBadge({ direction }: { direction: string }) {
+  return direction === "sent" ? (
+    <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-teal-900/40 text-teal-400">
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+      </svg>
+      Sent
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-blue-900/40 text-blue-400">
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+      </svg>
+      Received
+    </span>
+  );
+}
+
+function AttachmentBox({ fileName, fileType, url }: { fileName: string; fileType?: string; url: string }) {
+  const isImage = fileType?.startsWith("image/");
+  const isPdf = fileType === "application/pdf";
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg hover:border-teal-600 hover:bg-gray-750 transition-colors group/att max-w-xs"
+    >
+      {isImage ? (
+        <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ) : isPdf ? (
+        <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      ) : (
+        <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+      )}
+      <span className="text-xs text-gray-300 group-hover/att:text-white truncate">{fileName}</span>
+    </a>
+  );
+}
+
 function ThreadMessages({ threadId, userId, userRole }: { threadId: string; userId: string; userRole?: string }) {
   const data = useQuery(api.communications.getThreadMessages, {
     userId: userId as Id<"users">,
@@ -137,41 +183,87 @@ function ThreadMessages({ threadId, userId, userRole }: { threadId: string; user
 
   return (
     <div className="space-y-3 pt-3 border-t border-gray-700">
-      {data.messages.map((msg) => (
+      {data.messages.map((msg, idx) => (
         <div
           key={msg._id}
-          className="flex gap-3 p-3 bg-gray-900/50 rounded-lg group/msg hover:bg-gray-800/70 transition-colors"
+          className="p-4 bg-gray-900/50 rounded-lg border border-gray-700/50 group/msg"
         >
-          <Link
-            href={`/follow-ups/communications/${msg._id}`}
-            className="flex gap-3 flex-1 min-w-0"
-          >
-            <TypeIcon type={msg.type} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium text-white">{msg.contactName}</span>
-                <CommunicationTypeBadge type={msg.type as "email" | "sms" | "phone_call" | "meeting" | "other"} size="xs" />
-                <span className="text-xs text-gray-400">
-                  {msg.communicationDate}
-                  {msg.communicationTime && ` ${msg.communicationTime}`}
-                </span>
-              </div>
-              {msg.subject && (
-                <p className="text-sm text-gray-300 font-medium">{msg.subject}</p>
-              )}
-              <p className="text-sm text-gray-400 mt-0.5 line-clamp-2">{msg.summary}</p>
+          {/* Header row */}
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <TypeIcon type={msg.type} />
+              <span className="text-sm font-medium text-white truncate">{msg.contactName}</span>
+              <CommunicationTypeBadge type={msg.type as "email" | "sms" | "phone_call" | "meeting" | "other"} size="xs" />
+              <DirectionBadge direction={msg.direction} />
             </div>
-          </Link>
-          {canDelete && (
-            <button
-              onClick={() => handleDeleteMessage(msg._id, msg.contactName)}
-              className="opacity-0 group-hover/msg:opacity-100 flex-shrink-0 p-1.5 text-gray-400 hover:text-red-400 rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:opacity-100"
-              aria-label={`Delete message from ${msg.contactName}`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs text-gray-400">
+                {msg.communicationDate}{msg.communicationTime ? ` ${msg.communicationTime}` : ""}
+              </span>
+              {idx === 0 && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">1st</span>
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => handleDeleteMessage(msg._id, msg.contactName)}
+                  className="opacity-0 group-hover/msg:opacity-100 p-1 text-gray-400 hover:text-red-400 rounded transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:opacity-100"
+                  aria-label={`Delete message from ${msg.contactName}`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Subject */}
+          {msg.subject && (
+            <p className="text-sm text-gray-200 font-medium mb-1">{msg.subject}</p>
+          )}
+
+          {/* Full summary */}
+          <p className="text-sm text-gray-400 whitespace-pre-line">{msg.summary}</p>
+
+          {/* Meta row: contact info + linked entities */}
+          {(msg.contactEmail || msg.contactPhone || msg.participantName || msg.propertyAddress) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+              {msg.contactEmail && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  {msg.contactEmail}
+                </span>
+              )}
+              {msg.contactPhone && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                  {msg.contactPhone}
+                </span>
+              )}
+              {msg.participantName && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  {msg.participantName}
+                </span>
+              )}
+              {msg.propertyAddress && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" /></svg>
+                  {msg.propertyAddress}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Attachment box */}
+          {msg.attachmentUrl && msg.attachmentFileName && (
+            <div className="mt-3">
+              <AttachmentBox
+                fileName={msg.attachmentFileName}
+                fileType={msg.attachmentFileType}
+                url={msg.attachmentUrl}
+              />
+            </div>
           )}
         </div>
       ))}

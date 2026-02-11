@@ -3,8 +3,22 @@ import { v } from "convex/values";
 
 // Get provider settings
 export const get = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    if (args.userId) {
+      // Get user's organizationId
+      const user = await ctx.db.get(args.userId);
+      if (user?.organizationId) {
+        const settings = await ctx.db
+          .query("providerSettings")
+          .withIndex("by_organizationId", (q) => q.eq("organizationId", user.organizationId))
+          .first();
+        if (settings) return settings;
+      }
+    }
+    // Fallback: return first settings (backward compat during migration)
     const settings = await ctx.db.query("providerSettings").first();
     return settings;
   },
@@ -21,6 +35,11 @@ export const upsert = mutation({
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
     address: v.optional(v.string()),
+    signatoryName: v.optional(v.string()),
+    signatoryTitle: v.optional(v.string()),
+    bankBsb: v.optional(v.string()),
+    bankAccountNumber: v.optional(v.string()),
+    bankAccountName: v.optional(v.string()),
     // RRC settings
     dspFortnightlyRate: v.optional(v.number()),
     dspPercentage: v.optional(v.number()),
@@ -45,14 +64,19 @@ export const upsert = mutation({
     } else {
       // Create new settings
       const settingsId = await ctx.db.insert("providerSettings", {
-        providerName: args.providerName || "Better Living Solutions P/L",
-        ndisRegistrationNumber: args.ndisRegistrationNumber || "405 005 2336",
-        abn: args.abn || "87 630 237 277",
+        providerName: args.providerName || "",
+        ndisRegistrationNumber: args.ndisRegistrationNumber || "",
+        abn: args.abn || "",
         defaultGstCode: args.defaultGstCode || "GST",
         defaultSupportItemNumber: args.defaultSupportItemNumber || "",
         contactEmail: args.contactEmail,
         contactPhone: args.contactPhone,
         address: args.address,
+        signatoryName: args.signatoryName,
+        signatoryTitle: args.signatoryTitle,
+        bankBsb: args.bankBsb,
+        bankAccountNumber: args.bankAccountNumber,
+        bankAccountName: args.bankAccountName,
         dspFortnightlyRate: args.dspFortnightlyRate || 1047.70, // Current DSP rate
         dspPercentage: args.dspPercentage || 25,
         craFortnightlyRate: args.craFortnightlyRate || 230.80, // Current CRA max rate
@@ -92,9 +116,9 @@ export const updateRrcRates = mutation({
     } else {
       // Create with defaults and RRC values
       await ctx.db.insert("providerSettings", {
-        providerName: "Better Living Solutions P/L",
-        ndisRegistrationNumber: "405 005 2336",
-        abn: "87 630 237 277",
+        providerName: "",
+        ndisRegistrationNumber: "",
+        abn: "",
         defaultGstCode: "GST",
         defaultSupportItemNumber: "",
         dspFortnightlyRate: args.dspFortnightlyRate,
@@ -112,9 +136,23 @@ export const updateRrcRates = mutation({
 
 // Calculate RRC amounts for a participant
 export const calculateRrc = query({
-  args: {},
-  handler: async (ctx) => {
-    const settings = await ctx.db.query("providerSettings").first();
+  args: {
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    let settings = null;
+    if (args.userId) {
+      const user = await ctx.db.get(args.userId);
+      if (user?.organizationId) {
+        settings = await ctx.db
+          .query("providerSettings")
+          .withIndex("by_organizationId", (q) => q.eq("organizationId", user.organizationId))
+          .first();
+      }
+    }
+    if (!settings) {
+      settings = await ctx.db.query("providerSettings").first();
+    }
 
     // Default values if no settings exist
     const dspFortnightlyRate = settings?.dspFortnightlyRate || 1047.70;

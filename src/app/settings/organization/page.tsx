@@ -34,6 +34,20 @@ function OrganizationSettingsContent() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Provider details state
+  const [providerName, setProviderName] = useState("");
+  const [abn, setAbn] = useState("");
+  const [ndisRegistrationNumber, setNdisRegistrationNumber] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [signatoryName, setSignatoryName] = useState("");
+  const [signatoryTitle, setSignatoryTitle] = useState("");
+  const [bankBsb, setBankBsb] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [isSavingProvider, setIsSavingProvider] = useState(false);
+
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
     if (storedUser) {
@@ -61,6 +75,13 @@ function OrganizationSettingsContent() {
   const updateOrg = useMutation(api.organizations.update);
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
 
+  // Provider settings
+  const providerSettings = useQuery(
+    api.providerSettings.get,
+    user ? { userId: user.id as Id<"users"> } : "skip"
+  );
+  const upsertProvider = useMutation(api.providerSettings.upsert);
+
   // Initialize form when org loads
   useEffect(() => {
     if (organization) {
@@ -69,6 +90,23 @@ function OrganizationSettingsContent() {
       setLogoPreviewUrl((organization as any).resolvedLogoUrl || null);
     }
   }, [organization]);
+
+  // Initialize provider details when loaded
+  useEffect(() => {
+    if (providerSettings) {
+      setProviderName(providerSettings.providerName || "");
+      setAbn(providerSettings.abn || "");
+      setNdisRegistrationNumber(providerSettings.ndisRegistrationNumber || "");
+      setContactPhone(providerSettings.contactPhone || "");
+      setContactEmail(providerSettings.contactEmail || "");
+      setAddress(providerSettings.address || "");
+      setSignatoryName(providerSettings.signatoryName || "");
+      setSignatoryTitle(providerSettings.signatoryTitle || "");
+      setBankBsb(providerSettings.bankBsb || "");
+      setBankAccountNumber(providerSettings.bankAccountNumber || "");
+      setBankAccountName(providerSettings.bankAccountName || "");
+    }
+  }, [providerSettings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,6 +211,34 @@ function OrganizationSettingsContent() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveProvider = async () => {
+    if (!user) return;
+    setIsSavingProvider(true);
+    try {
+      await upsertProvider({
+        providerName: providerName.trim(),
+        ndisRegistrationNumber: ndisRegistrationNumber.trim(),
+        abn: abn.trim(),
+        defaultGstCode: "GST",
+        defaultSupportItemNumber: "",
+        contactEmail: contactEmail.trim() || undefined,
+        contactPhone: contactPhone.trim() || undefined,
+        address: address.trim() || undefined,
+        signatoryName: signatoryName.trim() || undefined,
+        signatoryTitle: signatoryTitle.trim() || undefined,
+        bankBsb: bankBsb.trim() || undefined,
+        bankAccountNumber: bankAccountNumber.trim() || undefined,
+        bankAccountName: bankAccountName.trim() || undefined,
+      });
+      await alertDialog({ title: "Success", message: "Provider details saved successfully." });
+    } catch (error) {
+      console.error("Error saving provider details:", error);
+      await alertDialog({ title: "Error", message: "Failed to save provider details." });
+    } finally {
+      setIsSavingProvider(false);
     }
   };
 
@@ -397,6 +463,94 @@ function OrganizationSettingsContent() {
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Provider Details */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-white mb-1">Provider Details</h2>
+              <p className="text-sm text-gray-400 mb-4">Used on SDA Quotations, Accommodation Agreements, and other generated documents.</p>
+
+              <div className="space-y-5">
+                {/* Identity */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-teal-400 uppercase tracking-wider">Identity</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="provider-name" className="block text-sm font-medium text-gray-300 mb-1">Provider Name</label>
+                      <input id="provider-name" type="text" value={providerName} onChange={(e) => setProviderName(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="Legal entity name" />
+                    </div>
+                    <div>
+                      <label htmlFor="abn" className="block text-sm font-medium text-gray-300 mb-1">ABN</label>
+                      <input id="abn" type="text" value={abn} onChange={(e) => setAbn(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="XX XXX XXX XXX" />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="ndis-reg" className="block text-sm font-medium text-gray-300 mb-1">NDIS Registration Number</label>
+                    <input id="ndis-reg" type="text" value={ndisRegistrationNumber} onChange={(e) => setNdisRegistrationNumber(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="XXX XXX XXXX" />
+                  </div>
+                </div>
+
+                {/* Contact */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-teal-400 uppercase tracking-wider">Contact</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
+                      <input id="contact-phone" type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="04XX XXX XXX" />
+                    </div>
+                    <div>
+                      <label htmlFor="contact-email" className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                      <input id="contact-email" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="info@example.com" />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-1">Address</label>
+                    <input id="address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="Full business address" />
+                  </div>
+                </div>
+
+                {/* Signatory */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-teal-400 uppercase tracking-wider">Document Signatory</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="sig-name" className="block text-sm font-medium text-gray-300 mb-1">Signatory Name</label>
+                      <input id="sig-name" type="text" value={signatoryName} onChange={(e) => setSignatoryName(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="Name on generated PDFs" />
+                    </div>
+                    <div>
+                      <label htmlFor="sig-title" className="block text-sm font-medium text-gray-300 mb-1">Signatory Title</label>
+                      <input id="sig-title" type="text" value={signatoryTitle} onChange={(e) => setSignatoryTitle(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="e.g. Director" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bank Details */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-teal-400 uppercase tracking-wider">Bank Details</h3>
+                  <p className="text-xs text-gray-400">Shown on Accommodation Agreements for payment setup.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label htmlFor="bank-bsb" className="block text-sm font-medium text-gray-300 mb-1">BSB</label>
+                      <input id="bank-bsb" type="text" value={bankBsb} onChange={(e) => setBankBsb(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="XXX XXX" />
+                    </div>
+                    <div>
+                      <label htmlFor="bank-acct" className="block text-sm font-medium text-gray-300 mb-1">Account Number</label>
+                      <input id="bank-acct" type="text" value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="XX XXXX" />
+                    </div>
+                    <div>
+                      <label htmlFor="bank-name" className="block text-sm font-medium text-gray-300 mb-1">Account Name</label>
+                      <input id="bank-name" type="text" value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="Business name on account" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save button */}
+                <div className="pt-2">
+                  <button onClick={handleSaveProvider} disabled={isSavingProvider} className="px-6 py-2.5 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
+                    {isSavingProvider ? "Saving..." : "Save Provider Details"}
+                  </button>
                 </div>
               </div>
             </div>

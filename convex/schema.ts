@@ -704,6 +704,11 @@ export default defineSchema({
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
     address: v.optional(v.string()),
+    signatoryName: v.optional(v.string()),     // Name for PDF signatures, e.g. "Khen Huynh"
+    signatoryTitle: v.optional(v.string()),    // Title, e.g. "Director"
+    bankBsb: v.optional(v.string()),           // BSB number, e.g. "032 373"
+    bankAccountNumber: v.optional(v.string()), // Account number, e.g. "23 6901"
+    bankAccountName: v.optional(v.string()),   // Account name, e.g. "Better Living Solutions P/L"
     // RRC (Reasonable Rent Contribution) settings - rates change twice yearly (Mar 20 & Sep 20)
     dspFortnightlyRate: v.optional(v.number()), // Disability Support Pension fortnightly base rate
     dspPercentage: v.optional(v.number()), // % of DSP to contribute (typically 25%)

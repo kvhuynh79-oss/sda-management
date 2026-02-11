@@ -1366,27 +1366,56 @@ export const getThreadMessages = query({
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .first();
 
+    // Resolve attachment URLs and linked entity names
+    const enrichedMessages = await Promise.all(
+      limited.map(async (m) => {
+        let attachmentUrl: string | null = null;
+        if (m.attachmentStorageId) {
+          attachmentUrl = await ctx.storage.getUrl(m.attachmentStorageId);
+        }
+
+        let participantName: string | undefined;
+        const pid = m.linkedParticipantId || m.participantId;
+        if (pid) {
+          const p = await ctx.db.get(pid);
+          if (p) participantName = `${p.firstName} ${p.lastName}`;
+        }
+
+        let propertyAddress: string | undefined;
+        if (m.linkedPropertyId) {
+          const prop = await ctx.db.get(m.linkedPropertyId);
+          if (prop) propertyAddress = prop.addressLine1 || prop.propertyName;
+        }
+
+        return {
+          _id: m._id,
+          type: m.communicationType,
+          direction: m.direction,
+          contactName: m.contactName,
+          contactType: m.contactType,
+          subject: m.subject,
+          summary: m.summary,
+          createdAt: m.createdAt,
+          readAt: m.readAt,
+          complianceCategory: m.complianceCategory,
+          complianceFlags: m.complianceFlags,
+          isThreadStarter: m.isThreadStarter,
+          communicationDate: m.communicationDate,
+          communicationTime: m.communicationTime,
+          contactEmail: m.contactEmail,
+          contactPhone: m.contactPhone,
+          attachmentStorageId: m.attachmentStorageId,
+          attachmentFileName: m.attachmentFileName,
+          attachmentFileType: m.attachmentFileType,
+          attachmentUrl,
+          participantName,
+          propertyAddress,
+        };
+      })
+    );
+
     return {
-      messages: limited.map(m => ({
-        _id: m._id,
-        type: m.communicationType,
-        direction: m.direction,
-        contactName: m.contactName,
-        contactType: m.contactType,
-        subject: m.subject,
-        summary: m.summary,
-        createdAt: m.createdAt,
-        readAt: m.readAt,
-        complianceCategory: m.complianceCategory,
-        complianceFlags: m.complianceFlags,
-        isThreadStarter: m.isThreadStarter,
-        communicationDate: m.communicationDate,
-        communicationTime: m.communicationTime,
-        contactEmail: m.contactEmail,
-        contactPhone: m.contactPhone,
-        attachmentStorageId: m.attachmentStorageId,
-        attachmentFileName: m.attachmentFileName,
-      })),
+      messages: enrichedMessages,
       threadSummary: threadSummary || null,
     };
   },

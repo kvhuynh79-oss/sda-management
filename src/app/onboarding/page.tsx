@@ -83,8 +83,8 @@ export default function OnboardingPage() {
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
   const allDwellings = useQuery(api.dwellings.getAllWithAddresses, user ? { userId: user.id as Id<"users"> } : "skip");
-  const providerSettings = useQuery(api.providerSettings.get);
-  const rrcCalculation = useQuery(api.providerSettings.calculateRrc);
+  const providerSettings = useQuery(api.providerSettings.get, user ? { userId: user.id as Id<"users"> } : "skip");
+  const rrcCalculation = useQuery(api.providerSettings.calculateRrc, user ? { userId: user.id as Id<"users"> } : "skip");
   const updateRrcRates = useMutation(api.providerSettings.updateRrcRates);
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export default function OnboardingPage() {
     }).format(amount);
   };
 
-  const loadLogoAsBase64 = (): Promise<string> => {
+  const loadLogoAsBase64 = (logoUrl?: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -153,7 +153,7 @@ export default function OnboardingPage() {
         }
       };
       img.onerror = reject;
-      img.src = "/Logo.jpg";
+      img.src = logoUrl || "/Logo.jpg";
     });
   };
 
@@ -183,7 +183,7 @@ export default function OnboardingPage() {
 
       // Load and add logo on left
       try {
-        const logoBase64 = await loadLogoAsBase64();
+        const logoBase64 = await loadLogoAsBase64(organization?.resolvedLogoUrl);
         doc.addImage(logoBase64, "JPEG", margin, y, 45, 22);
       } catch {
         console.log("Logo could not be loaded");
@@ -327,10 +327,19 @@ export default function OnboardingPage() {
       doc.line(margin, y, margin + 40, y);
       y += 8;
 
-      // Khen Huynh
-      doc.setFont("helvetica", "bold");
-      doc.text("Khen Huynh", margin, y);
-      y += 5;
+      // Signatory name and title
+      const sigName = providerSettings?.signatoryName || "";
+      if (sigName) {
+        doc.setFont("helvetica", "bold");
+        doc.text(sigName, margin, y);
+        y += 5;
+      }
+      const sigTitle = providerSettings?.signatoryTitle || "";
+      if (sigTitle) {
+        doc.setFont("helvetica", "normal");
+        doc.text(sigTitle, margin, y);
+        y += 5;
+      }
       doc.setFont("helvetica", "normal");
       const footerAbn = providerSettings?.abn ? ` | ABN: ${providerSettings.abn}` : "";
       doc.text(`${orgDisplayName}${footerAbn}`, margin, y);
@@ -402,7 +411,7 @@ export default function OnboardingPage() {
       // ==================== PAGE 1 - COVER PAGE ====================
       // Logo centered
       try {
-        const logoBase64 = await loadLogoAsBase64();
+        const logoBase64 = await loadLogoAsBase64(organization?.resolvedLogoUrl);
         doc.addImage(logoBase64, "JPEG", pageWidth / 2 - 30, 30, 60, 30);
       } catch {
         console.log("Logo could not be loaded");
@@ -668,11 +677,11 @@ export default function OnboardingPage() {
       y += 8;
 
       doc.setFont("helvetica", "bold");
-      doc.text("BSB number: 032 373", margin, y);
-      doc.text("account number: 23 6901", margin + 50, y);
+      doc.text(`BSB number: ${providerSettings?.bankBsb || "___"}`, margin, y);
+      doc.text(`account number: ${providerSettings?.bankAccountNumber || "___"}`, margin + 50, y);
       y += 6;
-      const bankAccountName = providerSettings?.providerName || organization?.name || "MySDAManager";
-      doc.text(`account name: ${bankAccountName}`, margin, y);
+      const bankAcctName = providerSettings?.bankAccountName || providerSettings?.providerName || organization?.name || "MySDAManager";
+      doc.text(`account name: ${bankAcctName}`, margin, y);
       y += 6;
       doc.text(`payment reference: ${selectedParticipant.firstName} ${selectedParticipant.lastName}`, margin, y);
       y += 6;
@@ -1137,7 +1146,7 @@ export default function OnboardingPage() {
       doc.setFont("helvetica", "normal");
       doc.line(margin, y + 2, margin + 60, y + 2);
       doc.text("Date", margin, y + 7);
-      doc.text("Khen Huynh", margin + 80, y);
+      doc.text(providerSettings?.signatoryName || "", margin + 80, y);
       doc.line(margin + 80, y + 2, margin + 150, y + 2);
       doc.text("Name", margin + 80, y + 7);
 

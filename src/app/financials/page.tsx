@@ -209,7 +209,7 @@ function ClaimsTab({ userId }: { userId: string }) {
   const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
 
   const dashboard = useQuery(api.claims.getDashboard, { userId: userId as Id<"users"> });
-  const providerSettings = useQuery(api.providerSettings.get);
+  const providerSettings = useQuery(api.providerSettings.get, { userId: userId as Id<"users"> });
   const createClaim = useMutation(api.claims.create);
   const markSubmitted = useMutation(api.claims.markSubmitted);
   const markPaid = useMutation(api.claims.markPaid);

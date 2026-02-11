@@ -14,6 +14,7 @@ export default function SILProviderDashboard() {
     null
   );
   const [providerName, setProviderName] = useState<string>("");
+  const [noProvider, setNoProvider] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -23,8 +24,14 @@ export default function SILProviderDashboard() {
     }
 
     const user = JSON.parse(storedUser);
-    if (user.role !== "sil_provider" || !user.silProviderId) {
+    if (user.role !== "sil_provider") {
       router.push("/dashboard");
+      return;
+    }
+    if (!user.silProviderId) {
+      // SIL provider user without linked provider - show error, don't redirect
+      // (redirecting to /dashboard would create a loop since RequireAuth sends them back here)
+      setNoProvider(true);
       return;
     }
 
@@ -36,6 +43,25 @@ export default function SILProviderDashboard() {
     api.silProviderPortal.getDashboard,
     silProviderId ? { silProviderId } : "skip"
   );
+
+  if (noProvider) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-white mb-2">Account Not Linked</h1>
+          <p className="text-gray-400 mb-4">
+            Your account is not linked to a SIL provider. Please contact your administrator.
+          </p>
+          <button
+            onClick={() => { localStorage.removeItem("sda_user"); router.push("/login"); }}
+            className="text-sm text-teal-400 hover:text-teal-300"
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!silProviderId) {
     return (

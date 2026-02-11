@@ -73,14 +73,22 @@ export default function LoginPage() {
       // BACKWARD COMPATIBILITY: Also store user data in old format
       // TODO: Remove this once all pages are migrated to useSession
       if (result.user) {
-        localStorage.setItem("sda_user", JSON.stringify({
+        const userData: Record<string, unknown> = {
           id: result.user._id,
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
           role: result.user.role,
           expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
-        }));
+        };
+        // Include SIL provider fields for portal access
+        if (result.user.silProviderId) {
+          userData.silProviderId = result.user.silProviderId;
+        }
+        if (result.user.providerName) {
+          userData.providerName = result.user.providerName;
+        }
+        localStorage.setItem("sda_user", JSON.stringify(userData));
       }
 
       // Redirect based on role - SIL providers go to their restricted portal
@@ -117,14 +125,21 @@ export default function LoginPage() {
       storeTokens(result.token, result.refreshToken || "");
 
       // BACKWARD COMPATIBILITY: Also store user data in old format
-      localStorage.setItem("sda_user", JSON.stringify({
+      const mfaUserData: Record<string, unknown> = {
         id: result.user._id,
         email: result.user.email,
         firstName: result.user.firstName,
         lastName: result.user.lastName,
         role: result.user.role,
         expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
-      }));
+      };
+      if (result.user.silProviderId) {
+        mfaUserData.silProviderId = result.user.silProviderId;
+      }
+      if (result.user.providerName) {
+        mfaUserData.providerName = result.user.providerName;
+      }
+      localStorage.setItem("sda_user", JSON.stringify(mfaUserData));
 
       // Redirect based on role
       if (result.user.role === "sil_provider") {

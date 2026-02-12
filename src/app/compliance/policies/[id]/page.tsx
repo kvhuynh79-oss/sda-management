@@ -859,6 +859,139 @@ function PolicyDetailContent() {
               </div>
             </section>
 
+            {/* ── Key Details ────────────────────────────────────────── */}
+            <section
+              className="bg-gray-800 rounded-lg p-6 border border-gray-700"
+              aria-labelledby="section-key-details"
+            >
+              <h2
+                id="section-key-details"
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                </svg>
+                Key Details
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {/* Document ID */}
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Document ID</p>
+                  <p className="text-sm text-white font-medium font-mono">
+                    {(() => {
+                      const match = policy.title.match(/\b(BLS-[A-Z]+-\d+)\b/);
+                      return match ? match[1] : policy._id.slice(-8).toUpperCase();
+                    })()}
+                  </p>
+                </div>
+
+                {/* Category */}
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Category</p>
+                  <p className="text-sm text-white">
+                    {(() => {
+                      const found = CATEGORY_OPTIONS.find((c) => c.value === policy.category);
+                      return found ? found.label : policy.category;
+                    })()}
+                  </p>
+                </div>
+
+                {/* Effective Date */}
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Effective Date</p>
+                  <p className="text-sm text-white">
+                    {policy.effectiveDate
+                      ? new Date(policy.effectiveDate).toLocaleDateString("en-AU", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "-"}
+                  </p>
+                </div>
+
+                {/* Review Due Date with status indicator */}
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Review Due Date</p>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        reviewStatus === "overdue"
+                          ? "bg-red-400"
+                          : reviewStatus === "soon"
+                            ? "bg-yellow-400"
+                            : reviewStatus === "ok"
+                              ? "bg-green-400"
+                              : "bg-gray-400"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <p
+                      className={`text-sm font-medium ${
+                        reviewStatus === "overdue"
+                          ? "text-red-400"
+                          : reviewStatus === "soon"
+                            ? "text-yellow-400"
+                            : "text-white"
+                      }`}
+                    >
+                      {policy.reviewDueDate
+                        ? new Date(policy.reviewDueDate).toLocaleDateString("en-AU", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : "-"}
+                      {reviewStatus === "overdue" && (
+                        <span className="ml-2 text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">Overdue</span>
+                      )}
+                      {reviewStatus === "soon" && (
+                        <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">Due Soon</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Version */}
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Version</p>
+                  <p className="text-sm text-white">
+                    {policy.version ? `Version ${policy.version}` : "Version 1.0"}
+                    {policy.effectiveDate && (
+                      <span className="text-gray-400">
+                        {" - "}
+                        {new Date(policy.effectiveDate).toLocaleDateString("en-AU", {
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Created / Last Updated */}
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Last Updated</p>
+                  <p className="text-sm text-white">
+                    {new Date(policy.updatedAt).toLocaleDateString("en-AU", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Created{" "}
+                    {new Date(policy.createdAt).toLocaleDateString("en-AU", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              </div>
+            </section>
+
             {/* ── Purpose / Description ───────────────────────────────── */}
             <section
               className="bg-gray-800 rounded-lg p-6 border border-gray-700"
@@ -899,7 +1032,7 @@ function PolicyDetailContent() {
                     Policy Content
                   </h2>
                 </div>
-                <div className="p-6 max-h-[600px] overflow-y-auto">
+                <div className="p-6">
                   <div className="prose prose-invert prose-sm max-w-none">
                     {policy.content.split("\n").map((line, i) => {
                       const trimmed = line.trim();
@@ -967,58 +1100,102 @@ function PolicyDetailContent() {
 
             {/* ── Document Download ───────────────────────────────────── */}
             <section
-              className="bg-gray-800 rounded-lg p-6 border border-gray-700"
+              className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden"
               aria-labelledby="section-document"
             >
-              <h2
-                id="section-document"
-                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
-              >
-                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                </svg>
-                Document Download
-              </h2>
-              {policy.documentFileName && policy.documentUrl ? (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 bg-gray-700/40 rounded-lg border border-gray-600/40">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-teal-600/20 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-white font-medium truncate">
-                        {policy.documentFileName}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        Word Document (.docx)
-                      </p>
-                    </div>
-                  </div>
-                  <a
-                    href={policy.documentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 flex-shrink-0"
-                    aria-label={`Download ${policy.documentFileName}`}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                    </svg>
-                    Download Document
-                  </a>
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-gray-700/20 rounded-lg border border-dashed border-gray-600">
-                  <svg className="w-10 h-10 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              <div className="p-6 border-b border-gray-700">
+                <h2
+                  id="section-document"
+                  className="text-lg font-semibold text-white flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
-                  <p className="text-gray-400 text-sm">No document attached</p>
-                  <p className="text-gray-400 text-xs mt-1">Click Edit to upload a policy document</p>
-                </div>
-              )}
+                  Document Download
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  Download the full formatted document for printing or offline use.
+                </p>
+              </div>
+              <div className="p-6">
+                {policy.documentFileName && policy.documentUrl ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 bg-teal-600/5 rounded-lg border border-teal-600/20">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-lg bg-teal-600/20 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-6 h-6 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-white font-medium truncate">
+                          {policy.documentFileName}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {policy.documentFileName.endsWith(".pdf")
+                            ? "PDF Document"
+                            : policy.documentFileName.endsWith(".docx") || policy.documentFileName.endsWith(".doc")
+                              ? "Word Document"
+                              : "Attached File"}
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={policy.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 flex-shrink-0"
+                      aria-label={`Download ${policy.documentFileName}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                      Download Document
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-gray-700/20 rounded-lg border border-dashed border-gray-600">
+                    <svg className="w-10 h-10 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    <p className="text-gray-400 text-sm">No document attached</p>
+                    <p className="text-gray-400 text-xs mt-1">Click Edit to upload a policy document</p>
+                  </div>
+                )}
+              </div>
             </section>
+
+            {/* ── Related Policies ─────────────────────────────────────── */}
+            {policy.category && (
+              <section
+                className="bg-gray-800 rounded-lg p-6 border border-gray-700"
+                aria-labelledby="section-related"
+              >
+                <h2
+                  id="section-related"
+                  className="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.07a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.34 8.374" />
+                  </svg>
+                  Related Policies
+                </h2>
+                <p className="text-sm text-gray-400 mb-3">
+                  View other policies in the same category for related procedures and guidelines.
+                </p>
+                <Link
+                  href={`/compliance/policies?category=${encodeURIComponent(policy.category)}`}
+                  className="inline-flex items-center gap-2 text-sm text-teal-400 hover:text-teal-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                  </svg>
+                  Browse all {policy.category} policies
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </Link>
+              </section>
+            )}
 
             {/* ── Document Metadata Footer ────────────────────────────── */}
             <div className="flex flex-wrap items-center justify-between gap-4 px-1 text-xs text-gray-400">

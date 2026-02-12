@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useSearchParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Link from "next/link";
@@ -106,8 +107,9 @@ function PolicyRow({ policy }: { policy: Policy }) {
   const reviewLabel = getReviewDateLabel(policy.reviewDueDate);
 
   return (
-    <div
-      className="bg-gray-800 border border-gray-700 rounded-lg px-5 py-4 hover:bg-gray-700/80 transition-colors"
+    <Link
+      href={`/compliance/policies/${policy._id}`}
+      className="block bg-gray-800 border border-gray-700 rounded-lg px-5 py-4 hover:bg-gray-700/80 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
       role="article"
       aria-label={`Policy: ${policy.title}`}
     >
@@ -116,12 +118,9 @@ function PolicyRow({ policy }: { policy: Policy }) {
         {/* Title and description (takes up remaining space) */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <Link
-              href={`/compliance/policies/${policy._id}`}
-              className="text-white font-semibold hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
-            >
+            <span className="text-white font-semibold group-hover:text-teal-400 transition-colors">
               {policy.title}
-            </Link>
+            </span>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-500/20 text-teal-400">
               {policy.category}
             </span>
@@ -219,7 +218,7 @@ function PolicyRow({ policy }: { policy: Policy }) {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -681,9 +680,13 @@ function AddPolicyModal({
 
 function PoliciesContent() {
   const { alert: alertDialog } = useConfirmDialog();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string; role: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState(() => {
+    const urlCategory = searchParams.get("category");
+    return urlCategory || "all";
+  });
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(true);

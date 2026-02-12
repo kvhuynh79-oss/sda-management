@@ -315,9 +315,13 @@ function addEasyReadPages(
   const p1 = startPage ?? 3;
   const p2 = p1 + 1;
   const totalPages = startPage ? 2 : 4;
+  const isStandalone = startPage === 1;
 
   // ── EASY READ PAGE 1: CONSENT ──────────────────────────
-  doc.addPage();
+  // In standalone mode, jsPDF already created page 1 — don't add another
+  if (!isStandalone) {
+    doc.addPage();
+  }
 
   // Purple header for Easy Read distinction
   doc.setFillColor(109, 40, 217); // purple-600

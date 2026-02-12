@@ -214,6 +214,12 @@ function CommunicationsContent() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Communications</h1>
           <div className="flex items-center gap-2">
+            <Link
+              href="/follow-ups/tasks/new"
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+            >
+              + Task
+            </Link>
             <button
               onClick={() => setShowNewLeadForm(true)}
               className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"

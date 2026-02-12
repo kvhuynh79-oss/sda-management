@@ -3,9 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-// TODO: Uncomment when registration backend is implemented
-// import { useQuery, useAction } from "convex/react";
-// import { api } from "../../../convex/_generated/api";
+import { useQuery, useAction } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -198,13 +197,11 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // TODO: Uncomment when registration.checkSlugAvailability is implemented
-  // const slugCheck = useQuery(
-  //   api.registration.checkSlugAvailability,
-  //   slug.length >= 3 ? { slug } : "skip"
-  // );
-  // TODO: Uncomment when registration.registerOrganization is implemented
-  // const registerOrganization = useAction(api.registration.registerOrganization);
+  const slugCheck = useQuery(
+    api.registration.checkSlugAvailability,
+    slug.length >= 3 ? { slug } : "skip"
+  );
+  const registerOrganization = useAction(api.registration.registerOrganization);
 
   // Pre-select plan from URL params
   useEffect(() => {
@@ -228,17 +225,13 @@ export default function RegisterPage() {
       return;
     }
 
-    setCheckingSlug(true);
-    const timer = setTimeout(() => {
-      // TODO: Replace with real query - uncomment slugCheck above
-      // Simulating availability check. Reserved slugs fail, others pass.
-      const reserved = ["admin", "app", "api", "www", "mail", "support", "help"];
-      setSlugAvailable(!reserved.includes(slug));
+    if (slugCheck === undefined) {
+      setCheckingSlug(true);
+    } else {
+      setSlugAvailable(slugCheck.available);
       setCheckingSlug(false);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [slug]);
+    }
+  }, [slug, slugCheck]);
 
   // ---- Validation ----
   const validateStep1 = useCallback((): boolean => {
@@ -293,21 +286,28 @@ export default function RegisterPage() {
     setSubmitError("");
 
     try {
-      // TODO: Replace with real Convex action call
-      // await registerOrganization({
-      //   orgName: orgName.trim(),
-      //   slug,
-      //   plan: selectedPlan,
-      //   adminEmail: email.trim(),
-      //   adminFirstName: firstName.trim(),
-      //   adminLastName: lastName.trim(),
-      //   adminPassword: password,
-      // });
+      const result = await registerOrganization({
+        orgName: orgName.trim(),
+        slug,
+        plan: selectedPlan,
+        adminEmail: email.trim(),
+        adminFirstName: firstName.trim(),
+        adminLastName: lastName.trim(),
+        adminPassword: password,
+      });
 
-      // Simulate registration delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Store session in localStorage for useAuth compatibility
+      const userData = {
+        id: result.userId,
+        email: email.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        role: "admin",
+        organizationId: result.organizationId,
+      };
+      localStorage.setItem("sda_user", JSON.stringify(userData));
 
-      // On success, redirect to onboarding
+      // Redirect to onboarding
       router.push("/onboarding/setup");
     } catch (err) {
       setSubmitError(

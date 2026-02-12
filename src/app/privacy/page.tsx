@@ -356,8 +356,8 @@ export default function PrivacyPolicyPage() {
                 the Privacy Act (Notifiable Data Breaches scheme), we will:
               </p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>Conduct an assessment within 30 days to determine whether the breach is likely to result in serious harm</li>
-                <li>Notify the Office of the Australian Information Commissioner (OAIC) and affected individuals as required</li>
+                <li>Conduct an assessment as soon as practicable, and no later than 30 days, to determine whether the breach is likely to result in serious harm</li>
+                <li>Notify the Office of the Australian Information Commissioner (OAIC) and affected individuals within 72 hours of confirming an eligible data breach</li>
                 <li>Notify affected organisations so they may fulfil their own notification obligations to participants</li>
                 <li>Take reasonable steps to contain the breach and mitigate harm</li>
               </ul>

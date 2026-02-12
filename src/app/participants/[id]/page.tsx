@@ -13,6 +13,7 @@ import Badge from "@/components/ui/Badge";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { generateConsentFormPdf, generateEasyReadConsentPdf } from "@/utils/consentFormPdf";
+import { generateEasyReadFromTemplate } from "@/utils/easyReadConsentPdf";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 export default function ParticipantDetailPage() {
@@ -146,10 +147,15 @@ export default function ParticipantDetailPage() {
     generateConsentFormPdf(params);
   };
 
-  const handleGenerateEasyReadPdf = () => {
+  const handleGenerateEasyReadPdf = async () => {
     const params = consentPdfParams();
     if (!params) return;
-    generateEasyReadConsentPdf(params);
+    // Try template-based PDF first (Canva design with images)
+    const success = await generateEasyReadFromTemplate(params);
+    if (!success) {
+      // Fallback to jsPDF-based generator (text-only)
+      generateEasyReadConsentPdf(params);
+    }
   };
 
   const handleRecordConsent = async () => {

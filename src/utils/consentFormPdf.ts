@@ -295,88 +295,727 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
+  const margin = 18;
   const contentWidth = pageWidth - margin * 2;
 
   // Total pages in the Easy Read document
   const TOTAL_PAGES = 12;
 
+  // ── COLOUR PALETTE ──────────────────────────────────────
+
+  const PURPLE = { r: 109, g: 40, b: 217 };
+  const PURPLE_MID = { r: 139, g: 92, b: 246 }; // slightly lighter purple for accents
+  const PURPLE_LIGHT = { r: 237, g: 233, b: 254 }; // lavender background
+  const PURPLE_LIGHTER = { r: 245, g: 243, b: 255 }; // very subtle bg
+  const WHITE = { r: 255, g: 255, b: 255 };
+  const DARK = { r: 30, g: 30, b: 30 };
+
+  // ── TWO-COLUMN LAYOUT CONSTANTS ─────────────────────────
+
+  const illustColWidth = 68; // left column width for illustrations
+  const gutter = 10; // gap between columns
+  const rightColX = margin + illustColWidth + gutter; // right column starts here
+  const rightColWidth = pageWidth - margin - rightColX; // right column text width
+  const illustCenterX = margin + illustColWidth / 2; // center of illustration column
+
   // ── SHARED HELPERS ──────────────────────────────────────
 
-  // Purple colour palette for Easy Read distinction
-  const PURPLE = { r: 109, g: 40, b: 217 };
-  const PURPLE_LIGHT = { r: 237, g: 233, b: 254 }; // purple-50 equivalent
-
-  // Render a footer on every page
   const addFooter = (pageNum: number) => {
+    // Purple accent line
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.8);
+    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(140, 140, 140);
-    doc.text("Easy Read", margin, pageHeight - 14);
+    doc.setTextColor(120, 120, 120);
+    doc.text("Easy Read Consent", margin, pageHeight - 12);
     doc.text(
       `Page ${pageNum} of ${TOTAL_PAGES}`,
-      pageWidth - margin - 24,
-      pageHeight - 14
+      pageWidth - margin,
+      pageHeight - 12,
+      { align: "right" }
     );
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
   };
 
-  // Render the purple header bar used on content pages
   const addPageHeader = (title: string) => {
+    // Full-width purple header bar
     doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
-    doc.rect(0, 0, pageWidth, 28, "F");
+    doc.rect(0, 0, pageWidth, 30, "F");
+
+    // Thin teal accent line below purple bar
+    doc.setFillColor(13, 148, 136);
+    doc.rect(0, 30, pageWidth, 2, "F");
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text("EASY READ", margin, 10);
-    doc.setFontSize(16);
+    doc.setFontSize(17);
     doc.setFont("helvetica", "bold");
-    doc.text(title, margin, 22);
+    doc.text(title, margin, 24);
   };
 
-  // Write body text at 14pt with proper line height
-  // Returns the new Y position after the text
+  // Write body text in the right column at 14pt
   const writeBody = (text: string, x: number, y: number, maxWidth?: number): number => {
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 30, 30);
-    const lines = doc.splitTextToSize(text, maxWidth ?? contentWidth);
+    doc.setTextColor(DARK.r, DARK.g, DARK.b);
+    const lines = doc.splitTextToSize(text, maxWidth ?? rightColWidth);
     doc.text(lines, x, y);
     return y + lines.length * 7;
   };
 
-  // Write bold body text at 14pt
   const writeBodyBold = (text: string, x: number, y: number, maxWidth?: number): number => {
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 30, 30);
-    const lines = doc.splitTextToSize(text, maxWidth ?? contentWidth);
+    doc.setTextColor(DARK.r, DARK.g, DARK.b);
+    const lines = doc.splitTextToSize(text, maxWidth ?? rightColWidth);
     doc.text(lines, x, y);
     return y + lines.length * 7;
   };
 
-  // Write a bullet point at 14pt (circle marker + text)
   const writeBullet = (text: string, x: number, y: number, maxWidth?: number): number => {
     doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
     doc.circle(x + 2, y - 1.5, 1.8, "F");
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 30, 30);
+    doc.setTextColor(DARK.r, DARK.g, DARK.b);
+    const lines = doc.splitTextToSize(text, (maxWidth ?? rightColWidth) - 10);
+    doc.text(lines, x + 8, y);
+    return y + lines.length * 7 + 2;
+  };
+
+  const writeSectionHeading = (text: string, x: number, y: number): number => {
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text(text, x, y);
+    return y + 10;
+  };
+
+  // Full-width body/bullet helpers for pages that need full width (signature, word list, contact)
+  const writeBodyFull = (text: string, x: number, y: number, maxWidth?: number): number => {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(DARK.r, DARK.g, DARK.b);
+    const lines = doc.splitTextToSize(text, maxWidth ?? contentWidth);
+    doc.text(lines, x, y);
+    return y + lines.length * 7;
+  };
+
+  const writeBodyBoldFull = (text: string, x: number, y: number, maxWidth?: number): number => {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(DARK.r, DARK.g, DARK.b);
+    const lines = doc.splitTextToSize(text, maxWidth ?? contentWidth);
+    doc.text(lines, x, y);
+    return y + lines.length * 7;
+  };
+
+  const writeBulletFull = (text: string, x: number, y: number, maxWidth?: number): number => {
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(x + 2, y - 1.5, 1.8, "F");
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(DARK.r, DARK.g, DARK.b);
     const lines = doc.splitTextToSize(text, (maxWidth ?? contentWidth) - 10);
     doc.text(lines, x + 8, y);
     return y + lines.length * 7 + 2;
   };
 
-  // Write a section heading at 18pt bold
-  const writeSectionHeading = (text: string, x: number, y: number): number => {
-    doc.setFontSize(18);
+  const writeSectionHeadingFull = (text: string, x: number, y: number): number => {
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
     doc.text(text, x, y);
-    return y + 12;
+    return y + 10;
   };
+
+  // ── ILLUSTRATION DRAWING FUNCTIONS ──────────────────────
+  // Each draws on a lavender background shape in the left column
+
+  const drawBookIcon = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Left page of open book
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.rect(cx - 20, cy - 14, 18, 24, "F");
+    // Right page
+    doc.rect(cx + 2, cy - 14, 18, 24, "F");
+
+    // Spine line
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(1.2);
+    doc.line(cx, cy - 16, cx, cy + 12);
+
+    // Text lines on left page
+    doc.setDrawColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+    doc.setLineWidth(0.6);
+    doc.line(cx - 17, cy - 8, cx - 5, cy - 8);
+    doc.line(cx - 17, cy - 3, cx - 7, cy - 3);
+    doc.line(cx - 17, cy + 2, cx - 5, cy + 2);
+    doc.line(cx - 17, cy + 7, cx - 9, cy + 7);
+
+    // Text lines on right page
+    doc.line(cx + 5, cy - 8, cx + 17, cy - 8);
+    doc.line(cx + 5, cy - 3, cx + 15, cy - 3);
+    doc.line(cx + 5, cy + 2, cx + 17, cy + 2);
+    doc.line(cx + 5, cy + 7, cx + 13, cy + 7);
+  };
+
+  const drawPersonWithSpeechBubble = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 28, cy - 22, 56, 48, 6, 6, "F");
+
+    // Head
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 8, cy - 10, 7, "F");
+
+    // Body (trapezoid as triangle)
+    doc.triangle(cx - 18, cy + 16, cx + 2, cy + 16, cx - 8, cy - 1, "F");
+
+    // Speech bubble (rounded rect)
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(cx + 2, cy - 18, 24, 16, 3, 3, "F");
+    // Bubble pointer triangle
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.triangle(cx + 5, cy - 2, cx + 12, cy - 2, cx + 6, cy + 3, "F");
+
+    // Lines inside speech bubble
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.5);
+    doc.line(cx + 6, cy - 13, cx + 22, cy - 13);
+    doc.line(cx + 6, cy - 8, cx + 18, cy - 8);
+  };
+
+  const drawPersonWithDocument = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Person on the left
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 12, cy - 10, 6, "F"); // head
+    doc.triangle(cx - 20, cy + 14, cx - 4, cy + 14, cx - 12, cy - 2, "F"); // body
+
+    // Document on the right
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.rect(cx + 4, cy - 14, 18, 24, "F");
+    // Document border
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.6);
+    doc.rect(cx + 4, cy - 14, 18, 24, "S");
+    // Text lines on document
+    doc.setLineWidth(0.4);
+    doc.line(cx + 7, cy - 8, cx + 19, cy - 8);
+    doc.line(cx + 7, cy - 3, cx + 17, cy - 3);
+    doc.line(cx + 7, cy + 2, cx + 19, cy + 2);
+    doc.line(cx + 7, cy + 7, cx + 15, cy + 7);
+  };
+
+  const drawHouseIcon = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 28, cy - 24, 56, 48, 6, 6, "F");
+
+    // Roof (triangle)
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.triangle(cx - 22, cy - 2, cx + 22, cy - 2, cx, cy - 20, "F");
+
+    // Walls
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.rect(cx - 16, cy - 2, 32, 22, "F");
+
+    // Door
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 4, cy + 6, 8, 14, "F");
+    // Door handle
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.circle(cx + 2, cy + 13, 1, "F");
+
+    // Left window
+    doc.setFillColor(200, 210, 255);
+    doc.rect(cx - 13, cy + 2, 7, 7, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.4);
+    doc.line(cx - 13, cy + 5.5, cx - 6, cy + 5.5);
+    doc.line(cx - 9.5, cy + 2, cx - 9.5, cy + 9);
+
+    // Right window
+    doc.setFillColor(200, 210, 255);
+    doc.rect(cx + 6, cy + 2, 7, 7, "F");
+    doc.line(cx + 6, cy + 5.5, cx + 13, cy + 5.5);
+    doc.line(cx + 9.5, cy + 2, cx + 9.5, cy + 9);
+  };
+
+  const drawClipboardChecklist = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Clipboard body
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(cx - 14, cy - 16, 28, 34, 2, 2, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(cx - 14, cy - 16, 28, 34, 2, 2, "S");
+
+    // Clip at top
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.roundedRect(cx - 6, cy - 20, 12, 8, 2, 2, "F");
+
+    // Checklist items (3 rows)
+    const checkY = [cy - 8, cy + 0, cy + 8];
+    for (let i = 0; i < 3; i++) {
+      // Checkbox
+      doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+      doc.setLineWidth(0.5);
+      doc.rect(cx - 10, checkY[i] - 2.5, 5, 5, "S");
+
+      // Checkmark in first two boxes
+      if (i < 2) {
+        doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+        doc.setLineWidth(1);
+        doc.line(cx - 9, checkY[i] + 0.5, cx - 7.5, checkY[i] + 2);
+        doc.line(cx - 7.5, checkY[i] + 2, cx - 5.5, checkY[i] - 1.5);
+      }
+
+      // Text line
+      doc.setDrawColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+      doc.setLineWidth(0.5);
+      doc.line(cx - 2, checkY[i], cx + 10, checkY[i]);
+    }
+  };
+
+  const drawIdCard = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 28, cy - 18, 56, 38, 6, 6, "F");
+
+    // Card body
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(cx - 22, cy - 12, 44, 28, 3, 3, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(cx - 22, cy - 12, 44, 28, 3, 3, "S");
+
+    // Purple header bar on card
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 22, cy - 12, 44, 6, "F");
+
+    // Photo placeholder (circle)
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx - 12, cy + 4, 6, "F");
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 12, cy + 2, 3, "F"); // head
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 12, cy + 9, 4, "F"); // shoulders hint
+
+    // Text lines on card
+    doc.setDrawColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+    doc.setLineWidth(0.5);
+    doc.line(cx, cy, cx + 18, cy);
+    doc.line(cx, cy + 5, cx + 14, cy + 5);
+    doc.line(cx, cy + 10, cx + 18, cy + 10);
+  };
+
+  const drawGroupOfPeople = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Back person (lighter)
+    doc.setFillColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+    doc.circle(cx, cy - 14, 6, "F"); // head
+    doc.triangle(cx - 10, cy + 8, cx + 10, cy + 8, cx, cy - 6, "F"); // body
+
+    // Left person
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 14, cy - 8, 5.5, "F"); // head
+    doc.triangle(cx - 22, cy + 14, cx - 6, cy + 14, cx - 14, cy - 0.5, "F"); // body
+
+    // Right person
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx + 14, cy - 8, 5.5, "F"); // head
+    doc.triangle(cx + 6, cy + 14, cx + 22, cy + 14, cx + 14, cy - 0.5, "F"); // body
+  };
+
+  const drawHandshake = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 28, cy - 18, 56, 38, 6, 6, "F");
+
+    // Left arm
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0);
+    // Left forearm (angled rectangle via polygon shape using lines)
+    doc.rect(cx - 24, cy - 3, 18, 6, "F");
+
+    // Right arm (slightly lighter)
+    doc.setFillColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+    doc.rect(cx + 6, cy - 3, 18, 6, "F");
+
+    // Clasped hands in the middle (overlapping circles)
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 2, cy, 5, "F");
+    doc.setFillColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+    doc.circle(cx + 2, cy, 5, "F");
+
+    // White hand lines (fingers suggestion)
+    doc.setDrawColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.setLineWidth(0.6);
+    doc.line(cx - 4, cy - 2, cx - 1, cy - 2);
+    doc.line(cx + 1, cy + 2, cx + 4, cy + 2);
+
+    // Heart above handshake
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 3, cy - 11, 3, "F");
+    doc.circle(cx + 3, cy - 11, 3, "F");
+    doc.triangle(cx - 6, cy - 10, cx + 6, cy - 10, cx, cy - 4, "F");
+  };
+
+  const drawShieldWithCheckmark = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Shield shape (composed of rect + triangle bottom)
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 14, cy - 16, 28, 20, "F"); // upper rect
+    doc.triangle(cx - 14, cy + 4, cx + 14, cy + 4, cx, cy + 18, "F"); // pointed bottom
+
+    // Inner shield (white)
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.rect(cx - 10, cy - 12, 20, 14, "F");
+    doc.triangle(cx - 10, cy + 2, cx + 10, cy + 2, cx, cy + 12, "F");
+
+    // Checkmark
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(2.5);
+    doc.line(cx - 5, cy - 1, cx - 1, cy + 4);
+    doc.line(cx - 1, cy + 4, cx + 7, cy - 6);
+  };
+
+  const drawRaisedHand = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 24, cy - 20, 48, 42, 6, 6, "F");
+
+    // Palm base
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.roundedRect(cx - 10, cy - 4, 20, 18, 4, 4, "F");
+
+    // Fingers (5 rounded rects)
+    doc.roundedRect(cx - 10, cy - 16, 5, 16, 2, 2, "F"); // pinky
+    doc.roundedRect(cx - 4, cy - 19, 5, 18, 2, 2, "F"); // ring
+    doc.roundedRect(cx + 2, cy - 20, 5, 20, 2, 2, "F"); // middle
+    doc.roundedRect(cx + 8, cy - 18, 5, 17, 2, 2, "F"); // index
+
+    // Thumb
+    doc.roundedRect(cx - 14, cy - 4, 6, 12, 2, 2, "F");
+
+    // White "STOP" text or line across palm
+    doc.setDrawColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.setLineWidth(0.8);
+    doc.line(cx - 6, cy + 2, cx + 6, cy + 2);
+    doc.line(cx - 6, cy + 5, cx + 6, cy + 5);
+    doc.line(cx - 5, cy + 8, cx + 5, cy + 8);
+  };
+
+  const drawCalendar = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Calendar body
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(cx - 16, cy - 12, 32, 28, 2, 2, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(cx - 16, cy - 12, 32, 28, 2, 2, "S");
+
+    // Purple top bar (month header)
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 16, cy - 12, 32, 8, "F");
+
+    // Hanging loops
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(1.2);
+    doc.line(cx - 8, cy - 15, cx - 8, cy - 10);
+    doc.line(cx + 8, cy - 15, cx + 8, cy - 10);
+
+    // Large "12" text
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text("12", cx, cy + 6, { align: "center" });
+
+    // Small "months" text below
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text("months", cx, cy + 12, { align: "center" });
+  };
+
+  const drawClockFace = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 24, cy - 18, 48, 38, 6, 6, "F");
+
+    // Clock circle
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.circle(cx, cy, 14, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(1.5);
+    doc.circle(cx, cy, 14, "S");
+
+    // Hour markers (12, 3, 6, 9)
+    doc.setLineWidth(0.8);
+    doc.line(cx, cy - 12, cx, cy - 10); // 12
+    doc.line(cx + 12, cy, cx + 10, cy); // 3
+    doc.line(cx, cy + 12, cx, cy + 10); // 6
+    doc.line(cx - 12, cy, cx - 10, cy); // 9
+
+    // Hour hand (pointing to 10)
+    doc.setLineWidth(1.5);
+    doc.line(cx, cy, cx - 5, cy - 7);
+
+    // Minute hand (pointing to 2)
+    doc.setLineWidth(1);
+    doc.line(cx, cy, cx + 7, cy - 8);
+
+    // Center dot
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx, cy, 1.5, "F");
+  };
+
+  const drawPadlock = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Lock shackle (arc at top)
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(3);
+    // Draw arc as two vertical lines and a curve approximation
+    doc.line(cx - 8, cy - 4, cx - 8, cy - 12);
+    doc.line(cx + 8, cy - 4, cx + 8, cy - 12);
+    // Top curve (approximated with small segments)
+    doc.line(cx - 8, cy - 12, cx - 6, cy - 16);
+    doc.line(cx - 6, cy - 16, cx - 2, cy - 18);
+    doc.line(cx - 2, cy - 18, cx + 2, cy - 18);
+    doc.line(cx + 2, cy - 18, cx + 6, cy - 16);
+    doc.line(cx + 6, cy - 16, cx + 8, cy - 12);
+
+    // Lock body
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.roundedRect(cx - 12, cy - 4, 24, 18, 2, 2, "F");
+
+    // Keyhole
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.circle(cx, cy + 2, 3, "F");
+    doc.rect(cx - 1.2, cy + 4, 2.4, 5, "F");
+  };
+
+  const drawComputerWithShield = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 26, cy - 18, 52, 40, 6, 6, "F");
+
+    // Monitor
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(cx - 18, cy - 14, 36, 24, 2, 2, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(1);
+    doc.roundedRect(cx - 18, cy - 14, 36, 24, 2, 2, "S");
+
+    // Screen
+    doc.setFillColor(PURPLE_LIGHTER.r, PURPLE_LIGHTER.g, PURPLE_LIGHTER.b);
+    doc.rect(cx - 15, cy - 11, 30, 18, "F");
+
+    // Monitor stand
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 3, cy + 10, 6, 4, "F");
+    doc.rect(cx - 8, cy + 14, 16, 2, "F");
+
+    // Small shield on screen
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 6, cy - 8, 12, 8, "F");
+    doc.triangle(cx - 6, cy, cx + 6, cy, cx, cy + 6, "F");
+
+    // White check on shield
+    doc.setDrawColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.setLineWidth(1.5);
+    doc.line(cx - 2, cy - 2, cx, cy + 1);
+    doc.line(cx, cy + 1, cx + 3, cy - 4);
+  };
+
+  const drawPenOnPaper = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Paper
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.rect(cx - 14, cy - 16, 22, 30, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.5);
+    doc.rect(cx - 14, cy - 16, 22, 30, "S");
+
+    // Lines on paper
+    doc.setDrawColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+    doc.setLineWidth(0.4);
+    doc.line(cx - 10, cy - 8, cx + 4, cy - 8);
+    doc.line(cx - 10, cy - 3, cx + 2, cy - 3);
+    doc.line(cx - 10, cy + 2, cx + 4, cy + 2);
+
+    // Signature scribble line
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.8);
+    doc.line(cx - 8, cy + 8, cx - 4, cy + 6);
+    doc.line(cx - 4, cy + 6, cx, cy + 10);
+    doc.line(cx, cy + 10, cx + 4, cy + 7);
+
+    // Pen (diagonal)
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    // Pen body (rotated appearance via lines)
+    doc.setLineWidth(2.5);
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.line(cx + 6, cy - 4, cx + 18, cy - 16);
+    // Pen tip
+    doc.setLineWidth(1);
+    doc.line(cx + 5, cy - 2, cx + 6, cy - 4);
+    doc.line(cx + 7, cy - 3, cx + 6, cy - 4);
+  };
+
+  const drawTelephone = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Phone body (rounded rect)
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.roundedRect(cx - 10, cy - 18, 20, 36, 6, 6, "F");
+
+    // Screen area
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(cx - 7, cy - 13, 14, 20, 2, 2, "F");
+
+    // Home button
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.circle(cx, cy + 12, 2.5, "F");
+
+    // Phone icon on screen
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    // Handset shape using circles and rect
+    doc.circle(cx - 4, cy - 7, 2.5, "F");
+    doc.circle(cx + 4, cy + 1, 2.5, "F");
+    doc.setLineWidth(2);
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.line(cx - 3, cy - 5, cx + 3, cy - 1);
+  };
+
+  const drawPersonSpeaking = (cx: number, cy: number) => {
+    // Lavender background rounded rect
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 26, cy - 18, 52, 40, 6, 6, "F");
+
+    // Person
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(cx - 10, cy - 6, 7, "F"); // head
+    doc.triangle(cx - 20, cy + 16, cx, cy + 16, cx - 10, cy + 3, "F"); // body
+
+    // Speech bubble with exclamation
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(cx + 2, cy - 16, 22, 18, 4, 4, "F");
+    doc.setDrawColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(cx + 2, cy - 16, 22, 18, 4, 4, "S");
+
+    // Bubble pointer
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.triangle(cx + 5, cy + 2, cx + 12, cy + 2, cx + 4, cy + 7, "F");
+
+    // Exclamation mark "!"
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text("!", cx + 13, cy - 2, { align: "center" });
+  };
+
+  const drawDictionaryBook = (cx: number, cy: number) => {
+    // Lavender background circle
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.circle(cx, cy, 26, "F");
+
+    // Book body
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.roundedRect(cx - 16, cy - 16, 32, 32, 2, 2, "F");
+
+    // Book pages (white interior)
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.rect(cx - 13, cy - 13, 26, 26, "F");
+
+    // Spine
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 16, cy - 16, 4, 32, "F");
+
+    // "A-Z" text on the cover
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text("A", cx - 1, cy - 2, { align: "center" });
+    doc.setFontSize(8);
+    doc.text("to", cx + 3, cy - 2);
+    doc.setFontSize(14);
+    doc.text("Z", cx + 6, cy + 6);
+
+    // Lines representing definitions
+    doc.setDrawColor(PURPLE_MID.r, PURPLE_MID.g, PURPLE_MID.b);
+    doc.setLineWidth(0.4);
+    doc.line(cx - 8, cy + 10, cx + 10, cy + 10);
+  };
+
+  const drawContactIcons = (cx: number, cy: number) => {
+    // Lavender background rounded rect (wider for 3 icons)
+    doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+    doc.roundedRect(cx - 30, cy - 20, 60, 42, 6, 6, "F");
+
+    // === Phone icon (left) ===
+    const px = cx - 18;
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.roundedRect(px - 5, py(cy, -12), 10, 18, 3, 3, "F");
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.roundedRect(px - 3, py(cy, -8), 6, 10, 1, 1, "F");
+
+    // === Envelope icon (center) ===
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(cx - 10, cy - 6, 20, 14, "F");
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    // Envelope flap (triangle)
+    doc.setDrawColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.setLineWidth(1);
+    doc.line(cx - 10, cy - 6, cx, cy + 2);
+    doc.line(cx + 10, cy - 6, cx, cy + 2);
+
+    // === Computer icon (right) ===
+    const rx = cx + 18;
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.roundedRect(rx - 8, cy - 10, 16, 12, 1, 1, "F");
+    doc.setFillColor(WHITE.r, WHITE.g, WHITE.b);
+    doc.rect(rx - 6, cy - 8, 12, 8, "F");
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(rx - 2, cy + 2, 4, 3, "F");
+    doc.rect(rx - 5, cy + 5, 10, 2, "F");
+  };
+
+  // Helper for drawContactIcons to avoid nested function scope confusion
+  function py(base: number, offset: number): number {
+    return base + offset;
+  }
 
   // ════════════════════════════════════════════════════════
   // PAGE 1: COVER PAGE
@@ -386,16 +1025,27 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
   doc.rect(0, 0, pageWidth, pageHeight, "F");
 
-  // Easy Read badge (white rounded rectangle)
-  const badgeW = 80;
-  const badgeH = 16;
+  // Decorative circles (subtle lighter-purple on purple background, simulating 8% white opacity)
+  doc.setFillColor(121, 57, 220); // purple blended with ~8% white
+  doc.circle(pageWidth - 20, 30, 50, "F");
+  doc.circle(30, pageHeight - 40, 60, "F");
+  doc.circle(pageWidth - 60, pageHeight - 80, 30, "F");
+  doc.circle(50, 60, 20, "F");
+
+  // Teal accent bar at top
+  doc.setFillColor(13, 148, 136);
+  doc.rect(0, 0, pageWidth, 4, "F");
+
+  // Easy Read badge (white pill shape)
+  const badgeW = 90;
+  const badgeH = 18;
   const badgeX = (pageWidth - badgeW) / 2;
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(badgeX, 50, badgeW, badgeH, 4, 4, "F");
+  doc.roundedRect(badgeX, 44, badgeW, badgeH, 9, 9, "F");
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
-  doc.text("Easy Read", pageWidth / 2, 61, { align: "center" });
+  doc.text("Easy Read", pageWidth / 2, 56, { align: "center" });
 
   // Main title
   doc.setTextColor(255, 255, 255);
@@ -403,26 +1053,42 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.setFont("helvetica", "bold");
   const titleLines = doc.splitTextToSize(
     "Saying Yes to Sharing Your Information",
-    contentWidth
+    contentWidth - 10
   );
-  doc.text(titleLines, pageWidth / 2, 100, { align: "center" });
+  doc.text(titleLines, pageWidth / 2, 95, { align: "center" });
+
+  // White divider line (simulated 40% opacity: blended with purple)
+  doc.setDrawColor(167, 126, 232); // purple blended with ~40% white
+  doc.setLineWidth(0.5);
+  doc.line(pageWidth / 2 - 40, 120, pageWidth / 2 + 40, 120);
 
   // Subtitle
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont("helvetica", "normal");
-  doc.text("A consent form about your", pageWidth / 2, 130, { align: "center" });
-  doc.text("personal information", pageWidth / 2, 140, { align: "center" });
+  doc.text("A consent form about your", pageWidth / 2, 134, { align: "center" });
+  doc.text("personal information", pageWidth / 2, 144, { align: "center" });
+
+  // Decorative document icon in center (simulated 15% white on purple)
+  doc.setFillColor(131, 72, 223); // purple blended with ~15% white
+  doc.roundedRect(pageWidth / 2 - 18, 158, 36, 44, 3, 3, "F");
+  // Checkmark on document (simulated 30% white on purple)
+  doc.setDrawColor(153, 105, 228); // purple blended with ~30% white
+  doc.setLineWidth(2);
+  doc.line(pageWidth / 2 - 6, 178, pageWidth / 2 - 1, 184);
+  doc.line(pageWidth / 2 - 1, 184, pageWidth / 2 + 8, 172);
 
   // Organisation name
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text(orgName, pageWidth / 2, 170, { align: "center" });
+  doc.text(orgName, pageWidth / 2, 218, { align: "center" });
 
-  // Participant name (if provided)
+  // Participant name
   if (participantName) {
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text(`Prepared for: ${participantName}`, pageWidth / 2, 185, { align: "center" });
+    doc.text(`Prepared for: ${participantName}`, pageWidth / 2, 232, { align: "center" });
   }
 
   // Date
@@ -434,16 +1100,17 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
       month: "long",
     }),
     pageWidth / 2,
-    210,
+    250,
     { align: "center" }
   );
 
-  // Footer note
+  // Footer compliance note (simulated 70% white on purple = lighter text)
   doc.setFontSize(10);
+  doc.setTextColor(211, 190, 244); // purple blended with ~70% white
   doc.text(
     "Complies with Australian Privacy Principle 3 (APP 3)",
     pageWidth / 2,
-    pageHeight - 30,
+    pageHeight - 28,
     { align: "center" }
   );
 
@@ -456,106 +1123,55 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("How to Use This Form");
 
-  let y = 40;
+  let y = 42;
 
-  y = writeBody(
-    "This form is written in Easy Read.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 1: Open Book --
+  drawBookIcon(illustCenterX, y + 20);
 
-  y = writeBody(
-    "Easy Read uses simple words and short sentences.",
-    margin, y
-  );
-  y += 5;
+  // Right column text
+  let ry = y;
+  ry = writeSectionHeading("This form is Easy Read", rightColX, ry);
+  ry = writeBody("This form is written in Easy Read.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("Easy Read uses simple words and short sentences.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("Easy Read makes information easier to understand.", rightColX, ry);
 
-  y = writeBody(
-    "Easy Read makes information easier to understand.",
-    margin, y
-  );
-  y += 12;
+  y = Math.max(y + 52, ry) + 8;
 
-  // Bold words explanation box
+  // -- Illustration 2: Person with Speech Bubble --
+  drawPersonWithSpeechBubble(illustCenterX, y + 20);
+
+  // Callout box for bold words explanation
+  ry = y;
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 32, 3, 3, "F");
+  doc.roundedRect(rightColX, ry - 2, rightColWidth, 34, 3, 3, "F");
+  ry += 6;
+  ry = writeBodyBold("Some words are written in bold.", rightColX + 4, ry, rightColWidth - 8);
+  ry += 2;
+  ry = writeBody("Bold means the text is thicker and darker.", rightColX + 4, ry, rightColWidth - 8);
+  ry += 2;
+  ry = writeBody("There is a word list at the end.", rightColX + 4, ry, rightColWidth - 8);
+
+  y = Math.max(y + 52, ry) + 10;
+
+  // -- Section: Ask for help (full width below illustrations) --
+  y = writeSectionHeadingFull("You can ask for help", margin, y);
+  y = writeBodyFull("You do not have to read this form by yourself.", margin, y);
   y += 4;
+  y = writeBodyFull("You can ask someone you trust to help you.", margin, y);
+  y += 4;
+  y = writeBodyFull("This could be a family member, a friend, or a worker.", margin, y);
+  y += 4;
+  y = writeBodyBoldFull("An advocate is a person who speaks up for you.", margin, y);
+  y += 8;
 
-  y = writeBodyBold(
-    "Some words are written in bold.",
-    margin + 6, y, contentWidth - 12
-  );
-  y += 2;
-
-  y = writeBody(
-    "Bold means the text is thicker and darker.",
-    margin + 6, y, contentWidth - 12
-  );
-  y += 2;
-
-  y = writeBody(
-    "There is a word list at the end of this form.",
-    margin + 6, y, contentWidth - 12
-  );
-  y += 2;
-
-  y = writeBody(
-    "The word list tells you what the bold words mean.",
-    margin + 6, y, contentWidth - 12
-  );
-
-  y += 16;
-
-  y = writeSectionHeading("You can ask for help", margin, y);
-
-  y = writeBody(
-    "You do not have to read this form by yourself.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "You can ask someone you trust to help you.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "This could be a family member, a friend, or a worker.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "You can also ask an advocate to help you.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBodyBold(
-    "An advocate is a person who speaks up for you.",
-    margin, y
-  );
-  y += 12;
-
-  y = writeSectionHeading("Take your time", margin, y);
-
-  y = writeBody(
-    "You do not have to say yes straight away.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "You can take this form home and think about it.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "You can ask questions at any time.",
-    margin, y
-  );
+  y = writeSectionHeadingFull("Take your time", margin, y);
+  y = writeBodyFull("You do not have to say yes straight away.", margin, y);
+  y += 4;
+  y = writeBodyFull("You can take this form home and think about it.", margin, y);
+  y += 4;
+  y = writeBodyFull("You can ask questions at any time.", margin, y);
 
   addFooter(2);
 
@@ -566,86 +1182,56 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("What This Form Is About");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "This form is about your personal information.",
-    margin, y
-  );
-  y += 8;
+  // -- Illustration 1: Person with Document --
+  drawPersonWithDocument(illustCenterX, y + 20);
 
-  y = writeBodyBold(
-    "Personal information is information about you.",
-    margin, y
-  );
-  y += 3;
+  // Right column text
+  ry = y;
+  ry = writeSectionHeading("Your personal information", rightColX, ry);
+  ry = writeBody("This form is about your personal information.", rightColX, ry);
+  ry += 5;
+  ry = writeBodyBold("Personal information is information about you.", rightColX, ry);
+  ry += 3;
+  ry = writeBody("Like your name, your birthday, and where you live.", rightColX, ry);
 
-  y = writeBody(
-    "Like your name, your birthday, and where you live.",
-    margin, y
-  );
-  y += 12;
+  y = Math.max(y + 52, ry) + 8;
 
-  y = writeBody(
-    "We need some of your information.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 2: House --
+  drawHouseIcon(illustCenterX, y + 20);
 
-  y = writeBody(
-    "We use it to help you with your home.",
-    margin, y
-  );
-  y += 12;
+  // Right column text
+  ry = y;
+  ry = writeSectionHeading("We need some information", rightColX, ry);
+  ry = writeBody("We need some of your information.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("We use it to help you with your home.", rightColX, ry);
 
-  // Highlighted box - your choice
+  y = Math.max(y + 52, ry) + 10;
+
+  // -- Highlighted box: Your choice (full width) --
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 40, 3, 3, "F");
+  doc.roundedRect(margin, y - 4, contentWidth, 52, 4, 4, "F");
+  // Purple left accent bar on callout
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.rect(margin, y - 4, 4, 52, "F");
   y += 4;
 
-  y = writeSectionHeading("It is your choice", margin + 6, y);
+  y = writeSectionHeadingFull("It is your choice", margin + 10, y);
+  y = writeBodyFull("You can say yes.", margin + 10, y, contentWidth - 16);
+  y += 4;
+  y = writeBodyFull("You can say no.", margin + 10, y, contentWidth - 16);
+  y += 4;
+  y = writeBodyFull("Nobody will be angry if you say no.", margin + 10, y, contentWidth - 16);
 
-  y = writeBody(
-    "You can say yes.",
-    margin + 6, y, contentWidth - 12
-  );
+  y += 14;
+
+  y = writeBodyFull("If you say no, we may not be able to do some things.", margin, y);
+  y += 4;
+  y = writeBodyFull("For example, we may not be able to claim your NDIS funding for your home.", margin, y);
   y += 5;
-
-  y = writeBody(
-    "You can say no.",
-    margin + 6, y, contentWidth - 12
-  );
-  y += 5;
-
-  y = writeBody(
-    "Nobody will be angry if you say no.",
-    margin + 6, y, contentWidth - 12
-  );
-
-  y += 20;
-
-  y = writeBody(
-    "If you say no, we may not be able to do some things.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "For example, we may not be able to claim your",
-    margin, y
-  );
-  y += 0;
-
-  y = writeBodyBold(
-    "NDIS funding for your home.",
-    margin, y
-  );
-  y += 8;
-
-  y = writeBody(
-    "We will explain this to you before you decide.",
-    margin, y
-  );
+  y = writeBodyFull("We will explain this to you before you decide.", margin, y);
 
   addFooter(3);
 
@@ -656,58 +1242,51 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("What We Will Collect");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "We will collect some information about you.",
-    margin, y
-  );
+  // -- Illustration 1: Clipboard Checklist --
+  drawClipboardChecklist(illustCenterX, y + 22);
+
+  // Right column text
+  ry = y;
+  ry = writeSectionHeading("We will collect:", rightColX, ry);
+  ry = writeBullet("Your name", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("Your date of birth", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("Your address and phone number", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("Your NDIS number", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("Your health needs and disability information", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("Your emergency contact details", rightColX, ry);
+
+  y = Math.max(y + 56, ry) + 10;
+
+  // -- Illustration 2: ID Card --
+  drawIdCard(illustCenterX, y + 16);
+
+  // Right column text
+  ry = y;
+  ry = writeSectionHeading("Why we collect it:", rightColX, ry);
+  ry = writeBullet("To help you live in your home", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("To make sure your home is right for you", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("To claim your NDIS funding", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("To keep you safe", rightColX, ry);
+
+  y = Math.max(y + 40, ry) + 8;
+
+  // -- Full width note --
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 3, contentWidth, 14, 3, 3, "F");
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.rect(margin, y - 3, 4, 14, "F");
   y += 5;
-
-  y = writeBody(
-    "We only collect what we need.",
-    margin, y
-  );
-  y += 12;
-
-  y = writeSectionHeading("We will collect:", margin, y);
-
-  y = writeBullet("Your name", margin, y);
-  y += 3;
-
-  y = writeBullet("Your date of birth", margin, y);
-  y += 3;
-
-  y = writeBullet("Your address and phone number", margin, y);
-  y += 3;
-
-  y = writeBullet("Your NDIS number", margin, y);
-  y += 3;
-
-  y = writeBullet("Your health needs and disability information", margin, y);
-  y += 3;
-
-  y = writeBullet("Your emergency contact details", margin, y);
-  y += 12;
-
-  y = writeSectionHeading("Why we collect it:", margin, y);
-
-  y = writeBullet("To help you live in your home", margin, y);
-  y += 3;
-
-  y = writeBullet("To make sure your home is right for you", margin, y);
-  y += 3;
-
-  y = writeBullet(
-    "To claim your NDIS funding",
-    margin, y
-  );
-  y += 3;
-
-  y = writeBullet(
-    "To keep you safe",
-    margin, y
-  );
+  y = writeBodyBoldFull("We only collect what we need.", margin + 10, y, contentWidth - 16);
 
   addFooter(4);
 
@@ -718,82 +1297,48 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("Who We May Share With");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "Sometimes we need to share your information.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 1: Group of People --
+  drawGroupOfPeople(illustCenterX, y + 20);
 
-  y = writeBody(
-    "We only share what is needed.",
-    margin, y
-  );
-  y += 5;
+  // Right column text
+  ry = y;
+  ry = writeBody("Sometimes we need to share your information.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("We only share what is needed.", rightColX, ry);
+  ry += 4;
+  ry = writeBodyBold("We will never sell your information.", rightColX, ry);
 
-  y = writeBody(
-    "We will never sell your information.",
-    margin, y
-  );
-  y += 12;
+  y = Math.max(y + 52, ry) + 8;
 
-  y = writeSectionHeading("We may share with:", margin, y);
+  // -- Illustration 2: Handshake --
+  drawHandshake(illustCenterX, y + 16);
 
-  y = writeBullet(
-    "The NDIA -- they manage your NDIS funding",
-    margin, y
-  );
-  y += 5;
+  // Right column: sharing list
+  ry = y;
+  ry = writeSectionHeading("We may share with:", rightColX, ry);
+  ry = writeBullet("The NDIA -- they manage your NDIS funding", rightColX, ry);
+  ry += 3;
+  ry = writeBullet("Your SIL provider -- they help you day to day", rightColX, ry);
+  ry += 3;
+  ry = writeBullet("Your support coordinator -- they help you use your NDIS plan", rightColX, ry);
+  ry += 3;
+  ry = writeBullet("Doctors or therapists -- if needed for your health", rightColX, ry);
+  ry += 3;
+  ry = writeBullet("Emergency services -- if you are in danger", rightColX, ry);
+  ry += 3;
+  ry = writeBullet("Government -- only when the law says we must", rightColX, ry);
 
-  y = writeBullet(
-    "Your SIL provider -- they help you day to day",
-    margin, y
-  );
-  y += 5;
+  y = Math.max(y + 44, ry) + 8;
 
-  y = writeBullet(
-    "Your support coordinator -- they help you",
-    margin, y
-  );
-  y = writeBody(
-    "use your NDIS plan",
-    margin + 8, y
-  );
-  y += 5;
-
-  y = writeBullet(
-    "Doctors or therapists -- if needed for your health",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBullet(
-    "Emergency services -- if you are in danger",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBullet(
-    "Government -- only when the law says we must",
-    margin, y
-  );
-  y += 12;
-
-  // Important callout box
+  // Important callout box (full width)
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 20, 3, 3, "F");
-  y += 4;
-
-  y = writeBodyBold(
-    "We will never share your information",
-    margin + 6, y, contentWidth - 12
-  );
-
-  y = writeBodyBold(
-    "for advertising or marketing.",
-    margin + 6, y, contentWidth - 12
-  );
+  doc.roundedRect(margin, y - 3, contentWidth, 18, 3, 3, "F");
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.rect(margin, y - 3, 4, 18, "F");
+  y += 5;
+  y = writeBodyBoldFull("We will never share your information for advertising or marketing.", margin + 10, y, contentWidth - 16);
 
   addFooter(5);
 
@@ -804,85 +1349,48 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("Your Rights");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "You have rights about your information.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 1: Shield with Checkmark --
+  drawShieldWithCheckmark(illustCenterX, y + 20);
 
-  y = writeBodyBold(
-    "Rights are things you are allowed to do.",
-    margin, y
-  );
-  y += 5;
+  // Right column text
+  ry = y;
+  ry = writeBody("You have rights about your information.", rightColX, ry);
+  ry += 4;
+  ry = writeBodyBold("Rights are things you are allowed to do.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("The law gives you these rights.", rightColX, ry);
 
-  y = writeBody(
-    "The law gives you these rights.",
-    margin, y
-  );
-  y += 12;
+  y = Math.max(y + 52, ry) + 6;
 
-  // Right 1
-  y = writeSectionHeading("You can see your information", margin, y);
+  // -- Illustration 2: Raised Hand --
+  drawRaisedHand(illustCenterX, y + 16);
 
-  y = writeBody(
-    "You can ask us to show you the information",
-    margin, y
-  );
-  y = writeBody(
-    "we have about you.",
-    margin, y
-  );
-  y += 5;
+  // Right column: rights list
+  ry = y;
+  ry = writeSectionHeading("You can see your information", rightColX, ry);
+  ry = writeBody("You can ask us to show you the information we have about you.", rightColX, ry);
+  ry += 3;
+  ry = writeBody("We will show you for free.", rightColX, ry);
 
-  y = writeBody(
-    "We will show you for free.",
-    margin, y
-  );
-  y += 12;
+  y = Math.max(y + 44, ry) + 6;
 
-  // Right 2
-  y = writeSectionHeading("You can fix your information", margin, y);
+  // Rights 2 & 3 full width
+  y = writeSectionHeadingFull("You can fix your information", margin, y);
+  y = writeBodyFull("If something is wrong, you can ask us to fix it.", margin, y);
+  y += 3;
+  y = writeBodyFull("For example, if we have the wrong phone number.", margin, y);
+  y += 8;
 
-  y = writeBody(
-    "If something is wrong, you can ask us to fix it.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "For example, if we have the wrong phone number.",
-    margin, y
-  );
-  y += 12;
-
-  // Right 3
-  y = writeSectionHeading("You can change your mind", margin, y);
-
-  y = writeBody(
-    "You can tell us to stop using your information.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "This is called withdrawing your consent.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "You can do this at any time.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "Just tell us in person, by phone, or in writing.",
-    margin, y
-  );
+  y = writeSectionHeadingFull("You can change your mind", margin, y);
+  y = writeBodyFull("You can tell us to stop using your information.", margin, y);
+  y += 3;
+  y = writeBodyFull("This is called withdrawing your consent.", margin, y);
+  y += 3;
+  y = writeBodyFull("You can do this at any time.", margin, y);
+  y += 3;
+  y = writeBodyFull("Just tell us in person, by phone, or in writing.", margin, y);
 
   addFooter(6);
 
@@ -893,86 +1401,53 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("How Long This Lasts");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "When you sign this form, it lasts for 12 months.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 1: Calendar --
+  drawCalendar(illustCenterX, y + 20);
 
-  y = writeBody(
-    "That means 1 year.",
-    margin, y
-  );
-  y += 12;
+  // Right column text
+  ry = y;
+  ry = writeSectionHeading("12 months", rightColX, ry);
+  ry = writeBody("When you sign this form, it lasts for 12 months.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("That means 1 year.", rightColX, ry);
+  ry += 6;
+  ry = writeSectionHeading("After 12 months", rightColX, ry);
+  ry = writeBody("We will talk to you again.", rightColX, ry);
+  ry += 3;
+  ry = writeBody("We will ask if you still want to say yes.", rightColX, ry);
+  ry += 3;
+  ry = writeBody("You will get a new form to sign.", rightColX, ry);
 
-  y = writeSectionHeading("After 12 months", margin, y);
+  y = Math.max(y + 52, ry) + 8;
 
-  y = writeBody(
-    "We will talk to you again.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 2: Clock Face --
+  drawClockFace(illustCenterX, y + 16);
 
-  y = writeBody(
-    "We will ask if you still want to say yes.",
-    margin, y
-  );
-  y += 5;
+  // Right column text
+  ry = y;
+  ry = writeSectionHeading("You do not have to wait", rightColX, ry);
+  ry = writeBody("You can change your mind before 12 months.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("Just tell a staff member.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("We will not be angry.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("We will not treat you differently.", rightColX, ry);
 
-  y = writeBody(
-    "You will get a new form to sign.",
-    margin, y
-  );
-  y += 12;
+  y = Math.max(y + 44, ry) + 8;
 
-  y = writeSectionHeading("You do not have to wait", margin, y);
-
-  y = writeBody(
-    "You can change your mind before 12 months.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "Just tell a staff member.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "We will not be angry.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "We will not treat you differently.",
-    margin, y
-  );
-  y += 12;
-
-  // Callout box
+  // Callout box (full width)
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 26, 3, 3, "F");
-  y += 4;
-
-  y = writeBodyBold(
-    "If you change your mind:",
-    margin + 6, y, contentWidth - 12
-  );
+  doc.roundedRect(margin, y - 3, contentWidth, 30, 3, 3, "F");
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.rect(margin, y - 3, 4, 30, "F");
+  y += 5;
+  y = writeBodyBoldFull("If you change your mind:", margin + 10, y, contentWidth - 16);
   y += 2;
-
-  y = writeBody(
-    "We will stop collecting new information.",
-    margin + 6, y, contentWidth - 12
-  );
-
-  y = writeBody(
-    "We must keep some records the law says we need.",
-    margin + 6, y, contentWidth - 12
-  );
+  y = writeBodyFull("We will stop collecting new information.", margin + 10, y, contentWidth - 16);
+  y = writeBodyFull("We must keep some records the law says we need.", margin + 10, y, contentWidth - 16);
 
   addFooter(7);
 
@@ -983,68 +1458,41 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("How We Keep Your Information Safe");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "We take good care of your information.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 1: Padlock --
+  drawPadlock(illustCenterX, y + 20);
 
-  y = writeBody(
-    "We keep it safe and private.",
-    margin, y
-  );
-  y += 12;
+  // Right column text
+  ry = y;
+  ry = writeBody("We take good care of your information.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("We keep it safe and private.", rightColX, ry);
+  ry += 6;
+  ry = writeSectionHeading("What we do:", rightColX, ry);
+  ry = writeBullet("We store your information on secure computers", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("Your information is locked with a password", rightColX, ry);
 
-  y = writeSectionHeading("What we do:", margin, y);
+  y = Math.max(y + 52, ry) + 8;
 
-  y = writeBullet(
-    "We store your information on secure computers",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 2: Computer with Shield --
+  drawComputerWithShield(illustCenterX, y + 16);
 
-  y = writeBullet(
-    "Your information is locked with a password",
-    margin, y
-  );
-  y += 5;
+  // Right column text
+  ry = y;
+  ry = writeBullet("Only staff who need it can see your information", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("We follow the Australian Privacy Principles", rightColX, ry);
+  ry += 6;
+  ry = writeSectionHeading("How long we keep it:", rightColX, ry);
+  ry = writeBody("We keep your information for 7 years after you stop living in your home.", rightColX, ry);
+  ry += 3;
+  ry = writeBody("The law says we must do this.", rightColX, ry);
+  ry += 3;
+  ry = writeBody("After 7 years, we safely delete it.", rightColX, ry);
 
-  y = writeBullet(
-    "Only staff who need it can see your information",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBullet(
-    "We follow the Australian Privacy Principles",
-    margin, y
-  );
-  y += 12;
-
-  y = writeSectionHeading("How long we keep it:", margin, y);
-
-  y = writeBody(
-    "We keep your information for 7 years",
-    margin, y
-  );
-  y = writeBody(
-    "after you stop living in your home.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "The law says we must do this.",
-    margin, y
-  );
-  y += 5;
-
-  y = writeBody(
-    "After 7 years, we safely delete it.",
-    margin, y
-  );
+  y = Math.max(y + 44, ry);
 
   addFooter(8);
 
@@ -1055,64 +1503,57 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("Saying Yes");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "If you want to say yes, you sign this page.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration: Pen on Paper (in left column) --
+  drawPenOnPaper(illustCenterX, y + 20);
 
-  y = writeBodyBold(
-    "Signing means you agree.",
-    margin, y
-  );
-  y += 12;
+  // Right column text
+  ry = y;
+  ry = writeBody("If you want to say yes, you sign this page.", rightColX, ry);
+  ry += 4;
+  ry = writeBodyBold("Signing means you agree.", rightColX, ry);
+  ry += 6;
+  ry = writeSectionHeading("You are saying yes to:", rightColX, ry);
+  ry = writeBullet("We can collect your personal information", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("We can share it with the people on page 5", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("You know your rights (page 6)", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("This lasts for 12 months", rightColX, ry);
+  ry += 2;
+  ry = writeBullet("You can change your mind at any time", rightColX, ry);
 
-  y = writeSectionHeading("You are saying yes to these things:", margin, y);
+  y = Math.max(y + 52, ry) + 10;
 
-  y = writeBullet("We can collect your personal information", margin, y);
-  y += 3;
-
-  y = writeBullet("We can share it with the people listed on page 5", margin, y);
-  y += 3;
-
-  y = writeBullet("You know your rights (page 6)", margin, y);
-  y += 3;
-
-  y = writeBullet("This lasts for 12 months", margin, y);
-  y += 3;
-
-  y = writeBullet("You can change your mind at any time", margin, y);
-
-  y += 12;
-
-  // Signature area with light background
+  // -- Signature area (full width) --
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 72, 3, 3, "F");
-  y += 6;
+  doc.roundedRect(margin, y - 4, contentWidth, 78, 4, 4, "F");
+  // Purple top accent bar
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 6, 4, 4, "F");
+  doc.rect(margin, y - 1, contentWidth, 3, "F"); // square off bottom corners of accent
+  y += 8;
 
-  // Name field
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 30, 30);
-  doc.text("Your name:", margin + 6, y);
+  doc.setTextColor(DARK.r, DARK.g, DARK.b);
   doc.setDrawColor(80, 80, 80);
   doc.setLineWidth(0.4);
+
+  doc.text("Your name:", margin + 6, y);
   doc.line(margin + 40, y, margin + contentWidth - 8, y);
   y += 14;
 
-  // Signature field
   doc.text("Your signature:", margin + 6, y);
   doc.line(margin + 46, y, margin + contentWidth - 8, y);
   y += 14;
 
-  // Date field
   doc.text("Today's date:", margin + 6, y);
   doc.line(margin + 42, y, margin + 90, y);
   y += 18;
 
-  // Witness section
   doc.text("Witness name:", margin + 6, y);
   doc.line(margin + 44, y, margin + contentWidth - 8, y);
   y += 14;
@@ -1122,9 +1563,9 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.text("Date:", margin + 116, y);
   doc.line(margin + 128, y, margin + contentWidth - 8, y);
 
-  y += 20;
+  y += 16;
 
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
   const helpNote = doc.splitTextToSize(
@@ -1142,106 +1583,66 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("If You Are Unhappy");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "If you think we did something wrong with your",
-    margin, y
-  );
-  y = writeBody(
-    "information, you can make a complaint.",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 1: Telephone --
+  drawTelephone(illustCenterX, y + 20);
 
-  y = writeBodyBold(
-    "A complaint is when you tell someone you are unhappy.",
-    margin, y
-  );
-  y += 12;
+  // Right column text
+  ry = y;
+  ry = writeBody("If you think we did something wrong with your information, you can make a complaint.", rightColX, ry);
+  ry += 4;
+  ry = writeBodyBold("A complaint is when you tell someone you are unhappy.", rightColX, ry);
+  ry += 6;
+  ry = writeSectionHeading("Step 1 -- Tell us first", rightColX, ry);
+  ry = writeBody("Talk to a staff member at " + orgName + ".", rightColX, ry);
+  ry += 3;
+  ry = writeBody("We will try to fix the problem.", rightColX, ry);
 
-  // Step 1
-  y = writeSectionHeading("Step 1 -- Tell us first", margin, y);
+  y = Math.max(y + 52, ry) + 8;
 
-  y = writeBody(
-    "Talk to a staff member at " + orgName + ".",
-    margin, y
-  );
-  y += 5;
+  // -- Illustration 2: Person Speaking --
+  drawPersonSpeaking(illustCenterX, y + 16);
 
-  y = writeBody(
-    "We will try to fix the problem.",
-    margin, y
-  );
-  y += 12;
+  // Right column text
+  ry = y;
+  ry = writeSectionHeading("Step 2 -- NDIS Commission", rightColX, ry);
+  ry = writeBody("If we cannot fix it, you can call the NDIS Quality and Safeguards Commission.", rightColX, ry);
+  ry += 3;
 
-  // Step 2
-  y = writeSectionHeading("Step 2 -- Contact the NDIS Commission", margin, y);
-
-  y = writeBody(
-    "If we cannot fix it, you can call the",
-    margin, y
-  );
-  y = writeBodyBold(
-    "NDIS Quality and Safeguards Commission.",
-    margin, y
-  );
-  y += 5;
-
+  // Phone number callout
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 14, 3, 3, "F");
-  y += 4;
-
-  doc.setFontSize(16);
+  doc.roundedRect(rightColX, ry - 2, rightColWidth, 12, 3, 3, "F");
+  ry += 6;
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
-  doc.text("Phone: 1800 035 544", margin + 6, y);
-  y += 4;
+  doc.text("Phone: 1800 035 544 (free call)", rightColX + 4, ry);
+  ry += 8;
 
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(80, 80, 80);
-  doc.text("(free call)", margin + 78, y - 4);
+  y = Math.max(y + 44, ry) + 6;
 
-  y += 14;
-
-  // Step 3
-  y = writeSectionHeading("Step 3 -- Contact the Privacy Commissioner", margin, y);
-
-  y = writeBody(
-    "You can also contact the Office of the Australian",
-    margin, y
-  );
-  y = writeBodyBold(
-    "Information Commissioner (OAIC).",
-    margin, y
-  );
-  y += 5;
+  // Step 3 (full width)
+  y = writeSectionHeadingFull("Step 3 -- Privacy Commissioner", margin, y);
+  y = writeBodyFull("You can also contact the Office of the Australian Information Commissioner (OAIC).", margin, y);
+  y += 3;
 
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 20, 3, 3, "F");
-  y += 4;
-
-  doc.setFontSize(16);
+  doc.roundedRect(margin, y - 2, contentWidth, 20, 3, 3, "F");
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.rect(margin, y - 2, 4, 20, "F");
+  y += 6;
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
-  doc.text("Phone: 1300 363 992", margin + 6, y);
+  doc.text("Phone: 1300 363 992", margin + 10, y);
   y += 8;
-
-  doc.setFontSize(13);
+  doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
-  doc.text("Website: www.oaic.gov.au", margin + 6, y);
+  doc.text("Website: www.oaic.gov.au", margin + 10, y);
 
-  y += 16;
-
-  y = writeBody(
-    "A friend, family member, or advocate can help you",
-    margin, y
-  );
-  y = writeBody(
-    "make a complaint.",
-    margin, y
-  );
+  y += 12;
+  y = writeBodyFull("A friend, family member, or advocate can help you make a complaint.", margin, y);
 
   addFooter(10);
 
@@ -1252,15 +1653,20 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("Word List");
 
-  y = 40;
+  y = 42;
 
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(80, 80, 80);
-  doc.text("This is a list of words used in this form.", margin, y);
-  doc.text("It tells you what they mean.", margin, y + 7);
-  y += 20;
+  // -- Illustration: Dictionary Book --
+  drawDictionaryBook(illustCenterX, y + 20);
 
+  // Right column intro text
+  ry = y;
+  ry = writeBody("This is a list of words used in this form.", rightColX, ry);
+  ry += 4;
+  ry = writeBody("It tells you what they mean.", rightColX, ry);
+
+  y = Math.max(y + 52, ry) + 6;
+
+  // Word list (full width, two visual columns for terms)
   const wordList: Array<{ term: string; definition: string }> = [
     {
       term: "Advocate",
@@ -1316,29 +1722,26 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
     },
   ];
 
-  for (const item of wordList) {
-    // Term in bold
-    doc.setFontSize(13);
+  for (let wi = 0; wi < wordList.length; wi++) {
+    const item = wordList[wi];
+    // Alternating subtle background for readability
+    if (wi % 2 === 0) {
+      doc.setFillColor(PURPLE_LIGHTER.r, PURPLE_LIGHTER.g, PURPLE_LIGHTER.b);
+      doc.rect(margin, y - 3.5, contentWidth, 12, "F");
+    }
+
+    // Term in bold purple + definition inline
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
-    doc.text(item.term, margin, y);
-    y += 6;
+    doc.text(item.term, margin + 2, y);
 
-    // Definition
-    doc.setFontSize(12);
+    // Definition on next line, compact
+    doc.setFontSize(9.5);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(50, 50, 50);
-    const defLines = doc.splitTextToSize(item.definition, contentWidth - 4);
-    doc.text(defLines, margin + 4, y);
-    y += defLines.length * 5.5 + 5;
-
-    // Check if we need more space (shouldn't for 13 items on A4, but safety)
-    if (y > pageHeight - 30) {
-      addFooter(11);
-      doc.addPage();
-      addPageHeader("Word List (continued)");
-      y = 40;
-    }
+    doc.text(item.definition, margin + 4, y + 4.5);
+    y += 12;
   }
 
   addFooter(11);
@@ -1350,22 +1753,25 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   doc.addPage();
   addPageHeader("Contact Us");
 
-  y = 40;
+  y = 42;
 
-  y = writeBody(
-    "If you have any questions about this form,",
-    margin, y
-  );
-  y = writeBody(
-    "please contact us.",
-    margin, y
-  );
-  y += 12;
+  // -- Illustration: Contact Icons (Phone + Envelope + Computer) --
+  drawContactIcons(illustCenterX, y + 18);
 
-  // Organisation details box
+  // Right column text
+  ry = y;
+  ry = writeBody("If you have any questions about this form, please contact us.", rightColX, ry);
+
+  y = Math.max(y + 48, ry) + 8;
+
+  // Organisation details box (full width)
   doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
-  doc.roundedRect(margin, y - 4, contentWidth, 52, 3, 3, "F");
-  y += 6;
+  doc.roundedRect(margin, y - 4, contentWidth, 56, 4, 4, "F");
+  // Purple top accent
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 6, 4, 4, "F");
+  doc.rect(margin, y - 1, contentWidth, 3, "F");
+  y += 10;
 
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
@@ -1384,54 +1790,32 @@ export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
 
   doc.text("Address: ____________________________", margin + 6, y);
 
-  y += 24;
+  y += 20;
 
-  y = writeSectionHeading("Other places you can contact", margin, y);
+  y = writeSectionHeadingFull("Other places you can contact", margin, y);
 
   // NDIS Commission
-  y = writeBodyBold(
-    "NDIS Quality and Safeguards Commission",
-    margin, y
-  );
+  y = writeBodyBoldFull("NDIS Quality and Safeguards Commission", margin, y);
   y += 2;
-
-  y = writeBody("Phone: 1800 035 544 (free call)", margin, y);
+  y = writeBodyFull("Phone: 1800 035 544 (free call)", margin, y);
   y += 2;
-
-  y = writeBody("Website: www.ndiscommission.gov.au", margin, y);
-  y += 10;
+  y = writeBodyFull("Website: www.ndiscommission.gov.au", margin, y);
+  y += 8;
 
   // OAIC
-  y = writeBodyBold(
-    "Office of the Australian Information Commissioner",
-    margin, y
-  );
+  y = writeBodyBoldFull("Office of the Australian Information Commissioner", margin, y);
   y += 2;
-
-  y = writeBody("Phone: 1300 363 992", margin, y);
+  y = writeBodyFull("Phone: 1300 363 992", margin, y);
   y += 2;
-
-  y = writeBody("Website: www.oaic.gov.au", margin, y);
-  y += 10;
+  y = writeBodyFull("Website: www.oaic.gov.au", margin, y);
+  y += 8;
 
   // National Disability Advocacy
-  y = writeBodyBold(
-    "National Disability Advocacy Program",
-    margin, y
-  );
+  y = writeBodyBoldFull("National Disability Advocacy Program", margin, y);
   y += 2;
-
-  y = writeBody(
-    "If you need an advocate, ask your support coordinator",
-    margin, y
-  );
-  y = writeBody(
-    "or call the Disability Advocacy Finder:",
-    margin, y
-  );
+  y = writeBodyFull("If you need an advocate, ask your support coordinator or call the Disability Advocacy Finder:", margin, y);
   y += 2;
-
-  y = writeBody("Website: disabilityadvocacyfinder.dss.gov.au", margin, y);
+  y = writeBodyFull("Website: disabilityadvocacyfinder.dss.gov.au", margin, y);
 
   addFooter(12);
 

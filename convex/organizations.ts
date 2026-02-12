@@ -587,6 +587,27 @@ export const updateInboundEmailSettings = mutation({
 });
 
 /**
+ * Set the Postmark default hash address for fallback routing.
+ * Used when MX records haven't propagated for the custom domain.
+ */
+export const setPostmarkHashAddress = mutation({
+  args: {
+    userId: v.id("users"),
+    postmarkHashAddress: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "users", "update");
+
+    await ctx.db.patch(organizationId, {
+      postmarkHashAddress: args.postmarkHashAddress.toLowerCase().trim(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * Add a registered email forwarder for the organization.
  * Maps an email address to a user so we know who forwarded the email.
  */

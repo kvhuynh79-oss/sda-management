@@ -105,11 +105,13 @@ export default defineSchema({
     trialEndsAt: v.optional(v.number()), // Trial expiry timestamp (ms) - set by super-admin
     inboundEmailAddress: v.optional(v.string()), // Unique forwarding address (e.g., "bls-abc123@inbound.mysdamanager.com")
     inboundEmailEnabled: v.optional(v.boolean()), // Whether email forwarding is active
+    postmarkHashAddress: v.optional(v.string()), // Postmark default hash address for fallback routing
   })
     .index("by_slug", ["slug"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])
     .index("by_isActive", ["isActive"])
-    .index("by_inboundEmailAddress", ["inboundEmailAddress"]),
+    .index("by_inboundEmailAddress", ["inboundEmailAddress"])
+    .index("by_postmarkHashAddress", ["postmarkHashAddress"]),
 
   // Audit Logs table - track all user actions for security and compliance
   auditLogs: defineTable({

@@ -355,7 +355,7 @@ export function cleanEmailBody(body: string): string {
 /**
  * Process an inbound email forwarded via Postmark webhook.
  *
- * Called from the Next.js API route `/api/inbound-email` using
+ * Called from the Next.js API route `/api/mail` using
  * ConvexHttpClient (not useQuery/useMutation). This is a regular
  * mutation, not an internal mutation, so the API route can invoke it.
  *
@@ -392,12 +392,24 @@ export const processInboundEmail = mutation({
     // -----------------------------------------------------------------------
     // 2. Resolve organization by inbound email address
     // -----------------------------------------------------------------------
-    const org = await ctx.db
+    const toAddr = args.toAddress.toLowerCase().trim();
+
+    // Try custom domain address first, then fallback to Postmark hash address
+    let org = await ctx.db
       .query("organizations")
       .withIndex("by_inboundEmailAddress", (q) =>
-        q.eq("inboundEmailAddress", args.toAddress.toLowerCase().trim())
+        q.eq("inboundEmailAddress", toAddr)
       )
       .first();
+
+    if (!org) {
+      org = await ctx.db
+        .query("organizations")
+        .withIndex("by_postmarkHashAddress", (q) =>
+          q.eq("postmarkHashAddress", toAddr)
+        )
+        .first();
+    }
 
     if (!org) {
       throw new Error(

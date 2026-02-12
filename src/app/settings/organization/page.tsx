@@ -91,12 +91,16 @@ function OrganizationSettingsContent() {
   const updateEmailSettings = useMutation(api.organizations.updateInboundEmailSettings);
   const addForwarder = useMutation(api.organizations.addEmailForwarder);
   const removeForwarder = useMutation(api.organizations.removeEmailForwarder);
+  const setPostmarkHash = useMutation(api.organizations.setPostmarkHashAddress);
 
   const [newForwarderEmail, setNewForwarderEmail] = useState("");
   const [isGeneratingAddress, setIsGeneratingAddress] = useState(false);
   const [isTogglingEmail, setIsTogglingEmail] = useState(false);
   const [isAddingForwarder, setIsAddingForwarder] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [postmarkHashInput, setPostmarkHashInput] = useState("");
+  const [isSavingPostmarkHash, setIsSavingPostmarkHash] = useState(false);
+  const [showPostmarkHash, setShowPostmarkHash] = useState(false);
 
   const handleCopyAddress = useCallback(async () => {
     if (!organization?.inboundEmailAddress) return;
@@ -163,6 +167,21 @@ function OrganizationSettingsContent() {
     } catch (error) {
       console.error("Error removing forwarder:", error);
       await alertDialog({ title: "Error", message: "Failed to remove forwarder." });
+    }
+  };
+
+  const handleSavePostmarkHash = async () => {
+    if (!user || !postmarkHashInput.trim()) return;
+    setIsSavingPostmarkHash(true);
+    try {
+      await setPostmarkHash({ userId: user.id as Id<"users">, postmarkHashAddress: postmarkHashInput.trim() });
+      setPostmarkHashInput("");
+      await alertDialog({ title: "Saved", message: "Postmark address saved. Emails sent to this address will now be routed to your organization." });
+    } catch (error) {
+      console.error("Error saving Postmark hash:", error);
+      await alertDialog({ title: "Error", message: "Failed to save Postmark address." });
+    } finally {
+      setIsSavingPostmarkHash(false);
     }
   };
 
@@ -829,6 +848,50 @@ function OrganizationSettingsContent() {
                           In Outlook, go to <strong className="text-gray-300">Home &rarr; Quick Steps &rarr; New Quick Step &rarr; Forward to</strong> and paste your forwarding address. Then you can push any email to MySDAManager with a single click.
                         </p>
                       </div>
+                    </div>
+
+                    {/* Postmark Alternative Address */}
+                    <div className="mt-4">
+                      <button
+                        onClick={() => setShowPostmarkHash(!showPostmarkHash)}
+                        className="text-xs text-gray-400 hover:text-gray-300 transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"
+                      >
+                        <svg className={`w-3 h-3 transform transition-transform ${showPostmarkHash ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Advanced: Postmark Direct Address
+                      </button>
+                      {showPostmarkHash && (
+                        <div className="mt-2 bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                          <p className="text-xs text-gray-400 mb-2">
+                            If your custom domain MX records haven&apos;t propagated yet, paste Postmark&apos;s default inbound address here as a fallback.
+                          </p>
+                          {(organization as any).postmarkHashAddress ? (
+                            <div className="mb-2">
+                              <code className="px-2 py-1 bg-gray-800 border border-gray-600 rounded text-xs text-gray-300 font-mono break-all">
+                                {(organization as any).postmarkHashAddress}
+                              </code>
+                              <span className="text-xs text-green-400 ml-2">Active</span>
+                            </div>
+                          ) : null}
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={postmarkHashInput}
+                              onChange={(e) => setPostmarkHashInput(e.target.value)}
+                              placeholder="abc123@inbound.postmarkapp.com"
+                              className="flex-1 px-3 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            />
+                            <button
+                              onClick={handleSavePostmarkHash}
+                              disabled={isSavingPostmarkHash || !postmarkHashInput.trim()}
+                              className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                            >
+                              {isSavingPostmarkHash ? "Saving..." : "Save"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}

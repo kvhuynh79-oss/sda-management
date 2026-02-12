@@ -670,14 +670,15 @@ async function regenerateThreadSummary(
     .first();
 
   // Find participantId from any communication in the thread (prefer first, fall back to any)
+  // NOTE: Must return undefined (not null) for Convex optional field compatibility
   const threadParticipantId = sortedComms.reduce((found: any, c: any) => {
     if (found) return found;
-    return c.participantId || c.linkedParticipantId || null;
-  }, null);
+    return c.participantId || c.linkedParticipantId || undefined;
+  }, undefined as any);
 
   const summaryData = {
     threadId,
-    participantId: threadParticipantId,
+    participantId: threadParticipantId || undefined,
     startedAt: firstComm.createdAt,
     lastActivityAt: lastComm.createdAt,
     messageCount: activeThreadComms.length,

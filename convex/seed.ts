@@ -320,6 +320,39 @@ export const setBlsPostmarkHash = mutation({
 });
 
 /**
+ * Diagnostic: List all organizations and users with their org assignments.
+ * Helps debug tenant isolation issues.
+ */
+export const diagnoseOrgs = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const orgs = await ctx.db.query("organizations").collect();
+    const users = await ctx.db.query("users").collect();
+
+    return {
+      organizations: orgs.map((o) => ({
+        id: o._id,
+        name: o.name,
+        slug: o.slug,
+        plan: o.plan,
+        isActive: o.isActive,
+        inboundEmailEnabled: o.inboundEmailEnabled,
+        inboundEmailAddress: o.inboundEmailAddress,
+      })),
+      users: users.map((u) => ({
+        id: u._id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        role: u.role,
+        organizationId: u.organizationId,
+        isActive: u.isActive,
+      })),
+    };
+  },
+});
+
+/**
  * Backfill ALL data tables with BLS organizationId
  *
  * After Sprint 2 migration, all queries use withIndex("by_organizationId") which

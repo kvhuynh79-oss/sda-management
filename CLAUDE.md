@@ -7,11 +7,12 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript
 - **Backend**: Convex (serverless backend with real-time data)
 - **Styling**: Tailwind CSS (dark theme)
-- **PDF Generation**: jsPDF with autotable
-- **Email**: Resend API
+- **PDF Generation**: jsPDF with autotable + pdf-lib for template overlays
+- **Email**: Resend API + Postmark (inbound webhook)
 - **SMS**: Twilio API
+- **AI**: Claude API (document analysis, policy summaries)
 
-## Current Version: v2.0.0 (SaaS Multi-Tenant)
+## Current Version: v2.2.0 (Commercial Launch Prep)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -36,10 +37,17 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 20. **REST API v1** - External API with key management for properties, participants, maintenance, incidents
 21. **White-Label Branding** - Per-org colors, logos, custom branding
 22. **Registration & Onboarding** - Self-service signup, pricing page, 4-step onboarding wizard
+23. **Participant Consent Workflow** - APP 3 compliant consent lifecycle (record, renew, withdraw), Easy Read PDF with illustrations, consent expiry alerts
+24. **Email Integration** - Postmark inbound webhook for email-to-communications, Outlook add-in manifest
+25. **Policies & Procedures** - Built-in compliance policy library with AI-generated summaries
+26. **Staff Files** - Employee records, NDIS screening compliance tracking
+27. **Emergency Plans** - EMP and BCP pages for business continuity
+28. **Audit Compliance Export** - 7-section NDIS audit pack PDF (certifications, incidents, complaints, plans, documents, audit integrity)
+29. **Founder's Launch Dashboard** - 15-item go-live checklist with 5 categories and progress tracking
 
 ## Project Structure
 ```
-src/app/                    # Next.js pages (80 routes)
+src/app/                    # Next.js pages (93+ routes)
 ├── dashboard/              # Main dashboard
 ├── properties/             # Property CRUD + detail pages
 ├── participants/           # Participant management
@@ -56,11 +64,18 @@ src/app/                    # Next.js pages (80 routes)
 ├── reports/                # Reports & analytics
 ├── settings/               # User preferences + org settings + API keys
 ├── admin/platform/         # Super-admin dashboard (org management)
+├── admin/launch/           # Founder's go-live checklist
+├── compliance/             # Certifications management
+├── policies/               # Policies & procedures library
+├── staff/                  # Staff files and NDIS screening
+├── emergency-plans/        # EMP and BCP pages
 ├── register/               # Self-service registration
 ├── pricing/                # Public pricing page
 ├── onboarding/setup/       # 4-step onboarding wizard
 ├── portal/                 # SIL provider portal
-└── api/v1/                 # REST API endpoints (properties, participants, maintenance, incidents)
+└── api/
+    ├── v1/                 # REST API endpoints (properties, participants, maintenance, incidents)
+    ├── mail/               # Postmark inbound email webhook
     └── stripe/webhook/     # Stripe webhook handler
 
 convex/                     # Backend functions
@@ -659,7 +674,7 @@ All 8 sprints of the SaaS transformation are complete.
 - **SIL Provider Role Restriction (2026-02-10)**: SECURITY FIX - SIL Provider users now restricted to `/portal/*` routes only. RequireAuth auto-redirects to `/portal/dashboard`. Header nav filters Finance/Database clusters by role. Defense-in-depth: RequireAuth redirect + render block + nav filtering.
 - **RequireAuth Full Migration (2026-02-10)**: Added RequireAuth to all 72 protected pages (was 40). Migrated 32 detail/creation/sub-pages from inline localStorage auth. Only public pages (login, register, pricing, etc.) and portal pages (own auth) remain without RequireAuth.
 
-### Commercial Launch Prep (2026-02-12)
+### Commercial Launch Prep (2026-02-11 to 2026-02-12)
 - **Registration Backend Wired**: `/register` page now calls real Convex `registerOrganization` action + `checkSlugAvailability` query. Session created in localStorage after registration.
 - **Click-Wrap Terms Modal**: `TermsAcceptanceModal.tsx` - full-screen non-dismissible modal on first login. 4 key clauses (NDIS disclaimer, health data, liability, security). 2 required checkboxes. Wired into RequireAuth. `acceptTerms` mutation in `convex/auth.ts`.
 - **Legal Clauses Strengthened**: Terms of Service updated with 4 NDIS-specific clauses (NDIS disclaimer, APP health data, AES-256 encryption + 72hr NDB, NSW liability shield). Privacy Policy NDB timeline fixed.
@@ -670,18 +685,35 @@ All 8 sprints of the SaaS transformation are complete.
   - Schema: 8 consent fields on participants table, `consent_expiry`/`consent_missing` alert types
   - Backend: `recordConsent`, `withdrawConsent`, `renewConsent` mutations in `convex/participants.ts`
   - Withdrawal archives sensitive data (NDIS number, DOB, emergency contacts) while keeping tenancy records
-  - Consent PDF: `src/utils/consentFormPdf.ts` - 2-page PDF with smart fields + Privacy Information Sheet
+  - Consent PDF: `src/utils/consentFormPdf.ts` - 2-page standard + 4-page appended Easy Read
+  - Easy Read Consent PDF: 12-page NDIS Commission-style with 15 hand-drawn illustrations (person, house, clipboard, padlock, shield, calendar, phone, etc.), two-column layout, purple accents, word list
+  - pdf-lib template system: `src/utils/easyReadConsentPdf.ts` + `easyReadFieldMap.ts` for future Canva template overlay with stock photos (falls back to jsPDF illustrated version)
   - Alerts: `generateConsentExpiryAlerts` (30-day warning, critical on expiry) + `generateConsentMissingAlerts` in daily cron
   - Dashboard: Consent status widget with active/expired/expiring/missing counts
   - Detail page: 4-state consent section (no consent, active, expired, withdrawn) with PDF generation
   - Creation: Consent step added to new participant form
 - **Audit-Ready Compliance Export**: `src/utils/auditCompliancePdf.ts` (1,075 lines) - 7-section NDIS audit pack PDF (cover, certifications, incidents, complaints, participant plans, document expiry, audit log integrity). "Generate Audit Pack" button on Reports > Compliance tab.
 - **Founder's Launch Dashboard**: `/admin/launch` - 15-item go-live checklist across 5 categories (Identity & Legal, Tax & Finance, Stripe, IP, NDIS Compliance). `convex/launchChecklist.ts` backend with progress tracking. Pre-checked items for completed tasks.
+- **Postmark Inbound Email**: `src/app/api/mail/route.ts` - Inbound webhook creates communications from forwarded emails. Auto-recognizes stakeholders (SC, SIL, OT, contractor) by email/name. BLS Postmark hash address configured.
+- **Outlook Add-in**: XML manifest + icons at `/outlook-addin/` for email-to-communication integration.
+- **Communications Enhancements**: Expandable timeline cards, edit workflow for inbound emails, delete propagation fix, thread summary null safety fix.
+- **Provider Settings Tenant Fix**: `convex/providerSettings.ts` was leaking org data between tenants - fixed with `requireTenant()` + `by_organizationId` index.
+- **Staff Files Feature**: `/staff` - Employee records with NDIS screening compliance tracking.
+- **Emergency Plans**: `/emergency-plans` - EMP and BCP pages for business continuity (BLS only).
+- **Policies & Procedures Library**: `/policies` - Built-in policy documents with AI-generated summaries via Claude API.
+- **AI Policy Summaries**: Claude API integration for auto-generating compliance policy summaries.
+- **Maintenance Urgency Indicator**: Days-elapsed badge on maintenance request cards.
+- **Certificate Document Upload**: Direct upload from Add Certification form.
 
 ### Remaining Launch Tasks
-- Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
-- Configure Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
-- Performance load testing with multiple orgs
+- **Stripe Configuration**: Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs in Convex + Vercel env
+- **Sentry Configuration**: Set NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN in Vercel env
+- **Business Registration**: Register Pty Ltd with ASIC, apply for ABN, apply for Director ID
+- **Stripe Business Account**: Create account, configure 10% GST, link to Xero
+- **Trademark**: File with IP Australia for "MySDAManager" (Class 9 + 42)
+- **Domain**: Secure .com.au under new ABN
+- **Performance**: Load test with 10+ simultaneous organizations
+- **DNS**: Configure custom org subdomains (if needed)
 
 ## Reference Documents
 - **Folio Summary / SDA Rental Statement** - Monthly landlord report showing:
@@ -719,14 +751,28 @@ All 8 sprints of the SaaS transformation are complete.
 19. WCAG contrast final fix - ✅ (39 files, all dark-bg text-gray-500/600 → text-gray-400)
 20. VAPID keys + push notification infra - ✅ (configured in Convex + Vercel)
 
+### Completed (v2.2 - Commercial Launch Prep)
+21. Participant Consent Workflow - ✅ (APP 3, Easy Read PDF with illustrations, expiry alerts)
+22. Audit Compliance Export - ✅ (7-section PDF, "Generate Audit Pack" on Reports page)
+23. Founder's Launch Dashboard - ✅ (15-item checklist, 5 categories)
+24. Click-Wrap Terms Modal - ✅ (NDIS disclaimers, RequireAuth integration)
+25. Registration Backend Wired - ✅ (real Convex calls, slug check, session creation)
+26. Postmark Inbound Email - ✅ (email forwarding to communications)
+27. Outlook Add-in Manifest - ✅ (XML manifest + icons)
+28. Policies & Procedures Library - ✅ (built-in library with AI summaries)
+29. Staff Files - ✅ (employee records, NDIS screening)
+30. Emergency Plans - ✅ (EMP + BCP pages)
+31. Easy Read Consent PDF - ✅ (12-page NDIS-style with 15 illustrations, two-column layout)
+
 ### Future Enhancements (Post-Launch)
-21. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
+32. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
    - **Workaround**: Users can take screenshots of PDFs and upload as images
    - **Priority**: Medium
-15. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
-16. **Data Export** - Per-org data export for compliance/migration
-17. **Webhook Outbound** - Configurable webhooks per org for integrations
-18. **Command Palette** - Cmd+K power user navigation
+33. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
+34. **Data Export** - Per-org data export for compliance/migration
+35. **Webhook Outbound** - Configurable webhooks per org for integrations
+36. **Command Palette** - Cmd+K power user navigation
+37. **Easy Read Canva Template** - Replace jsPDF illustrations with stock photo template via pdf-lib overlay
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -763,12 +809,19 @@ See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.
 | 20 providers | ~100 | ~1,000 | Compound indexes, monitor Convex usage |
 | 100 providers | ~500 | ~5,000 | Convex Enterprise, data archival, caching |
 
-### Launch Checklist (Remaining)
-1. Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
-2. Configure Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
-3. Load test with 10+ simultaneous organizations
-4. DNS/domain configuration for custom org subdomains
-5. ~~Field-level encryption for NDIS numbers, DOB at rest~~ DONE (2026-02-10)
+### Launch Checklist (Remaining - All External/Config)
+1. ~~Field-level encryption for NDIS numbers, DOB at rest~~ DONE (2026-02-10)
+2. ~~Registration backend~~ DONE (2026-02-12)
+3. ~~Legal compliance (Terms, Privacy, Click-wrap)~~ DONE (2026-02-12)
+4. ~~Consent workflow~~ DONE (2026-02-12)
+5. ~~Audit compliance export~~ DONE (2026-02-12)
+6. Register Pty Ltd with ASIC + apply for ABN + Director ID
+7. Create Stripe business account + configure GST + link Xero
+8. Set Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, price IDs)
+9. Set Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
+10. File trademark with IP Australia (Class 9 + 42)
+11. Secure .com.au domain under new ABN
+12. Load test with 10+ simultaneous organizations
 
 ## Commands
 ```bash
@@ -779,4 +832,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-12 (v2.2.0 - Commercial launch prep: consent workflow, audit export, registration wired, legal hardening. 93 pages, 0 errors)
+**Last Updated**: 2026-02-12 (v2.2.0 - All code complete. Illustrated Easy Read PDF, email integration, policies library, staff files, consent workflow, audit export. 93+ pages, 0 errors. Only external config tasks remain for launch.)

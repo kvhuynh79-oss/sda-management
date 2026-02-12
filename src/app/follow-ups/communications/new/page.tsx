@@ -73,8 +73,12 @@ export default function NewCommunicationPage() {
   const [isEntityLinked, setIsEntityLinked] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
 
-  // Track whether contact type was set from URL params (skip reset effect)
-  const isContactTypeFromUrl = useRef(false);
+  // Skip counter for the contact type reset effect.
+  // When URL params pre-fill contactType, we need to skip the reset effect for:
+  //   1. The initial mount effect firing
+  //   2. The re-render after formData.contactType changes from default to URL value
+  // After both skips, manual contactType changes trigger the reset as expected.
+  const skipResetCountRef = useRef(0);
 
   const [useManualParticipant, setUseManualParticipant] = useState(false);
   const [manualParticipantName, setManualParticipantName] = useState("");
@@ -117,9 +121,11 @@ export default function NewCommunicationPage() {
     }
 
     if (participantId || propertyId || contactType || contactName || subject || complianceCategory || linkedIncidentId) {
-      // Flag that contactType was set from URL so the reset effect doesn't wipe contact details
+      // Tell the reset effect to skip the next 2 firings:
+      // 1. Initial mount (contactType = "ndia" -> reset would clear nothing but fires)
+      // 2. After setFormData applies (contactType changes to URL value -> reset would clear URL data)
       if (contactType) {
-        isContactTypeFromUrl.current = true;
+        skipResetCountRef.current = 2;
       }
       setFormData((prev) => ({
         ...prev,
@@ -249,10 +255,13 @@ export default function NewCommunicationPage() {
     }
   };
 
-  // Reset entity state when contact type changes (but not on initial URL pre-fill)
+  // Reset entity state when contact type changes (but not when set from URL pre-fill)
   useEffect(() => {
-    if (isContactTypeFromUrl.current) {
-      isContactTypeFromUrl.current = false;
+    // Skip reset when URL params are being applied.
+    // The counter handles both the initial mount firing and the subsequent
+    // formData.contactType change firing after URL params take effect.
+    if (skipResetCountRef.current > 0) {
+      skipResetCountRef.current -= 1;
       return;
     }
     setSelectedEntityId("");
@@ -556,6 +565,7 @@ export default function NewCommunicationPage() {
                 {showEntityDropdown ? (
                   <FormSelect
                     label="Select Contact"
+                    placeholder=""
                     required
                     value={selectedEntityId}
                     onChange={(e) => handleEntitySelect(e.target.value)}
@@ -739,6 +749,7 @@ export default function NewCommunicationPage() {
                 ) : (
                   <FormSelect
                     label="Participant"
+                    placeholder=""
                     value={formData.linkedParticipantId}
                     onChange={(e) => {
                       if (e.target.value === "__manual__") {
@@ -761,6 +772,7 @@ export default function NewCommunicationPage() {
 
                 <FormSelect
                   label="Property"
+                  placeholder=""
                   value={propertyTbd ? "__tbd__" : formData.linkedPropertyId}
                   onChange={(e) => {
                     if (e.target.value === "__tbd__") {

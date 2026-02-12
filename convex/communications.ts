@@ -413,6 +413,10 @@ export const create = mutation({
       if (!existingSummary.participantNames.includes(args.contactName)) {
         updateFields.participantNames = [...existingSummary.participantNames, args.contactName];
       }
+      // Set participantId on summary if not already set and the new entry links one
+      if (!existingSummary.participantId && args.linkedParticipantId) {
+        updateFields.participantId = args.linkedParticipantId;
+      }
       await ctx.db.patch(existingSummary._id, updateFields);
     } else {
       // Create new thread summary
@@ -505,6 +509,15 @@ export const update = mutation({
     attachmentStorageId: v.optional(v.id("_storage")),
     attachmentFileName: v.optional(v.string()),
     attachmentFileType: v.optional(v.string()),
+    // Stakeholder linking
+    stakeholderEntityType: v.optional(v.union(
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("occupational_therapist"),
+      v.literal("contractor"),
+      v.literal("participant")
+    )),
+    stakeholderEntityId: v.optional(v.string()),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
@@ -647,9 +660,15 @@ async function regenerateThreadSummary(
     .withIndex("by_thread", (q: any) => q.eq("threadId", threadId))
     .first();
 
+  // Find participantId from any communication in the thread (prefer first, fall back to any)
+  const threadParticipantId = sortedComms.reduce((found: any, c: any) => {
+    if (found) return found;
+    return c.participantId || c.linkedParticipantId || null;
+  }, null);
+
   const summaryData = {
     threadId,
-    participantId: firstComm.participantId || firstComm.linkedParticipantId,
+    participantId: threadParticipantId,
     startedAt: firstComm.createdAt,
     lastActivityAt: lastComm.createdAt,
     messageCount: activeThreadComms.length,
@@ -1292,6 +1311,32 @@ export const getThreadedView = query({
       }
     }
 
+    // Build secondary lookup: threadId -> first comm with linked property/stakeholder/participant
+    // (in case the thread starter doesn't have them but a later entry does)
+    const threadLinkedDataMap = new Map<string, {
+      linkedPropertyId?: any;
+      stakeholderEntityType?: any;
+      stakeholderEntityId?: any;
+      participantId?: any;
+    }>();
+    // Sort by createdAt ASC so we pick the earliest linked data
+    const sortedComms = [...allComms].sort((a, b) => a.createdAt - b.createdAt);
+    for (const c of sortedComms) {
+      if (!c.threadId || c.isDeleted) continue;
+      const existing = threadLinkedDataMap.get(c.threadId) || {};
+      if (!existing.linkedPropertyId && c.linkedPropertyId) {
+        existing.linkedPropertyId = c.linkedPropertyId;
+      }
+      if (!existing.stakeholderEntityType && c.stakeholderEntityType && c.stakeholderEntityId) {
+        existing.stakeholderEntityType = c.stakeholderEntityType;
+        existing.stakeholderEntityId = c.stakeholderEntityId;
+      }
+      if (!existing.participantId && (c.participantId || c.linkedParticipantId)) {
+        existing.participantId = c.participantId || c.linkedParticipantId;
+      }
+      threadLinkedDataMap.set(c.threadId, existing);
+    }
+
     let allSummaries = await ctx.db
       .query("threadSummaries")
       .collect();
@@ -1331,6 +1376,7 @@ export const getThreadedView = query({
     return {
       threads: page.map(s => {
         const starter = threadStarterMap.get(s.threadId);
+        const linked = threadLinkedDataMap.get(s.threadId);
         return {
           threadId: s.threadId,
           subject: s.subject,
@@ -1341,16 +1387,17 @@ export const getThreadedView = query({
           hasUnread: s.hasUnread,
           complianceCategories: s.complianceCategories,
           requiresAction: s.requiresAction,
-          participantId: s.participantId,
+          participantId: s.participantId || linked?.participantId,
           status: s.status || "active",
           // Contact/property details from thread-starting message (for "Add Entry" pre-fill)
+          // Falls back to linked data from any thread message if starter doesn't have them
           contactType: starter?.contactType,
           contactName: starter?.contactName,
           contactEmail: starter?.contactEmail,
           contactPhone: starter?.contactPhone,
-          linkedPropertyId: starter?.linkedPropertyId,
-          stakeholderEntityType: starter?.stakeholderEntityType,
-          stakeholderEntityId: starter?.stakeholderEntityId,
+          linkedPropertyId: starter?.linkedPropertyId || linked?.linkedPropertyId,
+          stakeholderEntityType: starter?.stakeholderEntityType || linked?.stakeholderEntityType,
+          stakeholderEntityId: starter?.stakeholderEntityId || linked?.stakeholderEntityId,
         };
       }),
       nextCursor: hasMore ? String(page[page.length - 1].lastActivityAt) : null,

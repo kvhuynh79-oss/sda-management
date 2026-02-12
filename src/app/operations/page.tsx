@@ -414,9 +414,14 @@ function MaintenanceCard({ request }: { request: any }) {
             {request.property?.addressLine1} - {request.dwelling?.dwellingName}
           </p>
         </div>
-        <div className="text-right text-sm text-gray-400">
-          <p>{request.reportedDate}</p>
+        <div className="text-right text-sm">
+          <p className="text-gray-400">{request.reportedDate}</p>
           {request.scheduledDate && <p className="text-teal-500">Scheduled: {request.scheduledDate}</p>}
+          {request.status !== "completed" && request.reportedDate && (() => {
+            const days = Math.floor((Date.now() - new Date(request.reportedDate).getTime()) / (1000 * 60 * 60 * 24));
+            const color = days >= 15 ? "text-red-400" : days >= 8 ? "text-orange-400" : days >= 4 ? "text-yellow-400" : "text-gray-500";
+            return <p className={`text-xs mt-1 font-medium ${color}`}>{days}d ago</p>;
+          })()}
         </div>
       </div>
     </Link>

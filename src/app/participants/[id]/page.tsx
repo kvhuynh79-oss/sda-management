@@ -13,10 +13,12 @@ import Badge from "@/components/ui/Badge";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { generateConsentFormPdf } from "@/utils/consentFormPdf";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 export default function ParticipantDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { organization } = useOrganization();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [showMoveInModal, setShowMoveInModal] = useState(false);
   const [showRevertModal, setShowRevertModal] = useState(false);
@@ -34,6 +36,7 @@ export default function ParticipantDetailPage() {
   const participantId = params.id as Id<"participants">;
   const userIdTyped = user ? (user.id as Id<"users">) : undefined;
   const participant = useQuery(api.participants.getById, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
+  const providerSettings = useQuery(api.providerSettings.get, userIdTyped ? { userId: userIdTyped } : "skip");
   const documents = useQuery(api.documents.getByParticipant, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
   const moveInMutation = useMutation(api.participants.moveIn);
   const revertToPendingMutation = useMutation(api.participants.revertToPending);
@@ -128,7 +131,8 @@ export default function ParticipantDetailPage() {
       ? `${participant.property.addressLine1}, ${participant.property.suburb} ${participant.property.state}`
       : "N/A";
     generateConsentFormPdf({
-      orgName: "MySDAManager",
+      orgName: providerSettings?.providerName || organization?.name || "MySDAManager",
+      orgAbn: providerSettings?.abn,
       participantName: `${participant.firstName} ${participant.lastName}`,
       ndisNumber: participant.ndisNumber || "N/A",
       dob: participant.dateOfBirth || "N/A",

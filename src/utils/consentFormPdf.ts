@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 
 export interface ConsentFormParams {
   orgName: string;
+  orgAbn?: string;
   participantName: string;
   ndisNumber: string;
   dob: string;
@@ -15,7 +16,7 @@ export interface ConsentFormParams {
  * Complies with Australian Privacy Principle 3 (APP 3).
  */
 export function generateConsentFormPdf(params: ConsentFormParams): void {
-  const { orgName, participantName, ndisNumber, dob, propertyAddress } = params;
+  const { orgName, orgAbn, participantName, ndisNumber, dob, propertyAddress } = params;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 18;
@@ -31,7 +32,7 @@ export function generateConsentFormPdf(params: ConsentFormParams): void {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text(orgName, margin, 14);
-  doc.text("ABN: [pending]", margin, 20);
+  doc.text(orgAbn ? `ABN: ${orgAbn}` : "", margin, 20);
 
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");

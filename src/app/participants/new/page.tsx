@@ -9,9 +9,11 @@ import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { generateConsentFormPdf } from "@/utils/consentFormPdf";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 export default function NewParticipantPage() {
   const router = useRouter();
+  const { organization } = useOrganization();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -91,6 +93,7 @@ export default function NewParticipantPage() {
     api.supportCoordinators.getAll,
     userIdTyped ? { userId: userIdTyped, status: "active" as const } : "skip"
   );
+  const providerSettings = useQuery(api.providerSettings.get, userIdTyped ? { userId: userIdTyped } : "skip");
 
   const createParticipant = useMutation(api.participants.create);
   const createPlan = useMutation(api.participantPlans.create);
@@ -388,7 +391,8 @@ export default function NewParticipantPage() {
               setConsentDate={setConsentDate}
               onGenerateConsentPdf={() => {
                 generateConsentFormPdf({
-                  orgName: "MySDAManager",
+                  orgName: providerSettings?.providerName || organization?.name || "MySDAManager",
+                  orgAbn: providerSettings?.abn,
                   participantName: `${participantData.firstName} ${participantData.lastName}`,
                   ndisNumber: participantData.ndisNumber || "N/A",
                   dob: participantData.dateOfBirth || "N/A",

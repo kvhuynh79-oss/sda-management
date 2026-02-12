@@ -350,13 +350,14 @@ export function TimelineView({
                         <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
                           <Link
                             href={buildAddEntryUrl(comm)}
+                            onClick={(e) => e.stopPropagation()}
                             className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
                           >
                             Add Entry
                           </Link>
                           {canDelete && (
                             <button
-                              onClick={() => handleDelete(comm._id, comm.contactName)}
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDelete(comm._id, comm.contactName); }}
                               disabled={deletingId === comm._id}
                               className="text-xs text-red-400 hover:text-red-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700 disabled:opacity-50"
                               aria-label={`Delete communication with ${comm.contactName}`}

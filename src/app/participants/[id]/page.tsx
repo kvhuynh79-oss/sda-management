@@ -12,7 +12,7 @@ import GlobalUploadModal from "@/components/GlobalUploadModal";
 import Badge from "@/components/ui/Badge";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { generateConsentFormPdf } from "@/utils/consentFormPdf";
+import { generateConsentFormPdf, generateEasyReadConsentPdf } from "@/utils/consentFormPdf";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 export default function ParticipantDetailPage() {
@@ -125,19 +125,31 @@ export default function ParticipantDetailPage() {
     }
   };
 
-  const handleGenerateConsentPdf = () => {
-    if (!participant) return;
+  const consentPdfParams = () => {
+    if (!participant) return null;
     const propertyAddress = participant.property
       ? `${participant.property.addressLine1}, ${participant.property.suburb} ${participant.property.state}`
       : "N/A";
-    generateConsentFormPdf({
+    return {
       orgName: providerSettings?.providerName || organization?.name || "MySDAManager",
       orgAbn: providerSettings?.abn,
       participantName: `${participant.firstName} ${participant.lastName}`,
       ndisNumber: participant.ndisNumber || "N/A",
       dob: participant.dateOfBirth || "N/A",
       propertyAddress,
-    });
+    };
+  };
+
+  const handleGenerateConsentPdf = () => {
+    const params = consentPdfParams();
+    if (!params) return;
+    generateConsentFormPdf(params);
+  };
+
+  const handleGenerateEasyReadPdf = () => {
+    const params = consentPdfParams();
+    if (!params) return;
+    generateEasyReadConsentPdf(params);
   };
 
   const handleRecordConsent = async () => {
@@ -388,6 +400,7 @@ export default function ParticipantDetailPage() {
             <ConsentStatusCard
               participant={participant}
               onGeneratePdf={handleGenerateConsentPdf}
+              onGenerateEasyReadPdf={handleGenerateEasyReadPdf}
               onRecordConsent={() => setShowConsentForm(true)}
               onRenewConsent={() => { setConsentDate(new Date().toISOString().split("T")[0]); setConsentNotes(""); setShowConsentForm(true); }}
               onWithdrawConsent={handleWithdrawConsent}
@@ -611,9 +624,10 @@ export default function ParticipantDetailPage() {
 }
 
 // Consent Status Card component
-function ConsentStatusCard({ participant, onGeneratePdf, onRecordConsent, onRenewConsent, onWithdrawConsent, isWithdrawing }: {
+function ConsentStatusCard({ participant, onGeneratePdf, onGenerateEasyReadPdf, onRecordConsent, onRenewConsent, onWithdrawConsent, isWithdrawing }: {
   participant: any;
   onGeneratePdf: () => void;
+  onGenerateEasyReadPdf: () => void;
   onRecordConsent: () => void;
   onRenewConsent: () => void;
   onWithdrawConsent: () => void;
@@ -641,6 +655,7 @@ function ConsentStatusCard({ participant, onGeneratePdf, onRecordConsent, onRene
           <p className="text-gray-400 text-sm mb-4">Written consent is required under the Australian Privacy Principles (APP 3) before processing personal information.</p>
           <div className="flex flex-col gap-2">
             <button onClick={onGeneratePdf} className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm">Generate Consent Form (PDF)</button>
+            <button onClick={onGenerateEasyReadPdf} className="w-full px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-lg transition-colors text-sm">Generate Easy Read Version</button>
             <button onClick={onRecordConsent} className="w-full px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm">Record Consent</button>
           </div>
         </div>

@@ -269,8 +269,258 @@ export function generateConsentFormPdf(params: ConsentFormParams): void {
   );
   doc.text("Page 2 of 2", pageWidth - margin - 20, footer2Y);
 
+  // ── PAGES 3-4: EASY READ VERSION ──────────────────────────
+
+  addEasyReadPages(doc, { orgName, participantName, pageWidth, margin, contentWidth });
+
   // Trigger download
   const safeName = participantName.replace(/[^a-zA-Z0-9]/g, "_");
   const dateStr = new Date().toISOString().split("T")[0];
   doc.save(`Consent_Form_${safeName}_${dateStr}.pdf`);
+}
+
+/**
+ * Generate a standalone Easy Read consent form PDF (2 pages).
+ * Designed for participants with intellectual disabilities or cognitive impairments.
+ * Uses short sentences, simple words, and clear headings per Easy Read guidelines.
+ */
+export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
+  const { orgName, participantName } = params;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 18;
+  const contentWidth = pageWidth - margin * 2;
+
+  addEasyReadPages(doc, { orgName, participantName, pageWidth, margin, contentWidth, startPage: 1 });
+
+  const safeName = participantName.replace(/[^a-zA-Z0-9]/g, "_");
+  const dateStr = new Date().toISOString().split("T")[0];
+  doc.save(`Consent_Form_Easy_Read_${safeName}_${dateStr}.pdf`);
+}
+
+// ── Shared Easy Read page builder ──────────────────────────
+
+function addEasyReadPages(
+  doc: jsPDF,
+  opts: {
+    orgName: string;
+    participantName: string;
+    pageWidth: number;
+    margin: number;
+    contentWidth: number;
+    startPage?: number;
+  }
+): void {
+  const { orgName, participantName, pageWidth, margin, contentWidth, startPage } = opts;
+  const p1 = startPage ?? 3;
+  const p2 = p1 + 1;
+  const totalPages = startPage ? 2 : 4;
+
+  // ── EASY READ PAGE 1: CONSENT ──────────────────────────
+  doc.addPage();
+
+  // Purple header for Easy Read distinction
+  doc.setFillColor(109, 40, 217); // purple-600
+  doc.rect(0, 0, pageWidth, 36, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("EASY READ VERSION", margin, 12);
+  doc.text(orgName, margin, 18);
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Saying Yes to Sharing Your Information", margin, 30);
+
+  let y = 46;
+  doc.setTextColor(0, 0, 0);
+
+  // Intro
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  const introLines = doc.splitTextToSize(
+    "This form is about your personal information. We need some of your information to help you with your home. You can say yes or no. It is your choice.",
+    contentWidth
+  );
+  doc.text(introLines, margin, y);
+  y += introLines.length * 5.5 + 6;
+
+  // Easy Read consent points
+  const easyReadClauses = [
+    {
+      heading: "1. We will collect some of your information",
+      text: "We will collect information about you. This includes your name, your NDIS number, and your health needs. We use this to help you live in your home.",
+    },
+    {
+      heading: "2. We may share your information with people who help you",
+      text: "Sometimes we need to share your information. We may share it with the NDIS, your SIL provider, or your support coordinator. We only share what is needed.",
+    },
+    {
+      heading: "3. You can see your information or change it",
+      text: "You can ask to see the information we have about you. If something is wrong, you can ask us to fix it. You can also ask us to delete it.",
+    },
+    {
+      heading: "4. This form lasts for 12 months",
+      text: "When you sign this form, it lasts for 12 months. After that, we will ask you again. You can change your mind at any time.",
+    },
+    {
+      heading: "5. We will look after your information",
+      text: "We keep your information safe and private. The next page tells you more about this.",
+    },
+  ];
+
+  for (const clause of easyReadClauses) {
+    // Heading with bullet marker
+    doc.setFillColor(109, 40, 217);
+    doc.circle(margin + 1.5, y - 1.2, 1.5, "F");
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(clause.heading, margin + 5, y);
+    y += 6;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(clause.text, contentWidth - 5);
+    doc.text(lines, margin + 5, y);
+    y += lines.length * 5 + 5;
+  }
+
+  // Divider
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+
+  // Signature section
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  const sigIntro = doc.splitTextToSize(
+    "By signing below, you are saying yes to these 5 things. You can bring a support person to help you understand this form.",
+    contentWidth
+  );
+  doc.text(sigIntro, margin, y);
+  y += sigIntro.length * 5 + 8;
+
+  // Name line
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("Name:", margin, y);
+  doc.line(margin + 20, y, margin + 100, y);
+  y += 10;
+
+  // Signature + date
+  doc.text("Signature:", margin, y);
+  doc.line(margin + 24, y, margin + 80, y);
+  doc.text("Date:", margin + 95, y);
+  doc.line(margin + 110, y, margin + 150, y);
+  y += 10;
+
+  // Witness
+  doc.text("Witness:", margin, y);
+  doc.line(margin + 22, y, margin + 80, y);
+  doc.text("Date:", margin + 95, y);
+  doc.line(margin + 110, y, margin + 150, y);
+
+  // Footer
+  const footerY = doc.internal.pageSize.getHeight() - 12;
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(120, 120, 120);
+  doc.text("Easy Read - Complies with APP 3", margin, footerY);
+  doc.text(`Page ${p1} of ${totalPages}`, pageWidth - margin - 20, footerY);
+
+  // ── EASY READ PAGE 2: PRIVACY INFO ──────────────────────
+  doc.addPage();
+
+  // Purple header
+  doc.setFillColor(109, 40, 217);
+  doc.rect(0, 0, pageWidth, 30, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("EASY READ VERSION", margin, 12);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("Your Privacy Information", margin, 24);
+
+  y = 38;
+  doc.setTextColor(0, 0, 0);
+
+  // Helper for Easy Read sections
+  const addEasySection = (title: string, bullets: string[]) => {
+    doc.setFillColor(109, 40, 217);
+    doc.rect(margin, y - 3.5, contentWidth, 7, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, margin + 3, y + 1);
+    y += 8;
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9.5);
+    doc.setFont("helvetica", "normal");
+    for (const bullet of bullets) {
+      const lines = doc.splitTextToSize(`\u2022  ${bullet}`, contentWidth - 6);
+      doc.text(lines, margin + 3, y);
+      y += lines.length * 4.5 + 1.5;
+    }
+    y += 3;
+  };
+
+  addEasySection("Your Privacy Rights", [
+    "You have the right to know what information we have about you",
+    "You have the right to say no to sharing your information",
+    "You have the right to make a complaint if you are unhappy",
+    "The law protects your information",
+  ]);
+
+  addEasySection("What We Collect and Why", [
+    "Your name, date of birth, and contact details",
+    "Your NDIS number and plan information",
+    "Your health needs and disability information",
+    "We collect this so we can support you in your home",
+  ]);
+
+  addEasySection("Who We Share Your Information With", [
+    "The NDIS (National Disability Insurance Scheme)",
+    "Your SIL provider (the people who help you day to day)",
+    "Your support coordinator",
+    "Doctors or therapists if needed for your safety",
+    "We will never share your information without a good reason",
+  ]);
+
+  addEasySection("How We Keep Your Information Safe", [
+    "We store your information on secure computers",
+    "Only staff who need it can see your information",
+    "We follow the Australian Privacy Principles",
+  ]);
+
+  addEasySection("How to Change Your Mind", [
+    "You can tell us to stop using your information at any time",
+    "Call us or tell a staff member",
+    "We will not treat you differently if you say no",
+  ]);
+
+  addEasySection("Making a Complaint", [
+    "If you are unhappy, tell us first and we will try to fix it",
+    "You can also call the OAIC: 1300 363 992",
+    "Or the NDIS Commission: 1800 035 544",
+    "A friend, family member, or advocate can help you",
+  ]);
+
+  // Footer
+  const footer2Y = doc.internal.pageSize.getHeight() - 12;
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 120);
+  doc.text(
+    `${orgName} | Easy Read | Generated on ${new Date().toLocaleDateString("en-AU")}`,
+    margin,
+    footer2Y
+  );
+  doc.text(`Page ${p2} of ${totalPages}`, pageWidth - margin - 20, footer2Y);
 }

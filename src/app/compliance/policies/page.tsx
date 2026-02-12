@@ -95,9 +95,9 @@ function getReviewDateLabel(reviewDueDate?: string): string {
   return "";
 }
 
-// ── Policy Card Component ────────────────────────────────────────────────────
+// ── Policy Row Component ─────────────────────────────────────────────────────
 
-function PolicyCard({ policy }: { policy: Policy }) {
+function PolicyRow({ policy }: { policy: Policy }) {
   const statusBadge =
     STATUS_BADGE_COLORS[policy.status] || "bg-gray-500/20 text-gray-400";
   const statusLabel =
@@ -106,112 +106,118 @@ function PolicyCard({ policy }: { policy: Policy }) {
   const reviewLabel = getReviewDateLabel(policy.reviewDueDate);
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-5 hover:bg-gray-700/80 transition-colors">
-      {/* Title and status */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <Link
-          href={`/compliance/policies/${policy._id}`}
-          className="text-white font-semibold hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded min-w-0 truncate"
-        >
-          {policy.title}
-        </Link>
-        <span
-          className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusBadge}`}
-        >
-          {statusLabel}
-        </span>
-      </div>
-
-      {/* Category badge */}
-      <div className="mb-3">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-500/20 text-teal-400">
-          {policy.category}
-        </span>
-      </div>
-
-      {/* Description */}
-      {policy.description && (
-        <p className="text-sm text-gray-400 mb-3 line-clamp-2">
-          {policy.description}
-        </p>
-      )}
-
-      {/* Meta row */}
-      <div className="border-t border-gray-700 pt-3 space-y-2">
-        {/* Version */}
-        {policy.version && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-400">Version:</span>
-            <span className="text-gray-300">v{policy.version}</span>
-          </div>
-        )}
-
-        {/* Review due date */}
-        {policy.reviewDueDate && (
-          <div className="flex items-center gap-2 text-sm">
-            {/* Calendar icon */}
-            <svg
-              className={`w-4 h-4 ${reviewColor} flex-shrink-0`}
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              aria-hidden="true"
+    <div
+      className="bg-gray-800 border border-gray-700 rounded-lg px-5 py-4 hover:bg-gray-700/80 transition-colors"
+      role="article"
+      aria-label={`Policy: ${policy.title}`}
+    >
+      {/* Top section: Title, badges, meta */}
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+        {/* Title and description (takes up remaining space) */}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <Link
+              href={`/compliance/policies/${policy._id}`}
+              className="text-white font-semibold hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-              />
-            </svg>
-            <span className={reviewColor}>
-              Review: {formatDate(policy.reviewDueDate)}
+              {policy.title}
+            </Link>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-500/20 text-teal-400">
+              {policy.category}
             </span>
-            {reviewLabel && (
-              <span
-                className={`text-xs font-medium ${
-                  reviewLabel === "Overdue" ? "text-red-400" : "text-yellow-400"
-                }`}
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge}`}
+            >
+              {statusLabel}
+            </span>
+          </div>
+
+          {/* Description - full text, never truncated */}
+          {policy.description && (
+            <p className="text-sm text-gray-400 mt-1">{policy.description}</p>
+          )}
+        </div>
+
+        {/* Meta info column (right side on desktop) */}
+        <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2 sm:gap-1.5 flex-shrink-0 sm:min-w-[180px]">
+          {/* Version */}
+          {policy.version && (
+            <span className="text-sm text-gray-300">v{policy.version}</span>
+          )}
+
+          {/* Review due date */}
+          {policy.reviewDueDate && (
+            <div className="flex items-center gap-1.5 text-sm">
+              <svg
+                className={`w-3.5 h-3.5 ${reviewColor} flex-shrink-0`}
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                aria-hidden="true"
               >
-                ({reviewLabel})
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+                />
+              </svg>
+              <span className={reviewColor}>
+                {formatDate(policy.reviewDueDate)}
               </span>
-            )}
-          </div>
-        )}
+              {reviewLabel && (
+                <span
+                  className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                    reviewLabel === "Overdue"
+                      ? "bg-red-500/20 text-red-400"
+                      : "bg-yellow-500/20 text-yellow-400"
+                  }`}
+                >
+                  {reviewLabel}
+                </span>
+              )}
+            </div>
+          )}
 
-        {/* Document attached indicator */}
-        {policy.documentStorageId && (
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            {/* FileText icon */}
-            <svg
-              className="w-4 h-4 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-              />
-            </svg>
-            <span className="truncate">
-              {policy.documentFileName || "Document attached"}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* View link */}
-      <div className="mt-4 pt-3 border-t border-gray-700">
-        <Link
-          href={`/compliance/policies/${policy._id}`}
-          className="text-sm text-teal-400 hover:text-teal-300 font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
-        >
-          View Details
-        </Link>
+          {/* Document attached indicator */}
+          {policy.documentStorageId ? (
+            <div className="flex items-center gap-1.5 text-sm text-teal-400">
+              <svg
+                className="w-3.5 h-3.5 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                />
+              </svg>
+              <span>{policy.documentFileName || "Document attached"}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-sm text-gray-400">
+              <svg
+                className="w-3.5 h-3.5 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                />
+              </svg>
+              <span>No document</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -680,6 +686,8 @@ function PoliciesContent() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [groupByCategory, setGroupByCategory] = useState(true);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -720,21 +728,46 @@ function PoliciesContent() {
   const filtered = useMemo(() => {
     if (!policies) return [];
     return policies.filter((p) => {
-      // Search by title
       const matchesSearch =
-        !search || p.title.toLowerCase().includes(search.toLowerCase());
+        !search ||
+        p.title.toLowerCase().includes(search.toLowerCase()) ||
+        (p.description && p.description.toLowerCase().includes(search.toLowerCase()));
 
-      // Category filter
       const matchesCategory =
         categoryFilter === "all" || p.category === categoryFilter;
 
-      // Status filter
       const matchesStatus =
         statusFilter === "all" || p.status === statusFilter;
 
       return matchesSearch && matchesCategory && matchesStatus;
     });
   }, [policies, search, categoryFilter, statusFilter]);
+
+  // Group policies by category
+  const groupedPolicies = useMemo(() => {
+    if (!groupByCategory) return null;
+    const groups: Record<string, Policy[]> = {};
+    for (const policy of filtered) {
+      const cat = policy.category || "Uncategorised";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(policy);
+    }
+    // Sort category names alphabetically
+    const sorted = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    return sorted;
+  }, [filtered, groupByCategory]);
+
+  function toggleCategory(category: string) {
+    setCollapsedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  }
 
   const hasFilters =
     search !== "" || categoryFilter !== "all" || statusFilter !== "all";
@@ -814,7 +847,7 @@ function PoliciesContent() {
 
         {/* Filters */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"
+          className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6"
           role="search"
           aria-label="Filter policies"
         >
@@ -843,7 +876,7 @@ function PoliciesContent() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by title..."
+                placeholder="Search by title or description..."
                 className="w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:border-teal-600 transition-colors"
               />
             </div>
@@ -887,6 +920,37 @@ function PoliciesContent() {
               <option value="archived">Archived</option>
             </select>
           </div>
+
+          {/* Group by category toggle */}
+          <div className="flex items-center">
+            <button
+              onClick={() => setGroupByCategory((prev) => !prev)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 text-sm font-medium w-full justify-center ${
+                groupByCategory
+                  ? "bg-teal-600/20 border-teal-600 text-teal-400"
+                  : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+              }`}
+              aria-pressed={groupByCategory}
+              aria-label="Group policies by category"
+            >
+              {/* Folder/stack icon */}
+              <svg
+                className="w-4 h-4 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+                />
+              </svg>
+              Group by Category
+            </button>
+          </div>
         </div>
 
         {/* Clear filters */}
@@ -908,7 +972,7 @@ function PoliciesContent() {
           </div>
         )}
 
-        {/* Policy Grid */}
+        {/* Policy List */}
         {policies.length === 0 ? (
           <div className="bg-gray-800 rounded-lg p-12 text-center border border-gray-700">
             <svg
@@ -977,15 +1041,71 @@ function PoliciesContent() {
               Clear Filters
             </button>
           </div>
+        ) : groupByCategory && groupedPolicies ? (
+          /* Grouped by category view */
+          <div className="space-y-6" role="list" aria-label="Policies grouped by category">
+            {groupedPolicies.map(([category, categoryPolicies]) => {
+              const isCollapsed = collapsedCategories.has(category);
+              return (
+                <section
+                  key={category}
+                  role="listitem"
+                  aria-label={`${category} category - ${categoryPolicies.length} ${categoryPolicies.length === 1 ? "policy" : "policies"}`}
+                >
+                  {/* Category header */}
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="flex items-center gap-3 w-full text-left mb-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg px-2 py-1 -mx-2"
+                    aria-expanded={!isCollapsed}
+                    aria-controls={`cat-${category.replace(/\s+/g, "-").toLowerCase()}`}
+                  >
+                    {/* Chevron */}
+                    <svg
+                      className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${
+                        isCollapsed ? "" : "rotate-90"
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                    <h2 className="text-base font-semibold text-white group-hover:text-teal-400 transition-colors">
+                      {category}
+                    </h2>
+                    <span className="text-xs font-medium text-gray-400 bg-gray-700 px-2 py-0.5 rounded-full">
+                      {categoryPolicies.length}
+                    </span>
+                    <div className="flex-1 border-t border-gray-700" aria-hidden="true" />
+                  </button>
+
+                  {/* Category policies */}
+                  {!isCollapsed && (
+                    <div
+                      id={`cat-${category.replace(/\s+/g, "-").toLowerCase()}`}
+                      className="space-y-2"
+                      role="list"
+                      aria-label={`${category} policies`}
+                    >
+                      {categoryPolicies.map((policy) => (
+                        <div key={policy._id} role="listitem">
+                          <PolicyRow policy={policy} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
         ) : (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            role="list"
-            aria-label="Policies list"
-          >
+          /* Flat list view */
+          <div className="space-y-2" role="list" aria-label="Policies list">
             {filtered.map((policy) => (
               <div key={policy._id} role="listitem">
-                <PolicyCard policy={policy} />
+                <PolicyRow policy={policy} />
               </div>
             ))}
           </div>

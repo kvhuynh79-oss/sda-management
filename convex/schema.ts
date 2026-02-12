@@ -2428,6 +2428,7 @@ export default defineSchema({
       v.literal("archived")
     ),
     notes: v.optional(v.string()),
+    content: v.optional(v.string()), // Full text content for in-app reading
     isActive: v.boolean(),
     createdBy: v.id("users"),
     createdAt: v.number(),

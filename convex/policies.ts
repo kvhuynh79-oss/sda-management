@@ -89,6 +89,7 @@ export const create = mutation({
       v.literal("archived")
     ),
     notes: v.optional(v.string()),
+    content: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { organizationId } = await requireTenant(ctx, args.userId);
@@ -146,6 +147,7 @@ export const update = mutation({
       )
     ),
     notes: v.optional(v.string()),
+    content: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { organizationId } = await requireTenant(ctx, args.userId);

@@ -47,16 +47,20 @@ const STATUS_CONFIG: Record<
 };
 
 const CATEGORY_OPTIONS = [
-  { value: "organisational", label: "Organisational" },
-  { value: "operational", label: "Operational" },
-  { value: "compliance", label: "Compliance" },
-  { value: "health_safety", label: "Health & Safety" },
-  { value: "human_resources", label: "Human Resources" },
-  { value: "finance", label: "Finance" },
-  { value: "incident_management", label: "Incident Management" },
-  { value: "property_management", label: "Property Management" },
-  { value: "participant_rights", label: "Participant Rights" },
-  { value: "other", label: "Other" },
+  { value: "SDA Tenancy Management", label: "SDA Tenancy Management" },
+  { value: "SDA Property Management", label: "SDA Property Management" },
+  { value: "Tenant Rights & Engagement", label: "Tenant Rights & Engagement" },
+  { value: "SDA Operations", label: "SDA Operations" },
+  { value: "NDIS Practice Standards", label: "NDIS Practice Standards" },
+  { value: "Agreements & Templates", label: "Agreements & Templates" },
+  { value: "Reference", label: "Reference" },
+  { value: "Governance", label: "Governance" },
+  { value: "Health & Safety", label: "Health & Safety" },
+  { value: "Human Resources", label: "Human Resources" },
+  { value: "Finance", label: "Finance" },
+  { value: "Incident Management", label: "Incident Management" },
+  { value: "Compliance", label: "Compliance" },
+  { value: "Other", label: "Other" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -799,228 +803,236 @@ function PolicyDetailContent() {
           </div>
         ) : (
           /* ================================================================
-           * READ MODE
+           * READ MODE - Full-width content-focused layout
            * ================================================================ */
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* ── Left column (2/3 width) ─────────────────────────────── */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Description */}
-              {policy.description && (
-                <section
-                  className="bg-gray-800 rounded-lg p-6 border border-gray-700"
-                  aria-labelledby="section-description"
-                >
-                  <h2
-                    id="section-description"
-                    className="text-lg font-semibold text-white mb-4"
-                  >
-                    Description
-                  </h2>
-                  <p className="text-gray-300 text-sm whitespace-pre-wrap">
-                    {policy.description}
+          <div className="space-y-6">
+            {/* ── Policy Information Bar ──────────────────────────────── */}
+            <section
+              className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden"
+              aria-labelledby="section-info"
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-700">
+                <div className="p-4">
+                  <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">Status</p>
+                  <StatusBadge status={policy.status} />
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">Category</p>
+                  <CategoryBadge category={policy.category} />
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">Version</p>
+                  <p className="text-sm text-white font-medium">
+                    {policy.version ? `v${policy.version}` : "-"}
                   </p>
-                </section>
-              )}
-
-              {/* Notes */}
-              {policy.notes && (
-                <section
-                  className="bg-gray-800 rounded-lg p-6 border border-gray-700"
-                  aria-labelledby="section-notes"
-                >
-                  <h2
-                    id="section-notes"
-                    className="text-lg font-semibold text-white mb-4"
-                  >
-                    Notes
-                  </h2>
-                  <p className="text-gray-300 text-sm whitespace-pre-wrap">
-                    {policy.notes}
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">Effective</p>
+                  <p className="text-sm text-white">
+                    {policy.effectiveDate ? formatDate(policy.effectiveDate) : "-"}
                   </p>
-                </section>
-              )}
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">Review Due</p>
+                  <p className={`text-sm font-medium ${
+                    reviewStatus === "overdue"
+                      ? "text-red-400"
+                      : reviewStatus === "soon"
+                        ? "text-yellow-400"
+                        : "text-white"
+                  }`}>
+                    {policy.reviewDueDate ? formatDate(policy.reviewDueDate) : "-"}
+                    {reviewStatus === "overdue" && <span className="ml-1 text-xs">(overdue)</span>}
+                    {reviewStatus === "soon" && <span className="ml-1 text-xs">(due soon)</span>}
+                  </p>
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider">Updated</p>
+                  <p className="text-sm text-white">
+                    {new Date(policy.updatedAt).toLocaleDateString("en-AU", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              </div>
+            </section>
 
-              {/* Document */}
-              <section
-                className="bg-gray-800 rounded-lg p-6 border border-gray-700"
-                aria-labelledby="section-document"
+            {/* ── Purpose / Description ───────────────────────────────── */}
+            <section
+              className="bg-gray-800 rounded-lg p-6 border border-gray-700"
+              aria-labelledby="section-description"
+            >
+              <h2
+                id="section-description"
+                className="text-lg font-semibold text-white mb-3 flex items-center gap-2"
               >
-                <h2
-                  id="section-document"
-                  className="text-lg font-semibold text-white mb-4"
-                >
-                  Document
-                </h2>
-                {policy.documentFileName && policy.documentUrl ? (
-                  <div className="flex items-center justify-between gap-3 px-4 py-3 bg-gray-700/50 rounded-lg border border-gray-600/50">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <svg
-                        className="w-5 h-5 flex-shrink-0 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <span className="text-sm text-white truncate">
-                        {policy.documentFileName}
-                      </span>
-                    </div>
-                    <a
-                      href={policy.documentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 flex-shrink-0"
-                      aria-label={`Download ${policy.documentFileName}`}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      Download
-                    </a>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <svg
-                      className="w-10 h-10 mx-auto text-gray-400 mb-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-                      />
+                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                Purpose & Overview
+              </h2>
+              {policy.description ? (
+                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                  {policy.description}
+                </p>
+              ) : (
+                <p className="text-gray-400 italic">No description has been added to this policy.</p>
+              )}
+            </section>
+
+            {/* ── Full Policy Content ─────────────────────────────────── */}
+            {policy.content && (
+              <section
+                className="bg-gray-800 rounded-lg border border-gray-700"
+                aria-labelledby="section-content"
+              >
+                <div className="p-6 border-b border-gray-700">
+                  <h2
+                    id="section-content"
+                    className="text-lg font-semibold text-white flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
-                    <p className="text-gray-400 text-sm">
-                      No document attached
-                    </p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      Click Edit to upload a policy document
-                    </p>
-                  </div>
-                )}
-              </section>
-
-              {/* Show description/notes empty state if both are missing */}
-              {!policy.description && !policy.notes && (
-                <section className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                  <p className="text-gray-400 text-sm text-center py-4">
-                    No description or notes have been added to this policy.
-                  </p>
-                </section>
-              )}
-            </div>
-
-            {/* ── Right column (sidebar) ──────────────────────────────── */}
-            <div className="space-y-6">
-              <section
-                className="bg-gray-800 rounded-lg p-6 border border-gray-700"
-                aria-labelledby="section-details"
-              >
-                <h2
-                  id="section-details"
-                  className="text-lg font-semibold text-white mb-4"
-                >
-                  Details
-                </h2>
-                <div className="space-y-4">
-                  {/* Status */}
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">Status</p>
-                    <StatusBadge status={policy.status} />
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">Category</p>
-                    <CategoryBadge category={policy.category} />
-                  </div>
-
-                  {/* Version */}
-                  <DetailField
-                    label="Version"
-                    value={policy.version ? `v${policy.version}` : undefined}
-                  />
-
-                  {/* Effective Date */}
-                  <DetailField
-                    label="Effective Date"
-                    value={formatDate(policy.effectiveDate)}
-                  />
-
-                  {/* Review Due Date */}
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">
-                      Review Due Date
-                    </p>
-                    {policy.reviewDueDate ? (
-                      <p
-                        className={`text-sm ${
-                          reviewStatus === "overdue"
-                            ? "text-red-400 font-medium"
-                            : reviewStatus === "soon"
-                              ? "text-yellow-400 font-medium"
-                              : "text-white"
-                        }`}
-                      >
-                        {formatDate(policy.reviewDueDate)}
-                        {reviewStatus === "overdue" && (
-                          <span className="ml-2 text-xs">(overdue)</span>
-                        )}
-                        {reviewStatus === "soon" && (
-                          <span className="ml-2 text-xs">(due soon)</span>
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-gray-400">-</p>
-                    )}
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-gray-700 pt-4">
-                    <p className="text-sm text-gray-400 mb-1">Created</p>
-                    <p className="text-sm text-white">
-                      {new Date(policy.createdAt).toLocaleDateString("en-AU", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">Last Updated</p>
-                    <p className="text-sm text-white">
-                      {new Date(policy.updatedAt).toLocaleDateString("en-AU", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
+                    Policy Content
+                  </h2>
+                </div>
+                <div className="p-6 max-h-[600px] overflow-y-auto">
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    {policy.content.split("\n").map((line, i) => {
+                      const trimmed = line.trim();
+                      if (!trimmed) return <div key={i} className="h-3" />;
+                      // Detect headings (ALL CAPS lines or lines ending with colon)
+                      if (
+                        (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 80 && /[A-Z]/.test(trimmed)) ||
+                        (trimmed.match(/^\d+\.\s+[A-Z]/) && trimmed.length < 80)
+                      ) {
+                        return (
+                          <h3 key={i} className="text-white font-semibold mt-5 mb-2 text-sm uppercase tracking-wide">
+                            {trimmed}
+                          </h3>
+                        );
+                      }
+                      // Detect sub-headings (numbered items like "1.1", "2.3")
+                      if (trimmed.match(/^\d+\.\d+\s/)) {
+                        return (
+                          <h4 key={i} className="text-gray-200 font-medium mt-3 mb-1 text-sm">
+                            {trimmed}
+                          </h4>
+                        );
+                      }
+                      // Detect bullet points
+                      if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.match(/^[a-z]\)\s/) || trimmed.match(/^[ivx]+\)\s/)) {
+                        return (
+                          <li key={i} className="text-gray-300 text-sm ml-4 list-disc mb-1">
+                            {trimmed.replace(/^[-*]\s/, "").replace(/^[a-z]\)\s/, "").replace(/^[ivx]+\)\s/, "")}
+                          </li>
+                        );
+                      }
+                      return (
+                        <p key={i} className="text-gray-300 text-sm leading-relaxed mb-2">
+                          {trimmed}
+                        </p>
+                      );
+                    })}
                   </div>
                 </div>
               </section>
+            )}
+
+            {/* ── Internal Notes ──────────────────────────────────────── */}
+            {policy.notes && (
+              <section
+                className="bg-gray-800 rounded-lg p-6 border border-gray-700"
+                aria-labelledby="section-notes"
+              >
+                <h2
+                  id="section-notes"
+                  className="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                  </svg>
+                  Internal Notes
+                </h2>
+                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+                  <p className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">
+                    {policy.notes}
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {/* ── Document Download ───────────────────────────────────── */}
+            <section
+              className="bg-gray-800 rounded-lg p-6 border border-gray-700"
+              aria-labelledby="section-document"
+            >
+              <h2
+                id="section-document"
+                className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Document Download
+              </h2>
+              {policy.documentFileName && policy.documentUrl ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 bg-gray-700/40 rounded-lg border border-gray-600/40">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-teal-600/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-medium truncate">
+                        {policy.documentFileName}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Word Document (.docx)
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={policy.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 flex-shrink-0"
+                    aria-label={`Download ${policy.documentFileName}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Download Document
+                  </a>
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-gray-700/20 rounded-lg border border-dashed border-gray-600">
+                  <svg className="w-10 h-10 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                  <p className="text-gray-400 text-sm">No document attached</p>
+                  <p className="text-gray-400 text-xs mt-1">Click Edit to upload a policy document</p>
+                </div>
+              )}
+            </section>
+
+            {/* ── Document Metadata Footer ────────────────────────────── */}
+            <div className="flex flex-wrap items-center justify-between gap-4 px-1 text-xs text-gray-400">
+              <div className="flex items-center gap-4">
+                <span>
+                  Created: {new Date(policy.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+                <span>
+                  Last Updated: {new Date(policy.updatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+              </div>
+              <span>
+                Document ID: {policy._id}
+              </span>
             </div>
           </div>
         )}

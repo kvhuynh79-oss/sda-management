@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireTenant, requirePermission, getUserFullName } from "./authHelpers";
+import { callClaudeAPI, extractJSON } from "./aiUtils";
 
 // Generate a signed upload URL for policy document files
 export const generateUploadUrl = mutation({
@@ -293,5 +294,255 @@ export const getCategories = query({
     const categories = [...new Set(policies.map((p) => p.category))].sort();
 
     return categories;
+  },
+});
+
+// ─── AI Summary Generation ──────────────────────────────────────────────────
+
+const SUMMARY_SYSTEM_PROMPT = `You are a policy summarisation expert for an Australian NDIS (National Disability Insurance Scheme) Specialist Disability Accommodation provider.
+
+Your task is to create a concise summary and extract key action points from the policy document provided.
+
+The summary should:
+- Be 2-4 sentences highlighting what the policy is about and why it matters
+- Use plain language that frontline staff can quickly understand
+- Mention any critical obligations or deadlines
+
+The key points should:
+- Be 4-8 bullet points
+- Focus on what staff MUST DO or MUST NOT DO
+- Include any specific timeframes, thresholds, or requirements
+- Be actionable and concrete, not vague
+
+Respond with valid JSON only, no other text:
+{"summary": "2-4 sentence summary", "keyPoints": ["point 1", "point 2", ...]}`;
+
+// Save AI-generated summary to a policy record
+export const saveSummary = internalMutation({
+  args: {
+    policyId: v.id("policies"),
+    summary: v.string(),
+    keyPoints: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.policyId, {
+      summary: args.summary,
+      keyPoints: args.keyPoints,
+      summaryGeneratedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Get policy content for AI summary generation (internal only)
+export const getContentForSummary = internalQuery({
+  args: {
+    policyId: v.id("policies"),
+  },
+  handler: async (ctx, args) => {
+    const policy = await ctx.db.get(args.policyId);
+    if (!policy) {
+      throw new Error("Policy not found");
+    }
+
+    return {
+      title: policy.title,
+      category: policy.category,
+      content: policy.content,
+      description: policy.description,
+    };
+  },
+});
+
+// Get user's organizationId for action context (internal only)
+export const getUserOrg = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    return { organizationId: user.organizationId };
+  },
+});
+
+// Get policies that have content but no AI summary yet (internal only)
+export const getPoliciesNeedingSummary = internalQuery({
+  args: {
+    organizationId: v.optional(v.id("organizations")),
+  },
+  handler: async (ctx, args) => {
+    if (!args.organizationId) {
+      return [];
+    }
+
+    const allPolicies = await ctx.db
+      .query("policies")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId!)
+      )
+      .collect();
+
+    // Filter to active policies with content but no summary
+    const needingSummary = allPolicies.filter(
+      (p) => p.isActive !== false && p.content && !p.summary
+    );
+
+    return needingSummary.map((p) => ({
+      _id: p._id,
+      title: p.title,
+    }));
+  },
+});
+
+// Generate AI summary for a single policy
+export const generateSummary = action({
+  args: {
+    userId: v.id("users"),
+    policyId: v.id("policies"),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ summary: string; keyPoints: string[] }> => {
+    // Read policy content
+    const policy = await ctx.runQuery(
+      internal.policies.getContentForSummary,
+      { policyId: args.policyId }
+    );
+
+    if (!policy.content) {
+      throw new Error(
+        "Policy has no content to summarise. Add content to the policy first."
+      );
+    }
+
+    // Build the user message with all available policy details
+    let userMessage = `Policy Title: ${policy.title}\nCategory: ${policy.category}\n`;
+    if (policy.description) {
+      userMessage += `Description: ${policy.description}\n`;
+    }
+    userMessage += `\nFull Policy Content:\n${policy.content}`;
+
+    // Call Claude API for summary generation
+    const response = await callClaudeAPI(
+      SUMMARY_SYSTEM_PROMPT,
+      [{ role: "user", content: userMessage }],
+      2048
+    );
+
+    // Parse and validate the response
+    const parsed = extractJSON<{ summary: string; keyPoints: string[] }>(
+      response
+    );
+
+    if (!parsed.summary) {
+      throw new Error("AI response missing summary field");
+    }
+
+    if (!Array.isArray(parsed.keyPoints) || parsed.keyPoints.length === 0) {
+      throw new Error("AI response missing or empty keyPoints array");
+    }
+
+    // Save the summary to the policy
+    await ctx.runMutation(internal.policies.saveSummary, {
+      policyId: args.policyId,
+      summary: parsed.summary,
+      keyPoints: parsed.keyPoints,
+    });
+
+    return { summary: parsed.summary, keyPoints: parsed.keyPoints };
+  },
+});
+
+// Generate AI summaries for all policies that don't have one yet
+export const generateAllSummaries = action({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ generated: number; failed: number; errors: string[] }> => {
+    // Get user's organization
+    const { organizationId } = await ctx.runQuery(
+      internal.policies.getUserOrg,
+      { userId: args.userId }
+    );
+
+    // Get all policies needing summaries
+    const policies = await ctx.runQuery(
+      internal.policies.getPoliciesNeedingSummary,
+      { organizationId }
+    );
+
+    let generated = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    // Process each policy sequentially to avoid rate limits
+    for (const policy of policies) {
+      try {
+        // Read full content for this policy
+        const policyData = await ctx.runQuery(
+          internal.policies.getContentForSummary,
+          { policyId: policy._id }
+        );
+
+        if (!policyData.content) {
+          failed++;
+          errors.push(`${policy.title}: No content to summarise`);
+          continue;
+        }
+
+        // Build user message
+        let userMessage = `Policy Title: ${policyData.title}\nCategory: ${policyData.category}\n`;
+        if (policyData.description) {
+          userMessage += `Description: ${policyData.description}\n`;
+        }
+        userMessage += `\nFull Policy Content:\n${policyData.content}`;
+
+        // Call Claude API directly (actions cannot call other actions)
+        const response = await callClaudeAPI(
+          SUMMARY_SYSTEM_PROMPT,
+          [{ role: "user", content: userMessage }],
+          2048
+        );
+
+        // Parse and validate
+        const parsed = extractJSON<{ summary: string; keyPoints: string[] }>(
+          response
+        );
+
+        if (
+          !parsed.summary ||
+          !Array.isArray(parsed.keyPoints) ||
+          parsed.keyPoints.length === 0
+        ) {
+          failed++;
+          errors.push(`${policy.title}: Invalid AI response format`);
+          continue;
+        }
+
+        // Save summary
+        await ctx.runMutation(internal.policies.saveSummary, {
+          policyId: policy._id,
+          summary: parsed.summary,
+          keyPoints: parsed.keyPoints,
+        });
+
+        generated++;
+      } catch (error) {
+        failed++;
+        errors.push(
+          `${policy.title}: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
+    }
+
+    return { generated, failed, errors };
   },
 });

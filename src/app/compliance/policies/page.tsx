@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useSearchParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -45,6 +45,7 @@ interface Policy {
   reviewDueDate?: string;
   status: PolicyStatus;
   notes?: string;
+  summary?: string;
   isActive: boolean;
   createdBy: Id<"users">;
   createdAt: number;
@@ -214,6 +215,16 @@ function PolicyRow({ policy }: { policy: Policy }) {
                 />
               </svg>
               <span>No document</span>
+            </div>
+          )}
+
+          {/* AI Summary indicator */}
+          {policy.summary && (
+            <div className="flex items-center gap-1.5 text-sm text-teal-400">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+              <span>AI Summary</span>
             </div>
           )}
         </div>
@@ -679,7 +690,7 @@ function AddPolicyModal({
 // ── Main Content ─────────────────────────────────────────────────────────────
 
 function PoliciesContent() {
-  const { alert: alertDialog } = useConfirmDialog();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string; role: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -691,6 +702,35 @@ function PoliciesContent() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [groupByCategory, setGroupByCategory] = useState(true);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
+  const generateAllAction = useAction(api.policies.generateAllSummaries);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+
+  const handleGenerateAll = async () => {
+    if (!user) return;
+    const confirmed = await confirmDialog({
+      title: "Generate All Summaries",
+      message: "This will generate AI summaries for all policies that don't have one yet. This may take a few minutes. Continue?",
+      confirmLabel: "Generate",
+    });
+    if (!confirmed) return;
+
+    setIsGeneratingAll(true);
+    try {
+      const result = await generateAllAction({
+        userId: user.id as Id<"users">,
+      });
+      await alertDialog({
+        title: "Summaries Generated",
+        message: `Generated ${result.generated} summaries.${result.failed > 0 ? ` Failed: ${result.failed}. Errors: ${result.errors.join("; ")}` : ""}`,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to generate summaries";
+      await alertDialog({ title: "Error", message });
+    } finally {
+      setIsGeneratingAll(false);
+    }
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -804,6 +844,19 @@ function PoliciesContent() {
             </p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0 self-start sm:self-auto">
+            {(user.role === "admin" || user.role === "property_manager") && (
+              <button
+                onClick={handleGenerateAll}
+                disabled={isGeneratingAll}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                aria-label="Generate AI summaries for all policies"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+                {isGeneratingAll ? "Generating..." : "Generate All Summaries"}
+              </button>
+            )}
             <button
               onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"

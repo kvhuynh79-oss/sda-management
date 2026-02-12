@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import Link from "next/link";
@@ -188,6 +188,19 @@ function PolicyDetailContent() {
     notes: "",
   });
 
+  // -- AI Summary state --
+  const generateSummaryAction = useAction(api.policies.generateSummary);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showFullContent, setShowFullContent] = useState(false);
+
+  useEffect(() => {
+    if (policy && !policy.summary) {
+      setShowFullContent(true);
+    } else {
+      setShowFullContent(false);
+    }
+  }, [policy?._id, policy?.summary]);
+
   // -- Role checks --
   const canEdit =
     user?.role === "admin" || user?.role === "property_manager";
@@ -327,6 +340,23 @@ function PolicyDetailContent() {
       const message =
         err instanceof Error ? err.message : "Failed to delete policy";
       await alertDialog({ title: "Error", message });
+    }
+  };
+
+  // -- Generate AI summary --
+  const handleGenerateSummary = async () => {
+    if (!user || !policy) return;
+    setIsGenerating(true);
+    try {
+      await generateSummaryAction({
+        userId: user.id as Id<"users">,
+        policyId,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to generate summary";
+      await alertDialog({ title: "Error", message });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -859,6 +889,80 @@ function PolicyDetailContent() {
               </div>
             </section>
 
+            {/* ── Quick Summary ──────────────────────────────────────── */}
+            {policy.summary && policy.keyPoints && policy.keyPoints.length > 0 && (
+              <section
+                className="bg-teal-900/20 rounded-lg border border-teal-600/30 overflow-hidden"
+                aria-labelledby="section-summary"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2
+                      id="section-summary"
+                      className="text-lg font-semibold text-white flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                      </svg>
+                      Quick Summary
+                    </h2>
+                    {canEdit && (
+                      <button
+                        onClick={handleGenerateSummary}
+                        disabled={isGenerating}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-700/50 hover:bg-gray-600/50 disabled:bg-gray-600/30 disabled:cursor-not-allowed text-gray-300 text-xs rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                      >
+                        {isGenerating ? "Regenerating..." : "Regenerate"}
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-gray-300 leading-relaxed mb-4">
+                    {policy.summary}
+                  </p>
+                  <h3 className="text-sm font-semibold text-teal-400 uppercase tracking-wide mb-2">
+                    Key Points
+                  </h3>
+                  <ul className="space-y-2">
+                    {policy.keyPoints.map((point: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                        <svg className="w-4 h-4 text-teal-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                  {policy.summaryGeneratedAt && (
+                    <p className="text-xs text-gray-400 mt-4">
+                      Summary generated{" "}
+                      {new Date(policy.summaryGeneratedAt).toLocaleDateString("en-AU", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* ── Generate Summary Button (when no summary exists) ───── */}
+            {!policy.summary && canEdit && policy.content && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleGenerateSummary}
+                  disabled={isGenerating}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                  </svg>
+                  {isGenerating ? "Generating Summary..." : "Generate AI Summary"}
+                </button>
+                <span className="text-xs text-gray-400">Uses AI to create a quick overview of this policy</span>
+              </div>
+            )}
+
             {/* ── Key Details ────────────────────────────────────────── */}
             <section
               className="bg-gray-800 rounded-lg p-6 border border-gray-700"
@@ -1015,13 +1119,18 @@ function PolicyDetailContent() {
               )}
             </section>
 
-            {/* ── Full Policy Content ─────────────────────────────────── */}
+            {/* ── Full Policy Content (collapsible) ─────────────────── */}
             {policy.content && (
               <section
                 className="bg-gray-800 rounded-lg border border-gray-700"
                 aria-labelledby="section-content"
               >
-                <div className="p-6 border-b border-gray-700">
+                <button
+                  onClick={() => setShowFullContent(!showFullContent)}
+                  className="w-full flex items-center justify-between p-6 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded-lg"
+                  aria-expanded={showFullContent}
+                  aria-controls="full-policy-content"
+                >
                   <h2
                     id="section-content"
                     className="text-lg font-semibold text-white flex items-center gap-2"
@@ -1029,49 +1138,58 @@ function PolicyDetailContent() {
                     <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
-                    Policy Content
+                    Full Policy Content
                   </h2>
-                </div>
-                <div className="p-6">
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    {policy.content.split("\n").map((line, i) => {
-                      const trimmed = line.trim();
-                      if (!trimmed) return <div key={i} className="h-3" />;
-                      // Detect headings (ALL CAPS lines or lines ending with colon)
-                      if (
-                        (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 80 && /[A-Z]/.test(trimmed)) ||
-                        (trimmed.match(/^\d+\.\s+[A-Z]/) && trimmed.length < 80)
-                      ) {
+                  <svg
+                    className={`w-5 h-5 text-gray-400 transition-transform ${showFullContent ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+                {showFullContent && (
+                  <div id="full-policy-content" className="px-6 pb-6">
+                    <div className="prose prose-invert prose-sm max-w-none">
+                      {policy.content.split("\n").map((line: string, i: number) => {
+                        const trimmed = line.trim();
+                        if (!trimmed) return <div key={i} className="h-3" />;
+                        if (
+                          (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && trimmed.length < 80 && /[A-Z]/.test(trimmed)) ||
+                          (trimmed.match(/^\d+\.\s+[A-Z]/) && trimmed.length < 80)
+                        ) {
+                          return (
+                            <h3 key={i} className="text-white font-semibold mt-5 mb-2 text-sm uppercase tracking-wide">
+                              {trimmed}
+                            </h3>
+                          );
+                        }
+                        if (trimmed.match(/^\d+\.\d+\s/)) {
+                          return (
+                            <h4 key={i} className="text-gray-200 font-medium mt-3 mb-1 text-sm">
+                              {trimmed}
+                            </h4>
+                          );
+                        }
+                        if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.match(/^[a-z]\)\s/) || trimmed.match(/^[ivx]+\)\s/)) {
+                          return (
+                            <li key={i} className="text-gray-300 text-sm ml-4 list-disc mb-1">
+                              {trimmed.replace(/^[-*]\s/, "").replace(/^[a-z]\)\s/, "").replace(/^[ivx]+\)\s/, "")}
+                            </li>
+                          );
+                        }
                         return (
-                          <h3 key={i} className="text-white font-semibold mt-5 mb-2 text-sm uppercase tracking-wide">
+                          <p key={i} className="text-gray-300 text-sm leading-relaxed mb-2">
                             {trimmed}
-                          </h3>
+                          </p>
                         );
-                      }
-                      // Detect sub-headings (numbered items like "1.1", "2.3")
-                      if (trimmed.match(/^\d+\.\d+\s/)) {
-                        return (
-                          <h4 key={i} className="text-gray-200 font-medium mt-3 mb-1 text-sm">
-                            {trimmed}
-                          </h4>
-                        );
-                      }
-                      // Detect bullet points
-                      if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.match(/^[a-z]\)\s/) || trimmed.match(/^[ivx]+\)\s/)) {
-                        return (
-                          <li key={i} className="text-gray-300 text-sm ml-4 list-disc mb-1">
-                            {trimmed.replace(/^[-*]\s/, "").replace(/^[a-z]\)\s/, "").replace(/^[ivx]+\)\s/, "")}
-                          </li>
-                        );
-                      }
-                      return (
-                        <p key={i} className="text-gray-300 text-sm leading-relaxed mb-2">
-                          {trimmed}
-                        </p>
-                      );
-                    })}
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
               </section>
             )}
 

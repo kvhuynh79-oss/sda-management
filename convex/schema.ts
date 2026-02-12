@@ -2429,6 +2429,9 @@ export default defineSchema({
     ),
     notes: v.optional(v.string()),
     content: v.optional(v.string()), // Full text content for in-app reading
+    summary: v.optional(v.string()), // AI-generated summary paragraph
+    keyPoints: v.optional(v.array(v.string())), // AI-generated key action points
+    summaryGeneratedAt: v.optional(v.number()), // Timestamp of last summary generation
     isActive: v.boolean(),
     createdBy: v.id("users"),
     createdAt: v.number(),

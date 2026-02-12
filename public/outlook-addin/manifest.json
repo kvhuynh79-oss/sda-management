@@ -1,0 +1,101 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
+  "id": "com.mysdamanager.outlook-addin",
+  "version": "1.0.0",
+  "name": {
+    "short": "MySDAManager",
+    "full": "MySDAManager - Push to Communications"
+  },
+  "description": {
+    "short": "Push Outlook emails to MySDAManager Communications",
+    "full": "Push Outlook emails directly into your MySDAManager Communications hub. Pre-fills email details, supports thread matching, and links to participants and properties."
+  },
+  "developer": {
+    "name": "Better Living Solutions",
+    "websiteUrl": "https://mysdamanager.com",
+    "privacyUrl": "https://mysdamanager.com/privacy",
+    "termsOfUseUrl": "https://mysdamanager.com/terms"
+  },
+  "icons": {
+    "color": "assets/icon-192.png",
+    "outline": "assets/icon-32.png"
+  },
+  "accentColor": "#0d9488",
+  "extensions": [
+    {
+      "requirements": {
+        "capabilities": [
+          {
+            "name": "Mailbox",
+            "minVersion": "1.1"
+          }
+        ]
+      },
+      "runtimes": [
+        {
+          "requirements": {
+            "capabilities": [
+              {
+                "name": "Mailbox",
+                "minVersion": "1.1"
+              }
+            ]
+          },
+          "id": "TaskPaneRuntime",
+          "type": "general",
+          "code": {
+            "page": "https://mysdamanager.com/outlook-addin/taskpane"
+          }
+        }
+      ],
+      "ribbons": [
+        {
+          "contexts": ["mailRead"],
+          "tabs": [
+            {
+              "builtInTabId": "TabDefault",
+              "groups": [
+                {
+                  "id": "msgReadGroup",
+                  "label": "MySDAManager",
+                  "icons": [
+                    { "size": 16, "url": "https://mysdamanager.com/outlook-addin/assets/icon-16.png" },
+                    { "size": 32, "url": "https://mysdamanager.com/outlook-addin/assets/icon-32.png" },
+                    { "size": 80, "url": "https://mysdamanager.com/outlook-addin/assets/icon-80.png" }
+                  ],
+                  "controls": [
+                    {
+                      "id": "pushToComms",
+                      "type": "button",
+                      "label": "Push to Comms",
+                      "icons": [
+                        { "size": 16, "url": "https://mysdamanager.com/outlook-addin/assets/icon-16.png" },
+                        { "size": 32, "url": "https://mysdamanager.com/outlook-addin/assets/icon-32.png" },
+                        { "size": 80, "url": "https://mysdamanager.com/outlook-addin/assets/icon-80.png" }
+                      ],
+                      "supertip": {
+                        "title": "Push to MySDAManager",
+                        "description": "Push this email into MySDAManager Communications"
+                      },
+                      "actionId": "openTaskPane"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "MailboxItem.Read.User",
+          "type": "Delegated"
+        }
+      ]
+    }
+  }
+}

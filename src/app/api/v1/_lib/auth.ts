@@ -40,6 +40,7 @@ export interface ApiAuthSuccess {
   organizationId: string;
   permissions: string[];
   keyId: string;
+  createdBy: string;
 }
 
 /**
@@ -105,6 +106,7 @@ export async function authenticateApiRequest(
       organizationId: result.organizationId,
       permissions: result.permissions,
       keyId: result.keyId,
+      createdBy: result.createdBy,
     };
   } catch (err) {
     console.error("[REST API] Authentication error:", err);

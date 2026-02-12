@@ -25,6 +25,8 @@ export const AVAILABLE_PERMISSIONS = [
   "write:maintenance",
   "read:incidents",
   "write:incidents",
+  "read:communications",
+  "write:communications",
 ] as const;
 
 // ============================================================================
@@ -223,6 +225,7 @@ export const validateApiKey = mutation({
         organizationId: string;
         permissions: string[];
         keyId: string;
+        createdBy: string;
       }
     | { valid: false }
   > => {
@@ -259,6 +262,7 @@ export const validateApiKey = mutation({
       organizationId: apiKey.organizationId as string,
       permissions: apiKey.permissions,
       keyId: apiKey._id as string,
+      createdBy: apiKey.createdBy as string,
     };
   },
 });

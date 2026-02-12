@@ -33,6 +33,8 @@ const PERMISSION_OPTIONS = [
   { value: "write:maintenance", label: "Write Maintenance", group: "Maintenance" },
   { value: "read:incidents", label: "Read Incidents", group: "Incidents" },
   { value: "write:incidents", label: "Write Incidents", group: "Incidents" },
+  { value: "read:communications", label: "Read Communications", group: "Communications" },
+  { value: "write:communications", label: "Write Communications", group: "Communications" },
 ] as const;
 
 // API endpoint documentation
@@ -42,6 +44,10 @@ const API_ENDPOINTS = [
   { method: "GET", path: "/api/v1/participants", description: "List participants" },
   { method: "GET", path: "/api/v1/maintenance", description: "List maintenance requests" },
   { method: "GET", path: "/api/v1/incidents", description: "List incidents" },
+  { method: "GET", path: "/api/v1/communications", description: "List communications" },
+  { method: "POST", path: "/api/v1/communications", description: "Create a communication" },
+  { method: "GET", path: "/api/v1/communications/threads", description: "List threads" },
+  { method: "GET", path: "/api/v1/lookup", description: "Lookup participants/properties" },
 ] as const;
 
 export default function ApiKeysPage() {

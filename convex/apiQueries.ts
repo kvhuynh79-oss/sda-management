@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { findOrCreateThread } from "./lib/threadingEngine";
 
 /**
  * REST API Query & Mutation Module - Sprint 7
@@ -521,5 +522,369 @@ export const createIncident = mutation({
     });
 
     return { id: incidentId };
+  },
+});
+
+// ============================================================================
+// COMMUNICATIONS
+// ============================================================================
+
+/**
+ * Create a communication record via the REST API.
+ * Requires write:communications permission on the API key.
+ * Uses the threading engine to auto-match or create threads.
+ */
+export const createCommunication = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    createdByUserId: v.id("users"),
+    communicationType: v.optional(v.union(
+      v.literal("email"),
+      v.literal("sms"),
+      v.literal("phone_call"),
+      v.literal("meeting"),
+      v.literal("other")
+    )),
+    direction: v.union(v.literal("sent"), v.literal("received")),
+    contactName: v.string(),
+    contactEmail: v.optional(v.string()),
+    contactType: v.optional(v.union(
+      v.literal("ndia"),
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("participant"),
+      v.literal("family"),
+      v.literal("plan_manager"),
+      v.literal("ot"),
+      v.literal("contractor"),
+      v.literal("other")
+    )),
+    subject: v.optional(v.string()),
+    summary: v.string(),
+    communicationDate: v.string(),
+    communicationTime: v.optional(v.string()),
+    existingThreadId: v.optional(v.string()),
+    linkedParticipantId: v.optional(v.id("participants")),
+    linkedPropertyId: v.optional(v.id("properties")),
+    stakeholderEntityType: v.optional(v.union(
+      v.literal("support_coordinator"),
+      v.literal("sil_provider"),
+      v.literal("occupational_therapist"),
+      v.literal("contractor"),
+      v.literal("participant")
+    )),
+    stakeholderEntityId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const commType = args.communicationType ?? "email";
+    const contactType = args.contactType ?? "support_coordinator";
+
+    // Thread assignment: use existing thread or auto-match
+    let threadId = args.existingThreadId;
+    if (!threadId) {
+      // Fetch recent communications for this org to find matching thread
+      const recentComms = await ctx.db
+        .query("communications")
+        .withIndex("by_organizationId", (q) =>
+          q.eq("organizationId", args.organizationId)
+        )
+        .order("desc")
+        .take(200);
+
+      const activeComms = recentComms.filter((c) => c.isDeleted !== true);
+
+      const newComm = {
+        _id: "new" as string,
+        contactName: args.contactName,
+        contactEmail: args.contactEmail,
+        subject: args.subject,
+        communicationType: commType,
+        communicationDate: args.communicationDate,
+        createdAt: now,
+        threadId: undefined,
+      };
+
+      const recentForThreading = activeComms.map((c) => ({
+        _id: c._id as string,
+        contactName: c.contactName,
+        contactEmail: c.contactEmail,
+        subject: c.subject,
+        communicationType: c.communicationType,
+        communicationDate: c.communicationDate,
+        createdAt: c.createdAt ?? c._creationTime,
+        threadId: c.threadId,
+      }));
+
+      const threadResult = findOrCreateThread(newComm, recentForThreading);
+      threadId = threadResult.threadId;
+    }
+
+    const communicationId = await ctx.db.insert("communications", {
+      organizationId: args.organizationId,
+      communicationType: commType,
+      direction: args.direction,
+      communicationDate: args.communicationDate,
+      communicationTime: args.communicationTime,
+      contactType: contactType,
+      contactName: args.contactName,
+      contactEmail: args.contactEmail,
+      subject: args.subject,
+      summary: args.summary,
+      linkedParticipantId: args.linkedParticipantId,
+      linkedPropertyId: args.linkedPropertyId,
+      stakeholderEntityType: args.stakeholderEntityType,
+      stakeholderEntityId: args.stakeholderEntityId,
+      threadId,
+      createdBy: args.createdByUserId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { communicationId, threadId };
+  },
+});
+
+/**
+ * List communications for an organization via REST API.
+ * Supports contactType, contactName, and search filters.
+ */
+export const listCommunications = query({
+  args: {
+    organizationId: v.id("organizations"),
+    contactType: v.optional(v.string()),
+    contactName: v.optional(v.string()),
+    search: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? MAX_RESULTS, MAX_RESULTS);
+
+    let comms = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .order("desc")
+      .collect();
+
+    // Exclude soft-deleted
+    comms = comms.filter((c) => c.isDeleted !== true);
+
+    if (args.contactType) {
+      comms = comms.filter((c) => c.contactType === args.contactType);
+    }
+
+    if (args.contactName) {
+      const nameLower = args.contactName.toLowerCase();
+      comms = comms.filter((c) =>
+        c.contactName.toLowerCase().includes(nameLower)
+      );
+    }
+
+    if (args.search) {
+      const searchLower = args.search.toLowerCase();
+      comms = comms.filter(
+        (c) =>
+          c.contactName.toLowerCase().includes(searchLower) ||
+          (c.subject && c.subject.toLowerCase().includes(searchLower)) ||
+          c.summary.toLowerCase().includes(searchLower)
+      );
+    }
+
+    comms = comms.slice(0, limit);
+
+    return comms.map((c) => ({
+      id: c._id,
+      communicationType: c.communicationType,
+      direction: c.direction,
+      communicationDate: c.communicationDate,
+      communicationTime: c.communicationTime ?? null,
+      contactType: c.contactType,
+      contactName: c.contactName,
+      contactEmail: c.contactEmail ?? null,
+      subject: c.subject ?? null,
+      summary: c.summary,
+      threadId: c.threadId ?? null,
+      linkedParticipantId: c.linkedParticipantId ?? null,
+      linkedPropertyId: c.linkedPropertyId ?? null,
+      createdBy: c.createdBy,
+      createdAt: c.createdAt,
+    }));
+  },
+});
+
+/**
+ * Find matching threads for the Outlook add-in.
+ * Returns thread groups with subject, last activity, and message count.
+ */
+export const findThreads = query({
+  args: {
+    organizationId: v.id("organizations"),
+    contactName: v.optional(v.string()),
+    search: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 20, 50);
+
+    let comms = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .order("desc")
+      .collect();
+
+    comms = comms.filter((c) => c.isDeleted !== true && c.threadId);
+
+    if (args.contactName) {
+      const nameLower = args.contactName.toLowerCase();
+      comms = comms.filter((c) =>
+        c.contactName.toLowerCase().includes(nameLower)
+      );
+    }
+
+    if (args.search) {
+      const searchLower = args.search.toLowerCase();
+      comms = comms.filter(
+        (c) =>
+          c.contactName.toLowerCase().includes(searchLower) ||
+          (c.subject && c.subject.toLowerCase().includes(searchLower)) ||
+          c.summary.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Group by threadId
+    const threadMap = new Map<string, {
+      threadId: string;
+      subject: string | null;
+      contactNames: Set<string>;
+      lastActivityAt: number;
+      messageCount: number;
+    }>();
+
+    for (const c of comms) {
+      const tid = c.threadId!;
+      if (!threadMap.has(tid)) {
+        threadMap.set(tid, {
+          threadId: tid,
+          subject: c.subject ?? null,
+          contactNames: new Set([c.contactName]),
+          lastActivityAt: c.createdAt,
+          messageCount: 1,
+        });
+      } else {
+        const t = threadMap.get(tid)!;
+        t.contactNames.add(c.contactName);
+        t.messageCount++;
+        if (c.createdAt > t.lastActivityAt) {
+          t.lastActivityAt = c.createdAt;
+          if (c.subject) t.subject = c.subject;
+        }
+      }
+    }
+
+    // Sort by last activity, cap to limit
+    const threads = Array.from(threadMap.values())
+      .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+      .slice(0, limit);
+
+    return threads.map((t) => ({
+      threadId: t.threadId,
+      subject: t.subject,
+      participantNames: Array.from(t.contactNames),
+      lastActivityAt: t.lastActivityAt,
+      messageCount: t.messageCount,
+    }));
+  },
+});
+
+// ============================================================================
+// LOOKUP HELPERS (for Outlook add-in dropdowns)
+// ============================================================================
+
+/**
+ * Lightweight participant list for the Outlook add-in dropdown.
+ */
+export const listParticipantsSimple = query({
+  args: {
+    organizationId: v.id("organizations"),
+    search: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 50, 100);
+
+    let participants = await ctx.db
+      .query("participants")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+
+    // Only active participants
+    participants = participants.filter((p) => p.status === "active");
+
+    if (args.search) {
+      const searchLower = args.search.toLowerCase();
+      participants = participants.filter(
+        (p) =>
+          p.firstName.toLowerCase().includes(searchLower) ||
+          p.lastName.toLowerCase().includes(searchLower) ||
+          p.ndisNumber.toLowerCase().includes(searchLower)
+      );
+    }
+
+    participants = participants.slice(0, limit);
+
+    return participants.map((p) => ({
+      id: p._id,
+      firstName: p.firstName,
+      lastName: p.lastName,
+      ndisNumber: p.ndisNumber,
+    }));
+  },
+});
+
+/**
+ * Lightweight property list for the Outlook add-in dropdown.
+ */
+export const listPropertiesSimple = query({
+  args: {
+    organizationId: v.id("organizations"),
+    search: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.limit ?? 50, 100);
+
+    let properties = await ctx.db
+      .query("properties")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+
+    // Only active properties
+    properties = properties.filter((p) => p.isActive !== false);
+
+    if (args.search) {
+      const searchLower = args.search.toLowerCase();
+      properties = properties.filter(
+        (p) =>
+          p.addressLine1.toLowerCase().includes(searchLower) ||
+          p.suburb.toLowerCase().includes(searchLower) ||
+          (p.propertyName && p.propertyName.toLowerCase().includes(searchLower))
+      );
+    }
+
+    properties = properties.slice(0, limit);
+
+    return properties.map((p) => ({
+      id: p._id,
+      propertyName: p.propertyName ?? null,
+      address: `${p.addressLine1}, ${p.suburb} ${p.state} ${p.postcode}`,
+    }));
   },
 });

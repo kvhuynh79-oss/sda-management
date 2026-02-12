@@ -55,6 +55,7 @@ export default function EditParticipantPage() {
   const [participantData, setParticipantData] = useState({
     firstName: "",
     lastName: "",
+    ndisNumber: "",
     dateOfBirth: "",
     email: "",
     phone: "",
@@ -120,6 +121,7 @@ export default function EditParticipantPage() {
       setParticipantData({
         firstName: participant.firstName || "",
         lastName: participant.lastName || "",
+        ndisNumber: participant.ndisNumber || "",
         dateOfBirth: participant.dateOfBirth || "",
         email: participant.email || "",
         phone: participant.phone || "",
@@ -269,6 +271,7 @@ export default function EditParticipantPage() {
         participantId,
         firstName: participantData.firstName,
         lastName: participantData.lastName,
+        ndisNumber: participantData.ndisNumber || undefined,
         dateOfBirth: participantData.dateOfBirth || undefined,
         email: participantData.email || undefined,
         phone: participantData.phone || undefined,
@@ -484,6 +487,18 @@ export default function EditParticipantPage() {
                       setParticipantData({ ...participantData, lastName: e.target.value })
                     }
                     required
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 text-sm mb-1">NDIS Number</label>
+                  <input
+                    type="text"
+                    value={participantData.ndisNumber}
+                    onChange={(e) =>
+                      setParticipantData({ ...participantData, ndisNumber: e.target.value })
+                    }
+                    placeholder="e.g. 431234567"
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   />
                 </div>

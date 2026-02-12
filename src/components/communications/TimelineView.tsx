@@ -347,6 +347,29 @@ export function TimelineView({
                             Property linked
                           </p>
                         )}
+                        {isExpanded && (
+                          <div className="mt-2">
+                            {comm.stakeholderEntityType ? (
+                              <p className="text-xs text-gray-400">
+                                Linked: <span className="text-gray-300">
+                                  {comm.stakeholderEntityType === "supportCoordinators" ? "Support Coordinator" :
+                                   comm.stakeholderEntityType === "silProviders" ? "SIL Provider" :
+                                   comm.stakeholderEntityType === "occupationalTherapists" ? "Occupational Therapist" :
+                                   comm.stakeholderEntityType === "contractors" ? "Contractor" :
+                                   comm.stakeholderEntityType}
+                                </span>
+                                {comm.contactName && <> - {comm.contactName}</>}
+                              </p>
+                            ) : !comm.participantId && (
+                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-1.102-4.243a4 4 0 015.656 0l4 4a4 4 0 01-5.656 5.656l-1.1-1.1" />
+                                </svg>
+                                Not linked to any contact
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
                           <Link
                             href={buildAddEntryUrl(comm)}
@@ -354,6 +377,13 @@ export function TimelineView({
                             className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
                           >
                             Add Entry
+                          </Link>
+                          <Link
+                            href={`/follow-ups/communications/${comm._id}?edit=true`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
+                          >
+                            Edit
                           </Link>
                           {canDelete && (
                             <button

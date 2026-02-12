@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import Link from "next/link";
@@ -16,10 +16,11 @@ import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 export default function CommunicationDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const communicationId = params.id as string;
 
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(searchParams.get("edit") === "true");
   const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -40,6 +41,8 @@ export default function CommunicationDetailPage() {
   const [useManualParticipant, setUseManualParticipant] = useState(false);
   const [manualParticipantName, setManualParticipantName] = useState("");
   const [propertyTbd, setPropertyTbd] = useState(false);
+  const [stakeholderEntityType, setStakeholderEntityType] = useState<string>("");
+  const [stakeholderEntityId, setStakeholderEntityId] = useState<string>("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -56,6 +59,32 @@ export default function CommunicationDetailPage() {
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
   const properties = useQuery(api.properties.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
+
+  // Stakeholder entity queries for DB-linked dropdowns
+  const supportCoordinators = useQuery(
+    api.supportCoordinators.getAll,
+    user && isEditing && formData.contactType === "support_coordinator"
+      ? { userId: user.id as Id<"users">, status: "active" as const }
+      : "skip"
+  );
+  const silProviders = useQuery(
+    api.silProviders.getAll,
+    user && isEditing && formData.contactType === "sil_provider"
+      ? { userId: user.id as Id<"users">, status: "active" as const }
+      : "skip"
+  );
+  const occupationalTherapists = useQuery(
+    api.occupationalTherapists.getAll,
+    user && isEditing && formData.contactType === "ot"
+      ? { userId: user.id as Id<"users">, status: "active" as const }
+      : "skip"
+  );
+  const contractors = useQuery(
+    api.contractors.getAll,
+    user && isEditing && formData.contactType === "contractor"
+      ? { userId: user.id as Id<"users"> }
+      : "skip"
+  );
 
   const updateCommunication = useMutation(api.communications.update);
   const deleteCommunication = useMutation(api.communications.remove);
@@ -81,6 +110,8 @@ export default function CommunicationDetailPage() {
       setUseManualParticipant(!!communication.freeTextParticipantName && !communication.linkedParticipantId);
       setManualParticipantName(communication.freeTextParticipantName || "");
       setPropertyTbd(!!communication.propertyTbd && !communication.linkedPropertyId);
+      setStakeholderEntityType(communication.stakeholderEntityType || "");
+      setStakeholderEntityId(communication.stakeholderEntityId || "");
     }
   }, [communication]);
 
@@ -109,6 +140,10 @@ export default function CommunicationDetailPage() {
           : undefined,
         freeTextParticipantName: useManualParticipant ? manualParticipantName : undefined,
         propertyTbd: propertyTbd || undefined,
+        stakeholderEntityType: stakeholderEntityType
+          ? (stakeholderEntityType as "support_coordinator" | "sil_provider" | "occupational_therapist" | "contractor" | "participant")
+          : undefined,
+        stakeholderEntityId: stakeholderEntityId || undefined,
         userId: user.id as Id<"users">,
       });
       setIsEditing(false);
@@ -315,7 +350,13 @@ export default function CommunicationDetailPage() {
                   <FormSelect
                     label="Contact Type"
                     value={formData.contactType}
-                    onChange={(e) => setFormData({ ...formData, contactType: e.target.value as any })}
+                    onChange={(e) => {
+                      const newType = e.target.value as any;
+                      setFormData({ ...formData, contactType: newType });
+                      // Reset stakeholder selection when contact type changes
+                      setStakeholderEntityType("");
+                      setStakeholderEntityId("");
+                    }}
                     options={[
                       { value: "ndia", label: "NDIA" },
                       { value: "support_coordinator", label: "Support Coordinator" },
@@ -328,6 +369,160 @@ export default function CommunicationDetailPage() {
                       { value: "other", label: "Other" },
                     ]}
                   />
+
+                  {/* Link to Database Contact - conditional on contact type */}
+                  {formData.contactType === "support_coordinator" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Link to Support Coordinator</label>
+                      <select
+                        value={stakeholderEntityId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          setStakeholderEntityId(selectedId);
+                          if (selectedId) {
+                            setStakeholderEntityType("support_coordinator");
+                            const sc = supportCoordinators?.find((s) => s._id === selectedId);
+                            if (sc) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                contactName: `${sc.firstName} ${sc.lastName}`,
+                                contactEmail: sc.email || prev.contactEmail,
+                                contactPhone: sc.phone || prev.contactPhone,
+                              }));
+                            }
+                          } else {
+                            setStakeholderEntityType("");
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
+                      >
+                        <option value="">-- Select from database --</option>
+                        {(supportCoordinators || []).map((sc) => (
+                          <option key={sc._id} value={sc._id}>
+                            {sc.firstName} {sc.lastName}{sc.organization ? ` (${sc.organization})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {stakeholderEntityId && (
+                        <p className="mt-1 text-xs text-teal-400">Contact name and email auto-filled from database</p>
+                      )}
+                    </div>
+                  )}
+
+                  {formData.contactType === "sil_provider" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Link to SIL Provider</label>
+                      <select
+                        value={stakeholderEntityId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          setStakeholderEntityId(selectedId);
+                          if (selectedId) {
+                            setStakeholderEntityType("sil_provider");
+                            const sp = silProviders?.find((s) => s._id === selectedId);
+                            if (sp) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                contactName: sp.contactName || sp.companyName,
+                                contactEmail: sp.email || prev.contactEmail,
+                                contactPhone: sp.phone || prev.contactPhone,
+                              }));
+                            }
+                          } else {
+                            setStakeholderEntityType("");
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
+                      >
+                        <option value="">-- Select from database --</option>
+                        {(silProviders || []).map((sp) => (
+                          <option key={sp._id} value={sp._id}>
+                            {sp.companyName}{sp.contactName ? ` (${sp.contactName})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {stakeholderEntityId && (
+                        <p className="mt-1 text-xs text-teal-400">Contact name and email auto-filled from database</p>
+                      )}
+                    </div>
+                  )}
+
+                  {formData.contactType === "ot" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Link to Occupational Therapist</label>
+                      <select
+                        value={stakeholderEntityId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          setStakeholderEntityId(selectedId);
+                          if (selectedId) {
+                            setStakeholderEntityType("occupational_therapist");
+                            const ot = occupationalTherapists?.find((o) => o._id === selectedId);
+                            if (ot) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                contactName: `${ot.firstName} ${ot.lastName}`,
+                                contactEmail: ot.email || prev.contactEmail,
+                                contactPhone: ot.phone || prev.contactPhone,
+                              }));
+                            }
+                          } else {
+                            setStakeholderEntityType("");
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
+                      >
+                        <option value="">-- Select from database --</option>
+                        {(occupationalTherapists || []).map((ot) => (
+                          <option key={ot._id} value={ot._id}>
+                            {ot.firstName} {ot.lastName}{ot.organization ? ` (${ot.organization})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {stakeholderEntityId && (
+                        <p className="mt-1 text-xs text-teal-400">Contact name and email auto-filled from database</p>
+                      )}
+                    </div>
+                  )}
+
+                  {formData.contactType === "contractor" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">Link to Contractor</label>
+                      <select
+                        value={stakeholderEntityId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          setStakeholderEntityId(selectedId);
+                          if (selectedId) {
+                            setStakeholderEntityType("contractor");
+                            const c = contractors?.find((ct) => ct._id === selectedId);
+                            if (c) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                contactName: c.contactName || c.companyName,
+                                contactEmail: c.email || prev.contactEmail,
+                                contactPhone: c.phone || prev.contactPhone,
+                              }));
+                            }
+                          } else {
+                            setStakeholderEntityType("");
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
+                      >
+                        <option value="">-- Select from database --</option>
+                        {(contractors || []).map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.companyName}{c.contactName ? ` (${c.contactName})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {stakeholderEntityId && (
+                        <p className="mt-1 text-xs text-teal-400">Contact name and email auto-filled from database</p>
+                      )}
+                    </div>
+                  )}
+
                   <FormInput
                     label="Contact Name"
                     value={formData.contactName}
@@ -426,6 +621,21 @@ export default function CommunicationDetailPage() {
                     <div>
                       <span className="text-gray-400">Phone</span>
                       <p className="text-white">{communication.contactPhone}</p>
+                    </div>
+                  )}
+                  {communication.stakeholderEntityType && (
+                    <div>
+                      <span className="text-gray-400">Linked Entity</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-teal-500/20 text-teal-400 px-1.5 py-0.5 rounded">
+                          {communication.stakeholderEntityType === "support_coordinator" && "Support Coordinator"}
+                          {communication.stakeholderEntityType === "sil_provider" && "SIL Provider"}
+                          {communication.stakeholderEntityType === "occupational_therapist" && "OT"}
+                          {communication.stakeholderEntityType === "contractor" && "Contractor"}
+                          {communication.stakeholderEntityType === "participant" && "Participant"}
+                        </span>
+                        <span className="text-white text-xs">DB-Linked</span>
+                      </div>
                     </div>
                   )}
                   {communication.participant && (

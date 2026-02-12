@@ -518,9 +518,9 @@ export const processInboundEmail = mutation({
     const cleanedBody = cleanEmailBody(bodyText);
 
     // -----------------------------------------------------------------------
-    // 5. Detect contact type from sender's email
+    // 5. Detect contact type and entity from sender's email
     // -----------------------------------------------------------------------
-    const contactType = await detectContactType(
+    const detection = await detectContactAndEntity(
       ctx,
       contactEmail,
       organizationId
@@ -577,13 +577,18 @@ export const processInboundEmail = mutation({
       communicationType: "email" as const,
       direction: "received" as const,
       communicationDate: resolveCommunicationDate(args.emailDate),
-      contactType: contactType,
+      contactType: detection.contactType,
       contactName: contactName,
       contactEmail: contactEmail || undefined,
       subject: subject,
       summary: cleanedBody || "(Empty email body)",
       threadId: threadResult.threadId,
       isThreadStarter: threadResult.isNewThread,
+      // Stakeholder entity linking (auto-detected from sender email)
+      stakeholderEntityType: detection.stakeholderEntityType,
+      stakeholderEntityId: detection.stakeholderEntityId,
+      // Auto-linked participant from SC/SIL relationship tables
+      linkedParticipantId: detection.linkedParticipantId as any, // Schema: v.optional(v.id("participants"))
       createdBy: forwarderUserId as any, // Typed as Id<"users"> in schema
       createdAt: now,
       updatedAt: now,
@@ -597,7 +602,10 @@ export const processInboundEmail = mutation({
       threadId: threadResult.threadId,
       contactName,
       contactEmail,
-      contactType,
+      contactType: detection.contactType,
+      stakeholderEntityType: detection.stakeholderEntityType,
+      stakeholderEntityId: detection.stakeholderEntityId,
+      linkedParticipantId: detection.linkedParticipantId,
       subject,
       isForwarded: parsed.isForwarded,
       isNewThread: threadResult.isNewThread,
@@ -610,30 +618,34 @@ export const processInboundEmail = mutation({
 // ---------------------------------------------------------------------------
 
 /**
+ * Result of detecting contact type and associated entity from a sender email.
+ */
+interface ContactDetectionResult {
+  contactType: "ndia" | "support_coordinator" | "sil_provider" | "ot" | "contractor" | "other";
+  stakeholderEntityType?: "support_coordinator" | "sil_provider" | "occupational_therapist" | "contractor";
+  stakeholderEntityId?: string;
+  linkedParticipantId?: string; // Auto-linked from SC/SIL participant relationships
+}
+
+/**
  * Detect the contact type of an email sender by checking their address
- * against known entities in the database.
+ * against known entities in the database. Returns the entity ID and
+ * stakeholder type for automatic communication linking.
  *
  * Priority order:
- *   1. Support Coordinators (by_email index)
- *   2. SIL Providers (by_email index)
+ *   1. Support Coordinators (by_email index) + participant lookup
+ *   2. SIL Providers (by_email index) + participant lookup
  *   3. Occupational Therapists (by_email index)
  *   4. Contractors (by_email index)
  *   5. Domain pattern: @ndis.gov.au => "ndia"
  *   6. Default: "other"
  */
-async function detectContactType(
+async function detectContactAndEntity(
   ctx: any,
   email: string,
   organizationId: string
-): Promise<
-  | "ndia"
-  | "support_coordinator"
-  | "sil_provider"
-  | "ot"
-  | "contractor"
-  | "other"
-> {
-  if (!email) return "other";
+): Promise<ContactDetectionResult> {
+  if (!email) return { contactType: "other" };
 
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -643,7 +655,22 @@ async function detectContactType(
     .withIndex("by_email", (q: any) => q.eq("email", normalizedEmail))
     .first();
   if (sc && (sc.organizationId === organizationId || !sc.organizationId)) {
-    return "support_coordinator";
+    // Look up linked participant via supportCoordinatorParticipants
+    let linkedParticipantId: string | undefined;
+    const scParticipant = await ctx.db
+      .query("supportCoordinatorParticipants")
+      .withIndex("by_coordinator", (q: any) => q.eq("supportCoordinatorId", sc._id))
+      .first();
+    if (scParticipant) {
+      linkedParticipantId = scParticipant.participantId as string;
+    }
+
+    return {
+      contactType: "support_coordinator",
+      stakeholderEntityType: "support_coordinator",
+      stakeholderEntityId: sc._id as string,
+      linkedParticipantId,
+    };
   }
 
   // 2. SIL Providers
@@ -652,7 +679,22 @@ async function detectContactType(
     .withIndex("by_email", (q: any) => q.eq("email", normalizedEmail))
     .first();
   if (sil && (sil.organizationId === organizationId || !sil.organizationId)) {
-    return "sil_provider";
+    // Look up linked participant via silProviderParticipants
+    let linkedParticipantId: string | undefined;
+    const silParticipant = await ctx.db
+      .query("silProviderParticipants")
+      .withIndex("by_provider", (q: any) => q.eq("silProviderId", sil._id))
+      .first();
+    if (silParticipant) {
+      linkedParticipantId = silParticipant.participantId as string;
+    }
+
+    return {
+      contactType: "sil_provider",
+      stakeholderEntityType: "sil_provider",
+      stakeholderEntityId: sil._id as string,
+      linkedParticipantId,
+    };
   }
 
   // 3. Occupational Therapists
@@ -661,7 +703,11 @@ async function detectContactType(
     .withIndex("by_email", (q: any) => q.eq("email", normalizedEmail))
     .first();
   if (ot && (ot.organizationId === organizationId || !ot.organizationId)) {
-    return "ot";
+    return {
+      contactType: "ot",
+      stakeholderEntityType: "occupational_therapist",
+      stakeholderEntityId: ot._id as string,
+    };
   }
 
   // 4. Contractors
@@ -674,7 +720,11 @@ async function detectContactType(
     (contractor.organizationId === organizationId ||
       !contractor.organizationId)
   ) {
-    return "contractor";
+    return {
+      contactType: "contractor",
+      stakeholderEntityType: "contractor",
+      stakeholderEntityId: contractor._id as string,
+    };
   }
 
   // 5. Domain-based detection
@@ -686,12 +736,12 @@ async function detectContactType(
       domain === "ndia.gov.au" ||
       domain.endsWith(".ndis.gov.au")
     ) {
-      return "ndia";
+      return { contactType: "ndia" };
     }
   }
 
   // 6. Default
-  return "other";
+  return { contactType: "other" };
 }
 
 /**

@@ -84,7 +84,7 @@ export default function NewCommunicationPage() {
   const [manualParticipantName, setManualParticipantName] = useState("");
   const [propertyTbd, setPropertyTbd] = useState(false);
 
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [createFollowUpTask, setCreateFollowUpTask] = useState(false);
   const [followUpTaskTitle, setFollowUpTaskTitle] = useState("");
@@ -316,18 +316,29 @@ export default function NewCommunicationPage() {
     e.stopPropagation();
     setIsDragOver(false);
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
       const acceptedTypes = ["image/", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-      const isAccepted = acceptedTypes.some((type) =>
-        type.endsWith("/") ? file.type.startsWith(type) : file.type === type
-      );
+      const validFiles: File[] = [];
+      const rejected: string[] = [];
 
-      if (isAccepted) {
-        setAttachmentFile(file);
-      } else {
-        setError("Please upload an image, PDF, or Word document.");
+      for (let i = 0; i < droppedFiles.length; i++) {
+        const file = droppedFiles[i];
+        const isAccepted = acceptedTypes.some((type) =>
+          type.endsWith("/") ? file.type.startsWith(type) : file.type === type
+        );
+        if (isAccepted) {
+          validFiles.push(file);
+        } else {
+          rejected.push(file.name);
+        }
+      }
+
+      if (validFiles.length > 0) {
+        setAttachmentFiles((prev) => [...prev, ...validFiles]);
+      }
+      if (rejected.length > 0) {
+        setError(`Unsupported files skipped: ${rejected.join(", ")}. Only images, PDF, or Word documents accepted.`);
       }
     }
   };
@@ -343,19 +354,32 @@ export default function NewCommunicationPage() {
       let attachmentStorageId: Id<"_storage"> | undefined;
       let attachmentFileName: string | undefined;
       let attachmentFileType: string | undefined;
+      const attachmentStorageIds: string[] = [];
+      const attachmentMetadata: { fileName: string; fileSize: number; fileType: string; uploadedAt: number }[] = [];
 
-      // Upload attachment if exists
-      if (attachmentFile) {
+      // Upload attachments
+      for (const file of attachmentFiles) {
         const uploadUrl = await generateUploadUrl();
         const result = await fetch(uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": attachmentFile.type },
-          body: attachmentFile,
+          headers: { "Content-Type": file.type },
+          body: file,
         });
         const { storageId } = await result.json();
-        attachmentStorageId = storageId;
-        attachmentFileName = attachmentFile.name;
-        attachmentFileType = attachmentFile.type;
+        attachmentStorageIds.push(storageId);
+        attachmentMetadata.push({
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          uploadedAt: Date.now(),
+        });
+
+        // Also set legacy single-file fields for backward compat (first file)
+        if (!attachmentStorageId) {
+          attachmentStorageId = storageId;
+          attachmentFileName = file.name;
+          attachmentFileType = file.type;
+        }
       }
 
       // Build stakeholder fields
@@ -400,6 +424,8 @@ export default function NewCommunicationPage() {
         attachmentStorageId,
         attachmentFileName,
         attachmentFileType,
+        attachmentStorageIds: attachmentStorageIds.length > 0 ? attachmentStorageIds : undefined,
+        attachmentMetadata: attachmentMetadata.length > 0 ? attachmentMetadata : undefined,
         createdBy: user.id as Id<"users">,
         existingThreadId: existingThreadId || undefined,
       });
@@ -797,85 +823,105 @@ export default function NewCommunicationPage() {
 
             {/* Attachment */}
             <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Attachment</h2>
+              <h2 className="text-lg font-semibold text-white mb-4">Attachments</h2>
 
               <input
                 type="file"
                 ref={fileInputRef}
-                onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
+                multiple
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files && files.length > 0) {
+                    setAttachmentFiles((prev) => [...prev, ...Array.from(files)]);
+                  }
+                  e.target.value = "";
+                }}
                 className="hidden"
                 accept="image/*,.pdf,.doc,.docx"
               />
 
-              {attachmentFile ? (
-                <div className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
-                  <svg className="w-6 h-6 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
-                  <div className="flex-1">
-                    <p className="text-white text-sm">{attachmentFile.name}</p>
-                    <p className="text-gray-400 text-xs">
-                      {(attachmentFile.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setAttachmentFile(null)}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onDragOver={handleDragOver}
-                  onDragEnter={handleDragEnter}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      fileInputRef.current?.click();
-                    }
-                  }}
-                  aria-label="Upload attachment. Click or drag and drop a file."
-                  className={`w-full p-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-                    isDragOver
-                      ? "border-teal-600 bg-teal-600/10 text-teal-500"
-                      : "border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300"
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <svg
-                      className={`w-8 h-8 ${isDragOver ? "text-teal-500" : "text-gray-400"}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                      />
-                    </svg>
-                    <p className="text-center">
-                      {isDragOver ? (
-                        <span className="font-medium">Drop file here</span>
-                      ) : (
-                        <>
-                          <span className="font-medium">Click to upload</span> or drag and drop
-                        </>
-                      )}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Images, PDF, or Word documents
-                    </p>
-                  </div>
+              {/* File list */}
+              {attachmentFiles.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {attachmentFiles.map((file, idx) => (
+                    <div key={`${file.name}-${idx}`} className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
+                      <svg className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" /></svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm truncate">{file.name}</p>
+                        <p className="text-gray-400 text-xs">
+                          {file.size >= 1048576
+                            ? `${(file.size / 1048576).toFixed(1)} MB`
+                            : `${(file.size / 1024).toFixed(1)} KB`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAttachmentFiles((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-red-400 hover:text-red-300 text-sm flex-shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-400">{attachmentFiles.length} file{attachmentFiles.length !== 1 ? "s" : ""} selected</p>
                 </div>
               )}
+
+              {/* Drop zone - always visible for adding more */}
+              <div
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                aria-label="Upload attachments. Click or drag and drop files."
+                className={`w-full ${attachmentFiles.length > 0 ? "p-4" : "p-6"} border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
+                  isDragOver
+                    ? "border-teal-600 bg-teal-600/10 text-teal-500"
+                    : "border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300"
+                }`}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <svg
+                    className={`${attachmentFiles.length > 0 ? "w-6 h-6" : "w-8 h-8"} ${isDragOver ? "text-teal-500" : "text-gray-400"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  <p className="text-center text-sm">
+                    {isDragOver ? (
+                      <span className="font-medium">Drop files here</span>
+                    ) : attachmentFiles.length > 0 ? (
+                      <span className="font-medium">Add more files</span>
+                    ) : (
+                      <>
+                        <span className="font-medium">Click to upload</span> or drag and drop
+                      </>
+                    )}
+                  </p>
+                  {attachmentFiles.length === 0 && (
+                    <p className="text-xs text-gray-400">
+                      Images, PDF, or Word documents (multiple files supported)
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Create Follow-up Task */}

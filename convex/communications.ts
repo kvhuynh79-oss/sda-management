@@ -55,6 +55,13 @@ export const create = mutation({
     attachmentStorageId: v.optional(v.id("_storage")),
     attachmentFileName: v.optional(v.string()),
     attachmentFileType: v.optional(v.string()),
+    attachmentStorageIds: v.optional(v.array(v.string())),
+    attachmentMetadata: v.optional(v.array(v.object({
+      fileName: v.string(),
+      fileSize: v.number(),
+      fileType: v.string(),
+      uploadedAt: v.number(),
+    }))),
     // Stakeholder linking (DB record)
     stakeholderEntityType: v.optional(v.union(
       v.literal("support_coordinator"),
@@ -268,6 +275,8 @@ export const create = mutation({
       attachmentStorageId: args.attachmentStorageId,
       attachmentFileName: args.attachmentFileName,
       attachmentFileType: args.attachmentFileType,
+      attachmentStorageIds: args.attachmentStorageIds,
+      attachmentMetadata: args.attachmentMetadata,
       // NDIS Compliance fields (from form or defaults)
       complianceCategory: args.complianceCategory || ("none" as const),
       complianceFlags: args.complianceFlags || undefined,

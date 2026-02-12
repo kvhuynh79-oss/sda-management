@@ -280,25 +280,1169 @@ export function generateConsentFormPdf(params: ConsentFormParams): void {
 }
 
 /**
- * Generate a standalone Easy Read consent form PDF (2 pages).
- * Designed for participants with intellectual disabilities or cognitive impairments.
- * Uses short sentences, simple words, and clear headings per Easy Read guidelines.
+ * Generate a standalone Easy Read consent form PDF (12 pages).
+ * Follows NDIS Quality and Safeguards Commission Easy Read format:
+ * - Very large text (14-16pt body, 20-24pt headings)
+ * - Maximum 2-3 concepts per page with generous white space
+ * - One idea per sentence, one sentence per line
+ * - Bold key terms defined in a word list at the end
+ * - Cover page, "How to use this form" page, word list, contact page
+ * - Active voice, second person ("you", "we")
+ * - Complies with Australian Privacy Principle 3 (APP 3)
  */
 export function generateEasyReadConsentPdf(params: ConsentFormParams): void {
   const { orgName, participantName } = params;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 18;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
   const contentWidth = pageWidth - margin * 2;
 
-  addEasyReadPages(doc, { orgName, participantName, pageWidth, margin, contentWidth, startPage: 1 });
+  // Total pages in the Easy Read document
+  const TOTAL_PAGES = 12;
+
+  // ── SHARED HELPERS ──────────────────────────────────────
+
+  // Purple colour palette for Easy Read distinction
+  const PURPLE = { r: 109, g: 40, b: 217 };
+  const PURPLE_LIGHT = { r: 237, g: 233, b: 254 }; // purple-50 equivalent
+
+  // Render a footer on every page
+  const addFooter = (pageNum: number) => {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(140, 140, 140);
+    doc.text("Easy Read", margin, pageHeight - 14);
+    doc.text(
+      `Page ${pageNum} of ${TOTAL_PAGES}`,
+      pageWidth - margin - 24,
+      pageHeight - 14
+    );
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+  };
+
+  // Render the purple header bar used on content pages
+  const addPageHeader = (title: string) => {
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(0, 0, pageWidth, 28, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("EASY READ", margin, 10);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, margin, 22);
+  };
+
+  // Write body text at 14pt with proper line height
+  // Returns the new Y position after the text
+  const writeBody = (text: string, x: number, y: number, maxWidth?: number): number => {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(text, maxWidth ?? contentWidth);
+    doc.text(lines, x, y);
+    return y + lines.length * 7;
+  };
+
+  // Write bold body text at 14pt
+  const writeBodyBold = (text: string, x: number, y: number, maxWidth?: number): number => {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(text, maxWidth ?? contentWidth);
+    doc.text(lines, x, y);
+    return y + lines.length * 7;
+  };
+
+  // Write a bullet point at 14pt (circle marker + text)
+  const writeBullet = (text: string, x: number, y: number, maxWidth?: number): number => {
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(x + 2, y - 1.5, 1.8, "F");
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(text, (maxWidth ?? contentWidth) - 10);
+    doc.text(lines, x + 8, y);
+    return y + lines.length * 7 + 2;
+  };
+
+  // Write a section heading at 18pt bold
+  const writeSectionHeading = (text: string, x: number, y: number): number => {
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text(text, x, y);
+    return y + 12;
+  };
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 1: COVER PAGE
+  // ════════════════════════════════════════════════════════
+
+  // Full purple background
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+  // Easy Read badge (white rounded rectangle)
+  const badgeW = 80;
+  const badgeH = 16;
+  const badgeX = (pageWidth - badgeW) / 2;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(badgeX, 50, badgeW, badgeH, 4, 4, "F");
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.text("Easy Read", pageWidth / 2, 61, { align: "center" });
+
+  // Main title
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(28);
+  doc.setFont("helvetica", "bold");
+  const titleLines = doc.splitTextToSize(
+    "Saying Yes to Sharing Your Information",
+    contentWidth
+  );
+  doc.text(titleLines, pageWidth / 2, 100, { align: "center" });
+
+  // Subtitle
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "normal");
+  doc.text("A consent form about your", pageWidth / 2, 130, { align: "center" });
+  doc.text("personal information", pageWidth / 2, 140, { align: "center" });
+
+  // Organisation name
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text(orgName, pageWidth / 2, 170, { align: "center" });
+
+  // Participant name (if provided)
+  if (participantName) {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Prepared for: ${participantName}`, pageWidth / 2, 185, { align: "center" });
+  }
+
+  // Date
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    new Date().toLocaleDateString("en-AU", {
+      year: "numeric",
+      month: "long",
+    }),
+    pageWidth / 2,
+    210,
+    { align: "center" }
+  );
+
+  // Footer note
+  doc.setFontSize(10);
+  doc.text(
+    "Complies with Australian Privacy Principle 3 (APP 3)",
+    pageWidth / 2,
+    pageHeight - 30,
+    { align: "center" }
+  );
+
+  addFooter(1);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 2: HOW TO USE THIS FORM
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("How to Use This Form");
+
+  let y = 40;
+
+  y = writeBody(
+    "This form is written in Easy Read.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "Easy Read uses simple words and short sentences.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "Easy Read makes information easier to understand.",
+    margin, y
+  );
+  y += 12;
+
+  // Bold words explanation box
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 32, 3, 3, "F");
+  y += 4;
+
+  y = writeBodyBold(
+    "Some words are written in bold.",
+    margin + 6, y, contentWidth - 12
+  );
+  y += 2;
+
+  y = writeBody(
+    "Bold means the text is thicker and darker.",
+    margin + 6, y, contentWidth - 12
+  );
+  y += 2;
+
+  y = writeBody(
+    "There is a word list at the end of this form.",
+    margin + 6, y, contentWidth - 12
+  );
+  y += 2;
+
+  y = writeBody(
+    "The word list tells you what the bold words mean.",
+    margin + 6, y, contentWidth - 12
+  );
+
+  y += 16;
+
+  y = writeSectionHeading("You can ask for help", margin, y);
+
+  y = writeBody(
+    "You do not have to read this form by yourself.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "You can ask someone you trust to help you.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "This could be a family member, a friend, or a worker.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "You can also ask an advocate to help you.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBodyBold(
+    "An advocate is a person who speaks up for you.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("Take your time", margin, y);
+
+  y = writeBody(
+    "You do not have to say yes straight away.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "You can take this form home and think about it.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "You can ask questions at any time.",
+    margin, y
+  );
+
+  addFooter(2);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 3: WHAT THIS FORM IS ABOUT
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("What This Form Is About");
+
+  y = 40;
+
+  y = writeBody(
+    "This form is about your personal information.",
+    margin, y
+  );
+  y += 8;
+
+  y = writeBodyBold(
+    "Personal information is information about you.",
+    margin, y
+  );
+  y += 3;
+
+  y = writeBody(
+    "Like your name, your birthday, and where you live.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeBody(
+    "We need some of your information.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We use it to help you with your home.",
+    margin, y
+  );
+  y += 12;
+
+  // Highlighted box - your choice
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 40, 3, 3, "F");
+  y += 4;
+
+  y = writeSectionHeading("It is your choice", margin + 6, y);
+
+  y = writeBody(
+    "You can say yes.",
+    margin + 6, y, contentWidth - 12
+  );
+  y += 5;
+
+  y = writeBody(
+    "You can say no.",
+    margin + 6, y, contentWidth - 12
+  );
+  y += 5;
+
+  y = writeBody(
+    "Nobody will be angry if you say no.",
+    margin + 6, y, contentWidth - 12
+  );
+
+  y += 20;
+
+  y = writeBody(
+    "If you say no, we may not be able to do some things.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "For example, we may not be able to claim your",
+    margin, y
+  );
+  y += 0;
+
+  y = writeBodyBold(
+    "NDIS funding for your home.",
+    margin, y
+  );
+  y += 8;
+
+  y = writeBody(
+    "We will explain this to you before you decide.",
+    margin, y
+  );
+
+  addFooter(3);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 4: WHAT WE WILL COLLECT
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("What We Will Collect");
+
+  y = 40;
+
+  y = writeBody(
+    "We will collect some information about you.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We only collect what we need.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("We will collect:", margin, y);
+
+  y = writeBullet("Your name", margin, y);
+  y += 3;
+
+  y = writeBullet("Your date of birth", margin, y);
+  y += 3;
+
+  y = writeBullet("Your address and phone number", margin, y);
+  y += 3;
+
+  y = writeBullet("Your NDIS number", margin, y);
+  y += 3;
+
+  y = writeBullet("Your health needs and disability information", margin, y);
+  y += 3;
+
+  y = writeBullet("Your emergency contact details", margin, y);
+  y += 12;
+
+  y = writeSectionHeading("Why we collect it:", margin, y);
+
+  y = writeBullet("To help you live in your home", margin, y);
+  y += 3;
+
+  y = writeBullet("To make sure your home is right for you", margin, y);
+  y += 3;
+
+  y = writeBullet(
+    "To claim your NDIS funding",
+    margin, y
+  );
+  y += 3;
+
+  y = writeBullet(
+    "To keep you safe",
+    margin, y
+  );
+
+  addFooter(4);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 5: WHO WE MAY SHARE WITH
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("Who We May Share With");
+
+  y = 40;
+
+  y = writeBody(
+    "Sometimes we need to share your information.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We only share what is needed.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We will never sell your information.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("We may share with:", margin, y);
+
+  y = writeBullet(
+    "The NDIA -- they manage your NDIS funding",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "Your SIL provider -- they help you day to day",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "Your support coordinator -- they help you",
+    margin, y
+  );
+  y = writeBody(
+    "use your NDIS plan",
+    margin + 8, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "Doctors or therapists -- if needed for your health",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "Emergency services -- if you are in danger",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "Government -- only when the law says we must",
+    margin, y
+  );
+  y += 12;
+
+  // Important callout box
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 20, 3, 3, "F");
+  y += 4;
+
+  y = writeBodyBold(
+    "We will never share your information",
+    margin + 6, y, contentWidth - 12
+  );
+
+  y = writeBodyBold(
+    "for advertising or marketing.",
+    margin + 6, y, contentWidth - 12
+  );
+
+  addFooter(5);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 6: YOUR RIGHTS
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("Your Rights");
+
+  y = 40;
+
+  y = writeBody(
+    "You have rights about your information.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBodyBold(
+    "Rights are things you are allowed to do.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "The law gives you these rights.",
+    margin, y
+  );
+  y += 12;
+
+  // Right 1
+  y = writeSectionHeading("You can see your information", margin, y);
+
+  y = writeBody(
+    "You can ask us to show you the information",
+    margin, y
+  );
+  y = writeBody(
+    "we have about you.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We will show you for free.",
+    margin, y
+  );
+  y += 12;
+
+  // Right 2
+  y = writeSectionHeading("You can fix your information", margin, y);
+
+  y = writeBody(
+    "If something is wrong, you can ask us to fix it.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "For example, if we have the wrong phone number.",
+    margin, y
+  );
+  y += 12;
+
+  // Right 3
+  y = writeSectionHeading("You can change your mind", margin, y);
+
+  y = writeBody(
+    "You can tell us to stop using your information.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "This is called withdrawing your consent.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "You can do this at any time.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "Just tell us in person, by phone, or in writing.",
+    margin, y
+  );
+
+  addFooter(6);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 7: HOW LONG THIS LASTS
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("How Long This Lasts");
+
+  y = 40;
+
+  y = writeBody(
+    "When you sign this form, it lasts for 12 months.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "That means 1 year.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("After 12 months", margin, y);
+
+  y = writeBody(
+    "We will talk to you again.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We will ask if you still want to say yes.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "You will get a new form to sign.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("You do not have to wait", margin, y);
+
+  y = writeBody(
+    "You can change your mind before 12 months.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "Just tell a staff member.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We will not be angry.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We will not treat you differently.",
+    margin, y
+  );
+  y += 12;
+
+  // Callout box
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 26, 3, 3, "F");
+  y += 4;
+
+  y = writeBodyBold(
+    "If you change your mind:",
+    margin + 6, y, contentWidth - 12
+  );
+  y += 2;
+
+  y = writeBody(
+    "We will stop collecting new information.",
+    margin + 6, y, contentWidth - 12
+  );
+
+  y = writeBody(
+    "We must keep some records the law says we need.",
+    margin + 6, y, contentWidth - 12
+  );
+
+  addFooter(7);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 8: HOW WE KEEP YOUR INFORMATION SAFE
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("How We Keep Your Information Safe");
+
+  y = 40;
+
+  y = writeBody(
+    "We take good care of your information.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We keep it safe and private.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("What we do:", margin, y);
+
+  y = writeBullet(
+    "We store your information on secure computers",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "Your information is locked with a password",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "Only staff who need it can see your information",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBullet(
+    "We follow the Australian Privacy Principles",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("How long we keep it:", margin, y);
+
+  y = writeBody(
+    "We keep your information for 7 years",
+    margin, y
+  );
+  y = writeBody(
+    "after you stop living in your home.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "The law says we must do this.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "After 7 years, we safely delete it.",
+    margin, y
+  );
+
+  addFooter(8);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 9: SAYING YES (SIGNATURE PAGE)
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("Saying Yes");
+
+  y = 40;
+
+  y = writeBody(
+    "If you want to say yes, you sign this page.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBodyBold(
+    "Signing means you agree.",
+    margin, y
+  );
+  y += 12;
+
+  y = writeSectionHeading("You are saying yes to these things:", margin, y);
+
+  y = writeBullet("We can collect your personal information", margin, y);
+  y += 3;
+
+  y = writeBullet("We can share it with the people listed on page 5", margin, y);
+  y += 3;
+
+  y = writeBullet("You know your rights (page 6)", margin, y);
+  y += 3;
+
+  y = writeBullet("This lasts for 12 months", margin, y);
+  y += 3;
+
+  y = writeBullet("You can change your mind at any time", margin, y);
+
+  y += 12;
+
+  // Signature area with light background
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 72, 3, 3, "F");
+  y += 6;
+
+  // Name field
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 30, 30);
+  doc.text("Your name:", margin + 6, y);
+  doc.setDrawColor(80, 80, 80);
+  doc.setLineWidth(0.4);
+  doc.line(margin + 40, y, margin + contentWidth - 8, y);
+  y += 14;
+
+  // Signature field
+  doc.text("Your signature:", margin + 6, y);
+  doc.line(margin + 46, y, margin + contentWidth - 8, y);
+  y += 14;
+
+  // Date field
+  doc.text("Today's date:", margin + 6, y);
+  doc.line(margin + 42, y, margin + 90, y);
+  y += 18;
+
+  // Witness section
+  doc.text("Witness name:", margin + 6, y);
+  doc.line(margin + 44, y, margin + contentWidth - 8, y);
+  y += 14;
+
+  doc.text("Witness signature:", margin + 6, y);
+  doc.line(margin + 52, y, margin + 110, y);
+  doc.text("Date:", margin + 116, y);
+  doc.line(margin + 128, y, margin + contentWidth - 8, y);
+
+  y += 20;
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+  const helpNote = doc.splitTextToSize(
+    "You can bring a support person, family member, or advocate to help you understand this form before you sign.",
+    contentWidth
+  );
+  doc.text(helpNote, margin, y);
+
+  addFooter(9);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 10: IF YOU ARE UNHAPPY
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("If You Are Unhappy");
+
+  y = 40;
+
+  y = writeBody(
+    "If you think we did something wrong with your",
+    margin, y
+  );
+  y = writeBody(
+    "information, you can make a complaint.",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBodyBold(
+    "A complaint is when you tell someone you are unhappy.",
+    margin, y
+  );
+  y += 12;
+
+  // Step 1
+  y = writeSectionHeading("Step 1 -- Tell us first", margin, y);
+
+  y = writeBody(
+    "Talk to a staff member at " + orgName + ".",
+    margin, y
+  );
+  y += 5;
+
+  y = writeBody(
+    "We will try to fix the problem.",
+    margin, y
+  );
+  y += 12;
+
+  // Step 2
+  y = writeSectionHeading("Step 2 -- Contact the NDIS Commission", margin, y);
+
+  y = writeBody(
+    "If we cannot fix it, you can call the",
+    margin, y
+  );
+  y = writeBodyBold(
+    "NDIS Quality and Safeguards Commission.",
+    margin, y
+  );
+  y += 5;
+
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 14, 3, 3, "F");
+  y += 4;
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.text("Phone: 1800 035 544", margin + 6, y);
+  y += 4;
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+  doc.text("(free call)", margin + 78, y - 4);
+
+  y += 14;
+
+  // Step 3
+  y = writeSectionHeading("Step 3 -- Contact the Privacy Commissioner", margin, y);
+
+  y = writeBody(
+    "You can also contact the Office of the Australian",
+    margin, y
+  );
+  y = writeBodyBold(
+    "Information Commissioner (OAIC).",
+    margin, y
+  );
+  y += 5;
+
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 20, 3, 3, "F");
+  y += 4;
+
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.text("Phone: 1300 363 992", margin + 6, y);
+  y += 8;
+
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "normal");
+  doc.text("Website: www.oaic.gov.au", margin + 6, y);
+
+  y += 16;
+
+  y = writeBody(
+    "A friend, family member, or advocate can help you",
+    margin, y
+  );
+  y = writeBody(
+    "make a complaint.",
+    margin, y
+  );
+
+  addFooter(10);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 11: WORD LIST
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("Word List");
+
+  y = 40;
+
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+  doc.text("This is a list of words used in this form.", margin, y);
+  doc.text("It tells you what they mean.", margin, y + 7);
+  y += 20;
+
+  const wordList: Array<{ term: string; definition: string }> = [
+    {
+      term: "Advocate",
+      definition: "A person who speaks up for you and helps you say what you want.",
+    },
+    {
+      term: "Complaint",
+      definition: "When you tell someone you are unhappy about something they did.",
+    },
+    {
+      term: "Consent",
+      definition: "When you say yes to something. You choose freely.",
+    },
+    {
+      term: "Emergency contact",
+      definition: "A person we call if something happens to you. Like a family member.",
+    },
+    {
+      term: "NDIA",
+      definition: "The National Disability Insurance Agency. They manage your NDIS plan.",
+    },
+    {
+      term: "NDIS funding",
+      definition: "Money from the NDIS that pays for your home and supports.",
+    },
+    {
+      term: "OAIC",
+      definition: "Office of the Australian Information Commissioner. They make sure organisations follow privacy rules.",
+    },
+    {
+      term: "Personal information",
+      definition: "Information about you. Like your name, birthday, and where you live.",
+    },
+    {
+      term: "Privacy",
+      definition: "Keeping your information safe and only sharing it when needed.",
+    },
+    {
+      term: "Rights",
+      definition: "Things you are allowed to do. The law gives you these rights.",
+    },
+    {
+      term: "SIL provider",
+      definition: "Supported Independent Living provider. They help you with daily things in your home.",
+    },
+    {
+      term: "Support coordinator",
+      definition: "A person who helps you use your NDIS plan and find services.",
+    },
+    {
+      term: "Withdraw",
+      definition: "To take back your consent. It means you change your mind and say no.",
+    },
+  ];
+
+  for (const item of wordList) {
+    // Term in bold
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text(item.term, margin, y);
+    y += 6;
+
+    // Definition
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    const defLines = doc.splitTextToSize(item.definition, contentWidth - 4);
+    doc.text(defLines, margin + 4, y);
+    y += defLines.length * 5.5 + 5;
+
+    // Check if we need more space (shouldn't for 13 items on A4, but safety)
+    if (y > pageHeight - 30) {
+      addFooter(11);
+      doc.addPage();
+      addPageHeader("Word List (continued)");
+      y = 40;
+    }
+  }
+
+  addFooter(11);
+
+  // ════════════════════════════════════════════════════════
+  // PAGE 12: CONTACT US
+  // ════════════════════════════════════════════════════════
+
+  doc.addPage();
+  addPageHeader("Contact Us");
+
+  y = 40;
+
+  y = writeBody(
+    "If you have any questions about this form,",
+    margin, y
+  );
+  y = writeBody(
+    "please contact us.",
+    margin, y
+  );
+  y += 12;
+
+  // Organisation details box
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 52, 3, 3, "F");
+  y += 6;
+
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.text(orgName, margin + 6, y);
+  y += 12;
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(50, 50, 50);
+  doc.text("Phone: ____________________________", margin + 6, y);
+  y += 10;
+
+  doc.text("Email: ____________________________", margin + 6, y);
+  y += 10;
+
+  doc.text("Address: ____________________________", margin + 6, y);
+
+  y += 24;
+
+  y = writeSectionHeading("Other places you can contact", margin, y);
+
+  // NDIS Commission
+  y = writeBodyBold(
+    "NDIS Quality and Safeguards Commission",
+    margin, y
+  );
+  y += 2;
+
+  y = writeBody("Phone: 1800 035 544 (free call)", margin, y);
+  y += 2;
+
+  y = writeBody("Website: www.ndiscommission.gov.au", margin, y);
+  y += 10;
+
+  // OAIC
+  y = writeBodyBold(
+    "Office of the Australian Information Commissioner",
+    margin, y
+  );
+  y += 2;
+
+  y = writeBody("Phone: 1300 363 992", margin, y);
+  y += 2;
+
+  y = writeBody("Website: www.oaic.gov.au", margin, y);
+  y += 10;
+
+  // National Disability Advocacy
+  y = writeBodyBold(
+    "National Disability Advocacy Program",
+    margin, y
+  );
+  y += 2;
+
+  y = writeBody(
+    "If you need an advocate, ask your support coordinator",
+    margin, y
+  );
+  y = writeBody(
+    "or call the Disability Advocacy Finder:",
+    margin, y
+  );
+  y += 2;
+
+  y = writeBody("Website: disabilityadvocacyfinder.dss.gov.au", margin, y);
+
+  addFooter(12);
+
+  // ── SAVE ────────────────────────────────────────────────
 
   const safeName = participantName.replace(/[^a-zA-Z0-9]/g, "_");
   const dateStr = new Date().toISOString().split("T")[0];
   doc.save(`Consent_Form_Easy_Read_${safeName}_${dateStr}.pdf`);
 }
 
-// ── Shared Easy Read page builder ──────────────────────────
+// ── Shared Easy Read page builder (appended to standard consent) ──
 
 function addEasyReadPages(
   doc: jsPDF,
@@ -311,220 +1455,335 @@ function addEasyReadPages(
     startPage?: number;
   }
 ): void {
-  const { orgName, participantName, pageWidth, margin, contentWidth, startPage } = opts;
-  const p1 = startPage ?? 3;
-  const p2 = p1 + 1;
-  const totalPages = startPage ? 2 : 4;
-  const isStandalone = startPage === 1;
+  const { orgName, participantName, pageWidth, margin, contentWidth } = opts;
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-  // ── EASY READ PAGE 1: CONSENT ──────────────────────────
-  // In standalone mode, jsPDF already created page 1 — don't add another
+  // When appended to the standard 2-page consent form, the Easy Read
+  // section starts at page 3 as a condensed 4-page summary.
+  // The standalone version (generateEasyReadConsentPdf) has the full 12-page format.
+
+  const PURPLE = { r: 109, g: 40, b: 217 };
+  const PURPLE_LIGHT = { r: 237, g: 233, b: 254 };
+
+  // Determine page numbering based on context
+  const basePageOffset = opts.startPage ? opts.startPage - 1 : 2;
+  const appendedTotalPages = opts.startPage ? 4 : 6; // 4 standalone or 2 standard + 4 easy read
+
+  const addFooter = (pageNum: number) => {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(140, 140, 140);
+    doc.text("Easy Read", margin, pageHeight - 14);
+    doc.text(
+      `Page ${pageNum} of ${appendedTotalPages}`,
+      pageWidth - margin - 24,
+      pageHeight - 14
+    );
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+  };
+
+  const addPageHeader = (title: string) => {
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.rect(0, 0, pageWidth, 28, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("EASY READ", margin, 10);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, margin, 22);
+  };
+
+  const writeBody14 = (text: string, x: number, y: number, mw?: number): number => {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(text, mw ?? contentWidth);
+    doc.text(lines, x, y);
+    return y + lines.length * 7;
+  };
+
+  const writeBodyBold14 = (text: string, x: number, y: number, mw?: number): number => {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(text, mw ?? contentWidth);
+    doc.text(lines, x, y);
+    return y + lines.length * 7;
+  };
+
+  const writeBullet14 = (text: string, x: number, y: number, mw?: number): number => {
+    doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.circle(x + 2, y - 1.5, 1.8, "F");
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(text, (mw ?? contentWidth) - 10);
+    doc.text(lines, x + 8, y);
+    return y + lines.length * 7 + 2;
+  };
+
+  const writeHeading18 = (text: string, x: number, y: number): number => {
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text(text, x, y);
+    return y + 12;
+  };
+
+  // ── APPENDED PAGE 1: COVER + ABOUT ──────────────────────
+
+  const isStandalone = opts.startPage === 1;
   if (!isStandalone) {
     doc.addPage();
   }
 
-  // Purple header for Easy Read distinction
-  doc.setFillColor(109, 40, 217); // purple-600
-  doc.rect(0, 0, pageWidth, 36, "F");
+  // Cover section
+  doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.rect(0, 0, pageWidth, 60, "F");
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text("EASY READ VERSION", margin, 12);
-  doc.text(orgName, margin, 18);
+  doc.text("EASY READ", margin, 10);
+  doc.text(orgName, margin, 17);
 
-  doc.setFontSize(16);
+  doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.text("Saying Yes to Sharing Your Information", margin, 30);
+  doc.text("Saying Yes to Sharing", margin, 34);
+  doc.text("Your Information", margin, 46);
 
-  let y = 46;
-  doc.setTextColor(0, 0, 0);
+  // Badge
+  const bW = 50;
+  const bX = pageWidth - margin - bW;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(bX, 22, bW, 12, 3, 3, "F");
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+  doc.text("Easy Read", bX + bW / 2, 30, { align: "center" });
 
-  // Intro
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  const introLines = doc.splitTextToSize(
-    "This form is about your personal information. We need some of your information to help you with your home. You can say yes or no. It is your choice.",
-    contentWidth
-  );
-  doc.text(introLines, margin, y);
-  y += introLines.length * 5.5 + 6;
+  let y = 72;
 
-  // Easy Read consent points
-  const easyReadClauses = [
-    {
-      heading: "1. We will collect some of your information",
-      text: "We will collect information about you. This includes your name, your NDIS number, and your health needs. We use this to help you live in your home.",
-    },
-    {
-      heading: "2. We may share your information with people who help you",
-      text: "Sometimes we need to share your information. We may share it with the NDIS, your SIL provider, or your support coordinator. We only share what is needed.",
-    },
-    {
-      heading: "3. You can see your information or change it",
-      text: "You can ask to see the information we have about you. If something is wrong, you can ask us to fix it. You can also ask us to delete it.",
-    },
-    {
-      heading: "4. This form lasts for 12 months",
-      text: "When you sign this form, it lasts for 12 months. After that, we will ask you again. You can change your mind at any time.",
-    },
-    {
-      heading: "5. We will look after your information",
-      text: "We keep your information safe and private. The next page tells you more about this.",
-    },
-  ];
+  y = writeBody14("This form is about your personal information.", margin, y);
+  y += 5;
 
-  for (const clause of easyReadClauses) {
-    // Heading with bullet marker
-    doc.setFillColor(109, 40, 217);
-    doc.circle(margin + 1.5, y - 1.2, 1.5, "F");
+  y = writeBodyBold14("Personal information is information about you.", margin, y);
+  y += 3;
 
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(clause.heading, margin + 5, y);
-    y += 6;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(clause.text, contentWidth - 5);
-    doc.text(lines, margin + 5, y);
-    y += lines.length * 5 + 5;
-  }
-
-  // Divider
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
+  y = writeBody14("Like your name, your birthday, and where you live.", margin, y);
   y += 8;
 
-  // Signature section
+  y = writeBody14("We need some of your information.", margin, y);
+  y += 3;
+
+  y = writeBody14("We use it to help you with your home.", margin, y);
+  y += 8;
+
+  // Choice box
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 26, 3, 3, "F");
+  y += 4;
+
+  y = writeHeading18("It is your choice", margin + 6, y);
+
+  y = writeBody14("You can say yes or no.", margin + 6, y, contentWidth - 12);
+  y += 3;
+
+  y = writeBody14("Nobody will be angry if you say no.", margin + 6, y, contentWidth - 12);
+
+  y += 16;
+
+  y = writeBody14("You can ask someone to help you read this form.", margin, y);
+  y += 3;
+
+  y = writeBody14("Take your time. You can ask questions.", margin, y);
+  y += 3;
+
+  y = writeBodyBold14("Bold words are explained at the end.", margin, y);
+
+  addFooter(basePageOffset + 1);
+
+  // ── APPENDED PAGE 2: COLLECT + SHARE ──────────────────────
+
+  doc.addPage();
+  addPageHeader("What We Collect and Share");
+
+  y = 40;
+
+  y = writeHeading18("We will collect:", margin, y);
+
+  y = writeBullet14("Your name, birthday, and phone number", margin, y);
+  y += 2;
+
+  y = writeBullet14("Your NDIS number", margin, y);
+  y += 2;
+
+  y = writeBullet14("Your health needs", margin, y);
+  y += 2;
+
+  y = writeBullet14("Your emergency contact", margin, y);
+  y += 8;
+
+  y = writeBody14("We only collect what we need to help you.", margin, y);
+  y += 12;
+
+  y = writeHeading18("We may share with:", margin, y);
+
+  y = writeBullet14("The NDIA -- they manage your NDIS funding", margin, y);
+  y += 2;
+
+  y = writeBullet14("Your SIL provider -- they help you each day", margin, y);
+  y += 2;
+
+  y = writeBullet14("Your support coordinator", margin, y);
+  y += 2;
+
+  y = writeBullet14("Doctors or therapists if needed", margin, y);
+  y += 2;
+
+  y = writeBullet14("Emergency services if you are in danger", margin, y);
+  y += 8;
+
+  y = writeBodyBold14("We will never sell your information.", margin, y);
+  y += 3;
+
+  y = writeBody14("We only share what is needed.", margin, y);
+
+  addFooter(basePageOffset + 2);
+
+  // ── APPENDED PAGE 3: RIGHTS + SAFETY ──────────────────────
+
+  doc.addPage();
+  addPageHeader("Your Rights and Safety");
+
+  y = 40;
+
+  y = writeHeading18("Your rights", margin, y);
+
+  y = writeBullet14("You can see the information we have about you", margin, y);
+  y += 2;
+
+  y = writeBullet14("You can ask us to fix anything that is wrong", margin, y);
+  y += 2;
+
+  y = writeBullet14("You can change your mind at any time", margin, y);
+  y += 2;
+
+  y = writeBullet14("This form lasts for 12 months (1 year)", margin, y);
+  y += 2;
+
+  y = writeBullet14("After 12 months, we will ask you again", margin, y);
+  y += 10;
+
+  y = writeHeading18("How we keep your information safe", margin, y);
+
+  y = writeBullet14("We store it on secure computers", margin, y);
+  y += 2;
+
+  y = writeBullet14("Only the right staff can see it", margin, y);
+  y += 2;
+
+  y = writeBullet14("We follow the Australian Privacy Principles", margin, y);
+  y += 2;
+
+  y = writeBullet14("We keep records for 7 years as the law requires", margin, y);
+  y += 10;
+
+  y = writeHeading18("If you are unhappy", margin, y);
+
+  y = writeBody14("Tell us first. We will try to fix it.", margin, y);
+  y += 5;
+
+  y = writeBody14("You can also call:", margin, y);
+  y += 3;
+
+  y = writeBullet14("NDIS Commission: 1800 035 544 (free)", margin, y);
+  y += 2;
+
+  y = writeBullet14("OAIC: 1300 363 992", margin, y);
+
+  addFooter(basePageOffset + 3);
+
+  // ── APPENDED PAGE 4: SIGN + WORD LIST ──────────────────────
+
+  doc.addPage();
+  addPageHeader("Saying Yes");
+
+  y = 40;
+
+  y = writeBody14("If you agree, sign below.", margin, y);
+  y += 3;
+
+  y = writeBody14("You can bring someone to help you.", margin, y);
+  y += 8;
+
+  // Signature box
+  doc.setFillColor(PURPLE_LIGHT.r, PURPLE_LIGHT.g, PURPLE_LIGHT.b);
+  doc.roundedRect(margin, y - 4, contentWidth, 56, 3, 3, "F");
+  y += 6;
+
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 30, 30);
+  doc.setDrawColor(80, 80, 80);
+  doc.setLineWidth(0.4);
+
+  doc.text("Name:", margin + 6, y);
+  doc.line(margin + 28, y, margin + contentWidth - 8, y);
+  y += 12;
+
+  doc.text("Signature:", margin + 6, y);
+  doc.line(margin + 36, y, margin + 100, y);
+  doc.text("Date:", margin + 106, y);
+  doc.line(margin + 122, y, margin + contentWidth - 8, y);
+  y += 12;
+
+  doc.text("Witness:", margin + 6, y);
+  doc.line(margin + 32, y, margin + 100, y);
+  doc.text("Date:", margin + 106, y);
+  doc.line(margin + 122, y, margin + contentWidth - 8, y);
+
+  y += 20;
+
+  // Compact word list
+  y = writeHeading18("Word List", margin, y);
+
+  const compactWordList = [
+    { term: "Advocate", def: "A person who speaks up for you." },
+    { term: "Consent", def: "When you say yes. You choose freely." },
+    { term: "NDIA", def: "They manage your NDIS plan and funding." },
+    { term: "OAIC", def: "They make sure organisations follow privacy rules." },
+    { term: "Personal information", def: "Information about you (name, birthday, etc.)." },
+    { term: "Privacy", def: "Keeping your information safe and private." },
+    { term: "Rights", def: "Things you are allowed to do." },
+    { term: "SIL provider", def: "They help you with daily things in your home." },
+    { term: "Support coordinator", def: "They help you use your NDIS plan." },
+    { term: "Withdraw", def: "To change your mind and say no." },
+  ];
+
+  for (const item of compactWordList) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(PURPLE.r, PURPLE.g, PURPLE.b);
+    doc.text(item.term, margin, y);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    const termW = doc.getTextWidth(item.term);
+    doc.text(" -- " + item.def, margin + termW, y);
+    y += 6;
+  }
+
+  y += 6;
+
+  // Contact footer
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const sigIntro = doc.splitTextToSize(
-    "By signing below, you are saying yes to these 5 things. You can bring a support person to help you understand this form.",
-    contentWidth
-  );
-  doc.text(sigIntro, margin, y);
-  y += sigIntro.length * 5 + 8;
+  doc.setTextColor(80, 80, 80);
+  doc.text(`Contact ${orgName} if you have questions.`, margin, y);
 
-  // Name line
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.4);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("Name:", margin, y);
-  doc.line(margin + 20, y, margin + 100, y);
-  y += 10;
-
-  // Signature + date
-  doc.text("Signature:", margin, y);
-  doc.line(margin + 24, y, margin + 80, y);
-  doc.text("Date:", margin + 95, y);
-  doc.line(margin + 110, y, margin + 150, y);
-  y += 10;
-
-  // Witness
-  doc.text("Witness:", margin, y);
-  doc.line(margin + 22, y, margin + 80, y);
-  doc.text("Date:", margin + 95, y);
-  doc.line(margin + 110, y, margin + 150, y);
-
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 12;
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Easy Read - Complies with APP 3", margin, footerY);
-  doc.text(`Page ${p1} of ${totalPages}`, pageWidth - margin - 20, footerY);
-
-  // ── EASY READ PAGE 2: PRIVACY INFO ──────────────────────
-  doc.addPage();
-
-  // Purple header
-  doc.setFillColor(109, 40, 217);
-  doc.rect(0, 0, pageWidth, 30, "F");
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("EASY READ VERSION", margin, 12);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("Your Privacy Information", margin, 24);
-
-  y = 38;
-  doc.setTextColor(0, 0, 0);
-
-  // Helper for Easy Read sections
-  const addEasySection = (title: string, bullets: string[]) => {
-    doc.setFillColor(109, 40, 217);
-    doc.rect(margin, y - 3.5, contentWidth, 7, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(title, margin + 3, y + 1);
-    y += 8;
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9.5);
-    doc.setFont("helvetica", "normal");
-    for (const bullet of bullets) {
-      const lines = doc.splitTextToSize(`\u2022  ${bullet}`, contentWidth - 6);
-      doc.text(lines, margin + 3, y);
-      y += lines.length * 4.5 + 1.5;
-    }
-    y += 3;
-  };
-
-  addEasySection("Your Privacy Rights", [
-    "You have the right to know what information we have about you",
-    "You have the right to say no to sharing your information",
-    "You have the right to make a complaint if you are unhappy",
-    "The law protects your information",
-  ]);
-
-  addEasySection("What We Collect and Why", [
-    "Your name, date of birth, and contact details",
-    "Your NDIS number and plan information",
-    "Your health needs and disability information",
-    "We collect this so we can support you in your home",
-  ]);
-
-  addEasySection("Who We Share Your Information With", [
-    "The NDIS (National Disability Insurance Scheme)",
-    "Your SIL provider (the people who help you day to day)",
-    "Your support coordinator",
-    "Doctors or therapists if needed for your safety",
-    "We will never share your information without a good reason",
-  ]);
-
-  addEasySection("How We Keep Your Information Safe", [
-    "We store your information on secure computers",
-    "Only staff who need it can see your information",
-    "We follow the Australian Privacy Principles",
-  ]);
-
-  addEasySection("How to Change Your Mind", [
-    "You can tell us to stop using your information at any time",
-    "Call us or tell a staff member",
-    "We will not treat you differently if you say no",
-  ]);
-
-  addEasySection("Making a Complaint", [
-    "If you are unhappy, tell us first and we will try to fix it",
-    "You can also call the OAIC: 1300 363 992",
-    "Or the NDIS Commission: 1800 035 544",
-    "A friend, family member, or advocate can help you",
-  ]);
-
-  // Footer
-  const footer2Y = doc.internal.pageSize.getHeight() - 12;
-  doc.setFontSize(7);
-  doc.setTextColor(120, 120, 120);
-  doc.text(
-    `${orgName} | Easy Read | Generated on ${new Date().toLocaleDateString("en-AU")}`,
-    margin,
-    footer2Y
-  );
-  doc.text(`Page ${p2} of ${totalPages}`, pageWidth - margin - 20, footer2Y);
+  addFooter(basePageOffset + 4);
 }

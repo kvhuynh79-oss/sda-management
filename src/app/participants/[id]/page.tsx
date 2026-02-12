@@ -12,6 +12,7 @@ import GlobalUploadModal from "@/components/GlobalUploadModal";
 import Badge from "@/components/ui/Badge";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { generateConsentFormPdf } from "@/utils/consentFormPdf";
 
 export default function ParticipantDetailPage() {
   const router = useRouter();
@@ -24,6 +25,11 @@ export default function ParticipantDetailPage() {
   const [isReverting, setIsReverting] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
+  const [showConsentForm, setShowConsentForm] = useState(false);
+  const [consentDate, setConsentDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [consentNotes, setConsentNotes] = useState("");
+  const [isRecordingConsent, setIsRecordingConsent] = useState(false);
+  const [isWithdrawingConsent, setIsWithdrawingConsent] = useState(false);
 
   const participantId = params.id as Id<"participants">;
   const userIdTyped = user ? (user.id as Id<"users">) : undefined;
@@ -32,6 +38,9 @@ export default function ParticipantDetailPage() {
   const moveInMutation = useMutation(api.participants.moveIn);
   const revertToPendingMutation = useMutation(api.participants.revertToPending);
   const removeDocument = useMutation(api.documents.remove);
+  const recordConsentMutation = useMutation(api.participants.recordConsent);
+  const withdrawConsentMutation = useMutation(api.participants.withdrawConsent);
+  const renewConsentMutation = useMutation(api.participants.renewConsent);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -110,6 +119,88 @@ export default function ParticipantDetailPage() {
       await alertDialog("Failed to revert participant status. Please try again.");
     } finally {
       setIsReverting(false);
+    }
+  };
+
+  const handleGenerateConsentPdf = () => {
+    if (!participant) return;
+    const propertyAddress = participant.property
+      ? `${participant.property.addressLine1}, ${participant.property.suburb} ${participant.property.state}`
+      : "N/A";
+    generateConsentFormPdf({
+      orgName: "MySDAManager",
+      participantName: `${participant.firstName} ${participant.lastName}`,
+      ndisNumber: participant.ndisNumber || "N/A",
+      dob: participant.dateOfBirth || "N/A",
+      propertyAddress,
+    });
+  };
+
+  const handleRecordConsent = async () => {
+    if (!user || !participant) return;
+    setIsRecordingConsent(true);
+    try {
+      await recordConsentMutation({
+        userId: user.id as Id<"users">,
+        participantId,
+        consentDate,
+        notes: consentNotes || undefined,
+      });
+      setShowConsentForm(false);
+      setConsentNotes("");
+    } catch (error) {
+      console.error("Error recording consent:", error);
+      await alertDialog("Failed to record consent. Please try again.");
+    } finally {
+      setIsRecordingConsent(false);
+    }
+  };
+
+  const handleRenewConsent = async () => {
+    if (!user || !participant) return;
+    setIsRecordingConsent(true);
+    try {
+      await renewConsentMutation({
+        userId: user.id as Id<"users">,
+        participantId,
+        consentDate,
+        notes: consentNotes || undefined,
+      });
+      setShowConsentForm(false);
+      setConsentNotes("");
+    } catch (error) {
+      console.error("Error renewing consent:", error);
+      await alertDialog("Failed to renew consent. Please try again.");
+    } finally {
+      setIsRecordingConsent(false);
+    }
+  };
+
+  const handleWithdrawConsent = async () => {
+    if (!user || !participant) return;
+    const confirmed = await confirmDialog({
+      title: "Withdraw Consent",
+      message:
+        "This will archive the participant's NDIS number, date of birth, and emergency contacts. " +
+        "Tenancy records will be retained. If the participant is active, their status will be set to inactive. " +
+        "This action cannot be undone.",
+      confirmLabel: "Withdraw Consent",
+      cancelLabel: "Cancel",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    setIsWithdrawingConsent(true);
+    try {
+      await withdrawConsentMutation({
+        userId: user.id as Id<"users">,
+        participantId,
+        reason: "Consent withdrawn at participant request",
+      });
+    } catch (error) {
+      console.error("Error withdrawing consent:", error);
+      await alertDialog("Failed to withdraw consent. Please try again.");
+    } finally {
+      setIsWithdrawingConsent(false);
     }
   };
 
@@ -288,6 +379,16 @@ export default function ParticipantDetailPage() {
                 <p className="text-gray-300 whitespace-pre-wrap">{participant.notes}</p>
               </div>
             )}
+
+            {/* Consent Status */}
+            <ConsentStatusCard
+              participant={participant}
+              onGeneratePdf={handleGenerateConsentPdf}
+              onRecordConsent={() => setShowConsentForm(true)}
+              onRenewConsent={() => { setConsentDate(new Date().toISOString().split("T")[0]); setConsentNotes(""); setShowConsentForm(true); }}
+              onWithdrawConsent={handleWithdrawConsent}
+              isWithdrawing={isWithdrawingConsent}
+            />
           </div>
 
           {/* Right Column - Plans and Payments */}
@@ -464,9 +565,146 @@ export default function ParticipantDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Record/Renew Consent Modal */}
+        {showConsentForm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                {participant.consentStatus === "active" || participant.consentStatus === "expired" ? "Renew Consent" : "Record Consent"}
+              </h3>
+              <p className="text-gray-400 mb-4 text-sm">
+                Record that written consent has been obtained from {participant.firstName} {participant.lastName} (or their authorised representative).
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Consent Date *</label>
+                  <input type="date" value={consentDate} onChange={(e) => setConsentDate(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Notes (optional)</label>
+                  <textarea value={consentNotes} onChange={(e) => setConsentNotes(e.target.value)} rows={3} placeholder="e.g., Signed by participant's guardian" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 resize-none" />
+                </div>
+                <p className="text-gray-400 text-xs">Consent will be valid for 12 months from the date above. You will receive alerts before expiry.</p>
+              </div>
+              <div className="flex gap-3 justify-end mt-6">
+                <button onClick={() => { setShowConsentForm(false); setConsentNotes(""); }} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg" disabled={isRecordingConsent}>Cancel</button>
+                <button
+                  onClick={participant.consentStatus === "active" || participant.consentStatus === "expired" ? handleRenewConsent : handleRecordConsent}
+                  disabled={isRecordingConsent || !consentDate}
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 text-white rounded-lg"
+                >
+                  {isRecordingConsent ? "Saving..." : (participant.consentStatus === "active" || participant.consentStatus === "expired" ? "Renew Consent" : "Record Consent")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
     </RequireAuth>
+  );
+}
+
+// Consent Status Card component
+function ConsentStatusCard({ participant, onGeneratePdf, onRecordConsent, onRenewConsent, onWithdrawConsent, isWithdrawing }: {
+  participant: any;
+  onGeneratePdf: () => void;
+  onRecordConsent: () => void;
+  onRenewConsent: () => void;
+  onWithdrawConsent: () => void;
+  isWithdrawing: boolean;
+}) {
+  const today = new Date().toISOString().split("T")[0];
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  const thirtyDaysStr = thirtyDaysFromNow.toISOString().split("T")[0];
+
+  const isExpired = participant.consentStatus === "active" && participant.consentExpiryDate && participant.consentExpiryDate < today;
+  const isExpiringSoon = participant.consentStatus === "active" && participant.consentExpiryDate && !isExpired && participant.consentExpiryDate <= thirtyDaysStr;
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-6">
+      <h2 className="text-lg font-semibold text-white mb-4">Consent Status</h2>
+
+      {/* No consent / Pending */}
+      {(!participant.consentStatus || participant.consentStatus === "pending") && (
+        <div>
+          <div className="flex items-center gap-2 p-3 bg-yellow-900/30 border border-yellow-600/50 rounded-lg mb-4">
+            <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+            <span className="text-yellow-400 text-sm font-medium">No consent recorded</span>
+          </div>
+          <p className="text-gray-400 text-sm mb-4">Written consent is required under the Australian Privacy Principles (APP 3) before processing personal information.</p>
+          <div className="flex flex-col gap-2">
+            <button onClick={onGeneratePdf} className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm">Generate Consent Form (PDF)</button>
+            <button onClick={onRecordConsent} className="w-full px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm">Record Consent</button>
+          </div>
+        </div>
+      )}
+
+      {/* Active consent */}
+      {participant.consentStatus === "active" && (
+        <div>
+          {isExpired ? (
+            <div className="flex items-center gap-2 p-3 bg-red-900/30 border border-red-600/50 rounded-lg mb-4">
+              <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+              <span className="text-red-400 text-sm font-medium">Consent expired</span>
+            </div>
+          ) : isExpiringSoon ? (
+            <div className="flex items-center gap-2 p-3 bg-yellow-900/30 border border-yellow-600/50 rounded-lg mb-4">
+              <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span className="text-yellow-400 text-sm font-medium">Consent expiring soon</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 p-3 bg-green-900/30 border border-green-600/50 rounded-lg mb-4">
+              <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span className="text-green-400 text-sm font-medium">Active consent</span>
+            </div>
+          )}
+          <div className="space-y-2 mb-4">
+            <DetailRow label="Consent Date" value={participant.consentDate || "N/A"} />
+            <DetailRow label="Expiry Date" value={participant.consentExpiryDate || "N/A"} />
+            {participant.consentNotes && <DetailRow label="Notes" value={participant.consentNotes} />}
+          </div>
+          <div className="flex flex-col gap-2">
+            <button onClick={onRenewConsent} className="w-full px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm">Renew Consent</button>
+            <button onClick={onWithdrawConsent} disabled={isWithdrawing} className="w-full px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-gray-600 text-white rounded-lg transition-colors text-sm">{isWithdrawing ? "Withdrawing..." : "Withdraw Consent"}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Expired consent */}
+      {participant.consentStatus === "expired" && (
+        <div>
+          <div className="flex items-center gap-2 p-3 bg-red-900/30 border border-red-600/50 rounded-lg mb-4">
+            <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+            <span className="text-red-400 text-sm font-medium">Consent expired</span>
+          </div>
+          <div className="space-y-2 mb-4">
+            <DetailRow label="Consent Date" value={participant.consentDate || "N/A"} />
+            <DetailRow label="Expired On" value={participant.consentExpiryDate || "N/A"} />
+          </div>
+          <button onClick={onRenewConsent} className="w-full px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm">Renew Consent</button>
+        </div>
+      )}
+
+      {/* Withdrawn */}
+      {participant.consentStatus === "withdrawn" && (
+        <div>
+          <div className="flex items-center gap-2 p-3 bg-gray-700 border border-gray-600 rounded-lg mb-4">
+            <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+            <span className="text-gray-400 text-sm font-medium">Consent withdrawn</span>
+          </div>
+          <div className="space-y-2 mb-4">
+            <DetailRow label="Withdrawn On" value={participant.consentWithdrawnDate || "N/A"} />
+            {participant.consentNotes && <DetailRow label="Reason" value={participant.consentNotes} />}
+          </div>
+          <div className="p-3 bg-gray-700/50 rounded-lg">
+            <p className="text-gray-400 text-sm">Sensitive data has been archived. NDIS number, date of birth, and emergency contacts have been removed. Tenancy records have been retained for compliance purposes.</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

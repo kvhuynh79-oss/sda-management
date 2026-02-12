@@ -41,6 +41,7 @@ import type * as incidentActions from "../incidentActions.js";
 import type * as incidents from "../incidents.js";
 import type * as inspections from "../inspections.js";
 import type * as insurancePolicies from "../insurancePolicies.js";
+import type * as launchChecklist from "../launchChecklist.js";
 import type * as leads from "../leads.js";
 import type * as lib_consultationGate from "../lib/consultationGate.js";
 import type * as lib_encryption from "../lib/encryption.js";
@@ -131,6 +132,7 @@ declare const fullApi: ApiFromModules<{
   incidents: typeof incidents;
   inspections: typeof inspections;
   insurancePolicies: typeof insurancePolicies;
+  launchChecklist: typeof launchChecklist;
   leads: typeof leads;
   "lib/consultationGate": typeof lib_consultationGate;
   "lib/encryption": typeof lib_encryption;

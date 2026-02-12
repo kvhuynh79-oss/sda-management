@@ -3,24 +3,31 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { RequireAuth } from "@/components/RequireAuth";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import Link from "next/link";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Id } from "../../../convex/_generated/dataModel";
+import {
+  generateAuditCompliancePdf,
+  type AuditComplianceData,
+} from "@/utils/auditCompliancePdf";
 
 type ReportTab = "financial" | "compliance" | "operational" | "owner";
 
 export default function ReportsPage() {
   const router = useRouter();
   const { alert: alertDialog } = useConfirmDialog();
+  const { organization } = useOrganization();
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [activeTab, setActiveTab] = useState<ReportTab>("financial");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [isGeneratingAuditPack, setIsGeneratingAuditPack] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
 
   const userId = user?.id as Id<"users"> | undefined;
@@ -97,6 +104,24 @@ export default function ReportsPage() {
   );
   const participantPlanStatus = useQuery(api.reports.getParticipantPlanStatus, userId ? { userId, daysAhead: 90 } : "skip");
   const certStats = useQuery(api.complianceCertifications.getDashboardStats, userId ? { userId } : "skip");
+
+  // Audit pack data queries
+  const allCertifications = useQuery(
+    api.complianceCertifications.getAll,
+    userId ? { userId } : "skip"
+  );
+  const allIncidents = useQuery(
+    api.incidents.getAll,
+    userId ? { userId } : "skip"
+  );
+  const allComplaints = useQuery(
+    api.complaints.getAll,
+    userId ? { userId } : "skip"
+  );
+  const auditLogIntegrity = useQuery(
+    api.auditLog.getIntegrityStatus,
+    userId && user?.role === "admin" ? { requestingUserId: userId } : "skip"
+  );
 
   // Properties for filter
   const properties = useQuery(api.properties.getAll, userId ? { userId } : "skip");
@@ -202,6 +227,125 @@ export default function ReportsPage() {
 
     doc.save(`owner-statement-${startDate}-to-${endDate}.pdf`);
   };
+
+  // Generate Audit Compliance Pack PDF
+  const generateAuditPack = useCallback(async () => {
+    if (isGeneratingAuditPack) return;
+
+    setIsGeneratingAuditPack(true);
+    try {
+      // Map certifications data
+      const certifications = (allCertifications || []).map((cert) => ({
+        certificationType: cert.certificationType || "unknown",
+        status: cert.status || "unknown",
+        expiryDate: cert.expiryDate || "",
+        certifyingBody: cert.certifyingBody ?? null,
+        lastAuditDate: cert.lastAuditDate ?? null,
+        propertyName: cert.property?.propertyName || cert.property?.addressLine1 || null,
+        scope: cert.propertyId ? "property" : "org_wide",
+      }));
+
+      // Map incidents data
+      const incidents = (allIncidents || []).map((inc) => ({
+        incidentDate: inc.incidentDate,
+        incidentType: inc.incidentType,
+        severity: inc.severity,
+        title: inc.title,
+        isNdisReportable: inc.isNdisReportable ?? false,
+        ndisCommissionNotified: inc.ndisCommissionNotified ?? false,
+        ndisCommissionNotificationDate: inc.ndisCommissionNotificationDate ?? null,
+        ndisNotificationTimeframe: inc.ndisNotificationTimeframe ?? null,
+        reportedToNdis: inc.reportedToNdis ?? false,
+        status: inc.status,
+        createdAt: inc.createdAt,
+        resolvedAt: inc.resolvedAt ?? null,
+      }));
+
+      // Map complaints data
+      const complaints = (allComplaints || []).map((c) => ({
+        referenceNumber: c.referenceNumber,
+        receivedDate: c.receivedDate,
+        source: c.source,
+        status: c.status,
+        severity: c.severity,
+        acknowledgedDate: c.acknowledgedDate ?? null,
+        resolutionDate: c.resolutionDate ?? null,
+        escalatedToNdisCommission: c.escalatedToNdisCommission ?? false,
+        category: c.category,
+      }));
+
+      // Map participant plan data
+      const participantPlansData = (participantPlanStatus?.participants || []).map((p) => ({
+        participantName: p.participantName,
+        ndisNumber: p.ndisNumber ?? null,
+        planEndDate: p.planEndDate ?? null,
+        planStatus: p.planStatus,
+        daysUntilExpiry: p.daysUntilExpiry,
+        propertyName: p.propertyName ?? null,
+      }));
+
+      // Map document expiry data
+      const expiringDocs = (documentExpiry?.documents || []).map((d) => ({
+        name: d.fileName || "Unnamed Document",
+        documentType: d.documentType || "other",
+        entityName: d.propertyName || d.participantName || null,
+        expiryDate: d.expiryDate || "",
+        daysUntilExpiry: d.daysUntilExpiry,
+        isExpired: d.isExpired,
+      }));
+
+      // Count totals
+      const totalProperties = properties?.length || 0;
+      const totalParticipants = participantPlanStatus?.summary.total || 0;
+      // Estimate dwellings from properties (or use 0 if not available)
+      const totalDwellings = properties?.reduce((sum, p) => sum + (p.dwellingCount || 0), 0) || 0;
+
+      const auditData: AuditComplianceData = {
+        organizationName: organization?.name || "MySDAManager",
+        startDate,
+        endDate,
+        totalProperties,
+        totalParticipants,
+        totalDwellings,
+        certifications,
+        incidents,
+        complaints,
+        participantPlans: participantPlansData,
+        expiringDocuments: expiringDocs,
+        auditLogIntegrity: auditLogIntegrity
+          ? {
+              totalLogs: auditLogIntegrity.totalLogs,
+              verifiedLogs: auditLogIntegrity.verifiedLogs,
+              unverifiedLogs: auditLogIntegrity.unverifiedLogs,
+              integrityPercentage: auditLogIntegrity.integrityPercentage,
+              lastVerificationTimestamp: auditLogIntegrity.oldestUnverifiedLog ?? null,
+            }
+          : null,
+      };
+
+      const pdf = generateAuditCompliancePdf(auditData);
+      const dateStr = new Date().toISOString().split("T")[0];
+      pdf.save(`Audit_Compliance_Pack_${dateStr}.pdf`);
+    } catch (error) {
+      console.error("Failed to generate audit pack:", error);
+      await alertDialog("Failed to generate audit compliance pack. Please try again.");
+    } finally {
+      setIsGeneratingAuditPack(false);
+    }
+  }, [
+    isGeneratingAuditPack,
+    allCertifications,
+    allIncidents,
+    allComplaints,
+    participantPlanStatus,
+    documentExpiry,
+    properties,
+    organization,
+    auditLogIntegrity,
+    startDate,
+    endDate,
+    alertDialog,
+  ]);
 
   return (
     <RequireAuth>
@@ -356,6 +500,50 @@ export default function ReportsPage() {
         {/* Compliance Tab */}
         {activeTab === "compliance" && (
           <div className="space-y-6">
+            {/* Generate Audit Pack */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Audit-Ready Compliance Pack
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Generate a comprehensive PDF covering certifications, incidents, complaints, participant plans, document expiry, and audit log integrity for the selected date range.
+                  </p>
+                </div>
+                <button
+                  onClick={generateAuditPack}
+                  disabled={isGeneratingAuditPack || !startDate || !endDate}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                >
+                  {isGeneratingAuditPack ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      Generating Audit Pack...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Generate Audit Pack
+                    </>
+                  )}
+                </button>
+              </div>
+              {(!startDate || !endDate) && (
+                <p className="text-yellow-400 text-xs mt-3">
+                  Please select a date range above to generate the audit compliance pack.
+                </p>
+              )}
+            </div>
+
             {/* Compliance Certifications */}
             <ReportSection title="Compliance Certifications">
               {certStats ? (

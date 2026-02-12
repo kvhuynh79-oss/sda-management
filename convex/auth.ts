@@ -1166,3 +1166,23 @@ export const logoutWithSession = mutation({
     return { success: true };
   },
 });
+
+// Accept Terms of Service
+export const acceptTerms = mutation({
+  args: {
+    userId: v.id("users"),
+    version: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(args.userId, {
+      termsAcceptedAt: Date.now(),
+      termsVersion: args.version,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});

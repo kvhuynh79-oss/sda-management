@@ -8,6 +8,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { generateConsentFormPdf } from "@/utils/consentFormPdf";
 
 export default function NewParticipantPage() {
   const router = useRouter();
@@ -49,6 +50,10 @@ export default function NewParticipantPage() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedDwellingId, setSelectedDwellingId] = useState<string | null>(null);
   const [moveInDate, setMoveInDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // Consent data
+  const [consentObtained, setConsentObtained] = useState<"yes" | "not_yet">("not_yet");
+  const [consentDate, setConsentDate] = useState(new Date().toISOString().split("T")[0]);
 
   // Plan data
   const [planData, setPlanData] = useState({
@@ -93,6 +98,7 @@ export default function NewParticipantPage() {
   const linkSilProvider = useMutation(api.silProviders.linkParticipant);
   const createSupportCoordinator = useMutation(api.supportCoordinators.create);
   const linkSupportCoordinator = useMutation(api.supportCoordinators.linkParticipant);
+  const recordConsent = useMutation(api.participants.recordConsent);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -290,6 +296,16 @@ export default function NewParticipantPage() {
         notes: planData.notes || undefined,
       });
 
+      // Record consent if obtained
+      if (consentObtained === "yes") {
+        await recordConsent({
+          userId: user!.id as Id<"users">,
+          participantId: participantId as Id<"participants">,
+          consentDate,
+          notes: "Consent obtained during participant creation",
+        });
+      }
+
       router.push("/participants");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create participant");
@@ -366,6 +382,19 @@ export default function NewParticipantPage() {
               onBack={() => setStep(2)}
               onSubmit={handleSubmit}
               isLoading={isLoading}
+              consentObtained={consentObtained}
+              setConsentObtained={setConsentObtained}
+              consentDate={consentDate}
+              setConsentDate={setConsentDate}
+              onGenerateConsentPdf={() => {
+                generateConsentFormPdf({
+                  orgName: "MySDAManager",
+                  participantName: `${participantData.firstName} ${participantData.lastName}`,
+                  ndisNumber: participantData.ndisNumber || "N/A",
+                  dob: participantData.dateOfBirth || "N/A",
+                  propertyAddress: "See dwelling selection",
+                });
+              }}
             />
           )}
         </div>
@@ -782,7 +811,7 @@ function DwellingSelectionStep({
   );
 }
 
-function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
+function PlanStep({ data, setData, onBack, onSubmit, isLoading, consentObtained, setConsentObtained, consentDate, setConsentDate, onGenerateConsentPdf }: any) {
   return (
     <div>
       <h3 className="text-xl font-semibold text-white mb-6">NDIS Plan Details</h3>
@@ -966,6 +995,41 @@ function PlanStep({ data, setData, onBack, onSubmit, isLoading }: any) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Consent Section */}
+      <div className="border-t border-gray-700 pt-4 mt-6">
+        <h4 className="text-lg font-medium text-white mb-4">Privacy Consent</h4>
+        <p className="text-gray-400 text-sm mb-4">
+          Has written consent been obtained from the participant (or their authorised representative) to collect, use, and share their personal information?
+        </p>
+        <div className="flex gap-4 mb-4">
+          <label className={`flex items-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-colors ${consentObtained === "yes" ? "border-teal-600 bg-teal-600/10" : "border-gray-600 hover:border-gray-500"}`}>
+            <input type="radio" name="consent" value="yes" checked={consentObtained === "yes"} onChange={() => setConsentObtained("yes")} className="accent-teal-600" />
+            <span className="text-white text-sm">Yes, consent obtained</span>
+          </label>
+          <label className={`flex items-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-colors ${consentObtained === "not_yet" ? "border-yellow-600 bg-yellow-600/10" : "border-gray-600 hover:border-gray-500"}`}>
+            <input type="radio" name="consent" value="not_yet" checked={consentObtained === "not_yet"} onChange={() => setConsentObtained("not_yet")} className="accent-yellow-600" />
+            <span className="text-white text-sm">Not yet</span>
+          </label>
+        </div>
+        {consentObtained === "yes" && (
+          <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Consent Date</label>
+              <input type="date" value={consentDate} onChange={(e) => setConsentDate(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white sm:w-64" />
+            </div>
+            <p className="text-gray-400 text-xs">Consent will be valid for 12 months from this date.</p>
+          </div>
+        )}
+        {consentObtained === "not_yet" && (
+          <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4">
+            <p className="text-yellow-400 text-sm mb-3">A consent reminder alert will be generated for this participant. You can record consent later from their detail page.</p>
+            <button type="button" onClick={onGenerateConsentPdf} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm">
+              Download Blank Consent Form (PDF)
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 flex justify-between">

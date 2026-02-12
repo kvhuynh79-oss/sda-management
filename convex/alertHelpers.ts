@@ -19,7 +19,9 @@ export type AlertType =
   | "certification_expiry"
   | "insurance_expiry"
   | "complaint_acknowledgment_overdue"
-  | "new_website_complaint";
+  | "new_website_complaint"
+  | "consent_expiry"
+  | "consent_missing";
 
 export type AlertSeverity = "critical" | "warning" | "info";
 
@@ -451,6 +453,122 @@ export async function generateComplaintAcknowledgmentAlerts(
   return alertsCreated;
 }
 
+// Generate alerts for participant consent expiry
+export async function generateConsentExpiryAlerts(
+  ctx: MutationCtx,
+  todayStr: string
+): Promise<number> {
+  const { today } = getDateStrings();
+  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  let alertsCreated = 0;
+
+  const participants = await ctx.db.query("participants").collect();
+
+  const existingAlerts = await ctx.db
+    .query("alerts")
+    .withIndex("by_status_alertType", (q) =>
+      q.eq("status", "active").eq("alertType", "consent_expiry")
+    )
+    .collect();
+  const existingTitles = new Set(existingAlerts.map((a) => a.title));
+
+  for (const participant of participants) {
+    if (participant.status === "moved_out") continue;
+    if (!participant.consentExpiryDate) continue;
+    if (participant.consentStatus !== "active") continue;
+
+    const expiryDate = new Date(participant.consentExpiryDate);
+    const name = `${participant.firstName} ${participant.lastName}`;
+
+    if (expiryDate < today) {
+      const title = `Consent expired for ${name}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "consent_expiry",
+        severity: "critical",
+        title,
+        message: `Participant consent expired on ${participant.consentExpiryDate}. Renewal required to continue processing personal information.`,
+        organizationId: participant.organizationId,
+        linkedParticipantId: participant._id,
+        triggerDate: todayStr,
+        dueDate: participant.consentExpiryDate,
+      });
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+
+    if (expiryDate >= today && expiryDate <= thirtyDaysFromNow) {
+      const days = daysUntil(expiryDate, today);
+      const title = `Consent expiring soon for ${name}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "consent_expiry",
+        severity: "warning",
+        title,
+        message: `Participant consent expires on ${participant.consentExpiryDate} (${days} day${days !== 1 ? "s" : ""} remaining).`,
+        organizationId: participant.organizationId,
+        linkedParticipantId: participant._id,
+        triggerDate: todayStr,
+        dueDate: participant.consentExpiryDate,
+      });
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+  }
+
+  return alertsCreated;
+}
+
+// Generate alerts for participants with no consent recorded
+export async function generateConsentMissingAlerts(
+  ctx: MutationCtx,
+  todayStr: string
+): Promise<number> {
+  let alertsCreated = 0;
+
+  const participants = await ctx.db.query("participants").collect();
+
+  const existingAlerts = await ctx.db
+    .query("alerts")
+    .withIndex("by_status_alertType", (q) =>
+      q.eq("status", "active").eq("alertType", "consent_missing")
+    )
+    .collect();
+  const existingTitles = new Set(existingAlerts.map((a) => a.title));
+
+  for (const participant of participants) {
+    if (participant.status !== "active" && participant.status !== "pending_move_in") continue;
+
+    if (!participant.consentStatus || participant.consentStatus === "pending") {
+      const name = `${participant.firstName} ${participant.lastName}`;
+      const title = `No consent recorded for ${name}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "consent_missing",
+        severity: "warning",
+        title,
+        message: `Participant ${name} does not have a consent record. Written consent is required under the Australian Privacy Principles before processing personal information.`,
+        organizationId: participant.organizationId,
+        linkedParticipantId: participant._id,
+        triggerDate: todayStr,
+      });
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+  }
+
+  return alertsCreated;
+}
+
 // Run all alert generators
 export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success: boolean; alertsCreated: number }> {
   const { todayStr } = getDateStrings();
@@ -463,6 +581,8 @@ export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success
   alertsCreated += await generatePreventativeScheduleAlerts(ctx, todayStr);
   alertsCreated += await generateCertificationExpiryAlerts(ctx, todayStr);
   alertsCreated += await generateComplaintAcknowledgmentAlerts(ctx, todayStr);
+  alertsCreated += await generateConsentExpiryAlerts(ctx, todayStr);
+  alertsCreated += await generateConsentMissingAlerts(ctx, todayStr);
 
   return { success: true, alertsCreated };
 }

@@ -592,6 +592,251 @@ export const getAllPaginated = query({
   },
 });
 
+// ============================================
+// CONSENT MANAGEMENT MUTATIONS
+// ============================================
+
+// Record consent for a participant
+export const recordConsent = mutation({
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+    consentDate: v.string(),
+    consentDocumentId: v.optional(v.id("documents")),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const user = await requirePermission(ctx, args.userId, "participants", "update");
+
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) throw new Error("Participant not found");
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
+
+    // Calculate expiry date (12 months from consent date)
+    const consentDateObj = new Date(args.consentDate);
+    const expiryDateObj = new Date(consentDateObj);
+    expiryDateObj.setFullYear(expiryDateObj.getFullYear() + 1);
+    const consentExpiryDate = expiryDateObj.toISOString().split("T")[0];
+
+    await ctx.db.patch(args.participantId, {
+      consentStatus: "active",
+      consentDate: args.consentDate,
+      consentExpiryDate,
+      consentDocumentId: args.consentDocumentId,
+      consentRecordedBy: args.userId,
+      consentNotes: args.notes,
+      consentWithdrawnDate: undefined,
+      consentWithdrawnBy: undefined,
+      updatedAt: Date.now(),
+    });
+
+    // Resolve any existing consent alerts for this participant
+    const activeAlerts = await ctx.db
+      .query("alerts")
+      .withIndex("by_participant", (q) => q.eq("linkedParticipantId", args.participantId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    for (const alert of activeAlerts) {
+      if (alert.alertType === "consent_expiry" || alert.alertType === "consent_missing") {
+        await ctx.db.patch(alert._id, {
+          status: "resolved",
+          resolvedBy: args.userId,
+          resolvedAt: Date.now(),
+        });
+      }
+    }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "participant",
+      entityId: args.participantId,
+      entityName: `${participant.firstName} ${participant.lastName}`,
+      metadata: JSON.stringify({ consentAction: "recorded", consentDate: args.consentDate, consentExpiryDate }),
+    });
+
+    return { success: true, consentExpiryDate };
+  },
+});
+
+// Withdraw consent for a participant (archives sensitive data)
+export const withdrawConsent = mutation({
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const user = await requirePermission(ctx, args.userId, "participants", "update");
+
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) throw new Error("Participant not found");
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const updateFields: Record<string, unknown> = {
+      ndisNumber: undefined,
+      ndisNumberIndex: undefined,
+      dateOfBirth: undefined,
+      emergencyContactName: undefined,
+      emergencyContactPhone: undefined,
+      emergencyContactRelation: undefined,
+      notes: undefined,
+      consentStatus: "withdrawn",
+      consentWithdrawnDate: today,
+      consentWithdrawnBy: args.userId,
+      consentNotes: args.reason || "Consent withdrawn by participant",
+      updatedAt: Date.now(),
+    };
+
+    if (participant.status === "active") {
+      updateFields.status = "inactive";
+      updateFields.moveOutDate = today;
+    }
+
+    await ctx.db.patch(args.participantId, updateFields);
+
+    if (participant.status === "active") {
+      await updateDwellingOccupancy(ctx, participant.dwellingId);
+    }
+
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "participant",
+      entityId: args.participantId,
+      entityName: `${participant.firstName} ${participant.lastName}`,
+      metadata: JSON.stringify({ consentAction: "withdrawn", reason: args.reason, sensitiveDataArchived: true }),
+    });
+
+    return { success: true };
+  },
+});
+
+// Renew consent for a participant
+export const renewConsent = mutation({
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+    consentDate: v.string(),
+    consentDocumentId: v.optional(v.id("documents")),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const user = await requirePermission(ctx, args.userId, "participants", "update");
+
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) throw new Error("Participant not found");
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
+
+    const consentDateObj = new Date(args.consentDate);
+    const expiryDateObj = new Date(consentDateObj);
+    expiryDateObj.setFullYear(expiryDateObj.getFullYear() + 1);
+    const consentExpiryDate = expiryDateObj.toISOString().split("T")[0];
+
+    await ctx.db.patch(args.participantId, {
+      consentStatus: "active",
+      consentDate: args.consentDate,
+      consentExpiryDate,
+      consentDocumentId: args.consentDocumentId,
+      consentRecordedBy: args.userId,
+      consentNotes: args.notes,
+      consentWithdrawnDate: undefined,
+      consentWithdrawnBy: undefined,
+      updatedAt: Date.now(),
+    });
+
+    const activeAlerts = await ctx.db
+      .query("alerts")
+      .withIndex("by_participant", (q) => q.eq("linkedParticipantId", args.participantId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    for (const alert of activeAlerts) {
+      if (alert.alertType === "consent_expiry" || alert.alertType === "consent_missing") {
+        await ctx.db.patch(alert._id, {
+          status: "resolved",
+          resolvedBy: args.userId,
+          resolvedAt: Date.now(),
+        });
+      }
+    }
+
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "participant",
+      entityId: args.participantId,
+      entityName: `${participant.firstName} ${participant.lastName}`,
+      metadata: JSON.stringify({ consentAction: "renewed", consentDate: args.consentDate, consentExpiryDate }),
+    });
+
+    return { success: true, consentExpiryDate };
+  },
+});
+
+// Get consent status summary for all participants (dashboard widget)
+export const getConsentStats = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const allParticipants = await ctx.db
+      .query("participants")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    const activeParticipants = allParticipants.filter((p) => p.status !== "moved_out");
+
+    const today = new Date().toISOString().split("T")[0];
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const thirtyDaysStr = thirtyDaysFromNow.toISOString().split("T")[0];
+
+    let active = 0;
+    let expired = 0;
+    let expiringSoon = 0;
+    let missing = 0;
+
+    for (const p of activeParticipants) {
+      if (!p.consentStatus || p.consentStatus === "pending") {
+        missing++;
+      } else if (p.consentStatus === "active") {
+        if (p.consentExpiryDate && p.consentExpiryDate < today) {
+          expired++;
+        } else if (p.consentExpiryDate && p.consentExpiryDate <= thirtyDaysStr) {
+          expiringSoon++;
+        } else {
+          active++;
+        }
+      } else if (p.consentStatus === "expired") {
+        expired++;
+      }
+    }
+
+    return { active, expired, expiringSoon, missing, total: activeParticipants.length };
+  },
+});
+
 // Internal raw query for migration (no decryption - returns data as-is)
 export const getAllRaw = internalQuery({
   args: {},

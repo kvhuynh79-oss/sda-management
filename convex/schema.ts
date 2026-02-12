@@ -44,6 +44,9 @@ export default defineSchema({
     // Login rate limiting fields
     loginFailedAttempts: v.optional(v.number()), // Failed password attempts
     loginLockedUntil: v.optional(v.number()), // Lockout expiry timestamp (ms)
+    // Terms of Service acceptance tracking
+    termsAcceptedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -328,6 +331,15 @@ export default defineSchema({
     supportCoordinatorEmail: v.optional(v.string()),
     supportCoordinatorPhone: v.optional(v.string()),
     notes: v.optional(v.string()),
+    // Consent tracking fields (APP 3 compliance)
+    consentStatus: v.optional(v.union(v.literal("pending"), v.literal("active"), v.literal("expired"), v.literal("withdrawn"))),
+    consentDate: v.optional(v.string()),
+    consentExpiryDate: v.optional(v.string()),
+    consentDocumentId: v.optional(v.id("documents")),
+    consentRecordedBy: v.optional(v.id("users")),
+    consentWithdrawnDate: v.optional(v.string()),
+    consentWithdrawnBy: v.optional(v.id("users")),
+    consentNotes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -336,7 +348,8 @@ export default defineSchema({
     .index("by_dwelling", ["dwellingId"])
     .index("by_status", ["status"])
     .index("by_dwelling_status", ["dwellingId", "status"])
-    .index("by_organizationId", ["organizationId"]),
+    .index("by_organizationId", ["organizationId"])
+    .index("by_consentStatus", ["consentStatus"]),
 
   // Participant Plans table - NDIS plan details
   participantPlans: defineTable({
@@ -657,6 +670,8 @@ export default defineSchema({
       v.literal("employment_contract"),
       v.literal("training_record"),
       v.literal("identity_document"),
+      // Consent documents
+      v.literal("participant_consent"),
       // General
       v.literal("invoice"),
       v.literal("receipt"),
@@ -765,7 +780,10 @@ export default defineSchema({
       v.literal("bcp_review_due"), // Business continuity plan review overdue
       v.literal("property_missing_emergency_plan"), // Property has no active emergency plan
       // Staff screening alerts
-      v.literal("staff_screening_expiry") // Staff NDIS/police/WWCC screening expiring or expired
+      v.literal("staff_screening_expiry"), // Staff NDIS/police/WWCC screening expiring or expired
+      // Consent alerts
+      v.literal("consent_expiry"), // Participant consent expired or expiring
+      v.literal("consent_missing") // Active participant with no consent recorded
     ),
     severity: v.union(
       v.literal("critical"),
@@ -2455,4 +2473,15 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_category", ["category"])
     .index("by_reviewDueDate", ["reviewDueDate"]),
+
+  // Launch Checklist - tracks launch readiness items per organization
+  launchChecklist: defineTable({
+    organizationId: v.id("organizations"),
+    itemKey: v.string(),
+    completed: v.boolean(),
+    completedAt: v.optional(v.number()),
+    completedBy: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+  })
+    .index("by_organizationId", ["organizationId"]),
 });

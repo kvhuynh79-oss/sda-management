@@ -301,6 +301,25 @@ export const verifyMigration = mutation({
 });
 
 /**
+ * One-off: Set Postmark hash address for BLS org.
+ * No args needed - finds BLS by slug and patches directly.
+ */
+export const setBlsPostmarkHash = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const blsOrg = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", "better-living-solutions"))
+      .first();
+    if (!blsOrg) throw new Error("BLS org not found");
+    await ctx.db.patch(blsOrg._id, {
+      postmarkHashAddress: "d303a05b1210f59df8afd11b3059b067@inbound.postmarkapp.com",
+    });
+    return { success: true, orgId: blsOrg._id };
+  },
+});
+
+/**
  * Backfill ALL data tables with BLS organizationId
  *
  * After Sprint 2 migration, all queries use withIndex("by_organizationId") which

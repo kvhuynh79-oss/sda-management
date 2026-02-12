@@ -119,8 +119,18 @@ export function TimelineView({
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevItems, setPrevItems] = useState<any[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const deleteCommunication = useMutation(api.communications.remove);
   const canDelete = userRole === "admin" || userRole === "property_manager";
+
+  const toggleExpanded = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
   const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   const data = useQuery(api.communications.getTimelineView, {
@@ -279,16 +289,20 @@ export function TimelineView({
 
               {/* Communications for this date */}
               <div className="space-y-2 ml-4 border-l-2 border-gray-700 pl-4">
-                {items.map((comm: any) => (
+                {items.map((comm: any) => {
+                  const isExpanded = expandedIds.has(comm._id);
+                  return (
                   <article
                     key={comm._id}
-                    className="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors"
+                    className={`bg-gray-800 rounded-lg p-4 transition-colors cursor-pointer ${isExpanded ? "ring-1 ring-teal-600/40" : "hover:bg-gray-700"}`}
                     role="article"
                     aria-label={`${comm.type.replace(/_/g, " ")} ${comm.direction === "inbound" ? "from" : "to"} ${comm.contactName}${comm.subject ? `: ${comm.subject}` : ""}`}
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleExpanded(comm._id)}
                   >
                     <div className="flex gap-3">
                       {isSelecting && onToggleSelect && (
-                        <div className="flex items-start pt-1">
+                        <div className="flex items-start pt-1" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={selectedIds?.has(comm._id) || false}
@@ -309,18 +323,31 @@ export function TimelineView({
                           {comm.communicationTime && (
                             <span className="text-xs text-gray-400">{comm.communicationTime}</span>
                           )}
+                          <svg className={`w-3.5 h-3.5 text-gray-400 ml-auto transform transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
                         <h4 className="text-sm font-medium text-white">{comm.contactName}</h4>
                         {comm.subject && (
                           <p className="text-sm text-gray-300 mt-0.5">{comm.subject}</p>
                         )}
-                        <p className="text-sm text-gray-400 mt-0.5 line-clamp-2">{comm.summary}</p>
+                        <p className={`text-sm text-gray-400 mt-0.5 ${isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"}`}>{comm.summary}</p>
+                        {isExpanded && comm.contactEmail && (
+                          <p className="text-xs text-gray-400 mt-2">
+                            Email: <span className="text-gray-300">{comm.contactEmail}</span>
+                          </p>
+                        )}
                         {comm.participantName && (
                           <p className="text-xs text-gray-400 mt-1">
                             Participant: {comm.participantName}
                           </p>
                         )}
-                        <div className="flex items-center gap-2 mt-2">
+                        {isExpanded && comm.linkedPropertyId && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Property linked
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
                           <Link
                             href={buildAddEntryUrl(comm)}
                             className="text-xs text-teal-500 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
@@ -341,7 +368,8 @@ export function TimelineView({
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

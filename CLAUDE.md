@@ -659,6 +659,25 @@ All 8 sprints of the SaaS transformation are complete.
 - **SIL Provider Role Restriction (2026-02-10)**: SECURITY FIX - SIL Provider users now restricted to `/portal/*` routes only. RequireAuth auto-redirects to `/portal/dashboard`. Header nav filters Finance/Database clusters by role. Defense-in-depth: RequireAuth redirect + render block + nav filtering.
 - **RequireAuth Full Migration (2026-02-10)**: Added RequireAuth to all 72 protected pages (was 40). Migrated 32 detail/creation/sub-pages from inline localStorage auth. Only public pages (login, register, pricing, etc.) and portal pages (own auth) remain without RequireAuth.
 
+### Commercial Launch Prep (2026-02-12)
+- **Registration Backend Wired**: `/register` page now calls real Convex `registerOrganization` action + `checkSlugAvailability` query. Session created in localStorage after registration.
+- **Click-Wrap Terms Modal**: `TermsAcceptanceModal.tsx` - full-screen non-dismissible modal on first login. 4 key clauses (NDIS disclaimer, health data, liability, security). 2 required checkboxes. Wired into RequireAuth. `acceptTerms` mutation in `convex/auth.ts`.
+- **Legal Clauses Strengthened**: Terms of Service updated with 4 NDIS-specific clauses (NDIS disclaimer, APP health data, AES-256 encryption + 72hr NDB, NSW liability shield). Privacy Policy NDB timeline fixed.
+- **Document Audit Logging**: `convex/documents.ts` create/remove mutations now log to audit trail.
+- **Stripe GST Config**: `automatic_tax: { enabled: true }` + invoice footer with ABN placeholder.
+- **Participant Consent Banners**: Teal APP 3 banners on `/participants/new` and `/participants/[id]/edit` with sensitive field tooltips.
+- **Participant Consent Workflow**: Full lifecycle (record, renew, withdraw) with:
+  - Schema: 8 consent fields on participants table, `consent_expiry`/`consent_missing` alert types
+  - Backend: `recordConsent`, `withdrawConsent`, `renewConsent` mutations in `convex/participants.ts`
+  - Withdrawal archives sensitive data (NDIS number, DOB, emergency contacts) while keeping tenancy records
+  - Consent PDF: `src/utils/consentFormPdf.ts` - 2-page PDF with smart fields + Privacy Information Sheet
+  - Alerts: `generateConsentExpiryAlerts` (30-day warning, critical on expiry) + `generateConsentMissingAlerts` in daily cron
+  - Dashboard: Consent status widget with active/expired/expiring/missing counts
+  - Detail page: 4-state consent section (no consent, active, expired, withdrawn) with PDF generation
+  - Creation: Consent step added to new participant form
+- **Audit-Ready Compliance Export**: `src/utils/auditCompliancePdf.ts` (1,075 lines) - 7-section NDIS audit pack PDF (cover, certifications, incidents, complaints, participant plans, document expiry, audit log integrity). "Generate Audit Pack" button on Reports > Compliance tab.
+- **Founder's Launch Dashboard**: `/admin/launch` - 15-item go-live checklist across 5 categories (Identity & Legal, Tax & Finance, Stripe, IP, NDIS Compliance). `convex/launchChecklist.ts` backend with progress tracking. Pre-checked items for completed tasks.
+
 ### Remaining Launch Tasks
 - Configure Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs)
 - Configure Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
@@ -760,4 +779,4 @@ npx convex deploy    # Deploy Convex to production
 ```
 
 ---
-**Last Updated**: 2026-02-10 (v2.1.4 - RequireAuth on all 72 protected pages. 82 pages, 0 errors)
+**Last Updated**: 2026-02-12 (v2.2.0 - Commercial launch prep: consent workflow, audit export, registration wired, legal hardening. 93 pages, 0 errors)

@@ -463,6 +463,66 @@ function ApiKeysContent() {
             </div>
           </div>
         </div>
+
+        {/* Outlook Add-in */}
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <svg className="w-6 h-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <h2 className="text-lg font-semibold text-white">Outlook Add-in</h2>
+          </div>
+
+          <p className="text-gray-400 text-sm mb-4">
+            Push emails from Microsoft Outlook directly into MySDAManager Communications.
+            The add-in reads the current email and pre-fills the communication form.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <span className="text-sm font-medium text-gray-300 block mb-2">Setup Instructions</span>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-400">
+                <li>Create an API key above with <span className="text-teal-400 font-mono text-xs">read:communications</span> and <span className="text-teal-400 font-mono text-xs">write:communications</span> permissions</li>
+                <li>Download the add-in manifest file below</li>
+                <li>In Outlook Web (outlook.office.com): open an email, click <strong className="text-gray-300">&quot;...&quot;</strong> &rarr; <strong className="text-gray-300">Get Add-ins</strong> &rarr; <strong className="text-gray-300">My add-ins</strong> &rarr; <strong className="text-gray-300">Add a custom add-in</strong> &rarr; <strong className="text-gray-300">Add from URL</strong></li>
+                <li>Enter the manifest URL or upload the file</li>
+                <li>Open any email and click <strong className="text-gray-300">&quot;Push to Comms&quot;</strong> in the ribbon</li>
+                <li>Paste your API key on first use (saved automatically)</li>
+              </ol>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="/outlook-addin/manifest.xml"
+                download="MySDAManager-Outlook-Manifest.xml"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download Manifest (XML)
+              </a>
+              <a
+                href="/outlook-addin/taskpane"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Open Taskpane in Browser
+              </a>
+            </div>
+
+            <div className="p-3 bg-gray-900 rounded-lg">
+              <span className="text-xs text-gray-400 block mb-1">Manifest URL (for &quot;Add from URL&quot;)</span>
+              <code className="text-sm text-teal-400 font-mono break-all">
+                https://mysdamanager.com/outlook-addin/manifest.xml
+              </code>
+            </div>
+          </div>
+        </div>
       </main>
 
       {/* Create API Key Modal */}

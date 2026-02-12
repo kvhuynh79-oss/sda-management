@@ -100,10 +100,13 @@ export default defineSchema({
     createdAt: v.number(),
     isActive: v.boolean(),       // Organization active status
     trialEndsAt: v.optional(v.number()), // Trial expiry timestamp (ms) - set by super-admin
+    inboundEmailAddress: v.optional(v.string()), // Unique forwarding address (e.g., "bls-abc123@inbound.mysdamanager.com")
+    inboundEmailEnabled: v.optional(v.boolean()), // Whether email forwarding is active
   })
     .index("by_slug", ["slug"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])
-    .index("by_isActive", ["isActive"]),
+    .index("by_isActive", ["isActive"])
+    .index("by_inboundEmailAddress", ["inboundEmailAddress"]),
 
   // Audit Logs table - track all user actions for security and compliance
   auditLogs: defineTable({
@@ -2294,6 +2297,17 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_organizationId", ["organizationId"])
     .index("by_isActive", ["isActive"]),
+
+  // Email Forwarders - maps approved sender emails to org+user for inbound email processing
+  emailForwarders: defineTable({
+    organizationId: v.id("organizations"),
+    email: v.string(), // Forwarder's email (e.g., "khen@betterlivingsolutions.com.au")
+    userId: v.id("users"), // Which user this forwarder maps to
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_organizationId", ["organizationId"]),
 
   // Emergency Management Plans - per-property emergency procedures (NDIS compliance)
   emergencyManagementPlans: defineTable({

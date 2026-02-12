@@ -528,3 +528,150 @@ export const getUsageStats = query({
     };
   },
 });
+
+// ============================================================================
+// EMAIL FORWARDING
+// ============================================================================
+
+/**
+ * Generate a unique inbound email forwarding address for the organization.
+ * Format: {slug}-{6-char-random}@inbound.mysdamanager.com
+ */
+export const generateInboundEmailAddress = mutation({
+  args: { userId: v.id("users"), organizationId: v.optional(v.id("organizations")) },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "users", "update");
+
+    const org = await ctx.db.get(organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    // Generate 6-char random suffix
+    const randomBytes = new Uint8Array(4);
+    crypto.getRandomValues(randomBytes);
+    const suffix = Array.from(randomBytes)
+      .map((b) => b.toString(36))
+      .join("")
+      .substring(0, 6);
+
+    const address = `${org.slug}-${suffix}@inbound.mysdamanager.com`;
+
+    await ctx.db.patch(organizationId, {
+      inboundEmailAddress: address,
+      inboundEmailEnabled: true,
+    });
+
+    return { address };
+  },
+});
+
+/**
+ * Toggle inbound email forwarding on/off for the organization.
+ */
+export const updateInboundEmailSettings = mutation({
+  args: {
+    userId: v.id("users"),
+    organizationId: v.optional(v.id("organizations")),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "users", "update");
+
+    await ctx.db.patch(organizationId, {
+      inboundEmailEnabled: args.enabled,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Add a registered email forwarder for the organization.
+ * Maps an email address to a user so we know who forwarded the email.
+ */
+export const addEmailForwarder = mutation({
+  args: {
+    userId: v.id("users"),
+    organizationId: v.id("organizations"),
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "users", "update");
+
+    // Check if already registered
+    const existing = await ctx.db
+      .query("emailForwarders")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .first();
+
+    if (existing) {
+      throw new Error("This email is already registered as a forwarder");
+    }
+
+    const id = await ctx.db.insert("emailForwarders", {
+      organizationId,
+      email: args.email.toLowerCase(),
+      userId: args.userId,
+      isActive: true,
+      createdAt: Date.now(),
+    });
+
+    return { id };
+  },
+});
+
+/**
+ * Remove a registered email forwarder.
+ */
+export const removeEmailForwarder = mutation({
+  args: {
+    userId: v.id("users"),
+    forwarderId: v.id("emailForwarders"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "users", "update");
+
+    const forwarder = await ctx.db.get(args.forwarderId);
+    if (!forwarder || forwarder.organizationId !== organizationId) {
+      throw new Error("Forwarder not found");
+    }
+
+    await ctx.db.delete(args.forwarderId);
+    return { success: true };
+  },
+});
+
+/**
+ * List registered email forwarders for the organization.
+ */
+export const getEmailForwarders = query({
+  args: { userId: v.id("users"), organizationId: v.optional(v.id("organizations")) },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const forwarders = await ctx.db
+      .query("emailForwarders")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    // Enrich with user names
+    const enriched = await Promise.all(
+      forwarders.map(async (f) => {
+        const user = await ctx.db.get(f.userId);
+        return {
+          _id: f._id,
+          email: f.email,
+          userId: f.userId,
+          userName: user ? `${user.firstName} ${user.lastName}` : "Unknown",
+          isActive: f.isActive,
+          createdAt: f.createdAt,
+        };
+      })
+    );
+
+    return enriched;
+  },
+});

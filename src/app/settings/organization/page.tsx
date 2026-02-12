@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -81,6 +81,90 @@ function OrganizationSettingsContent() {
     user ? { userId: user.id as Id<"users"> } : "skip"
   );
   const upsertProvider = useMutation(api.providerSettings.upsert);
+
+  // Email Forwarding
+  const emailForwarders = useQuery(
+    api.organizations.getEmailForwarders,
+    user && orgId ? { userId: user.id as Id<"users">, organizationId: orgId } : "skip"
+  );
+  const generateAddress = useMutation(api.organizations.generateInboundEmailAddress);
+  const updateEmailSettings = useMutation(api.organizations.updateInboundEmailSettings);
+  const addForwarder = useMutation(api.organizations.addEmailForwarder);
+  const removeForwarder = useMutation(api.organizations.removeEmailForwarder);
+
+  const [newForwarderEmail, setNewForwarderEmail] = useState("");
+  const [isGeneratingAddress, setIsGeneratingAddress] = useState(false);
+  const [isTogglingEmail, setIsTogglingEmail] = useState(false);
+  const [isAddingForwarder, setIsAddingForwarder] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+
+  const handleCopyAddress = useCallback(async () => {
+    if (!organization?.inboundEmailAddress) return;
+    try {
+      await navigator.clipboard.writeText(organization.inboundEmailAddress);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    } catch {
+      await alertDialog({ title: "Copy Failed", message: "Could not copy to clipboard. Please select and copy manually." });
+    }
+  }, [organization?.inboundEmailAddress, alertDialog]);
+
+  const handleGenerateAddress = async () => {
+    if (!user || !orgId) return;
+    setIsGeneratingAddress(true);
+    try {
+      await generateAddress({ userId: user.id as Id<"users">, organizationId: orgId });
+      await alertDialog({ title: "Address Generated", message: "Your forwarding address has been created. Enable email forwarding to start receiving emails." });
+    } catch (error) {
+      console.error("Error generating address:", error);
+      await alertDialog({ title: "Error", message: "Failed to generate forwarding address." });
+    } finally {
+      setIsGeneratingAddress(false);
+    }
+  };
+
+  const handleToggleEmailForwarding = async () => {
+    if (!user || !orgId) return;
+    setIsTogglingEmail(true);
+    try {
+      const newState = !organization?.inboundEmailEnabled;
+      await updateEmailSettings({ userId: user.id as Id<"users">, organizationId: orgId, enabled: newState });
+    } catch (error) {
+      console.error("Error toggling email forwarding:", error);
+      await alertDialog({ title: "Error", message: "Failed to update email forwarding settings." });
+    } finally {
+      setIsTogglingEmail(false);
+    }
+  };
+
+  const handleAddForwarder = async () => {
+    if (!user || !orgId) return;
+    const email = newForwarderEmail.trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      await alertDialog({ title: "Invalid Email", message: "Please enter a valid email address." });
+      return;
+    }
+    setIsAddingForwarder(true);
+    try {
+      await addForwarder({ userId: user.id as Id<"users">, organizationId: orgId, email });
+      setNewForwarderEmail("");
+    } catch (error) {
+      console.error("Error adding forwarder:", error);
+      await alertDialog({ title: "Error", message: "Failed to register email. It may already be registered." });
+    } finally {
+      setIsAddingForwarder(false);
+    }
+  };
+
+  const handleRemoveForwarder = async (forwarderId: Id<"emailForwarders">) => {
+    if (!user || !orgId) return;
+    try {
+      await removeForwarder({ userId: user.id as Id<"users">, forwarderId });
+    } catch (error) {
+      console.error("Error removing forwarder:", error);
+      await alertDialog({ title: "Error", message: "Failed to remove forwarder." });
+    }
+  };
 
   // Initialize form when org loads
   useEffect(() => {
@@ -588,6 +672,166 @@ function OrganizationSettingsContent() {
                     {organization.maxProperties >= 999999 ? "Unlimited" : organization.maxProperties}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Email Forwarding */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-1">
+                <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <h2 className="text-lg font-semibold text-white">Email Forwarding</h2>
+              </div>
+              <p className="text-sm text-gray-400 mb-5">
+                Forward emails from Outlook to automatically create communication records in MySDAManager.
+              </p>
+
+              {/* Forwarding Address */}
+              <div className="space-y-4">
+                {!organization.inboundEmailAddress ? (
+                  <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-4">
+                    <p className="text-sm text-gray-300 mb-3">
+                      Generate a unique forwarding address for your organization. Emails sent to this address will be automatically logged as communications.
+                    </p>
+                    <button
+                      onClick={handleGenerateAddress}
+                      disabled={isGeneratingAddress}
+                      className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                    >
+                      {isGeneratingAddress ? "Generating..." : "Generate Forwarding Address"}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Address display + copy + toggle */}
+                    <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-gray-300">Forwarding Address</label>
+                        <button
+                          onClick={handleToggleEmailForwarding}
+                          disabled={isTogglingEmail}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                            organization.inboundEmailEnabled ? "bg-teal-600" : "bg-gray-600"
+                          }`}
+                          role="switch"
+                          aria-checked={!!organization.inboundEmailEnabled}
+                          aria-label="Toggle email forwarding"
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              organization.inboundEmailEnabled ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-teal-400 text-sm font-mono select-all">
+                          {organization.inboundEmailAddress}
+                        </code>
+                        <button
+                          onClick={handleCopyAddress}
+                          className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                          aria-label="Copy forwarding address"
+                        >
+                          {copiedAddress ? (
+                            <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {organization.inboundEmailEnabled
+                          ? "Active - forwarded emails will create communication records."
+                          : "Disabled - forwarded emails will be ignored."}
+                      </p>
+                    </div>
+
+                    {/* Registered Forwarders */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-300 mb-2">Registered Email Addresses</h3>
+                      <p className="text-xs text-gray-400 mb-3">
+                        Register the email addresses that will forward emails. This identifies who sent the forward so communications are attributed correctly.
+                      </p>
+
+                      {/* Add forwarder */}
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="email"
+                          value={newForwarderEmail}
+                          onChange={(e) => setNewForwarderEmail(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleAddForwarder()}
+                          placeholder="email@example.com"
+                          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          autoComplete="email"
+                        />
+                        <button
+                          onClick={handleAddForwarder}
+                          disabled={isAddingForwarder || !newForwarderEmail.trim()}
+                          className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                        >
+                          {isAddingForwarder ? "Adding..." : "Add"}
+                        </button>
+                      </div>
+
+                      {/* Forwarder list */}
+                      {emailForwarders && emailForwarders.length > 0 ? (
+                        <div className="space-y-2">
+                          {emailForwarders.map((f) => (
+                            <div
+                              key={f._id}
+                              className="flex items-center justify-between px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span className="text-sm text-white truncate">{f.email}</span>
+                                {f.userName && (
+                                  <span className="text-xs text-gray-400">({f.userName})</span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleRemoveForwarder(f._id as Id<"emailForwarders">)}
+                                className="text-gray-400 hover:text-red-400 transition-colors ml-2 flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+                                aria-label={`Remove ${f.email}`}
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">No email addresses registered yet.</p>
+                      )}
+                    </div>
+
+                    {/* How-to Instructions */}
+                    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 mt-4">
+                      <h3 className="text-sm font-medium text-teal-400 mb-2">How to Forward Emails</h3>
+                      <ol className="text-sm text-gray-300 space-y-2 list-decimal list-inside">
+                        <li>Open the email in Outlook (desktop or web)</li>
+                        <li>Click <strong className="text-white">Forward</strong></li>
+                        <li>Paste the forwarding address above into the <strong className="text-white">To</strong> field</li>
+                        <li>Click <strong className="text-white">Send</strong></li>
+                        <li>The email appears in Communications within seconds</li>
+                      </ol>
+                      <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                        <p className="text-xs text-teal-400 font-medium mb-1">Pro Tip: Create an Outlook Quick Step</p>
+                        <p className="text-xs text-gray-400">
+                          In Outlook, go to <strong className="text-gray-300">Home &rarr; Quick Steps &rarr; New Quick Step &rarr; Forward to</strong> and paste your forwarding address. Then you can push any email to MySDAManager with a single click.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

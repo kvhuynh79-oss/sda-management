@@ -36,6 +36,7 @@ import type * as dwellings from "../dwellings.js";
 import type * as emergencyManagementPlans from "../emergencyManagementPlans.js";
 import type * as expectedPayments from "../expectedPayments.js";
 import type * as fixPaulDwelling from "../fixPaulDwelling.js";
+import type * as inboundEmail from "../inboundEmail.js";
 import type * as incidentActions from "../incidentActions.js";
 import type * as incidents from "../incidents.js";
 import type * as inspections from "../inspections.js";
@@ -125,6 +126,7 @@ declare const fullApi: ApiFromModules<{
   emergencyManagementPlans: typeof emergencyManagementPlans;
   expectedPayments: typeof expectedPayments;
   fixPaulDwelling: typeof fixPaulDwelling;
+  inboundEmail: typeof inboundEmail;
   incidentActions: typeof incidentActions;
   incidents: typeof incidents;
   inspections: typeof inspections;

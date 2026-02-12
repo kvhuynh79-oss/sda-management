@@ -1,32 +1,30 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireTenant } from "./authHelpers";
 
-// Get provider settings
+// Get provider settings for the current user's organization
 export const get = query({
   args: {
     userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    if (args.userId) {
-      // Get user's organizationId
-      const user = await ctx.db.get(args.userId);
-      if (user?.organizationId) {
-        const settings = await ctx.db
-          .query("providerSettings")
-          .withIndex("by_organizationId", (q) => q.eq("organizationId", user.organizationId))
-          .first();
-        if (settings) return settings;
-      }
-    }
-    // Fallback: return first settings (backward compat during migration)
-    const settings = await ctx.db.query("providerSettings").first();
+    if (!args.userId) return null;
+
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const settings = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
+
     return settings;
   },
 });
 
-// Create or update provider settings
+// Create or update provider settings (scoped to user's organization)
 export const upsert = mutation({
   args: {
+    userId: v.id("users"),
     providerName: v.optional(v.string()),
     ndisRegistrationNumber: v.optional(v.string()),
     abn: v.optional(v.string()),
@@ -48,22 +46,29 @@ export const upsert = mutation({
     rrcLastUpdated: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db.query("providerSettings").first();
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
+
+    // Find existing settings for THIS organization only
+    const existing = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
 
     if (existing) {
       // Update existing settings
       const updates: Record<string, unknown> = { updatedAt: now };
       for (const [key, value] of Object.entries(args)) {
-        if (value !== undefined) {
+        if (key !== "userId" && value !== undefined) {
           updates[key] = value;
         }
       }
       await ctx.db.patch(existing._id, updates);
       return existing._id;
     } else {
-      // Create new settings
+      // Create new settings for this organization
       const settingsId = await ctx.db.insert("providerSettings", {
+        organizationId,
         providerName: args.providerName || "",
         ndisRegistrationNumber: args.ndisRegistrationNumber || "",
         abn: args.abn || "",
@@ -77,9 +82,9 @@ export const upsert = mutation({
         bankBsb: args.bankBsb,
         bankAccountNumber: args.bankAccountNumber,
         bankAccountName: args.bankAccountName,
-        dspFortnightlyRate: args.dspFortnightlyRate || 1047.70, // Current DSP rate
+        dspFortnightlyRate: args.dspFortnightlyRate || 1047.70,
         dspPercentage: args.dspPercentage || 25,
-        craFortnightlyRate: args.craFortnightlyRate || 230.80, // Current CRA max rate
+        craFortnightlyRate: args.craFortnightlyRate || 230.80,
         craPercentage: args.craPercentage || 100,
         rrcLastUpdated: args.rrcLastUpdated || new Date().toISOString().split("T")[0],
         createdAt: now,
@@ -90,18 +95,24 @@ export const upsert = mutation({
   },
 });
 
-// Update RRC rates only
+// Update RRC rates only (scoped to user's organization)
 export const updateRrcRates = mutation({
   args: {
+    userId: v.id("users"),
     dspFortnightlyRate: v.number(),
     dspPercentage: v.number(),
     craFortnightlyRate: v.number(),
     craPercentage: v.number(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db.query("providerSettings").first();
+    const { organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();
     const today = new Date().toISOString().split("T")[0];
+
+    const existing = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -114,8 +125,9 @@ export const updateRrcRates = mutation({
       });
       return { success: true };
     } else {
-      // Create with defaults and RRC values
+      // Create with defaults and RRC values for this organization
       await ctx.db.insert("providerSettings", {
+        organizationId,
         providerName: "",
         ndisRegistrationNumber: "",
         abn: "",
@@ -134,7 +146,7 @@ export const updateRrcRates = mutation({
   },
 });
 
-// Calculate RRC amounts for a participant
+// Calculate RRC amounts for the current user's organization
 export const calculateRrc = query({
   args: {
     userId: v.optional(v.id("users")),
@@ -142,16 +154,11 @@ export const calculateRrc = query({
   handler: async (ctx, args) => {
     let settings = null;
     if (args.userId) {
-      const user = await ctx.db.get(args.userId);
-      if (user?.organizationId) {
-        settings = await ctx.db
-          .query("providerSettings")
-          .withIndex("by_organizationId", (q) => q.eq("organizationId", user.organizationId))
-          .first();
-      }
-    }
-    if (!settings) {
-      settings = await ctx.db.query("providerSettings").first();
+      const { organizationId } = await requireTenant(ctx, args.userId);
+      settings = await ctx.db
+        .query("providerSettings")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .first();
     }
 
     // Default values if no settings exist

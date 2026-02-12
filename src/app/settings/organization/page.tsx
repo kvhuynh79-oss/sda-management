@@ -322,6 +322,7 @@ function OrganizationSettingsContent() {
     setIsSavingProvider(true);
     try {
       await upsertProvider({
+        userId: user.id as Id<"users">,
         providerName: providerName.trim(),
         ndisRegistrationNumber: ndisRegistrationNumber.trim(),
         abn: abn.trim(),

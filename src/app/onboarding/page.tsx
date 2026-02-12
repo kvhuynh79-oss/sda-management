@@ -118,6 +118,7 @@ export default function OnboardingPage() {
   const handleSaveRrcSettings = async () => {
     try {
       await updateRrcRates({
+        userId: user!.id as Id<"users">,
         dspFortnightlyRate: parseFloat(rrcFormData.dspFortnightlyRate),
         dspPercentage: parseFloat(rrcFormData.dspPercentage),
         craFortnightlyRate: parseFloat(rrcFormData.craFortnightlyRate),

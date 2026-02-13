@@ -13,11 +13,11 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.3.0 (Native Mobile Widget)
+## Current Version: v2.4.0 (Participant Workflow + MTA Document)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
-2. **Participant Management** - NDIS participants with plans and funding
+2. **Participant Management** - NDIS participants with plans, funding, incomplete/archive workflow
 3. **Maintenance** - Reactive and preventative maintenance with photos
 4. **Contractor Management** - Track contractors, send quote requests via email
 5. **Quote Request Workflow** - Email contractors, receive quotes via public link
@@ -45,6 +45,9 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 27. **Emergency Plans** - EMP and BCP pages for business continuity
 28. **Audit Compliance Export** - 7-section NDIS audit pack PDF (certifications, incidents, complaints, plans, documents, audit integrity)
 29. **Founder's Launch Dashboard** - 15-item go-live checklist with 5 categories and progress tracking
+30. **Save Incomplete Participant** - Create profiles with just first/last name before full NDIS data available
+31. **MTA Schedule of Supports** - Landscape PDF matching BLS template with org-specific branding
+32. **Archive Participant** - Soft archive with confirmation, filtered from active lists
 
 ## Project Structure
 ```
@@ -719,6 +722,38 @@ All 8 sprints of the SaaS transformation are complete.
 - **Build**: 94 pages, 0 errors
 - **Remaining**: Add WidgetKit target in Xcode, register widget receiver in AndroidManifest, configure App Groups, submit to App Store / Play Store
 
+### Participant Workflow + MTA Document (2026-02-13)
+- **Save Incomplete Participant**: Yellow "Save Incomplete" button on `/participants/new` Step 1
+  - Only requires firstName + lastName (all other fields optional)
+  - Creates participant with `status: "incomplete"`, no dwellingId required
+  - Auto-creates `profile_incomplete` alert for follow-up
+  - Schema: `dwellingId` now `v.optional(v.id("dwellings"))`, `"incomplete"` + `"archived"` statuses added
+  - Null guards added to `claims.ts`, `expectedPayments.ts`, `reports.ts`, `silProviderPortal.ts`
+- **Incomplete Participant UI**: Orange "Incomplete" badge on list page, yellow banner on detail page
+  - Filter dropdown includes "Incomplete" option
+  - Banner: "This profile is incomplete. Complete the required details..."
+- **Archive Participant**: Gray "Archive" button on detail page with ConfirmDialog confirmation
+  - `archive` mutation with requirePermission("delete") check
+  - `getAll` accepts `includeArchived` param, filters archived by default
+  - "Archived" filter option + gray badge on list page
+- **MTA Settings**: Collapsible panel on onboarding page (next to RRC Settings)
+  - `updateMtaSettings` mutation in `convex/providerSettings.ts`
+  - Fields: Daily MTA Rate, Support Item Number (default "01_082_0115_1_1")
+  - Calculated totals: 90-day and monthly equivalents
+- **MTA Schedule of Supports PDF**: Landscape A4 matching BLS template
+  - Org-specific: name, ABN, phone, address, NDIS reg, logo from providerSettings + organization
+  - Page 1: Org header, logo top-right, blue "Schedule of Supports" bar, participant info table, 5-column support table with dark header
+  - Page 2: Service Agreement Signatures with participant + provider blocks
+  - Org footer on both pages
+  - MTA date inputs + plan manager name/email on onboarding page
+- **Calendar Integration**: Internal calendar + Google/Outlook sync (Wave 1-4)
+  - Schema: `calendarEvents` + `calendarConnections` tables
+  - 4 views: Month, Week, Day, Agenda
+  - Google Calendar: OAuth flow + 15-min sync cron
+  - Outlook Calendar: OAuth flow + 15-min sync cron
+  - Settings page: `/settings/integrations/calendar`
+- **Build**: 100 pages, 0 errors
+
 ### Remaining Launch Tasks
 - **Stripe Configuration**: Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs in Convex + Vercel env
 - **Sentry Configuration**: Set NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN in Vercel env
@@ -785,16 +820,25 @@ All 8 sprints of the SaaS transformation are complete.
 35. Android AppWidget - ✅ (RemoteViews, EncryptedSharedPreferences, dark theme)
 36. Capacitor Token Bridge - ✅ (native token storage on login/logout/refresh for widget access)
 
+### Completed (v2.4 - Participant Workflow + MTA Document)
+37. Save Incomplete Participant - ✅ (yellow button on Step 1, only first/last name required, profile_incomplete alert)
+38. Incomplete Participant Filter - ✅ (orange badge, filter on list page, yellow banner on detail page)
+39. Archive Participant - ✅ (gray button with confirmation dialog, filtered from active lists, archived status filter)
+40. MTA Settings - ✅ (daily rate + support item number, collapsible panel on onboarding page)
+41. MTA Schedule of Supports PDF - ✅ (landscape A4, org-specific branding, 2-page with signature block)
+42. Calendar Integration - ✅ (internal calendar, Google Calendar sync, Outlook Calendar sync, 4 views)
+43. Optional dwellingId - ✅ (schema + null guards across claims, expectedPayments, reports, silProviderPortal)
+
 ### Future Enhancements (Post-Launch)
-37. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
+44. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
    - **Workaround**: Users can take screenshots of PDFs and upload as images
    - **Priority**: Medium
-38. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
-39. **Data Export** - Per-org data export for compliance/migration
-40. **Webhook Outbound** - Configurable webhooks per org for integrations
-41. **Command Palette** - Cmd+K power user navigation
-42. **Easy Read Canva Template** - Replace jsPDF illustrations with stock photo template via pdf-lib overlay
-43. **App Store Submission** - Submit Capacitor app to App Store + Play Store
+45. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
+46. **Data Export** - Per-org data export for compliance/migration
+47. **Webhook Outbound** - Configurable webhooks per org for integrations
+48. **Command Palette** - Cmd+K power user navigation
+49. **Easy Read Canva Template** - Replace jsPDF illustrations with stock photo template via pdf-lib overlay
+50. **App Store Submission** - Submit Capacitor app to App Store + Play Store
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -860,4 +904,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-13 (v2.3.0 - Capacitor native app with iOS WidgetKit + Android AppWidget for "My Tasks" home screen widget. Widget REST API with session-token auth. Token bridge for shared storage. 94 pages, 0 errors.)
+**Last Updated**: 2026-02-13 (v2.4.0 - Save Incomplete Participant, Archive Participant, MTA Schedule of Supports landscape PDF, Calendar Integration (Google + Outlook sync), optional dwellingId with null guards. 100 pages, 0 errors.)

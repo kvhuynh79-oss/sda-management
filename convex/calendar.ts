@@ -647,3 +647,344 @@ export const moveEvent = mutation({
     return args.eventId;
   },
 });
+
+// ============================================
+// CALENDAR CONNECTION MANAGEMENT
+// ============================================
+
+/**
+ * Save a Google Calendar OAuth connection.
+ * Called from the Google OAuth callback route after successful authorization.
+ * Upserts: updates existing connection or creates a new one.
+ */
+export const saveGoogleConnection = mutation({
+  args: {
+    userId: v.id("users"),
+    accessToken: v.string(),
+    refreshToken: v.string(),
+    expiresIn: v.number(), // seconds until access token expiry
+    userEmail: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const now = Date.now();
+    const expiresAt = now + args.expiresIn * 1000;
+
+    // Check if connection already exists for this user + provider
+    const existing = await ctx.db
+      .query("calendarConnections")
+      .withIndex("by_userId_provider", (q) =>
+        q.eq("userId", args.userId).eq("provider", "google")
+      )
+      .first();
+
+    if (existing) {
+      // Update existing connection
+      await ctx.db.patch(existing._id, {
+        accessToken: args.accessToken,
+        refreshToken: args.refreshToken || existing.refreshToken, // Keep old refresh if not provided
+        expiresAt,
+        userEmail: args.userEmail || existing.userEmail,
+        syncEnabled: true,
+        updatedAt: now,
+      });
+
+      // Audit log
+      await ctx.runMutation(internal.auditLog.log, {
+        organizationId,
+        userId: args.userId,
+        userEmail: args.userEmail || "unknown",
+        userName: "System",
+        action: "update",
+        entityType: "calendar_connection",
+        entityId: existing._id as string,
+        entityName: `Google Calendar (${args.userEmail || "reconnected"})`,
+      });
+
+      return existing._id;
+    }
+
+    // Create new connection
+    const connectionId = await ctx.db.insert("calendarConnections", {
+      organizationId,
+      userId: args.userId,
+      provider: "google",
+      accessToken: args.accessToken,
+      refreshToken: args.refreshToken,
+      expiresAt,
+      userEmail: args.userEmail,
+      syncEnabled: true,
+      createdAt: now,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      organizationId,
+      userId: args.userId,
+      userEmail: args.userEmail || "unknown",
+      userName: "System",
+      action: "create",
+      entityType: "calendar_connection",
+      entityId: connectionId as string,
+      entityName: `Google Calendar (${args.userEmail || "new"})`,
+    });
+
+    return connectionId;
+  },
+});
+
+/**
+ * Save a Microsoft Outlook Calendar OAuth connection.
+ * Called from the Microsoft OAuth callback route after successful authorization.
+ * Upserts: updates existing connection or creates a new one.
+ */
+export const saveOutlookConnection = mutation({
+  args: {
+    userId: v.id("users"),
+    accessToken: v.string(),
+    refreshToken: v.string(),
+    expiresIn: v.number(), // seconds until access token expiry
+    userEmail: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const now = Date.now();
+    const expiresAt = now + args.expiresIn * 1000;
+
+    // Check if connection already exists for this user + provider
+    const existing = await ctx.db
+      .query("calendarConnections")
+      .withIndex("by_userId_provider", (q) =>
+        q.eq("userId", args.userId).eq("provider", "outlook")
+      )
+      .first();
+
+    if (existing) {
+      // Update existing connection
+      await ctx.db.patch(existing._id, {
+        accessToken: args.accessToken,
+        refreshToken: args.refreshToken || existing.refreshToken, // Keep old refresh if not provided
+        expiresAt,
+        userEmail: args.userEmail || existing.userEmail,
+        syncEnabled: true,
+        updatedAt: now,
+      });
+
+      // Audit log
+      await ctx.runMutation(internal.auditLog.log, {
+        organizationId,
+        userId: args.userId,
+        userEmail: args.userEmail || "unknown",
+        userName: "System",
+        action: "update",
+        entityType: "calendar_connection",
+        entityId: existing._id as string,
+        entityName: `Outlook Calendar (${args.userEmail || "reconnected"})`,
+      });
+
+      return existing._id;
+    }
+
+    // Create new connection
+    const connectionId = await ctx.db.insert("calendarConnections", {
+      organizationId,
+      userId: args.userId,
+      provider: "outlook",
+      accessToken: args.accessToken,
+      refreshToken: args.refreshToken,
+      expiresAt,
+      userEmail: args.userEmail,
+      syncEnabled: true,
+      createdAt: now,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      organizationId,
+      userId: args.userId,
+      userEmail: args.userEmail || "unknown",
+      userName: "System",
+      action: "create",
+      entityType: "calendar_connection",
+      entityId: connectionId as string,
+      entityName: `Outlook Calendar (${args.userEmail || "new"})`,
+    });
+
+    return connectionId;
+  },
+});
+
+/**
+ * Get all calendar connections for a user.
+ * Returns connection info without exposing tokens.
+ */
+export const getConnections = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireTenant(ctx, args.userId);
+
+    const connections = await ctx.db
+      .query("calendarConnections")
+      .withIndex("by_userId_provider", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // Return without exposing tokens
+    return connections.map((c) => ({
+      _id: c._id,
+      provider: c.provider,
+      userEmail: c.userEmail,
+      syncEnabled: c.syncEnabled,
+      lastSyncAt: c.lastSyncAt,
+      expiresAt: c.expiresAt,
+      calendarId: c.calendarId,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    }));
+  },
+});
+
+/**
+ * Disconnect a calendar provider for the current user.
+ * Deletes the connection record and optionally soft-deletes all external events from that provider.
+ */
+export const disconnectProvider = mutation({
+  args: {
+    userId: v.id("users"),
+    provider: v.union(v.literal("google"), v.literal("outlook")),
+    deleteExternalEvents: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const connection = await ctx.db
+      .query("calendarConnections")
+      .withIndex("by_userId_provider", (q) =>
+        q.eq("userId", args.userId).eq("provider", args.provider)
+      )
+      .first();
+
+    if (!connection) {
+      throw new Error(`No ${args.provider} calendar connection found`);
+    }
+
+    // Optionally soft-delete all external events from this provider
+    if (args.deleteExternalEvents) {
+      const externalEvents = await ctx.db
+        .query("calendarEvents")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
+
+      for (const event of externalEvents) {
+        if (
+          event.externalProvider === args.provider &&
+          event.createdBy === args.userId &&
+          event.isDeleted !== true
+        ) {
+          await ctx.db.patch(event._id, {
+            isDeleted: true,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+    }
+
+    // Delete the connection record
+    await ctx.db.delete(connection._id);
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      organizationId,
+      userId: args.userId,
+      userEmail: connection.userEmail || "unknown",
+      userName: "System",
+      action: "delete",
+      entityType: "calendar_connection",
+      entityId: connection._id as string,
+      entityName: `${args.provider} Calendar disconnected`,
+    });
+  },
+});
+
+/**
+ * Toggle sync enabled/disabled for a calendar connection.
+ */
+export const toggleSync = mutation({
+  args: {
+    userId: v.id("users"),
+    provider: v.union(v.literal("google"), v.literal("outlook")),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const connection = await ctx.db
+      .query("calendarConnections")
+      .withIndex("by_userId_provider", (q) =>
+        q.eq("userId", args.userId).eq("provider", args.provider)
+      )
+      .first();
+
+    if (!connection) {
+      throw new Error(`No ${args.provider} calendar connection found`);
+    }
+
+    await ctx.db.patch(connection._id, {
+      syncEnabled: args.enabled,
+      updatedAt: Date.now(),
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      organizationId,
+      userId: args.userId,
+      userEmail: connection.userEmail || "unknown",
+      userName: "System",
+      action: "update",
+      entityType: "calendar_connection",
+      entityId: connection._id as string,
+      entityName: `${args.provider} Calendar sync ${args.enabled ? "enabled" : "disabled"}`,
+    });
+  },
+});
+
+/**
+ * Trigger a manual sync for a specific calendar provider.
+ * Schedules the sync action to run immediately in the background.
+ */
+export const triggerSync = mutation({
+  args: {
+    userId: v.id("users"),
+    provider: v.union(v.literal("google"), v.literal("outlook")),
+  },
+  handler: async (ctx, args) => {
+    await requireTenant(ctx, args.userId);
+
+    const connection = await ctx.db
+      .query("calendarConnections")
+      .withIndex("by_userId_provider", (q) =>
+        q.eq("userId", args.userId).eq("provider", args.provider)
+      )
+      .first();
+
+    if (!connection) {
+      throw new Error(`No ${args.provider} calendar connection found`);
+    }
+
+    if (!connection.syncEnabled) {
+      throw new Error(`Sync is disabled for ${args.provider} calendar`);
+    }
+
+    // Schedule the sync action to run immediately
+    if (args.provider === "google") {
+      await ctx.scheduler.runAfter(0, internal.googleCalendar.syncFromGoogle, {
+        connectionId: connection._id,
+      });
+    } else if (args.provider === "outlook") {
+      await ctx.scheduler.runAfter(0, internal.outlookCalendar.syncFromOutlook, {
+        connectionId: connection._id,
+      });
+    }
+  },
+});

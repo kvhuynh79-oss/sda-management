@@ -84,6 +84,7 @@ export type AuditEntityType =
   | "staffMember"
   | "policy"
   | "calendar_event"
+  | "calendar_connection"
   | "system";
 
 // Internal mutation for logging - used by other mutations

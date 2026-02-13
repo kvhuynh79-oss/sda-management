@@ -302,6 +302,28 @@ export default function SettingsPage() {
                 </svg>
               </div>
             </Link>
+            <Link
+              href="/settings/integrations/calendar"
+              className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center gap-3 flex-1">
+                <svg className="w-5 h-5 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div>
+                  <h4 className="text-white font-medium">Calendar Integrations</h4>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Connect Google Calendar or Outlook for two-way event sync
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-gray-400">
+                <span className="text-sm">Configure</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </Link>
           </div>
         </div>
 

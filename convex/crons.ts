@@ -102,4 +102,24 @@ crons.daily(
   internal.auditLog.verifyHashChainIntegrity
 );
 
+// ============================================
+// CALENDAR SYNC CRON JOBS
+// ============================================
+
+// Sync Google Calendar events every 15 minutes
+// Pulls new/updated/deleted events from connected Google Calendars
+crons.interval(
+  "sync-google-calendars",
+  { minutes: 15 },
+  internal.googleCalendar.syncAllGoogleConnections
+);
+
+// Sync Outlook Calendar events every 15 minutes
+// Pulls new/updated/deleted events from connected Outlook/Microsoft 365 Calendars
+crons.interval(
+  "sync-outlook-calendars",
+  { minutes: 15 },
+  internal.outlookCalendar.syncAllOutlookConnections
+);
+
 export default crons;

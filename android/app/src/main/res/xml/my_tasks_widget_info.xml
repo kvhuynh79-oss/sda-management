@@ -2,25 +2,25 @@
 <!--
     Widget metadata for the MySDAManager "My Tasks" widget.
 
-    - minWidth/minHeight: Minimum widget size (approx 4x3 grid cells)
-    - updatePeriodMillis: 900000ms = 15 minutes (minimum allowed by Android)
-    - resizeMode: Widget can be resized both horizontally and vertically
-    - widgetCategory: Home screen only (not lockscreen)
-    - previewImage: Preview shown in the widget picker
-    - targetCellWidth/Height: Preferred size in grid cells (Android 12+)
-    - description: Shown in widget picker (Android 12+)
+    SAMSUNG ONE UI FIX (2026-02-13):
+    - Reduced default size from 4x3 to 3x2 to fit Galaxy Z Fold cover screen
+    - Added android:previewLayout (required by Samsung One UI on API 31+)
+    - Added android:label (Samsung reads this for the widget picker title)
+    - Kept minWidth/minHeight for pre-Android 12 devices
+    - targetCellWidth/Height for Android 12+ grid-based sizing
+    - description must resolve to a real @string resource (Samsung validates this)
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="250dp"
-    android:minHeight="180dp"
-    android:targetCellWidth="4"
-    android:targetCellHeight="3"
-    android:minResizeWidth="180dp"
-    android:minResizeHeight="110dp"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="80dp"
     android:maxResizeWidth="420dp"
     android:maxResizeHeight="530dp"
     android:updatePeriodMillis="900000"
-    android:initialLayout="@layout/widget_my_tasks"
+    android:initialLayout="@layout/widget_my_tasks_initial"
     android:previewImage="@drawable/widget_preview"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"

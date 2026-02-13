@@ -32,7 +32,12 @@
 
         </activity>
 
-        <!-- My Tasks home screen widget -->
+        <!-- My Tasks home screen widget
+             Only APPWIDGET_UPDATE is required in the intent-filter.
+             AppWidgetProvider.onReceive() internally dispatches ENABLED/DELETED/DISABLED.
+             BOOT_COMPLETED must NOT be in the widget receiver's intent-filter
+             as Samsung One UI rejects widgets with non-standard actions.
+        -->
         <receiver
             android:name=".widget.MyTasksWidgetProvider"
             android:exported="true">
@@ -56,6 +61,5 @@
     </application>
 
     <!-- Permissions -->
-
     <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

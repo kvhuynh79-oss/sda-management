@@ -27,7 +27,7 @@ export const fixPaulDwelling = mutation({
     }
 
     // Get Paul's current (incorrect) dwelling
-    const oldDwelling = await ctx.db.get(paul.dwellingId);
+    const oldDwelling = paul.dwellingId ? await ctx.db.get(paul.dwellingId) : null;
     const oldPropertyId = oldDwelling?.propertyId;
 
     // Update Paul to point to the correct A43 dwelling

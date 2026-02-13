@@ -245,7 +245,7 @@ export const generateSdaExpected = mutation({
       if (existing) continue;
 
       // Get dwelling and property info
-      const dwelling = await ctx.db.get(participant.dwellingId);
+      const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
       const propertyId = dwelling?.propertyId;
 
       // Calculate expected date (claim day or end of month)
@@ -333,7 +333,7 @@ export const generateRrcExpected = mutation({
       }
 
       // Get dwelling and property
-      const dwelling = await ctx.db.get(participant.dwellingId);
+      const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
       const propertyId = dwelling?.propertyId;
 
       // RRC typically comes throughout the month (Centrepay)
@@ -516,7 +516,7 @@ export const generateForMonth = mutation({
           .first();
 
         if (!existingSda) {
-          const dwelling = await ctx.db.get(participant.dwellingId);
+          const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
           const propertyId = dwelling?.propertyId;
           const claimDay = plan.claimDay || 15;
           const expectedDate = `${args.periodMonth}-${String(claimDay).padStart(2, "0")}`;
@@ -567,7 +567,7 @@ export const generateForMonth = mutation({
             monthlyRrc = (plan.reasonableRentContribution * 52) / 12;
           }
 
-          const dwelling = await ctx.db.get(participant.dwellingId);
+          const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
           const propertyId = dwelling?.propertyId;
           const [year, month] = args.periodMonth.split("-").map(Number);
           const lastDay = new Date(year, month, 0).getDate();
@@ -730,7 +730,7 @@ export const generateMonthlyExpectedInternal = internalMutation({
           .first();
 
         if (!existingSda) {
-          const dwelling = await ctx.db.get(participant.dwellingId);
+          const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
           const propertyId = dwelling?.propertyId;
           const claimDay = plan.claimDay || 15;
           const expectedDate = `${periodMonth}-${String(claimDay).padStart(2, "0")}`;
@@ -780,7 +780,7 @@ export const generateMonthlyExpectedInternal = internalMutation({
             monthlyRrc = (plan.reasonableRentContribution * 52) / 12;
           }
 
-          const dwelling = await ctx.db.get(participant.dwellingId);
+          const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
           const propertyId = dwelling?.propertyId;
           const [year, month] = periodMonth.split("-").map(Number);
           const lastDay = new Date(year, month, 0).getDate();

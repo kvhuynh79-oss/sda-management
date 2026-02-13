@@ -416,7 +416,7 @@ export const getPaymentSummary = query({
         const participant = await ctx.db.get(payment.participantId);
         if (!participant) return null;
 
-        const dwelling = await ctx.db.get(participant.dwellingId);
+        const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
         if (args.propertyId && property?._id !== args.propertyId) return null;
@@ -467,7 +467,7 @@ export const getOutstandingPayments = query({
         const participant = await ctx.db.get(claim.participantId);
         if (!participant) return null;
 
-        const dwelling = await ctx.db.get(participant.dwellingId);
+        const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
         const today = new Date();
@@ -894,7 +894,7 @@ export const getParticipantPlanStatus = query({
 
     const enrichedParticipants = await Promise.all(
       activeParticipants.map(async (participant) => {
-        const dwelling = await ctx.db.get(participant.dwellingId);
+        const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
         const plans = await ctx.db

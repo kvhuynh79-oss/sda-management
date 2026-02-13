@@ -83,8 +83,8 @@ export const getDashboard = query({
         const currentPlan = plans.find((p) => p.planStatus === "current");
         if (!currentPlan) return null;
 
-        // Get dwelling and property
-        const dwelling = await ctx.db.get(participant.dwellingId);
+        // Get dwelling and property (guard for incomplete participants)
+        const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
         // Check if claim exists for this period

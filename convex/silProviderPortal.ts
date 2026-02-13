@@ -34,7 +34,7 @@ export const getDashboard = query({
           _id: Id<"participants">;
           firstName: string;
           lastName: string;
-          dwellingId: Id<"dwellings">;
+          dwellingId?: Id<"dwellings">;
         }>;
       }
     >();

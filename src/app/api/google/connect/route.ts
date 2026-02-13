@@ -38,32 +38,40 @@ export async function GET(request: NextRequest) {
   const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return NextResponse.json(
-      {
-        error: "Google credentials not configured",
-        details:
-          "Please set GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI environment variables",
-      },
-      { status: 500 }
+    return NextResponse.redirect(
+      new URL(
+        `/settings/integrations/calendar?error=${encodeURIComponent("Google Calendar integration is not yet configured. Please ask your administrator to set up OAuth credentials.")}`,
+        request.url
+      )
     );
   }
 
   // Get user ID from query param
   const userId = request.nextUrl.searchParams.get("userId");
 
-  // Generate a signed state for CSRF protection (no cookies needed)
-  const state = createSignedState(userId);
+  try {
+    // Generate a signed state for CSRF protection (no cookies needed)
+    const state = createSignedState(userId);
 
-  // Build Google auth URL
-  const authUrl = new URL(GOOGLE_AUTH_URL);
-  authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("client_id", clientId);
-  authUrl.searchParams.set("redirect_uri", redirectUri);
-  authUrl.searchParams.set("scope", SCOPES);
-  authUrl.searchParams.set("state", state);
-  authUrl.searchParams.set("access_type", "offline"); // Required for refresh tokens
-  authUrl.searchParams.set("prompt", "consent"); // Force consent to always get refresh_token
+    // Build Google auth URL
+    const authUrl = new URL(GOOGLE_AUTH_URL);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("client_id", clientId);
+    authUrl.searchParams.set("redirect_uri", redirectUri);
+    authUrl.searchParams.set("scope", SCOPES);
+    authUrl.searchParams.set("state", state);
+    authUrl.searchParams.set("access_type", "offline"); // Required for refresh tokens
+    authUrl.searchParams.set("prompt", "consent"); // Force consent to always get refresh_token
 
-  // Redirect to Google
-  return NextResponse.redirect(authUrl.toString());
+    // Redirect to Google
+    return NextResponse.redirect(authUrl.toString());
+  } catch (err) {
+    console.error("Google connect error:", err);
+    return NextResponse.redirect(
+      new URL(
+        `/settings/integrations/calendar?error=${encodeURIComponent("Google Calendar integration is not fully configured. Please ask your administrator to set up OAuth credentials.")}`,
+        request.url
+      )
+    );
+  }
 }

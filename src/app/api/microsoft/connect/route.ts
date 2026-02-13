@@ -38,30 +38,38 @@ export async function GET(request: NextRequest) {
   const redirectUri = process.env.MICROSOFT_REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    return NextResponse.json(
-      {
-        error: "Microsoft credentials not configured",
-        details:
-          "Please set MICROSOFT_CLIENT_ID and MICROSOFT_REDIRECT_URI environment variables",
-      },
-      { status: 500 }
+    return NextResponse.redirect(
+      new URL(
+        `/settings/integrations/calendar?error=${encodeURIComponent("Outlook Calendar integration is not yet configured. Please ask your administrator to set up OAuth credentials.")}`,
+        request.url
+      )
     );
   }
 
   // Get user ID from query param
   const userId = request.nextUrl.searchParams.get("userId");
 
-  // Generate a signed state for CSRF protection (no cookies needed)
-  const state = createSignedState(userId);
+  try {
+    // Generate a signed state for CSRF protection (no cookies needed)
+    const state = createSignedState(userId);
 
-  // Build Microsoft auth URL
-  const authUrl = new URL(MS_AUTH_URL);
-  authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("client_id", clientId);
-  authUrl.searchParams.set("redirect_uri", redirectUri);
-  authUrl.searchParams.set("scope", SCOPES);
-  authUrl.searchParams.set("state", state);
+    // Build Microsoft auth URL
+    const authUrl = new URL(MS_AUTH_URL);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("client_id", clientId);
+    authUrl.searchParams.set("redirect_uri", redirectUri);
+    authUrl.searchParams.set("scope", SCOPES);
+    authUrl.searchParams.set("state", state);
 
-  // Redirect to Microsoft
-  return NextResponse.redirect(authUrl.toString());
+    // Redirect to Microsoft
+    return NextResponse.redirect(authUrl.toString());
+  } catch (err) {
+    console.error("Microsoft connect error:", err);
+    return NextResponse.redirect(
+      new URL(
+        `/settings/integrations/calendar?error=${encodeURIComponent("Outlook Calendar integration is not fully configured. Please ask your administrator to set up OAuth credentials.")}`,
+        request.url
+      )
+    );
+  }
 }

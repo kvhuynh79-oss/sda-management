@@ -8,7 +8,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 interface ThreadPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (threadId: string) => void;
+  onSelect: (threadId: string) => void | Promise<void>;
   excludeThreadId?: string;
   userId: string;
 }

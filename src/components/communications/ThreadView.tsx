@@ -301,6 +301,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
   const { organization } = useOrganization();
 
   const moveToThread = useMutation(api.communications.moveToThread);
+  const { alert: alertDialog } = useConfirmDialog();
 
   const data = useQuery(api.communications.getThreadedView, {
     userId: userId as Id<"users">,
@@ -714,6 +715,7 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
             setLinkToThreadComm(null);
           } catch (error) {
             console.error("Failed to move communication:", error);
+            await alertDialog("Failed to move communication to thread. " + (error instanceof Error ? error.message : "Please try again."));
           }
         }}
       />

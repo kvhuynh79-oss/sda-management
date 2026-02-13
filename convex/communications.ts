@@ -676,8 +676,12 @@ async function regenerateThreadSummary(
     return c.participantId || c.linkedParticipantId || undefined;
   }, undefined as any);
 
+  // Extract organizationId from the first communication for tenant-scoped thread summaries
+  const threadOrganizationId = firstComm.organizationId || undefined;
+
   const summaryData = {
     threadId,
+    organizationId: threadOrganizationId,
     participantId: threadParticipantId || undefined,
     startedAt: firstComm.createdAt,
     lastActivityAt: lastComm.createdAt,
@@ -966,6 +970,7 @@ export const moveToThread = mutation({
 
     // Audit log
     await ctx.runMutation(internal.auditLog.log, {
+      organizationId,
       userId: user._id,
       userEmail: user.email,
       userName: `${user.firstName} ${user.lastName}`,
@@ -1005,19 +1010,34 @@ export const searchThreadsForPicker = query({
 
     const searchLower = args.search?.toLowerCase() || "";
 
-    // Get thread summaries
-    const allSummaries = await ctx.db
+    // Get thread summaries scoped to this organization via by_organizationId index
+    const orgScopedSummaries = await ctx.db
       .query("threadSummaries")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
 
-    // Filter to org threads by checking communications
+    // Also fetch org communications to find threads whose summaries may lack organizationId (backward compat)
     const orgComms = await ctx.db
       .query("communications")
       .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .filter((q) => q.neq(q.field("isDeleted"), true))
       .collect();
 
-    const orgThreadIds = new Set(orgComms.map(c => c.threadId).filter(Boolean));
+    const orgThreadIds = new Set(orgComms.map(c => c.threadId).filter((tid): tid is string => !!tid));
+
+    // Merge: include any unscoped summaries that belong to org threads (backward compat for pre-fix data)
+    const orgScopedThreadIds = new Set(orgScopedSummaries.map(s => s.threadId));
+    const missingSummaryThreadIds = [...orgThreadIds].filter(tid => !orgScopedThreadIds.has(tid));
+    let allSummaries = [...orgScopedSummaries];
+    if (missingSummaryThreadIds.length > 0) {
+      // Only fetch unscoped summaries if there are org threads missing from the org-scoped set
+      const unscopedSummaries = await ctx.db
+        .query("threadSummaries")
+        .filter((q) => q.eq(q.field("organizationId"), undefined))
+        .collect();
+      const extraSummaries = unscopedSummaries.filter(s => orgThreadIds.has(s.threadId));
+      allSummaries = [...allSummaries, ...extraSummaries];
+    }
 
     type PickerItem = {
       threadId: string;

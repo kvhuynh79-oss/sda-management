@@ -90,7 +90,7 @@ export default function CommunicationDetailPage() {
 
   const updateCommunication = useMutation(api.communications.update);
   const deleteCommunication = useMutation(api.communications.remove);
-  const { confirm: confirmDialog } = useConfirmDialog();
+  const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
   // Initialize form data when communication loads
   useEffect(() => {
@@ -774,6 +774,7 @@ export default function CommunicationDetailPage() {
               setShowThreadPicker(false);
             } catch (error) {
               console.error("Failed to move communication:", error);
+              await alertDialog("Failed to move communication to thread. " + (error instanceof Error ? error.message : "Please try again."));
             }
           }}
         />

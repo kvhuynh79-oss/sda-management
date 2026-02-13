@@ -1359,27 +1359,15 @@ export default function OnboardingPage() {
         drawOrgBlock(pageHeight - 22);
       };
 
-      // Helper: draw logo on blue background rectangle (top-right corner)
-      const drawLogoBanner = () => {
-        const bannerW = 70;
-        const bannerH = 32;
-        const bannerX = pageWidth - margin - bannerW;
-        const bannerY = 4;
-
-        // Blue background rectangle
-        doc.setFillColor(66, 133, 244);
-        doc.rect(bannerX, bannerY, bannerW, bannerH, "F");
-
-        // Logo centered inside the blue rectangle (preserve aspect ratio)
+      // Helper: draw org logo top-right (preserve aspect ratio, no background)
+      const drawLogo = () => {
         if (logoData) {
           const maxW = 60;
-          const maxH = 26;
+          const maxH = 30;
           const ratio = Math.min(maxW / logoData.width, maxH / logoData.height);
           const logoW = logoData.width * ratio;
           const logoH = logoData.height * ratio;
-          const logoX = bannerX + (bannerW - logoW) / 2;
-          const logoY = bannerY + (bannerH - logoH) / 2;
-          doc.addImage(logoData.data, "JPEG", logoX, logoY, logoW, logoH);
+          doc.addImage(logoData.data, "JPEG", pageWidth - margin - logoW, 6, logoW, logoH);
         }
       };
 
@@ -1388,7 +1376,7 @@ export default function OnboardingPage() {
       // ==========================================
 
       drawHeader();
-      drawLogoBanner();
+      drawLogo();
 
       // Blue header bar: "Schedule of Supports"
       let y = 42;
@@ -1552,7 +1540,7 @@ export default function OnboardingPage() {
       doc.addPage("landscape");
 
       drawHeader();
-      drawLogoBanner();
+      drawLogo();
 
       // "SERVICE AGREEMENT SIGNATURES" heading
       y = 48;

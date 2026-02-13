@@ -11,6 +11,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { exportThreadToPdf } from "../../lib/threadPdfExport";
 import { useOrganization } from "../../contexts/OrganizationContext";
 import { useConfirmDialog } from "../ui/ConfirmDialog";
+import ThreadPickerModal from "./ThreadPickerModal";
 
 function buildThreadAddEntryUrl(thread: any): string {
   const params: Record<string, string> = {};
@@ -296,7 +297,10 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [allThreads, setAllThreads] = useState<any[]>([]);
   const [exportingThreadId, setExportingThreadId] = useState<string | null>(null);
+  const [linkToThreadComm, setLinkToThreadComm] = useState<{ commId: string; threadId: string } | null>(null);
   const { organization } = useOrganization();
+
+  const moveToThread = useMutation(api.communications.moveToThread);
 
   const data = useQuery(api.communications.getThreadedView, {
     userId: userId as Id<"users">,
@@ -600,6 +604,20 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
                       Add Entry
                     </Link>
 
+                    {/* Link to Thread - for single-message orphan threads */}
+                    {thread.messageCount === 1 && thread.firstCommunicationId && (userRole === "admin" || userRole === "property_manager") && (
+                      <button
+                        onClick={() => setLinkToThreadComm({ commId: thread.firstCommunicationId, threadId: thread.threadId })}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                        aria-label={`Link this communication to another thread`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        Link to Thread
+                      </button>
+                    )}
+
                     {/* Export PDF */}
                     <button
                       onClick={() => handleExportPdf(thread)}
@@ -678,6 +696,27 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
       )}
       </>
       )}
+
+      {/* Thread Picker Modal */}
+      <ThreadPickerModal
+        isOpen={!!linkToThreadComm}
+        onClose={() => setLinkToThreadComm(null)}
+        excludeThreadId={linkToThreadComm?.threadId}
+        userId={userId}
+        onSelect={async (targetThreadId) => {
+          if (!linkToThreadComm) return;
+          try {
+            await moveToThread({
+              communicationId: linkToThreadComm.commId as Id<"communications">,
+              targetThreadId,
+              actingUserId: userId as Id<"users">,
+            });
+            setLinkToThreadComm(null);
+          } catch (error) {
+            console.error("Failed to move communication:", error);
+          }
+        }}
+      />
     </div>
   );
 }

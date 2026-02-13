@@ -12,6 +12,7 @@ import { CommunicationTypeBadge, ContactTypeBadge, DirectionBadge } from "@/comp
 import { FormInput, FormSelect, FormTextarea, Button } from "@/components/forms";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import ThreadPickerModal from "@/components/communications/ThreadPickerModal";
 
 export default function CommunicationDetailPage() {
   const params = useParams();
@@ -22,6 +23,7 @@ export default function CommunicationDetailPage() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [isEditing, setIsEditing] = useState(searchParams.get("edit") === "true");
   const [isSaving, setIsSaving] = useState(false);
+  const [showThreadPicker, setShowThreadPicker] = useState(false);
 
   const [formData, setFormData] = useState({
     communicationType: "phone_call" as "email" | "sms" | "phone_call" | "meeting" | "other",
@@ -155,6 +157,7 @@ export default function CommunicationDetailPage() {
   };
 
   const restoreCommunication = useMutation(api.communications.restore);
+  const moveToThreadMutation = useMutation(api.communications.moveToThread);
 
   const handleDelete = async () => {
     if (!user || !communication) return;
@@ -253,6 +256,14 @@ export default function CommunicationDetailPage() {
                 </>
               ) : (
                 <>
+                  {(user.role === "admin" || user.role === "property_manager") && (
+                    <button
+                      onClick={() => setShowThreadPicker(true)}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors text-sm"
+                    >
+                      Link to Thread
+                    </button>
+                  )}
                   <Link
                     href={`/follow-ups/tasks/new?communicationId=${communication._id}${communication.linkedParticipantId ? `&participantId=${communication.linkedParticipantId}` : ""}`}
                     className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
@@ -746,6 +757,26 @@ export default function CommunicationDetailPage() {
             )}
           </div>
         </main>
+
+        {/* Thread Picker Modal */}
+        <ThreadPickerModal
+          isOpen={showThreadPicker}
+          onClose={() => setShowThreadPicker(false)}
+          excludeThreadId={communication.threadId}
+          userId={user.id}
+          onSelect={async (targetThreadId) => {
+            try {
+              await moveToThreadMutation({
+                communicationId: communication._id as Id<"communications">,
+                targetThreadId,
+                actingUserId: user.id as Id<"users">,
+              });
+              setShowThreadPicker(false);
+            } catch (error) {
+              console.error("Failed to move communication:", error);
+            }
+          }}
+        />
       </div>
     </RequireAuth>
   );

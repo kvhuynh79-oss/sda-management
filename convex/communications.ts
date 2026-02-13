@@ -880,6 +880,210 @@ export const splitThread = mutation({
   },
 });
 
+/**
+ * Move a single communication to a different existing thread
+ */
+export const moveToThread = mutation({
+  args: {
+    communicationId: v.id("communications"),
+    targetThreadId: v.string(),
+    actingUserId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await requirePermission(ctx, args.actingUserId, "communications", "update");
+    const { organizationId } = await requireTenant(ctx, args.actingUserId);
+
+    if (user.role !== "admin" && user.role !== "property_manager") {
+      throw new Error("Only admins and property managers can move communications between threads");
+    }
+
+    // Fetch communication
+    const communication = await ctx.db.get(args.communicationId);
+    if (!communication) {
+      throw new Error("Communication not found");
+    }
+    if (communication.organizationId !== organizationId) {
+      throw new Error("Access denied: Communication belongs to different organization");
+    }
+
+    const oldThreadId = communication.threadId;
+    if (oldThreadId === args.targetThreadId) {
+      throw new Error("Communication is already in this thread");
+    }
+
+    // Verify target thread exists in same org (check communications or leads)
+    const targetComm = await ctx.db
+      .query("communications")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.targetThreadId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
+      .first();
+
+    if (!targetComm) {
+      // Also check leads table - lead threads may not have communications yet
+      const targetLead = await ctx.db
+        .query("leads")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.eq(q.field("threadId"), args.targetThreadId))
+        .first();
+
+      if (!targetLead) {
+        throw new Error("Target thread not found or belongs to different organization");
+      }
+    }
+
+    // Move communication to target thread
+    await ctx.db.patch(args.communicationId, {
+      threadId: args.targetThreadId,
+      isThreadStarter: false,
+      updatedAt: Date.now(),
+    });
+
+    // Regenerate target thread summary
+    await regenerateThreadSummary(ctx, args.targetThreadId);
+
+    // Handle old thread - regenerate or clean up if empty
+    if (oldThreadId) {
+      const remainingComms = await ctx.db
+        .query("communications")
+        .withIndex("by_thread", (q) => q.eq("threadId", oldThreadId))
+        .filter((q) => q.eq(q.field("organizationId"), organizationId))
+        .filter((q) => q.neq(q.field("isDeleted"), true))
+        .collect();
+
+      if (remainingComms.length === 0) {
+        // Delete empty thread summary
+        const oldSummary = await ctx.db
+          .query("threadSummaries")
+          .withIndex("by_thread", (q) => q.eq("threadId", oldThreadId))
+          .first();
+        if (oldSummary) {
+          await ctx.db.delete(oldSummary._id);
+        }
+      } else {
+        await regenerateThreadSummary(ctx, oldThreadId);
+      }
+    }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "thread_move",
+      entityType: "communication",
+      entityId: args.communicationId,
+      entityName: `Thread move: ${communication.contactName} - ${communication.subject || "No subject"}`,
+      metadata: JSON.stringify({
+        oldThreadId,
+        targetThreadId: args.targetThreadId,
+        communicationType: communication.communicationType,
+        subject: communication.subject,
+      }),
+    });
+
+    return {
+      success: true,
+      oldThreadId,
+      targetThreadId: args.targetThreadId,
+    };
+  },
+});
+
+/**
+ * Search threads and leads for the thread picker modal
+ */
+export const searchThreadsForPicker = query({
+  args: {
+    userId: v.id("users"),
+    search: v.optional(v.string()),
+    excludeThreadId: v.optional(v.string()),
+    includeLeads: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await requirePermission(ctx, args.userId, "communications", "view");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const searchLower = args.search?.toLowerCase() || "";
+
+    // Get thread summaries
+    const allSummaries = await ctx.db
+      .query("threadSummaries")
+      .collect();
+
+    // Filter to org threads by checking communications
+    const orgComms = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) => q.neq(q.field("isDeleted"), true))
+      .collect();
+
+    const orgThreadIds = new Set(orgComms.map(c => c.threadId).filter(Boolean));
+
+    type PickerItem = {
+      threadId: string;
+      subject: string;
+      contactNames: string[];
+      messageCount: number;
+      lastActivityAt: number;
+      isLead: boolean;
+      leadId?: string;
+    };
+
+    const threads: PickerItem[] = allSummaries
+      .filter(s => orgThreadIds.has(s.threadId))
+      .filter(s => s.threadId !== args.excludeThreadId)
+      .filter(s => {
+        if (!searchLower) return true;
+        const subjectMatch = (s.subject || "").toLowerCase().includes(searchLower);
+        const nameMatch = (s.participantNames || []).some(n => n.toLowerCase().includes(searchLower));
+        return subjectMatch || nameMatch;
+      })
+      .sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
+      .slice(0, 50)
+      .map(s => ({
+        threadId: s.threadId,
+        subject: s.subject || "Untitled Thread",
+        contactNames: s.participantNames || [],
+        messageCount: s.messageCount || 0,
+        lastActivityAt: s.lastActivityAt || s.startedAt || 0,
+        isLead: false,
+      }));
+
+    // Include leads if requested
+    let leadItems: PickerItem[] = [];
+    if (args.includeLeads) {
+      const leads = await ctx.db
+        .query("leads")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.neq(q.field("isDeleted"), true))
+        .collect();
+
+      leadItems = leads
+        .filter(l => l.threadId)
+        .filter(l => l.threadId !== args.excludeThreadId)
+        .filter(l => {
+          if (!searchLower) return true;
+          const nameMatch = (l.participantName || "").toLowerCase().includes(searchLower);
+          const referrerMatch = (l.referrerName || "").toLowerCase().includes(searchLower);
+          return nameMatch || referrerMatch;
+        })
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 20)
+        .map(l => ({
+          threadId: l.threadId!,
+          subject: `Lead: ${l.participantName} - ${l.sdaCategoryNeeded.replace(/_/g, " ")}`,
+          contactNames: [l.referrerName, l.participantName],
+          messageCount: 0,
+          lastActivityAt: l.updatedAt || l.createdAt,
+          isLead: true,
+          leadId: l._id as string,
+        }));
+    }
+
+    return [...threads, ...leadItems];
+  },
+});
+
 // Get all communications with enriched data
 export const getAll = query({
   args: { userId: v.id("users") },
@@ -1408,6 +1612,8 @@ export const getThreadedView = query({
           linkedPropertyId: starter?.linkedPropertyId || linked?.linkedPropertyId,
           stakeholderEntityType: starter?.stakeholderEntityType || linked?.stakeholderEntityType,
           stakeholderEntityId: starter?.stakeholderEntityId || linked?.stakeholderEntityId,
+          // First communication ID (useful for single-message thread operations)
+          firstCommunicationId: starter?._id,
         };
       }),
       nextCursor: hasMore ? String(page[page.length - 1].lastActivityAt) : null,

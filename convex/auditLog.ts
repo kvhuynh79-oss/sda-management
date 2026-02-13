@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
 // Type for audit log actions
-export type AuditAction = "create" | "update" | "delete" | "view" | "login" | "logout" | "export" | "import" | "thread_merge" | "thread_split" | "consultation_gate" | "bulk_mark_read" | "bulk_categorize" | "bulk_thread" | "bulk_flag" | "mfa_enabled" | "mfa_disabled" | "mfa_backup_used" | "mfa_backup_regenerated" | "mfa_lockout" | "data_encrypted" | "restore" | "thread_status_change";
+export type AuditAction = "create" | "update" | "delete" | "view" | "login" | "logout" | "export" | "import" | "thread_merge" | "thread_split" | "thread_move" | "consultation_gate" | "bulk_mark_read" | "bulk_categorize" | "bulk_thread" | "bulk_flag" | "mfa_enabled" | "mfa_disabled" | "mfa_backup_used" | "mfa_backup_regenerated" | "mfa_lockout" | "data_encrypted" | "restore" | "thread_status_change";
 
 /**
  * Calculate SHA-256 hash of audit log entry for hash chain
@@ -105,6 +105,7 @@ export const log = internalMutation({
       v.literal("import"),
       v.literal("thread_merge"),
       v.literal("thread_split"),
+      v.literal("thread_move"),
       v.literal("consultation_gate"),
       v.literal("bulk_mark_read"),
       v.literal("bulk_categorize"),
@@ -190,6 +191,7 @@ export const createLog = mutation({
       v.literal("import"),
       v.literal("thread_merge"),
       v.literal("thread_split"),
+      v.literal("thread_move"),
       v.literal("consultation_gate"),
       v.literal("bulk_mark_read"),
       v.literal("bulk_categorize"),

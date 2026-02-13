@@ -130,6 +130,7 @@ export default defineSchema({
       v.literal("import"),
       v.literal("thread_merge"),
       v.literal("thread_split"),
+      v.literal("thread_move"),
       v.literal("consultation_gate"),
       v.literal("bulk_mark_read"),
       v.literal("bulk_categorize"),

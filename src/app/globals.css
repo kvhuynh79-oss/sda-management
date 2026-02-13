@@ -223,14 +223,14 @@ textarea,
 /* ─── react-big-calendar dark theme ─────────────────────────────── */
 .rbc-calendar {
   background: transparent;
-  color: #e5e7eb;
+  color: #d1d5db;
   font-family: inherit;
 }
 .rbc-toolbar {
   margin-bottom: 16px;
 }
 .rbc-toolbar button {
-  color: #d1d5db;
+  color: #9ca3af;
   border-color: #374151;
   background: #1f2937;
   border-radius: 6px;
@@ -239,7 +239,7 @@ textarea,
 }
 .rbc-toolbar button:hover {
   background: #374151;
-  color: #fff;
+  color: #d1d5db;
 }
 .rbc-toolbar button.rbc-active {
   background: #0d9488;
@@ -249,7 +249,7 @@ textarea,
 .rbc-toolbar .rbc-toolbar-label {
   font-weight: 600;
   font-size: 18px;
-  color: #f3f4f6;
+  color: #d1d5db;
 }
 .rbc-month-view,
 .rbc-time-view {
@@ -259,6 +259,7 @@ textarea,
 }
 .rbc-header {
   border-color: #374151;
+  background: #1f2937;
   color: #9ca3af;
   padding: 8px;
   font-weight: 500;
@@ -268,16 +269,17 @@ textarea,
   border-left-color: #374151;
 }
 .rbc-day-bg {
-  border-color: #374151;
+  background: #111827;
+  border-color: #1f2937;
 }
 .rbc-day-bg + .rbc-day-bg {
-  border-left-color: #374151;
+  border-left-color: #1f2937;
 }
 .rbc-off-range-bg {
-  background: #111827;
+  background: #0a0f1a;
 }
 .rbc-today {
-  background: rgba(13, 148, 136, 0.1) !important;
+  background: rgba(13, 148, 136, 0.08) !important;
 }
 .rbc-event {
   border-radius: 4px;
@@ -298,16 +300,30 @@ textarea,
   font-weight: 500;
 }
 .rbc-month-row + .rbc-month-row {
-  border-top-color: #374151;
+  border-top-color: #1f2937;
 }
+/* Date numbers in cells - muted gray, not white */
 .rbc-date-cell {
-  color: #9ca3af;
+  color: #6b7280;
   padding: 4px 8px;
   font-size: 13px;
+}
+.rbc-date-cell a {
+  color: inherit !important;
+}
+/* Off-range dates even more muted */
+.rbc-off-range {
+  color: #4b5563;
+}
+.rbc-off-range a {
+  color: #4b5563 !important;
 }
 .rbc-date-cell.rbc-now {
   color: #14b8a6;
   font-weight: 600;
+}
+.rbc-date-cell.rbc-now a {
+  color: #14b8a6 !important;
 }
 .rbc-time-header {
   border-color: #374151;
@@ -316,7 +332,7 @@ textarea,
   border-top-color: #374151;
 }
 .rbc-time-content > * + * > * {
-  border-left-color: #374151;
+  border-left-color: #1f2937;
 }
 .rbc-timeslot-group {
   border-bottom-color: #1f2937;
@@ -331,7 +347,7 @@ textarea,
 }
 .rbc-agenda-view table.rbc-agenda-table {
   border-color: #374151;
-  color: #e5e7eb;
+  color: #d1d5db;
 }
 .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
   border-bottom-color: #374151;
@@ -351,7 +367,7 @@ textarea,
   color: #9ca3af;
 }
 .rbc-agenda-event-cell {
-  color: #e5e7eb;
+  color: #d1d5db;
 }
 /* Light mode overrides for calendar */
 html.light .rbc-toolbar button { background: #f3f4f6; color: #374151; border-color: #d1d5db; }

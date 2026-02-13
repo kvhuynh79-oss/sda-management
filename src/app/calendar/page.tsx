@@ -26,6 +26,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import CalendarEventDetail from "@/components/calendar/CalendarEventDetail";
+import NewEventModal from "@/components/calendar/NewEventModal";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingScreen } from "@/components/ui";
 
@@ -110,6 +111,7 @@ function CalendarContent() {
     () => new Set(EVENT_TYPES.map((t) => t.key))
   );
   const [propertyFilter, setPropertyFilter] = useState<string>("");
+  const [showNewEvent, setShowNewEvent] = useState(false);
 
   // ── Compute date range for query ──────────────────────────────
   const { startDate, endDate } = useMemo(() => {
@@ -269,9 +271,8 @@ function CalendarContent() {
           </div>
           <div className="flex items-center gap-3 flex-shrink-0 self-start sm:self-auto">
             <button
-              disabled
-              className="px-4 py-2 bg-gray-700 text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed opacity-60"
-              title="Coming soon"
+              onClick={() => setShowNewEvent(true)}
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
               + New Event
             </button>
@@ -459,6 +460,14 @@ function CalendarContent() {
       <CalendarEventDetail
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
+      />
+
+      {/* ── New event modal ───────────────────────────────────────── */}
+      <NewEventModal
+        isOpen={showNewEvent}
+        onClose={() => setShowNewEvent(false)}
+        userId={user?.id || ""}
+        defaultDate={currentDate}
       />
     </div>
   );

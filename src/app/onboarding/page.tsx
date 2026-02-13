@@ -1409,18 +1409,21 @@ export default function OnboardingPage() {
 
       doc.setFont("helvetica", "bold");
       doc.text("Name: ", margin + 2, y + 7);
+      const nameW = doc.getTextWidth("Name: ");
       doc.setFont("helvetica", "normal");
-      doc.text(participantName, margin + 2 + doc.getTextWidth("Name: "), y + 7);
+      doc.text(participantName, margin + 2 + nameW, y + 7);
 
       doc.setFont("helvetica", "bold");
       doc.text("DOB: ", margin + colW1 + 2, y + 7);
+      const dobW = doc.getTextWidth("DOB: ");
       doc.setFont("helvetica", "normal");
-      doc.text(participantDob, margin + colW1 + 2 + doc.getTextWidth("DOB: "), y + 7);
+      doc.text(participantDob, margin + colW1 + 2 + dobW, y + 7);
 
       doc.setFont("helvetica", "bold");
       doc.text("NDIS Number: ", margin + 2 * colW1 + 2, y + 7);
+      const ndisW = doc.getTextWidth("NDIS Number: ");
       doc.setFont("helvetica", "normal");
-      doc.text(participantNdis, margin + 2 * colW1 + 2 + doc.getTextWidth("NDIS Number: "), y + 7);
+      doc.text(participantNdis, margin + 2 * colW1 + 2 + ndisW, y + 7);
 
       // Row 2: Contact Details | Start date | End date
       y += rowH;
@@ -1429,27 +1432,31 @@ export default function OnboardingPage() {
       doc.rect(margin + 2 * colW1, y, colW1, rowH);
 
       doc.setFont("helvetica", "bold");
-      doc.text("Contact Details:", margin + 2, y + 7);
+      doc.text("Contact Details: ", margin + 2, y + 7);
+      const contactW = doc.getTextWidth("Contact Details: ");
       doc.setFont("helvetica", "normal");
-      doc.text(participantContact, margin + 2 + doc.getTextWidth("Contact Details: "), y + 7);
+      doc.text(participantContact, margin + 2 + contactW, y + 7);
 
       doc.setFont("helvetica", "bold");
-      doc.text("Start date of agreement:", margin + colW1 + 2, y + 7);
+      doc.text("Start date of agreement: ", margin + colW1 + 2, y + 7);
+      const startDateW = doc.getTextWidth("Start date of agreement: ");
       doc.setFont("helvetica", "normal");
-      doc.text(formatDate(mtaStartDate), margin + colW1 + 2 + doc.getTextWidth("Start date of agreement:"), y + 7);
+      doc.text(formatDate(mtaStartDate), margin + colW1 + 2 + startDateW, y + 7);
 
       doc.setFont("helvetica", "bold");
       doc.text("End date of agreement: ", margin + 2 * colW1 + 2, y + 7);
+      const endDateW = doc.getTextWidth("End date of agreement: ");
       doc.setFont("helvetica", "normal");
-      doc.text(formatDate(mtaEndDate), margin + 2 * colW1 + 2 + doc.getTextWidth("End date of agreement: "), y + 7);
+      doc.text(formatDate(mtaEndDate), margin + 2 * colW1 + 2 + endDateW, y + 7);
 
       // Row 3: Address (full width)
       y += rowH;
       doc.rect(margin, y, contentWidth, rowH);
       doc.setFont("helvetica", "bold");
       doc.text("Address: ", margin + 2, y + 7);
+      const addressW = doc.getTextWidth("Address: ");
       doc.setFont("helvetica", "normal");
-      doc.text(participantAddress, margin + 2 + doc.getTextWidth("Address: "), y + 7);
+      doc.text(participantAddress, margin + 2 + addressW, y + 7);
 
       // "Supports provided" section heading
       y += rowH + 10;
@@ -1463,8 +1470,9 @@ export default function OnboardingPage() {
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
       doc.text("Support Category Name: ", margin, y);
+      const catNameW = doc.getTextWidth("Support Category Name: ");
       doc.setFont("helvetica", "normal");
-      doc.text("MTA", margin + doc.getTextWidth("Support Category Name: "), y);
+      doc.text("MTA", margin + catNameW, y);
 
       // Support table (5 columns)
       y += 8;
@@ -1480,10 +1488,18 @@ export default function OnboardingPage() {
 
       // Header row (dark background with white text - matches BLS template)
       const headerRowH = 12;
-      doc.setFillColor(50, 50, 50);
       let xPos = margin;
+      // Draw all header backgrounds first, then draw text on top
+      // This prevents any rect fill from overwriting previously drawn text
       for (let i = 0; i < cols.length; i++) {
+        doc.setFillColor(50, 50, 50);
+        doc.setDrawColor(0, 0, 0);
         doc.rect(xPos, y, colWidths[i], headerRowH, "FD");
+        xPos += colWidths[i];
+      }
+      // Now draw all header text on top of filled rects
+      xPos = margin;
+      for (let i = 0; i < cols.length; i++) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
         doc.setTextColor(255, 255, 255);

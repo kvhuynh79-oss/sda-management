@@ -31,6 +31,7 @@ export const rolePermissions: Record<UserRole, {
   leads: { view: boolean; create: boolean; update: boolean; delete: boolean };
   staffMembers: { view: boolean; create: boolean; update: boolean; delete: boolean };
   policies: { view: boolean; create: boolean; update: boolean; delete: boolean };
+  calendar: { view: boolean; create: boolean; update: boolean; delete: boolean };
 }> = {
   admin: {
     properties: { view: true, create: true, update: true, delete: true },
@@ -48,6 +49,7 @@ export const rolePermissions: Record<UserRole, {
     leads: { view: true, create: true, update: true, delete: true },
     staffMembers: { view: true, create: true, update: true, delete: true },
     policies: { view: true, create: true, update: true, delete: true },
+    calendar: { view: true, create: true, update: true, delete: true },
   },
   property_manager: {
     properties: { view: true, create: true, update: true, delete: false },
@@ -65,6 +67,7 @@ export const rolePermissions: Record<UserRole, {
     leads: { view: true, create: true, update: true, delete: false },
     staffMembers: { view: false, create: false, update: false, delete: false },
     policies: { view: true, create: true, update: true, delete: false },
+    calendar: { view: true, create: true, update: true, delete: true },
   },
   staff: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -82,6 +85,7 @@ export const rolePermissions: Record<UserRole, {
     leads: { view: true, create: true, update: true, delete: false },
     staffMembers: { view: false, create: false, update: false, delete: false },
     policies: { view: true, create: false, update: false, delete: false },
+    calendar: { view: true, create: true, update: true, delete: true },
   },
   accountant: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -99,6 +103,7 @@ export const rolePermissions: Record<UserRole, {
     leads: { view: true, create: false, update: false, delete: false },
     staffMembers: { view: false, create: false, update: false, delete: false },
     policies: { view: true, create: false, update: false, delete: false },
+    calendar: { view: true, create: false, update: false, delete: false },
   },
   sil_provider: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -116,6 +121,7 @@ export const rolePermissions: Record<UserRole, {
     leads: { view: true, create: false, update: false, delete: false },
     staffMembers: { view: false, create: false, update: false, delete: false },
     policies: { view: true, create: false, update: false, delete: false },
+    calendar: { view: false, create: false, update: false, delete: false },
   },
 };
 

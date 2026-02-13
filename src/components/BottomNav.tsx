@@ -17,6 +17,7 @@ import {
   MessageCircleWarning,
   ClipboardCheck,
   CalendarClock,
+  CalendarDays,
   UserCog,
   HeartHandshake,
   Stethoscope,
@@ -50,7 +51,8 @@ interface BottomNavProps {
     | "alerts"
     | "schedule"
     | "contractors"
-    | "follow-ups";
+    | "follow-ups"
+    | "calendar";
 }
 
 // ── "More" sheet item definitions ─────────────────────────────────
@@ -89,6 +91,11 @@ const MORE_SHEET_GROUPS: MoreSheetGroup[] = [
         href: "/preventative-schedule",
         label: "Preventative Schedule",
         icon: <CalendarClock className="w-5 h-5" aria-hidden="true" />,
+      },
+      {
+        href: "/calendar",
+        label: "Calendar",
+        icon: <CalendarDays className="w-5 h-5" aria-hidden="true" />,
       },
     ],
   },

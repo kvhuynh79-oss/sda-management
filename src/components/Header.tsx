@@ -40,6 +40,7 @@ import {
   Flame,
   LifeBuoy,
   BookOpen,
+  CalendarDays,
 } from "lucide-react";
 
 // ── Type definitions ──────────────────────────────────────────────
@@ -68,7 +69,8 @@ export type CurrentPage =
   | "schedule"
   | "contractors"
   | "documents"
-  | "follow-ups";
+  | "follow-ups"
+  | "calendar";
 
 interface HeaderProps {
   currentPage?: CurrentPage;
@@ -130,7 +132,7 @@ const NAV_CLUSTERS: NavCluster[] = [
     id: "operations",
     label: "Operations",
     icon: <Wrench className="w-5 h-5" aria-hidden="true" />,
-    pageKeys: ["operations", "maintenance", "inspections", "schedule"],
+    pageKeys: ["operations", "maintenance", "inspections", "schedule", "calendar"],
     items: [
       {
         href: "/operations",
@@ -152,6 +154,13 @@ const NAV_CLUSTERS: NavCluster[] = [
         description: "Scheduled maintenance tasks",
         icon: <CalendarClock className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["schedule"],
+      },
+      {
+        href: "/calendar",
+        label: "Calendar",
+        description: "Unified scheduling and calendar view",
+        icon: <CalendarDays className="w-5 h-5 text-gray-400" aria-hidden="true" />,
+        pageKeys: ["calendar"],
       },
     ],
   },

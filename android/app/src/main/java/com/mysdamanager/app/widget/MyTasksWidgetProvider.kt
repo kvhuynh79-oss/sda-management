@@ -289,6 +289,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         views.setTextColor(R.id.widget_subtitle, Color.parseColor(COLOR_TEXT_SECONDARY))
 
         views.setViewVisibility(R.id.widget_auth_state, View.VISIBLE)
+        views.setTextViewText(R.id.widget_auth_text, "Open app to sign in")
         views.setViewVisibility(R.id.widget_task_container, View.GONE)
         views.setViewVisibility(R.id.widget_empty_state, View.GONE)
         views.setViewVisibility(R.id.widget_error_state, View.GONE)

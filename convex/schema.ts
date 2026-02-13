@@ -2487,4 +2487,70 @@ export default defineSchema({
     notes: v.optional(v.string()),
   })
     .index("by_organizationId", ["organizationId"]),
+
+  // ============================================
+  // CALENDAR TABLES
+  // ============================================
+
+  // Calendar events - user-created appointments + synced external events
+  calendarEvents: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.string(),     // ISO 8601 datetime
+    endTime: v.string(),       // ISO 8601 datetime
+    allDay: v.boolean(),
+    location: v.optional(v.string()),
+    eventType: v.union(
+      v.literal("appointment"), v.literal("maintenance"), v.literal("inspection"),
+      v.literal("task"), v.literal("compliance"), v.literal("external")
+    ),
+    color: v.optional(v.string()),
+    linkedPropertyId: v.optional(v.id("properties")),
+    linkedParticipantId: v.optional(v.id("participants")),
+    linkedMaintenanceId: v.optional(v.id("maintenanceRequests")),
+    linkedInspectionId: v.optional(v.id("inspections")),
+    linkedTaskId: v.optional(v.id("tasks")),
+    externalEventId: v.optional(v.string()),
+    externalProvider: v.optional(v.union(v.literal("google"), v.literal("outlook"))),
+    externalCalendarId: v.optional(v.string()),
+    syncedAt: v.optional(v.number()),
+    attendees: v.optional(v.array(v.object({
+      email: v.string(),
+      name: v.optional(v.string()),
+      status: v.optional(v.union(
+        v.literal("accepted"), v.literal("declined"),
+        v.literal("tentative"), v.literal("pending")
+      )),
+    }))),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    isDeleted: v.optional(v.boolean()),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_startTime", ["organizationId", "startTime"])
+    .index("by_externalEventId", ["externalEventId", "externalProvider"])
+    .index("by_linkedTask", ["linkedTaskId"])
+    .index("by_createdBy", ["createdBy"]),
+
+  // Calendar OAuth connections (Google/Outlook)
+  calendarConnections: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    userId: v.id("users"),
+    provider: v.union(v.literal("google"), v.literal("outlook")),
+    accessToken: v.string(),
+    refreshToken: v.string(),
+    expiresAt: v.number(),
+    calendarId: v.optional(v.string()),
+    userEmail: v.optional(v.string()),
+    syncEnabled: v.boolean(),
+    lastSyncAt: v.optional(v.number()),
+    syncToken: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_userId_provider", ["userId", "provider"])
+    .index("by_syncEnabled", ["syncEnabled"]),
 });

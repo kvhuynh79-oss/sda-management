@@ -25,6 +25,7 @@ import type * as authHelpers from "../authHelpers.js";
 import type * as bankAccounts from "../bankAccounts.js";
 import type * as bankTransactions from "../bankTransactions.js";
 import type * as businessContinuityPlans from "../businessContinuityPlans.js";
+import type * as calendar from "../calendar.js";
 import type * as claims from "../claims.js";
 import type * as communications from "../communications.js";
 import type * as complaints from "../complaints.js";
@@ -116,6 +117,7 @@ declare const fullApi: ApiFromModules<{
   bankAccounts: typeof bankAccounts;
   bankTransactions: typeof bankTransactions;
   businessContinuityPlans: typeof businessContinuityPlans;
+  calendar: typeof calendar;
   claims: typeof claims;
   communications: typeof communications;
   complaints: typeof complaints;

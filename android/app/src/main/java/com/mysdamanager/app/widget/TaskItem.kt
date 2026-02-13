@@ -140,9 +140,10 @@ data class WidgetResponse(
     companion object {
         fun fromJson(json: JSONObject): WidgetResponse {
             val dataArray = json.getJSONArray("data")
+            val meta = json.optJSONObject("meta")
             return WidgetResponse(
                 data = TaskItem.fromJsonArray(dataArray),
-                count = json.getInt("count")
+                count = meta?.optInt("count", dataArray.length()) ?: dataArray.length()
             )
         }
     }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MySDAManager</string>
+    <string name="title_activity_main">MySDAManager</string>
+    <string name="package_name">com.mysdamanager.app</string>
+    <string name="custom_url_scheme">com.mysdamanager.app</string>
+</resources>

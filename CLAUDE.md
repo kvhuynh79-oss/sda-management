@@ -11,8 +11,9 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **Email**: Resend API + Postmark (inbound webhook)
 - **SMS**: Twilio API
 - **AI**: Claude API (document analysis, policy summaries)
+- **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.2.0 (Commercial Launch Prep)
+## Current Version: v2.3.0 (Native Mobile Widget)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -705,6 +706,19 @@ All 8 sprints of the SaaS transformation are complete.
 - **Maintenance Urgency Indicator**: Days-elapsed badge on maintenance request cards.
 - **Certificate Document Upload**: Direct upload from Add Certification form.
 
+### Capacitor Native App + Task Widget (2026-02-13)
+- **Capacitor Setup**: `@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`, `@capacitor/android`, `@capacitor/preferences`, `@capacitor/app`, `@capacitor/status-bar`
+- **Widget REST API**: `src/app/api/v1/tasks/widget/route.ts` - GET tasks + POST complete, session-token auth via `_lib/sessionAuth.ts`
+- **Convex Query**: `listWidgetTasks` in `convex/apiQueries.ts` - compact task list by assignee, supports assigned/overdue/upcoming filters
+- **Token Bridge**: `src/lib/capacitorBridge.ts` - `storeTokenNative()`/`clearTokensNative()` with dynamic `@capacitor/preferences` import (no-op in browser)
+- **Auth Integration**: `src/lib/auth.ts` modified to call bridge on storeTokens/logout/refresh
+- **iOS Widget**: `ios/App/MyTasksWidget/` - 5 Swift files (WidgetKit + SwiftUI), 3 sizes (small/medium/large), 15-min refresh, App Groups token sharing
+- **Android Widget**: `android/app/.../widget/` - 5 Kotlin + 7 XML files (AppWidget + RemoteViews), EncryptedSharedPreferences, dark theme
+- **Capacitor Config**: `capacitor.config.ts` - live URL to `https://mysdamanager.com`, dark status bar
+- **Manifest**: Added "My Tasks" shortcut to `public/manifest.json`
+- **Build**: 94 pages, 0 errors
+- **Remaining**: Add WidgetKit target in Xcode, register widget receiver in AndroidManifest, configure App Groups, submit to App Store / Play Store
+
 ### Remaining Launch Tasks
 - **Stripe Configuration**: Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs in Convex + Vercel env
 - **Sentry Configuration**: Set NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN in Vercel env
@@ -764,15 +778,23 @@ All 8 sprints of the SaaS transformation are complete.
 30. Emergency Plans - ✅ (EMP + BCP pages)
 31. Easy Read Consent PDF - ✅ (12-page NDIS-style with 15 illustrations, two-column layout)
 
+### Completed (v2.3 - Native Mobile Widget)
+32. Capacitor Native App - ✅ (iOS + Android wrapper, live URL to mysdamanager.com)
+33. Widget REST API - ✅ (session-token auth, GET tasks, POST complete)
+34. iOS WidgetKit - ✅ (SwiftUI, 3 sizes, dark theme, 15-min refresh, deep links)
+35. Android AppWidget - ✅ (RemoteViews, EncryptedSharedPreferences, dark theme)
+36. Capacitor Token Bridge - ✅ (native token storage on login/logout/refresh for widget access)
+
 ### Future Enhancements (Post-Launch)
-32. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
+37. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
    - **Workaround**: Users can take screenshots of PDFs and upload as images
    - **Priority**: Medium
-33. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
-34. **Data Export** - Per-org data export for compliance/migration
-35. **Webhook Outbound** - Configurable webhooks per org for integrations
-36. **Command Palette** - Cmd+K power user navigation
-37. **Easy Read Canva Template** - Replace jsPDF illustrations with stock photo template via pdf-lib overlay
+38. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
+39. **Data Export** - Per-org data export for compliance/migration
+40. **Webhook Outbound** - Configurable webhooks per org for integrations
+41. **Command Palette** - Cmd+K power user navigation
+42. **Easy Read Canva Template** - Replace jsPDF illustrations with stock photo template via pdf-lib overlay
+43. **App Store Submission** - Submit Capacitor app to App Store + Play Store
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -829,7 +851,13 @@ npm run dev          # Start development server
 npx convex dev       # Start Convex backend
 npm run build        # Production build
 npx convex deploy    # Deploy Convex to production
+
+# Capacitor (native app)
+npx cap sync ios     # Sync web assets to iOS project
+npx cap open ios     # Open Xcode
+npx cap sync android # Sync web assets to Android project
+npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-12 (v2.2.0 - All code complete. Illustrated Easy Read PDF, email integration, policies library, staff files, consent workflow, audit export. 93+ pages, 0 errors. Only external config tasks remain for launch.)
+**Last Updated**: 2026-02-13 (v2.3.0 - Capacitor native app with iOS WidgetKit + Android AppWidget for "My Tasks" home screen widget. Widget REST API with session-token auth. Token bridge for shared storage. 94 pages, 0 errors.)

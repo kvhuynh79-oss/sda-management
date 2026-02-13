@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Teal circle background for the "+" add task button -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#0D9488" />
+    <size
+        android:width="28dp"
+        android:height="28dp" />
+</shape>

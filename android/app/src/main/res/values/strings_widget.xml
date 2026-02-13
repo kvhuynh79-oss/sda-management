@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- String resources for the MySDAManager widget -->
+<resources>
+    <string name="widget_name">My Tasks</string>
+    <string name="widget_description">View your upcoming tasks from MySDAManager. Stay on top of follow-ups, funding reviews, and maintenance requests.</string>
+    <string name="widget_title">My tasks</string>
+    <string name="widget_subtitle_default">MySDAManager</string>
+    <string name="widget_empty_title">No tasks due</string>
+    <string name="widget_empty_subtitle">You\'re all caught up!</string>
+    <string name="widget_auth_message">Open app to sign in</string>
+    <string name="widget_error_default">Unable to load tasks</string>
+    <string name="widget_error_retry">Tap to retry</string>
+    <string name="widget_view_all">View all tasks</string>
+    <string name="widget_add_task_description">Create new task</string>
+    <string name="widget_priority_description">Task priority indicator</string>
+</resources>

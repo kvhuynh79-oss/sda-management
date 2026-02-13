@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Widget metadata for the MySDAManager "My Tasks" widget.
+
+    - minWidth/minHeight: Minimum widget size (approx 4x3 grid cells)
+    - updatePeriodMillis: 900000ms = 15 minutes (minimum allowed by Android)
+    - resizeMode: Widget can be resized both horizontally and vertically
+    - widgetCategory: Home screen only (not lockscreen)
+    - previewImage: Preview shown in the widget picker
+    - targetCellWidth/Height: Preferred size in grid cells (Android 12+)
+    - description: Shown in widget picker (Android 12+)
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:maxResizeWidth="420dp"
+    android:maxResizeHeight="530dp"
+    android:updatePeriodMillis="900000"
+    android:initialLayout="@layout/widget_my_tasks"
+    android:previewImage="@drawable/widget_preview"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_description" />

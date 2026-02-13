@@ -69,6 +69,12 @@
       "name": "Log Maintenance",
       "url": "/maintenance/new",
       "description": "Create a new maintenance request"
+    },
+    {
+      "name": "My Tasks",
+      "url": "/follow-ups?filter=my-tasks",
+      "description": "View your assigned tasks",
+      "icons": [{"src": "/icons/icon-96x96.png", "sizes": "96x96"}]
     }
   ],
   "categories": ["business", "productivity"]

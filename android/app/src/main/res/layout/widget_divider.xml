@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Thin horizontal divider between task rows, matching gray-700 (#374151) -->
+<View xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="1dp"
+    android:layout_marginStart="30dp"
+    android:background="#374151" />

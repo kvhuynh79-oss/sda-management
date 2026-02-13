@@ -888,3 +888,73 @@ export const listPropertiesSimple = query({
     }));
   },
 });
+
+// ============================================================================
+// WIDGET - TASKS
+// ============================================================================
+
+/**
+ * List tasks for the native home-screen widget.
+ * Returns a compact task list scoped to the authenticated user.
+ * Supports filters: "assigned" (all active), "overdue", "upcoming" (next 7 days).
+ */
+export const listWidgetTasks = query({
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+    filter: v.optional(
+      v.union(
+        v.literal("assigned"),
+        v.literal("overdue"),
+        v.literal("upcoming")
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    // 1. Get user's organizationId via direct lookup
+    const user = await ctx.db.get(args.userId);
+    if (!user || !user.organizationId) throw new Error("Unauthorized");
+    const organizationId = user.organizationId;
+
+    const limit = Math.min(args.limit ?? 10, 25);
+    const today = new Date().toISOString().split("T")[0];
+
+    // 2. Query tasks assigned to this user
+    let tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_assignedTo", (q) => q.eq("assignedToUserId", args.userId))
+      .collect();
+
+    // 3. Filter by org and exclude completed/cancelled
+    tasks = tasks.filter(
+      (t) =>
+        t.organizationId === organizationId &&
+        t.status !== "completed" &&
+        t.status !== "cancelled"
+    );
+
+    // 4. Apply filter
+    if (args.filter === "overdue") {
+      tasks = tasks.filter((t) => t.dueDate < today);
+    } else if (args.filter === "upcoming") {
+      const weekFromNow = new Date(Date.now() + 7 * 86400000)
+        .toISOString()
+        .split("T")[0];
+      tasks = tasks.filter((t) => t.dueDate >= today && t.dueDate <= weekFromNow);
+    }
+
+    // 5. Sort by due date ascending (overdue first)
+    tasks.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+    // 6. Limit and return compact objects
+    return tasks.slice(0, limit).map((t) => ({
+      id: t._id,
+      title: t.title,
+      dueDate: t.dueDate,
+      priority: t.priority,
+      status: t.status,
+      category: t.category,
+      isOverdue: t.dueDate < today,
+    }));
+  },
+});

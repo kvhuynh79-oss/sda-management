@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Single task row layout for the MySDAManager widget.
+
+    Structure:
+    - Priority circle (colored ring, acts as checkbox)
+    - Title text (white, single line, ellipsized)
+    - Due date + category badge row
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/task_row_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:minHeight="44dp">
+
+    <!-- Priority Circle (Checkbox Style) -->
+    <ImageView
+        android:id="@+id/task_priority_circle"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginEnd="10dp"
+        android:src="@drawable/priority_circle"
+        android:contentDescription="Task priority indicator"
+        android:scaleType="fitCenter" />
+
+    <!-- Task Details -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Task Title -->
+        <TextView
+            android:id="@+id/task_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium" />
+
+        <!-- Due Date + Category Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp">
+
+            <!-- Calendar Icon (Unicode) + Due Date -->
+            <TextView
+                android:id="@+id/task_due_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#9CA3AF"
+                android:textSize="11sp"
+                android:drawablePadding="3dp" />
+
+            <!-- Category Badge -->
+            <TextView
+                android:id="@+id/task_category"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/category_badge_bg"
+                android:textColor="#0D9488"
+                android:textSize="10sp"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

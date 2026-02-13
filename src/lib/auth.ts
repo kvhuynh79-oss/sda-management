@@ -1,5 +1,6 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../convex/_generated/api";
+import { storeTokenNative, clearTokensNative } from './capacitorBridge';
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "";
 const SESSION_STORAGE_KEY = "sda_session_token";
@@ -11,6 +12,9 @@ const REFRESH_STORAGE_KEY = "sda_refresh_token";
 export function storeTokens(token: string, refreshToken: string) {
   localStorage.setItem(SESSION_STORAGE_KEY, token);
   localStorage.setItem(REFRESH_STORAGE_KEY, refreshToken);
+
+  // Also store in native secure storage for widget access (no-op in browser)
+  storeTokenNative(token, refreshToken).catch(() => {});
 
   // NOTE: We no longer remove "sda_user" here because some pages still use useAuth hook
   // It will be removed during the logout process
@@ -59,6 +63,8 @@ export async function refreshAuthToken(): Promise<{
       // Store new tokens
       localStorage.setItem(SESSION_STORAGE_KEY, result.token);
       localStorage.setItem(REFRESH_STORAGE_KEY, result.refreshToken);
+      // Also store refreshed tokens in native storage for widget access (no-op in browser)
+      storeTokenNative(result.token, result.refreshToken).catch(() => {});
 
       return {
         success: true,
@@ -134,6 +140,8 @@ export function logout() {
   localStorage.removeItem(SESSION_STORAGE_KEY);
   localStorage.removeItem(REFRESH_STORAGE_KEY);
   localStorage.removeItem("sda_user"); // Clean up old key
+  // Clear native tokens too (no-op in browser)
+  clearTokensNative().catch(() => {});
   window.location.href = "/login";
 }
 

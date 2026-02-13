@@ -11,6 +11,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { FormSelect } from "../forms/FormSelect";
 import { FormInput } from "../forms/FormInput";
 import { useConfirmDialog } from "../ui/ConfirmDialog";
+import ThreadPickerModal from "./ThreadPickerModal";
 
 function buildAddEntryUrl(comm: any): string {
   const params: Record<string, string> = {};
@@ -120,8 +121,11 @@ export function TimelineView({
   const [prevItems, setPrevItems] = useState<any[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [linkToThreadComm, setLinkToThreadComm] = useState<string | null>(null);
   const deleteCommunication = useMutation(api.communications.remove);
+  const moveToThread = useMutation(api.communications.moveToThread);
   const canDelete = userRole === "admin" || userRole === "property_manager";
+  const canLinkToThread = userRole === "admin" || userRole === "property_manager";
 
   const toggleExpanded = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -385,6 +389,18 @@ export function TimelineView({
                           >
                             Edit
                           </Link>
+                          {canLinkToThread && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setLinkToThreadComm(comm._id); }}
+                              className="inline-flex items-center gap-1 text-xs text-gray-300 hover:text-teal-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded px-2 py-1 bg-gray-700/50 hover:bg-gray-700"
+                              aria-label={`Link communication with ${comm.contactName} to another thread`}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                              Link to Thread
+                            </button>
+                          )}
                           {canDelete && (
                             <button
                               onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDelete(comm._id, comm.contactName); }}
@@ -418,6 +434,27 @@ export function TimelineView({
           </button>
         </div>
       )}
+
+      {/* Thread Picker Modal for Link to Thread */}
+      <ThreadPickerModal
+        isOpen={!!linkToThreadComm}
+        onClose={() => setLinkToThreadComm(null)}
+        userId={userId}
+        onSelect={async (targetThreadId) => {
+          if (!linkToThreadComm) return;
+          try {
+            await moveToThread({
+              communicationId: linkToThreadComm as Id<"communications">,
+              targetThreadId,
+              actingUserId: userId as Id<"users">,
+            });
+            setLinkToThreadComm(null);
+          } catch (error) {
+            console.error("Failed to move communication to thread:", error);
+            await alertDialog("Failed to move communication to thread. " + (error instanceof Error ? error.message : "Please try again."));
+          }
+        }}
+      />
     </div>
   );
 }

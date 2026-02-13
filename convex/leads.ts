@@ -649,6 +649,101 @@ export const create = mutation({
 });
 
 /**
+ * Quick-create a lead with minimal fields (used from ThreadPickerModal).
+ * Returns { leadId, threadId } so the caller can immediately move a
+ * communication into the new lead's thread.
+ */
+export const quickCreate = mutation({
+  args: {
+    userId: v.id("users"),
+    participantName: v.string(),
+    referrerName: v.string(),
+    referrerEmail: v.optional(v.string()),
+    referrerPhone: v.optional(v.string()),
+    sdaCategoryNeeded: v.union(
+      v.literal("improved_liveability"),
+      v.literal("fully_accessible"),
+      v.literal("robust"),
+      v.literal("high_physical_support")
+    ),
+    urgency: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
+    source: v.union(v.literal("phone"), v.literal("email"), v.literal("referral"), v.literal("website")),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requirePermission(ctx, args.userId, "leads", "create");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const now = Date.now();
+
+    // Generate thread ID for linking to communications
+    const threadId = `thread_lead_${now}_${Math.random().toString(36).substring(2, 9)}`;
+
+    // Format SDA category for display
+    const categoryLabel = args.sdaCategoryNeeded
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+    // Create the lead with minimal fields
+    const leadId = await ctx.db.insert("leads", {
+      organizationId,
+      referrerType: "other",
+      referrerName: args.referrerName,
+      referrerEmail: args.referrerEmail,
+      referrerPhone: args.referrerPhone,
+      participantName: args.participantName,
+      sdaCategoryNeeded: args.sdaCategoryNeeded,
+      preferredAreas: [],
+      status: "new",
+      urgency: args.urgency,
+      source: args.source,
+      threadId,
+      notes: args.notes,
+      createdBy: args.userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Auto-create communication thread via internal mutation
+    await ctx.runMutation(internal.communications.autoCreateForLead, {
+      organizationId,
+      leadId,
+      threadId,
+      participantName: args.participantName,
+      sdaCategoryNeeded: categoryLabel,
+      preferredAreas: "Not specified",
+      referrerName: args.referrerName,
+      referrerType: "other",
+      referrerEmail: args.referrerEmail,
+      referrerPhone: args.referrerPhone,
+      source: args.source,
+      createdBy: args.userId,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      organizationId,
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "lead",
+      entityId: leadId,
+      entityName: `Lead: ${args.participantName} - ${categoryLabel}`,
+      metadata: JSON.stringify({
+        referrerName: args.referrerName,
+        sdaCategoryNeeded: args.sdaCategoryNeeded,
+        urgency: args.urgency,
+        source: args.source,
+        quickCreate: true,
+      }),
+    });
+
+    return { leadId, threadId };
+  },
+});
+
+/**
  * Update lead details
  */
 export const update = mutation({

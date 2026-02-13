@@ -109,6 +109,7 @@ export default function ParticipantsPage() {
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                   <option value="pending_move_in">Pending Move-in</option>
+                  <option value="incomplete">Incomplete</option>
                 </select>
               </div>
             </div>
@@ -177,6 +178,8 @@ function ParticipantCard({ participant }: { participant: any }) {
         return "bg-gray-600";
       case "pending_move_in":
         return "bg-yellow-600";
+      case "incomplete":
+        return "bg-orange-600";
       default:
         return "bg-gray-600";
     }

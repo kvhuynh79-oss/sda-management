@@ -21,7 +21,8 @@ export type AlertType =
   | "complaint_acknowledgment_overdue"
   | "new_website_complaint"
   | "consent_expiry"
-  | "consent_missing";
+  | "consent_missing"
+  | "profile_incomplete";
 
 export type AlertSeverity = "critical" | "warning" | "info";
 

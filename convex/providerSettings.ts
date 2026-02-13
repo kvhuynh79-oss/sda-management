@@ -44,6 +44,10 @@ export const upsert = mutation({
     craFortnightlyRate: v.optional(v.number()),
     craPercentage: v.optional(v.number()),
     rrcLastUpdated: v.optional(v.string()),
+    // MTA settings
+    mtaDailyRate: v.optional(v.number()),
+    mtaSupportItemNumber: v.optional(v.string()),
+    mtaLastUpdated: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { organizationId } = await requireTenant(ctx, args.userId);
@@ -138,6 +142,54 @@ export const updateRrcRates = mutation({
         craFortnightlyRate: args.craFortnightlyRate,
         craPercentage: args.craPercentage,
         rrcLastUpdated: today,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { success: true };
+    }
+  },
+});
+
+// Update MTA (Medium Term Accommodation) settings (scoped to user's organization)
+export const updateMtaSettings = mutation({
+  args: {
+    userId: v.id("users"),
+    mtaDailyRate: v.number(),
+    mtaSupportItemNumber: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const now = Date.now();
+    const today = new Date().toISOString().split("T")[0];
+
+    const existing = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
+
+    if (existing) {
+      const patch: Record<string, unknown> = {
+        mtaDailyRate: args.mtaDailyRate,
+        mtaLastUpdated: today,
+        updatedAt: now,
+      };
+      if (args.mtaSupportItemNumber !== undefined) {
+        patch.mtaSupportItemNumber = args.mtaSupportItemNumber;
+      }
+      await ctx.db.patch(existing._id, patch);
+      return { success: true };
+    } else {
+      // Create with defaults and MTA values for this organization
+      await ctx.db.insert("providerSettings", {
+        organizationId,
+        providerName: "",
+        ndisRegistrationNumber: "",
+        abn: "",
+        defaultGstCode: "GST",
+        defaultSupportItemNumber: "",
+        mtaDailyRate: args.mtaDailyRate,
+        mtaSupportItemNumber: args.mtaSupportItemNumber || "01_082_0115_1_1",
+        mtaLastUpdated: today,
         createdAt: now,
         updatedAt: now,
       });

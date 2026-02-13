@@ -11,6 +11,7 @@ import {
   validateOptionalDate,
 } from "./validationHelpers";
 import { encryptField, decryptField, createBlindIndex, isEncrypted } from "./lib/encryption";
+import { createAlertIfNotExists } from "./alertHelpers";
 
 // Decrypt sensitive participant fields (handles both encrypted and plaintext for migration)
 async function decryptParticipantFields<T extends Record<string, any>>(p: T): Promise<T> {
@@ -147,6 +148,133 @@ export const create = mutation({
   },
 });
 
+// Create an incomplete participant (minimal data, no dwelling required)
+export const createIncomplete = mutation({
+  args: {
+    userId: v.id("users"),
+    firstName: v.string(),
+    lastName: v.string(),
+    ndisNumber: v.optional(v.string()),
+    dateOfBirth: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    emergencyContactName: v.optional(v.string()),
+    emergencyContactPhone: v.optional(v.string()),
+    emergencyContactRelation: v.optional(v.string()),
+    silProviderName: v.optional(v.string()),
+    supportCoordinatorName: v.optional(v.string()),
+    supportCoordinatorEmail: v.optional(v.string()),
+    supportCoordinatorPhone: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Get tenant context for multi-tenant isolation
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    // Verify user has permission
+    const user = await requirePermission(ctx, args.userId, "participants", "create");
+
+    // Validate required fields
+    const validatedFirstName = validateRequiredString(args.firstName, "first name");
+    const validatedLastName = validateRequiredString(args.lastName, "last name");
+
+    // Optional field validation
+    const validatedEmail = validateOptionalEmail(args.email);
+    const validatedPhone = validateOptionalPhone(args.phone);
+
+    // Encrypt sensitive fields
+    let encNdisNumber: string | null = null;
+    let ndisBlindIndex: string | null = null;
+    let encDateOfBirth: string | null = null;
+    let encEmergencyName: string | null = null;
+    let encEmergencyPhone: string | null = null;
+
+    // If NDIS number provided, validate format and check duplicates
+    if (args.ndisNumber && args.ndisNumber.trim()) {
+      const validatedNdis = validateNdisNumber(args.ndisNumber);
+
+      ndisBlindIndex = await createBlindIndex(validatedNdis);
+
+      // Check for duplicate NDIS number via blind index
+      if (ndisBlindIndex) {
+        const existingByIndex = await ctx.db
+          .query("participants")
+          .withIndex("by_ndisNumberIndex", (q) => q.eq("ndisNumberIndex", ndisBlindIndex!))
+          .first();
+        if (existingByIndex) {
+          throw new Error("A participant with this NDIS number already exists");
+        }
+      }
+      // Fallback: also check legacy plaintext index
+      const existingPlaintext = await ctx.db
+        .query("participants")
+        .withIndex("by_ndisNumber", (q) => q.eq("ndisNumber", validatedNdis))
+        .first();
+      if (existingPlaintext) {
+        throw new Error("A participant with this NDIS number already exists");
+      }
+
+      encNdisNumber = await encryptField(validatedNdis) ?? validatedNdis;
+    }
+
+    // Encrypt optional sensitive fields
+    [encDateOfBirth, encEmergencyName, encEmergencyPhone] = await Promise.all([
+      encryptField(args.dateOfBirth),
+      encryptField(args.emergencyContactName),
+      encryptField(args.emergencyContactPhone),
+    ]);
+
+    const now = Date.now();
+    const participantId = await ctx.db.insert("participants", {
+      organizationId,
+      ndisNumber: encNdisNumber || "",
+      ndisNumberIndex: ndisBlindIndex ?? undefined,
+      firstName: validatedFirstName,
+      lastName: validatedLastName,
+      dateOfBirth: encDateOfBirth ?? args.dateOfBirth,
+      email: validatedEmail,
+      phone: validatedPhone,
+      emergencyContactName: encEmergencyName ?? args.emergencyContactName,
+      emergencyContactPhone: encEmergencyPhone ?? args.emergencyContactPhone,
+      emergencyContactRelation: args.emergencyContactRelation,
+      // No dwellingId - incomplete participants do not have a dwelling assigned yet
+      status: "incomplete",
+      silProviderName: args.silProviderName,
+      supportCoordinatorName: args.supportCoordinatorName,
+      supportCoordinatorEmail: args.supportCoordinatorEmail,
+      supportCoordinatorPhone: args.supportCoordinatorPhone,
+      notes: args.notes,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create profile_incomplete alert
+    const todayStr = new Date().toISOString().split("T")[0];
+    await createAlertIfNotExists(ctx, {
+      alertType: "profile_incomplete",
+      severity: "warning",
+      title: `Incomplete profile: ${validatedFirstName} ${validatedLastName}`,
+      message: `Participant ${validatedFirstName} ${validatedLastName} has an incomplete profile. Missing: ${!encNdisNumber ? "NDIS number, " : ""}dwelling assignment.`,
+      organizationId,
+      linkedParticipantId: participantId,
+      triggerDate: todayStr,
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "create",
+      entityType: "participant",
+      entityId: participantId,
+      entityName: `${validatedFirstName} ${validatedLastName}`,
+      metadata: JSON.stringify({ status: "incomplete", hasNdisNumber: !!encNdisNumber }),
+    });
+
+    return participantId;
+  },
+});
+
 // Helper to update dwelling occupancy
 async function updateDwellingOccupancy(ctx: any, dwellingId: any) {
   const participants = await ctx.db
@@ -209,13 +337,13 @@ export const getAll = query({
 
       const allowedDwellingIds = new Set(silProviderDwellings.map((spd) => spd.dwellingId));
 
-      // Filter participants to only those in allowed dwellings
-      participants = participants.filter((p) => allowedDwellingIds.has(p.dwellingId));
+      // Filter participants to only those in allowed dwellings (incomplete participants without dwelling are excluded)
+      participants = participants.filter((p) => p.dwellingId && allowedDwellingIds.has(p.dwellingId));
     }
     // Admin, property_manager, staff, accountant see all participants (no filtering)
 
-    // Batch fetch all dwellings
-    const dwellingIds = [...new Set(participants.map((p) => p.dwellingId))];
+    // Batch fetch all dwellings (filter out undefined dwellingIds for incomplete participants)
+    const dwellingIds = [...new Set(participants.map((p) => p.dwellingId).filter((id): id is NonNullable<typeof id> => !!id))];
     const dwellings = await Promise.all(dwellingIds.map((id) => ctx.db.get(id)));
     const dwellingMap = new Map(dwellings.map((d, i) => [dwellingIds[i], d]));
 
@@ -239,14 +367,14 @@ export const getAll = query({
     // Build result with pre-fetched data and decrypt sensitive fields
     const participantsWithDetails = await Promise.all(
       participants.map(async (participant) => {
-        const dwelling = dwellingMap.get(participant.dwellingId);
+        const dwelling = participant.dwellingId ? dwellingMap.get(participant.dwellingId) : null;
         const property = dwelling ? propertyMap.get(dwelling.propertyId) : null;
         const currentPlan = plansByParticipant.get(participant._id);
         const decrypted = await decryptParticipantFields(participant);
 
         return {
           ...decrypted,
-          dwelling,
+          dwelling: dwelling ?? null,
           property,
           currentPlan,
         };
@@ -276,7 +404,7 @@ export const getById = query({
     }
 
     const decrypted = await decryptParticipantFields(participant);
-    const dwelling = await ctx.db.get(participant.dwellingId);
+    const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
     const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
     const plans = await ctx.db
@@ -372,8 +500,43 @@ export const update = mutation({
 
     // Update occupancy if dwelling changed
     if (updates.dwellingId && updates.dwellingId !== oldDwellingId) {
-      await updateDwellingOccupancy(ctx, oldDwellingId);
+      if (oldDwellingId) {
+        await updateDwellingOccupancy(ctx, oldDwellingId);
+      }
       await updateDwellingOccupancy(ctx, updates.dwellingId);
+    }
+
+    // Auto-transition: incomplete -> pending_move_in when profile is now complete
+    if (participant.status === "incomplete") {
+      const updated = await ctx.db.get(participantId);
+      if (updated) {
+        // Check if ndisNumber is present and non-empty (may be encrypted)
+        const hasNdisNumber = updated.ndisNumber && updated.ndisNumber.trim() !== "";
+        const hasDwelling = !!updated.dwellingId;
+
+        if (hasNdisNumber && hasDwelling) {
+          await ctx.db.patch(participantId, {
+            status: "pending_move_in",
+            updatedAt: Date.now(),
+          });
+
+          // Resolve any active profile_incomplete alerts for this participant
+          const activeAlerts = await ctx.db
+            .query("alerts")
+            .withIndex("by_participant", (q) => q.eq("linkedParticipantId", participantId))
+            .filter((q) => q.eq(q.field("status"), "active"))
+            .collect();
+
+          for (const alert of activeAlerts) {
+            if (alert.alertType === "profile_incomplete") {
+              await ctx.db.patch(alert._id, {
+                status: "resolved",
+                resolvedAt: Date.now(),
+              });
+            }
+          }
+        }
+      }
     }
 
     // Audit log
@@ -421,8 +584,10 @@ export const revertToPending = mutation({
       updatedAt: Date.now(),
     });
 
-    // Update dwelling occupancy
-    await updateDwellingOccupancy(ctx, participant.dwellingId);
+    // Update dwelling occupancy (guard for incomplete participants without dwelling)
+    if (participant.dwellingId) {
+      await updateDwellingOccupancy(ctx, participant.dwellingId);
+    }
 
     return { success: true };
   },
@@ -458,8 +623,10 @@ export const moveIn = mutation({
       updatedAt: Date.now(),
     });
 
-    // Update dwelling occupancy
-    await updateDwellingOccupancy(ctx, participant.dwellingId);
+    // Update dwelling occupancy (guard for incomplete participants without dwelling)
+    if (participant.dwellingId) {
+      await updateDwellingOccupancy(ctx, participant.dwellingId);
+    }
 
     return { success: true };
   },
@@ -491,8 +658,10 @@ export const moveOut = mutation({
       updatedAt: Date.now(),
     });
 
-    // Update dwelling occupancy
-    await updateDwellingOccupancy(ctx, participant.dwellingId);
+    // Update dwelling occupancy (guard for incomplete participants without dwelling)
+    if (participant.dwellingId) {
+      await updateDwellingOccupancy(ctx, participant.dwellingId);
+    }
 
     return { success: true };
   },
@@ -567,7 +736,7 @@ export const getAllPaginated = query({
     const enrichedPage = await Promise.all(
       result.page.map(async (participant) => {
         const decrypted = await decryptParticipantFields(participant);
-        const dwelling = await ctx.db.get(participant.dwellingId);
+        const dwelling = participant.dwellingId ? await ctx.db.get(participant.dwellingId) : null;
         const property = dwelling ? await ctx.db.get(dwelling.propertyId) : null;
 
         const plans = await ctx.db
@@ -706,7 +875,7 @@ export const withdrawConsent = mutation({
 
     await ctx.db.patch(args.participantId, updateFields);
 
-    if (participant.status === "active") {
+    if (participant.status === "active" && participant.dwellingId) {
       await updateDwellingOccupancy(ctx, participant.dwellingId);
     }
 

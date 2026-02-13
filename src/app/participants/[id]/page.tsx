@@ -90,6 +90,7 @@ export default function ParticipantDetailPage() {
       inactive: "bg-gray-600",
       pending_move_in: "bg-yellow-600",
       moved_out: "bg-red-600",
+      incomplete: "bg-orange-600",
     };
     return colors[status] || "bg-gray-600";
   };
@@ -302,6 +303,29 @@ export default function ParticipantDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Incomplete Profile Banner */}
+        {participant.status === "incomplete" && (
+          <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div>
+                  <p className="text-yellow-200 font-medium">Incomplete Profile</p>
+                  <p className="text-yellow-300/70 text-sm">Complete the required details (NDIS number, dwelling assignment) to enable payments and compliance tracking.</p>
+                </div>
+              </div>
+              <a
+                href={`/participants/${participant._id}/edit`}
+                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg transition-colors whitespace-nowrap"
+              >
+                Complete Profile
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

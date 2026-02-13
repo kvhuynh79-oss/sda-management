@@ -58,6 +58,15 @@ export default function OnboardingPage() {
     craFortnightlyRate: "230.80",
     craPercentage: "100",
   });
+  const [showMtaSettings, setShowMtaSettings] = useState(false);
+  const [mtaFormData, setMtaFormData] = useState({
+    mtaDailyRate: "152.03",
+    mtaSupportItemNumber: "01_082_0115_1_1",
+  });
+  const [mtaStartDate, setMtaStartDate] = useState("");
+  const [mtaEndDate, setMtaEndDate] = useState("");
+  const [mtaPlanManagerName, setMtaPlanManagerName] = useState("");
+  const [mtaPlanManagerEmail, setMtaPlanManagerEmail] = useState("");
 
   // AI Import states
   const [showAiImport, setShowAiImport] = useState(false);
@@ -86,6 +95,7 @@ export default function OnboardingPage() {
   const providerSettings = useQuery(api.providerSettings.get, user ? { userId: user.id as Id<"users"> } : "skip");
   const rrcCalculation = useQuery(api.providerSettings.calculateRrc, user ? { userId: user.id as Id<"users"> } : "skip");
   const updateRrcRates = useMutation(api.providerSettings.updateRrcRates);
+  const updateMtaSettings = useMutation(api.providerSettings.updateMtaSettings);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -107,6 +117,15 @@ export default function OnboardingPage() {
     }
   }, [providerSettings]);
 
+  useEffect(() => {
+    if (providerSettings) {
+      setMtaFormData({
+        mtaDailyRate: String(providerSettings.mtaDailyRate || 152.03),
+        mtaSupportItemNumber: providerSettings.mtaSupportItemNumber || "01_082_0115_1_1",
+      });
+    }
+  }, [providerSettings]);
+
   const selectedParticipant = participants?.find(
     (p) => p._id === selectedParticipantId
   );
@@ -114,6 +133,15 @@ export default function OnboardingPage() {
   const selectedDwelling = allDwellings?.find(
     (d) => d._id === selectedDwellingId
   );
+
+  useEffect(() => {
+    if (selectedParticipant) {
+      // Try to get plan manager info from participant's plan
+      const plan = (selectedParticipant as any).plan;
+      if (plan?.planManagerName) setMtaPlanManagerName(plan.planManagerName);
+      if (plan?.planManagerEmail) setMtaPlanManagerEmail(plan.planManagerEmail);
+    }
+  }, [selectedParticipant]);
 
   const handleSaveRrcSettings = async () => {
     try {
@@ -127,6 +155,19 @@ export default function OnboardingPage() {
       setShowRrcSettings(false);
     } catch (err) {
       console.error("Failed to save RRC settings:", err);
+    }
+  };
+
+  const handleSaveMtaSettings = async () => {
+    try {
+      await updateMtaSettings({
+        userId: user!.id as Id<"users">,
+        mtaDailyRate: parseFloat(mtaFormData.mtaDailyRate),
+        mtaSupportItemNumber: mtaFormData.mtaSupportItemNumber || undefined,
+      });
+      setShowMtaSettings(false);
+    } catch (err) {
+      console.error("Failed to save MTA settings:", err);
     }
   };
 
@@ -1230,6 +1271,339 @@ export default function OnboardingPage() {
     }
   };
 
+  const generateMtaSchedule = async () => {
+    if (!selectedParticipant || !mtaStartDate || !mtaEndDate) return;
+
+    setIsGenerating(true);
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+
+      // Calculate days
+      const start = new Date(mtaStartDate);
+      const end = new Date(mtaEndDate);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const dailyRate = parseFloat(mtaFormData.mtaDailyRate) || 152.03;
+      const totalBudget = dailyRate * days;
+      const supportItemNumber = mtaFormData.mtaSupportItemNumber || "01_082_0115_1_1";
+
+      // Org details
+      const orgName = providerSettings?.providerName || organization?.name || "Provider";
+      const orgAbn = providerSettings?.abn || "";
+      const orgPhone = providerSettings?.contactPhone || "";
+      const orgAddress = providerSettings?.address || "";
+      const orgNdisReg = providerSettings?.ndisRegistrationNumber || "";
+      const orgEmail = providerSettings?.contactEmail || "";
+      const signatoryName = providerSettings?.signatoryName || "";
+
+      // Participant details
+      const participantName = `${selectedParticipant.firstName} ${selectedParticipant.lastName}`;
+      const participantDob = selectedParticipant.dateOfBirth
+        ? new Date(selectedParticipant.dateOfBirth).toLocaleDateString("en-AU")
+        : "";
+      const participantNdis = selectedParticipant.ndisNumber || "";
+      const participantAddress = selectedParticipant.dwelling
+        ? `${selectedParticipant.dwelling.dwellingName || ""} ${selectedParticipant.property?.addressLine1 || ""}`.trim()
+        : selectedParticipant.property?.addressLine1 || "";
+
+      // Format dates
+      const formatDate = (dateStr: string) => {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
+      };
+
+      // Try to load org logo
+      let logoData: { data: string; width: number; height: number } | null = null;
+      try {
+        logoData = await loadLogoAsBase64(organization?.resolvedLogoUrl);
+      } catch {
+        // Continue without logo
+      }
+
+      // ==========================================
+      // PAGE 1 - Schedule of Supports
+      // ==========================================
+      let y = 15;
+
+      // Logo top-right
+      if (logoData) {
+        const maxW = 45;
+        const maxH = 22;
+        const ratio = Math.min(maxW / logoData.width, maxH / logoData.height);
+        const logoW = logoData.width * ratio;
+        const logoH = logoData.height * ratio;
+        doc.addImage(logoData.data, "JPEG", pageWidth - margin - logoW, y, logoW, logoH);
+      }
+
+      // Blue header
+      y += 30;
+      doc.setFillColor(66, 133, 244);
+      doc.rect(margin, y, pageWidth - 2 * margin, 12, "F");
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Schedule of Supports", pageWidth / 2, y + 8.5, { align: "center" });
+
+      // Sub-header
+      y += 18;
+      doc.setFontSize(12);
+      doc.setTextColor(66, 133, 244);
+      doc.text("Schedule of Supports / Participant Support Plan", margin, y);
+
+      // Participant info table
+      y += 8;
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+
+      // Row 1: Name | DOB | NDIS Number
+      const colW1 = (pageWidth - 2 * margin) / 3;
+      doc.rect(margin, y, colW1, 10);
+      doc.rect(margin + colW1, y, colW1, 10);
+      doc.rect(margin + 2 * colW1, y, colW1, 10);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Name: ", margin + 2, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.text(participantName, margin + 2 + doc.getTextWidth("Name: "), y + 7);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("DOB: ", margin + colW1 + 2, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.text(participantDob, margin + colW1 + 2 + doc.getTextWidth("DOB: "), y + 7);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("NDIS Number: ", margin + 2 * colW1 + 2, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.text(participantNdis, margin + 2 * colW1 + 2 + doc.getTextWidth("NDIS Number: "), y + 7);
+
+      // Row 2: Contact Details | Start date | End date
+      y += 10;
+      doc.rect(margin, y, colW1, 10);
+      doc.rect(margin + colW1, y, colW1, 10);
+      doc.rect(margin + 2 * colW1, y, colW1, 10);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Contact Details:", margin + 2, y + 7);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Start date of agreement:", margin + colW1 + 2, y + 7);
+      doc.setFont("helvetica", "normal");
+      const startText = formatDate(mtaStartDate);
+      doc.text(startText, margin + colW1 + 2 + doc.getTextWidth("Start date of agreement:"), y + 7);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("End date of agreement: ", margin + 2 * colW1 + 2, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.text(formatDate(mtaEndDate), margin + 2 * colW1 + 2 + doc.getTextWidth("End date of agreement: "), y + 7);
+
+      // Row 3: Address (full width)
+      y += 10;
+      doc.rect(margin, y, pageWidth - 2 * margin, 10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Address: ", margin + 2, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.text(participantAddress, margin + 2 + doc.getTextWidth("Address: "), y + 7);
+
+      // Supports provided section
+      y += 20;
+      doc.setFontSize(12);
+      doc.setTextColor(66, 133, 244);
+      doc.text("Supports provided", margin, y);
+
+      y += 8;
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.text("Support Category Name: ", margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.text("MTA", margin + doc.getTextWidth("Support Category Name: "), y);
+
+      // Support table headers
+      y += 10;
+      const cols = [
+        { header: "Support Category", width: 28 },
+        { header: "Support Item Numbers\n(if known)", width: 35 },
+        { header: "Support Item Description", width: 35 },
+        { header: "Plan manager", width: 40 },
+        { header: "Total Support Budget ($)", width: 32 },
+      ];
+      const tableWidth = pageWidth - 2 * margin;
+      const colWidths = cols.map(c => (c.width / 170) * tableWidth);
+
+      // Header row
+      doc.setFillColor(240, 240, 240);
+      let xPos = margin;
+      for (let i = 0; i < cols.length; i++) {
+        doc.rect(xPos, y, colWidths[i], 14, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        const lines = cols[i].header.split("\n");
+        for (let j = 0; j < lines.length; j++) {
+          doc.text(lines[j], xPos + 2, y + 5 + j * 4);
+        }
+        xPos += colWidths[i];
+      }
+
+      // Data row
+      y += 14;
+      const rowHeight = 20;
+      xPos = margin;
+
+      // Support Category
+      doc.rect(xPos, y, colWidths[0], rowHeight);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("CORE", xPos + 2, y + 10);
+      xPos += colWidths[0];
+
+      // Support Item Numbers
+      doc.rect(xPos, y, colWidths[1], rowHeight);
+      doc.text(supportItemNumber, xPos + 2, y + 10);
+      xPos += colWidths[1];
+
+      // Support Item Description
+      doc.rect(xPos, y, colWidths[2], rowHeight);
+      doc.text("Medium Term", xPos + 2, y + 8);
+      doc.text("Accommodation", xPos + 2, y + 13);
+      xPos += colWidths[2];
+
+      // Plan manager
+      doc.rect(xPos, y, colWidths[3], rowHeight);
+      doc.text(mtaPlanManagerName || "", xPos + 2, y + 8);
+      doc.setFontSize(7);
+      doc.text(mtaPlanManagerEmail || "", xPos + 2, y + 13);
+      doc.setFontSize(9);
+      xPos += colWidths[3];
+
+      // Total Support Budget
+      doc.rect(xPos, y, colWidths[4], rowHeight);
+      doc.text(`$${dailyRate.toFixed(2)} x ${days} days`, xPos + 2, y + 8);
+      doc.setFont("helvetica", "bold");
+      doc.text(`$${totalBudget.toLocaleString("en-AU", { minimumFractionDigits: 2 })}`, xPos + 2, y + 15);
+      doc.setFont("helvetica", "normal");
+
+      // Footer
+      const footerY = pageHeight - 30;
+      doc.setFontSize(8);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`${orgName} | ABN: ${orgAbn}`, margin, footerY);
+      doc.text(`T:${orgPhone} W: ${orgEmail}`, margin, footerY + 4);
+      doc.text(`Address: ${orgAddress}`, margin, footerY + 8);
+      if (orgNdisReg) {
+        doc.text(`NDIS Reg # ${orgNdisReg}`, margin, footerY + 12);
+      }
+
+      // ==========================================
+      // PAGE 2 - Service Agreement Signatures
+      // ==========================================
+      doc.addPage();
+      y = 15;
+
+      // Logo top-right
+      if (logoData) {
+        const maxW = 45;
+        const maxH = 22;
+        const ratio = Math.min(maxW / logoData.width, maxH / logoData.height);
+        const logoW = logoData.width * ratio;
+        const logoH = logoData.height * ratio;
+        doc.addImage(logoData.data, "JPEG", pageWidth - margin - logoW, y, logoW, logoH);
+      }
+
+      y += 35;
+
+      // Heading
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.text("SERVICE AGREEMENT SIGNATURES", margin, y);
+
+      y += 10;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        "The Parties agree to the terms and conditions of this Service Agreement/outlined schedule of support.",
+        margin,
+        y
+      );
+
+      // Participant signature block
+      y += 25;
+      const halfWidth = (pageWidth - 2 * margin - 10) / 2;
+
+      // Left: Signature line
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, margin + halfWidth, y);
+
+      // Right: Name line
+      doc.line(margin + halfWidth + 10, y, pageWidth - margin, y);
+
+      y += 6;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bolditalic");
+      doc.text("Signature of Participant /", margin, y);
+      doc.text("Participant\u2019s representative", margin, y + 4);
+
+      doc.text("Name of Participant / Participant\u2019s", margin + halfWidth + 10, y);
+      doc.text("representative", margin + halfWidth + 10, y + 4);
+
+      // Date line for participant
+      y += 18;
+      doc.setFont("helvetica", "bold");
+      doc.text("Date:", margin, y);
+      doc.line(margin + 15, y, margin + 80, y);
+
+      // Provider signature block
+      y += 25;
+      doc.line(margin, y, margin + halfWidth, y);
+      doc.line(margin + halfWidth + 10, y, pageWidth - margin, y);
+
+      // Provider signature name (pre-filled)
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.text(signatoryName, margin + halfWidth + 12, y - 3);
+
+      y += 6;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bolditalic");
+      doc.text("Signature of authorised person from", margin, y);
+      doc.text(`${orgName}`, margin, y + 4);
+
+      doc.text("Name of authorised person from", margin + halfWidth + 10, y);
+      doc.text(`${orgName}`, margin + halfWidth + 10, y + 4);
+
+      // Date line for provider (pre-filled with today)
+      y += 18;
+      doc.setFont("helvetica", "bold");
+      doc.text("Date:", margin, y);
+      doc.setFont("helvetica", "normal");
+      const today = new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
+      doc.text(today, margin + 17, y);
+      doc.line(margin + 15, y + 1, margin + 80, y + 1);
+
+      // Footer
+      const footer2Y = pageHeight - 30;
+      doc.setFontSize(8);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`${orgName} | ABN: ${orgAbn}`, margin, footer2Y);
+      doc.text(`T:${orgPhone} W: ${orgEmail}`, margin, footer2Y + 4);
+      doc.text(`Address: ${orgAddress}`, margin, footer2Y + 8);
+      if (orgNdisReg) {
+        doc.text(`NDIS Reg # ${orgNdisReg}`, margin, footer2Y + 12);
+      }
+
+      // Save PDF
+      doc.save(`Schedule_of_Supports_MTA_${selectedParticipant.firstName}_${selectedParticipant.lastName}_${new Date().toISOString().split("T")[0]}.pdf`);
+    } catch (err) {
+      console.error("MTA Schedule generation error:", err);
+      await alertDialog("Failed to generate MTA Schedule of Supports. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -1270,6 +1644,12 @@ export default function OnboardingPage() {
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
             >
               {showRrcSettings ? "Hide RRC Settings" : "RRC Settings"}
+            </button>
+            <button
+              onClick={() => setShowMtaSettings(!showMtaSettings)}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              {showMtaSettings ? "Hide MTA Settings" : "MTA Settings"}
             </button>
           </div>
         </div>
@@ -1371,6 +1751,46 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        {/* MTA Settings Panel */}
+        {showMtaSettings && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Medium Term Accommodation (MTA) Settings</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Set the daily MTA rate and support item number for Schedule of Supports documents.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Daily MTA Rate ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={mtaFormData.mtaDailyRate}
+                  onChange={(e) => setMtaFormData({ ...mtaFormData, mtaDailyRate: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Support Item Number</label>
+                <input
+                  type="text"
+                  value={mtaFormData.mtaSupportItemNumber}
+                  onChange={(e) => setMtaFormData({ ...mtaFormData, mtaSupportItemNumber: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  placeholder="01_082_0115_1_1"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleSaveMtaSettings}
+                className="px-6 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
+              >
+                Save MTA Settings
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Document Generation */}
         <div className="bg-gray-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Generate Onboarding Documents</h2>
@@ -1438,6 +1858,48 @@ export default function OnboardingPage() {
             </p>
           </div>
 
+          {/* MTA Agreement Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">MTA Start Date</label>
+              <input
+                type="date"
+                value={mtaStartDate}
+                onChange={(e) => setMtaStartDate(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">MTA End Date</label>
+              <input
+                type="date"
+                value={mtaEndDate}
+                onChange={(e) => setMtaEndDate(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Plan Manager Name</label>
+              <input
+                type="text"
+                value={mtaPlanManagerName}
+                onChange={(e) => setMtaPlanManagerName(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                placeholder="e.g. My Integra"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Plan Manager Email</label>
+              <input
+                type="text"
+                value={mtaPlanManagerEmail}
+                onChange={(e) => setMtaPlanManagerEmail(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                placeholder="e.g. choiceandcontrol@myintegra.com.au"
+              />
+            </div>
+          </div>
+
           {/* Selected Participant Details */}
           {selectedParticipant && (
             <div className="mb-6 p-4 bg-gray-700 rounded-lg">
@@ -1482,7 +1944,7 @@ export default function OnboardingPage() {
           )}
 
           {/* Document Generation Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 border border-gray-600 rounded-lg">
               <h3 className="text-white font-medium mb-2">SDA Quotation (Letter of Offer)</h3>
               <p className="text-gray-400 text-sm mb-4">
@@ -1511,6 +1973,23 @@ export default function OnboardingPage() {
                 className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
                 {isGenerating ? "Generating..." : "Generate Agreement"}
+              </button>
+            </div>
+
+            <div className="p-4 border border-gray-600 rounded-lg">
+              <h3 className="text-white font-medium mb-2">Schedule of Supports (MTA)</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Generate MTA Schedule of Supports for plan manager claiming.
+                {!mtaStartDate && selectedParticipant && (
+                  <span className="text-yellow-400 block mt-1">Please enter MTA start and end dates above.</span>
+                )}
+              </p>
+              <button
+                onClick={generateMtaSchedule}
+                disabled={!selectedParticipant || !mtaStartDate || !mtaEndDate || isGenerating}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                {isGenerating ? "Generating..." : "Generate MTA Schedule"}
               </button>
             </div>
           </div>

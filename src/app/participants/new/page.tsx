@@ -17,6 +17,7 @@ export default function NewParticipantPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSavingIncomplete, setIsSavingIncomplete] = useState(false);
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
 
   // Participant data
@@ -96,6 +97,7 @@ export default function NewParticipantPage() {
   const providerSettings = useQuery(api.providerSettings.get, userIdTyped ? { userId: userIdTyped } : "skip");
 
   const createParticipant = useMutation(api.participants.create);
+  const createIncompleteParticipant = useMutation(api.participants.createIncomplete);
   const createPlan = useMutation(api.participantPlans.create);
   const createSilProvider = useMutation(api.silProviders.create);
   const linkSilProvider = useMutation(api.silProviders.linkParticipant);
@@ -169,6 +171,34 @@ export default function NewParticipantPage() {
           supportCoordinatorPhone: "",
         });
       }
+    }
+  };
+
+  const handleSaveIncomplete = async () => {
+    if (!participantData.firstName.trim() || !participantData.lastName.trim()) return;
+    setIsSavingIncomplete(true);
+    try {
+      await createIncompleteParticipant({
+        userId: user!.id as Id<"users">,
+        firstName: participantData.firstName.trim(),
+        lastName: participantData.lastName.trim(),
+        ...(participantData.ndisNumber?.trim() ? { ndisNumber: participantData.ndisNumber.trim() } : {}),
+        ...(participantData.dateOfBirth ? { dateOfBirth: participantData.dateOfBirth } : {}),
+        ...(participantData.email?.trim() ? { email: participantData.email.trim() } : {}),
+        ...(participantData.phone?.trim() ? { phone: participantData.phone.trim() } : {}),
+        ...(participantData.emergencyContactName?.trim() ? { emergencyContactName: participantData.emergencyContactName.trim() } : {}),
+        ...(participantData.emergencyContactPhone?.trim() ? { emergencyContactPhone: participantData.emergencyContactPhone.trim() } : {}),
+        ...(participantData.emergencyContactRelation?.trim() ? { emergencyContactRelation: participantData.emergencyContactRelation.trim() } : {}),
+        ...(participantData.silProviderName?.trim() ? { silProviderName: participantData.silProviderName.trim() } : {}),
+        ...(participantData.supportCoordinatorName?.trim() ? { supportCoordinatorName: participantData.supportCoordinatorName.trim() } : {}),
+        ...(participantData.supportCoordinatorEmail?.trim() ? { supportCoordinatorEmail: participantData.supportCoordinatorEmail.trim() } : {}),
+        ...(participantData.supportCoordinatorPhone?.trim() ? { supportCoordinatorPhone: participantData.supportCoordinatorPhone.trim() } : {}),
+      });
+      router.push("/participants");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to save incomplete participant";
+      setError(errorMessage);
+      setIsSavingIncomplete(false);
     }
   };
 
@@ -344,6 +374,8 @@ export default function NewParticipantPage() {
               data={participantData}
               setData={setParticipantData}
               onNext={() => setStep(2)}
+              onSaveIncomplete={handleSaveIncomplete}
+              isSavingIncomplete={isSavingIncomplete}
               silProviders={silProviders || []}
               supportCoordinators={supportCoordinators || []}
               selectedSilProviderId={selectedSilProviderId}
@@ -429,6 +461,8 @@ function ParticipantDetailsStep({
   data,
   setData,
   onNext,
+  onSaveIncomplete,
+  isSavingIncomplete,
   silProviders,
   supportCoordinators,
   selectedSilProviderId,
@@ -449,6 +483,8 @@ function ParticipantDetailsStep({
   data: any;
   setData: (data: any) => void;
   onNext: () => void;
+  onSaveIncomplete: () => void;
+  isSavingIncomplete: boolean;
   silProviders: any[];
   supportCoordinators: any[];
   selectedSilProviderId: string;
@@ -468,7 +504,17 @@ function ParticipantDetailsStep({
 }) {
   return (
     <div>
-      <h3 className="text-xl font-semibold text-white mb-6">Participant Details</h3>
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-semibold text-white">Participant Details</h3>
+        <button
+          type="button"
+          onClick={onSaveIncomplete}
+          disabled={!data.firstName?.trim() || !data.lastName?.trim() || isSavingIncomplete}
+          className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
+        >
+          {isSavingIncomplete ? "Saving..." : "Save Incomplete"}
+        </button>
+      </div>
 
       <div className="space-y-4">
         <div>

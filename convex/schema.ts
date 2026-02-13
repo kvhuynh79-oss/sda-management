@@ -320,14 +320,15 @@ export default defineSchema({
     emergencyContactName: v.optional(v.string()),
     emergencyContactPhone: v.optional(v.string()),
     emergencyContactRelation: v.optional(v.string()),
-    dwellingId: v.id("dwellings"),
+    dwellingId: v.optional(v.id("dwellings")),
     moveInDate: v.optional(v.string()),
     moveOutDate: v.optional(v.string()),
     status: v.union(
       v.literal("active"),
       v.literal("inactive"),
       v.literal("pending_move_in"),
-      v.literal("moved_out")
+      v.literal("moved_out"),
+      v.literal("incomplete")
     ),
     silProviderName: v.optional(v.string()),
     supportCoordinatorName: v.optional(v.string()),
@@ -747,6 +748,10 @@ export default defineSchema({
     craFortnightlyRate: v.optional(v.number()), // Commonwealth Rent Assistance max fortnightly rate
     craPercentage: v.optional(v.number()), // % of CRA to contribute (typically 100%)
     rrcLastUpdated: v.optional(v.string()), // Date RRC rates were last updated
+    // MTA (Medium Term Accommodation) settings
+    mtaDailyRate: v.optional(v.number()),
+    mtaSupportItemNumber: v.optional(v.string()),
+    mtaLastUpdated: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -786,7 +791,9 @@ export default defineSchema({
       v.literal("staff_screening_expiry"), // Staff NDIS/police/WWCC screening expiring or expired
       // Consent alerts
       v.literal("consent_expiry"), // Participant consent expired or expiring
-      v.literal("consent_missing") // Active participant with no consent recorded
+      v.literal("consent_missing"), // Active participant with no consent recorded
+      // Incomplete profile alerts
+      v.literal("profile_incomplete") // Participant profile missing required fields
     ),
     severity: v.union(
       v.literal("critical"),

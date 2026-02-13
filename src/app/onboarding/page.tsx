@@ -1478,20 +1478,22 @@ export default function OnboardingPage() {
       const totalColWeight = cols.reduce((s, c) => s + c.weight, 0);
       const colWidths = cols.map(c => (c.weight / totalColWeight) * contentWidth);
 
-      // Header row
+      // Header row (dark background with white text - matches BLS template)
       const headerRowH = 12;
-      doc.setFillColor(240, 240, 240);
+      doc.setFillColor(50, 50, 50);
       let xPos = margin;
       for (let i = 0; i < cols.length; i++) {
         doc.rect(xPos, y, colWidths[i], headerRowH, "FD");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
         const lines = cols[i].header.split("\n");
         for (let j = 0; j < lines.length; j++) {
           doc.text(lines[j], xPos + 3, y + 5 + j * 4);
         }
         xPos += colWidths[i];
       }
+      doc.setTextColor(0, 0, 0);
 
       // Data row
       y += headerRowH;

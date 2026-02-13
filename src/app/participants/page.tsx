@@ -30,7 +30,7 @@ export default function ParticipantsPage() {
 
   const participants = useQuery(
     api.participants.getAll,
-    userId ? { userId } : "skip"
+    userId ? { userId, includeArchived: statusFilter === "archived" } : "skip"
   );
 
   // Memoize filtered participants to avoid recalculating on every render
@@ -110,6 +110,7 @@ export default function ParticipantsPage() {
                   <option value="inactive">Inactive</option>
                   <option value="pending_move_in">Pending Move-in</option>
                   <option value="incomplete">Incomplete</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
             </div>
@@ -180,6 +181,8 @@ function ParticipantCard({ participant }: { participant: any }) {
         return "bg-yellow-600";
       case "incomplete":
         return "bg-orange-600";
+      case "archived":
+        return "bg-gray-500";
       default:
         return "bg-gray-600";
     }

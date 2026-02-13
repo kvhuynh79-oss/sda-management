@@ -1276,12 +1276,14 @@ export default function OnboardingPage() {
 
     setIsGenerating(true);
     try {
-      const doc = new jsPDF();
+      // Landscape A4: 297mm x 210mm
+      const doc = new jsPDF({ orientation: "landscape" });
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
 
-      // Calculate days
+      // Calculate days and budget
       const start = new Date(mtaStartDate);
       const end = new Date(mtaEndDate);
       const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
@@ -1323,205 +1325,183 @@ export default function OnboardingPage() {
       }
 
       // ==========================================
-      // PAGE 1 - Schedule of Supports
+      // SINGLE LANDSCAPE PAGE
       // ==========================================
-      let y = 15;
+      let y = 10;
 
       // Logo top-right
       if (logoData) {
         const maxW = 45;
-        const maxH = 22;
+        const maxH = 20;
         const ratio = Math.min(maxW / logoData.width, maxH / logoData.height);
         const logoW = logoData.width * ratio;
         const logoH = logoData.height * ratio;
         doc.addImage(logoData.data, "JPEG", pageWidth - margin - logoW, y, logoW, logoH);
       }
 
-      // Blue header
-      y += 30;
+      // Blue header bar
+      y += 24;
       doc.setFillColor(66, 133, 244);
-      doc.rect(margin, y, pageWidth - 2 * margin, 12, "F");
-      doc.setFontSize(16);
+      doc.rect(margin, y, contentWidth, 10, "F");
+      doc.setFontSize(13);
       doc.setTextColor(255, 255, 255);
-      doc.text("Schedule of Supports", pageWidth / 2, y + 8.5, { align: "center" });
+      doc.text("Schedule of Supports", pageWidth / 2, y + 7.5, { align: "center" });
 
       // Sub-header
-      y += 18;
-      doc.setFontSize(12);
+      y += 14;
+      doc.setFontSize(10);
       doc.setTextColor(66, 133, 244);
       doc.text("Schedule of Supports / Participant Support Plan", margin, y);
 
       // Participant info table
-      y += 8;
-      doc.setFontSize(10);
+      y += 5;
+      doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
       doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.5);
+      doc.setLineWidth(0.3);
+
+      const colW1 = contentWidth / 3;
+      const rowH = 8;
 
       // Row 1: Name | DOB | NDIS Number
-      const colW1 = (pageWidth - 2 * margin) / 3;
-      doc.rect(margin, y, colW1, 10);
-      doc.rect(margin + colW1, y, colW1, 10);
-      doc.rect(margin + 2 * colW1, y, colW1, 10);
+      doc.rect(margin, y, colW1, rowH);
+      doc.rect(margin + colW1, y, colW1, rowH);
+      doc.rect(margin + 2 * colW1, y, colW1, rowH);
 
       doc.setFont("helvetica", "bold");
-      doc.text("Name: ", margin + 2, y + 7);
+      doc.text("Name: ", margin + 2, y + 5.5);
       doc.setFont("helvetica", "normal");
-      doc.text(participantName, margin + 2 + doc.getTextWidth("Name: "), y + 7);
+      doc.text(participantName, margin + 2 + doc.getTextWidth("Name: "), y + 5.5);
 
       doc.setFont("helvetica", "bold");
-      doc.text("DOB: ", margin + colW1 + 2, y + 7);
+      doc.text("DOB: ", margin + colW1 + 2, y + 5.5);
       doc.setFont("helvetica", "normal");
-      doc.text(participantDob, margin + colW1 + 2 + doc.getTextWidth("DOB: "), y + 7);
+      doc.text(participantDob, margin + colW1 + 2 + doc.getTextWidth("DOB: "), y + 5.5);
 
       doc.setFont("helvetica", "bold");
-      doc.text("NDIS Number: ", margin + 2 * colW1 + 2, y + 7);
+      doc.text("NDIS Number: ", margin + 2 * colW1 + 2, y + 5.5);
       doc.setFont("helvetica", "normal");
-      doc.text(participantNdis, margin + 2 * colW1 + 2 + doc.getTextWidth("NDIS Number: "), y + 7);
+      doc.text(participantNdis, margin + 2 * colW1 + 2 + doc.getTextWidth("NDIS Number: "), y + 5.5);
 
       // Row 2: Contact Details | Start date | End date
-      y += 10;
-      doc.rect(margin, y, colW1, 10);
-      doc.rect(margin + colW1, y, colW1, 10);
-      doc.rect(margin + 2 * colW1, y, colW1, 10);
+      y += rowH;
+      doc.rect(margin, y, colW1, rowH);
+      doc.rect(margin + colW1, y, colW1, rowH);
+      doc.rect(margin + 2 * colW1, y, colW1, rowH);
 
       doc.setFont("helvetica", "bold");
-      doc.text("Contact Details:", margin + 2, y + 7);
+      doc.text("Contact Details:", margin + 2, y + 5.5);
 
+      doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text("Start date of agreement:", margin + colW1 + 2, y + 7);
+      doc.text("Start date of agreement: ", margin + colW1 + 2, y + 5.5);
       doc.setFont("helvetica", "normal");
-      const startText = formatDate(mtaStartDate);
-      doc.text(startText, margin + colW1 + 2 + doc.getTextWidth("Start date of agreement:"), y + 7);
+      doc.text(formatDate(mtaStartDate), margin + colW1 + 2 + doc.getTextWidth("Start date of agreement: "), y + 5.5);
 
       doc.setFont("helvetica", "bold");
-      doc.text("End date of agreement: ", margin + 2 * colW1 + 2, y + 7);
+      doc.text("End date of agreement: ", margin + 2 * colW1 + 2, y + 5.5);
       doc.setFont("helvetica", "normal");
-      doc.text(formatDate(mtaEndDate), margin + 2 * colW1 + 2 + doc.getTextWidth("End date of agreement: "), y + 7);
+      doc.text(formatDate(mtaEndDate), margin + 2 * colW1 + 2 + doc.getTextWidth("End date of agreement: "), y + 5.5);
+      doc.setFontSize(9);
 
       // Row 3: Address (full width)
-      y += 10;
-      doc.rect(margin, y, pageWidth - 2 * margin, 10);
+      y += rowH;
+      doc.rect(margin, y, contentWidth, rowH);
       doc.setFont("helvetica", "bold");
-      doc.text("Address: ", margin + 2, y + 7);
+      doc.text("Address: ", margin + 2, y + 5.5);
       doc.setFont("helvetica", "normal");
-      doc.text(participantAddress, margin + 2 + doc.getTextWidth("Address: "), y + 7);
+      doc.text(participantAddress, margin + 2 + doc.getTextWidth("Address: "), y + 5.5);
 
       // Supports provided section
-      y += 20;
-      doc.setFontSize(12);
+      y += rowH + 6;
+      doc.setFontSize(10);
       doc.setTextColor(66, 133, 244);
       doc.text("Supports provided", margin, y);
 
-      y += 8;
-      doc.setFontSize(10);
+      y += 5;
+      doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
       doc.text("Support Category Name: ", margin, y);
       doc.setFont("helvetica", "normal");
       doc.text("MTA", margin + doc.getTextWidth("Support Category Name: "), y);
 
-      // Support table headers
-      y += 10;
+      // Support table
+      y += 5;
       const cols = [
-        { header: "Support Category", width: 28 },
-        { header: "Support Item Numbers\n(if known)", width: 35 },
-        { header: "Support Item Description", width: 35 },
-        { header: "Plan manager", width: 40 },
-        { header: "Total Support Budget ($)", width: 32 },
+        { header: "Support Category", width: 30 },
+        { header: "Support Item Numbers\n(if known)", width: 38 },
+        { header: "Support Item Description", width: 42 },
+        { header: "Plan manager", width: 50 },
+        { header: "Total Support Budget ($)", width: 42 },
       ];
-      const tableWidth = pageWidth - 2 * margin;
-      const colWidths = cols.map(c => (c.width / 170) * tableWidth);
+      const totalColWeight = cols.reduce((s, c) => s + c.width, 0);
+      const colWidths = cols.map(c => (c.width / totalColWeight) * contentWidth);
 
       // Header row
+      const headerRowH = 10;
       doc.setFillColor(240, 240, 240);
       let xPos = margin;
       for (let i = 0; i < cols.length; i++) {
-        doc.rect(xPos, y, colWidths[i], 14, "FD");
+        doc.rect(xPos, y, colWidths[i], headerRowH, "FD");
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         const lines = cols[i].header.split("\n");
         for (let j = 0; j < lines.length; j++) {
-          doc.text(lines[j], xPos + 2, y + 5 + j * 4);
+          doc.text(lines[j], xPos + 2, y + 4 + j * 3.5);
         }
         xPos += colWidths[i];
       }
 
       // Data row
-      y += 14;
-      const rowHeight = 20;
+      y += headerRowH;
+      const dataRowH = 14;
       xPos = margin;
 
-      // Support Category
-      doc.rect(xPos, y, colWidths[0], rowHeight);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text("CORE", xPos + 2, y + 10);
+      doc.setFontSize(8);
+
+      // Support Category
+      doc.rect(xPos, y, colWidths[0], dataRowH);
+      doc.text("CORE", xPos + 2, y + 7);
       xPos += colWidths[0];
 
       // Support Item Numbers
-      doc.rect(xPos, y, colWidths[1], rowHeight);
-      doc.text(supportItemNumber, xPos + 2, y + 10);
+      doc.rect(xPos, y, colWidths[1], dataRowH);
+      doc.text(supportItemNumber, xPos + 2, y + 7);
       xPos += colWidths[1];
 
       // Support Item Description
-      doc.rect(xPos, y, colWidths[2], rowHeight);
-      doc.text("Medium Term", xPos + 2, y + 8);
-      doc.text("Accommodation", xPos + 2, y + 13);
+      doc.rect(xPos, y, colWidths[2], dataRowH);
+      doc.text("Medium Term Accommodation", xPos + 2, y + 7);
       xPos += colWidths[2];
 
       // Plan manager
-      doc.rect(xPos, y, colWidths[3], rowHeight);
-      doc.text(mtaPlanManagerName || "", xPos + 2, y + 8);
+      doc.rect(xPos, y, colWidths[3], dataRowH);
+      doc.text(mtaPlanManagerName || "", xPos + 2, y + 6);
       doc.setFontSize(7);
-      doc.text(mtaPlanManagerEmail || "", xPos + 2, y + 13);
-      doc.setFontSize(9);
+      doc.text(mtaPlanManagerEmail || "", xPos + 2, y + 10);
+      doc.setFontSize(8);
       xPos += colWidths[3];
 
       // Total Support Budget
-      doc.rect(xPos, y, colWidths[4], rowHeight);
-      doc.text(`$${dailyRate.toFixed(2)} x ${days} days`, xPos + 2, y + 8);
+      doc.rect(xPos, y, colWidths[4], dataRowH);
+      doc.text(`$${dailyRate.toFixed(2)} x ${days} days`, xPos + 2, y + 6);
       doc.setFont("helvetica", "bold");
-      doc.text(`$${totalBudget.toLocaleString("en-AU", { minimumFractionDigits: 2 })}`, xPos + 2, y + 15);
+      doc.text(`$${totalBudget.toLocaleString("en-AU", { minimumFractionDigits: 2 })}`, xPos + 2, y + 11);
       doc.setFont("helvetica", "normal");
 
-      // Footer
-      const footerY = pageHeight - 30;
-      doc.setFontSize(8);
-      doc.setTextColor(80, 80, 80);
-      doc.text(`${orgName} | ABN: ${orgAbn}`, margin, footerY);
-      doc.text(`T:${orgPhone} W: ${orgEmail}`, margin, footerY + 4);
-      doc.text(`Address: ${orgAddress}`, margin, footerY + 8);
-      if (orgNdisReg) {
-        doc.text(`NDIS Reg # ${orgNdisReg}`, margin, footerY + 12);
-      }
-
       // ==========================================
-      // PAGE 2 - Service Agreement Signatures
+      // SERVICE AGREEMENT SIGNATURES (same page)
       // ==========================================
-      doc.addPage();
-      y = 15;
-
-      // Logo top-right
-      if (logoData) {
-        const maxW = 45;
-        const maxH = 22;
-        const ratio = Math.min(maxW / logoData.width, maxH / logoData.height);
-        const logoW = logoData.width * ratio;
-        const logoH = logoData.height * ratio;
-        doc.addImage(logoData.data, "JPEG", pageWidth - margin - logoW, y, logoW, logoH);
-      }
-
-      y += 35;
-
-      // Heading
-      doc.setFontSize(14);
+      y += dataRowH + 8;
+      doc.setFontSize(11);
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "bold");
       doc.text("SERVICE AGREEMENT SIGNATURES", margin, y);
 
-      y += 10;
-      doc.setFontSize(10);
+      y += 5;
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
       doc.text(
         "The Parties agree to the terms and conditions of this Service Agreement/outlined schedule of support.",
@@ -1530,68 +1510,78 @@ export default function OnboardingPage() {
       );
 
       // Participant signature block
-      y += 25;
-      const halfWidth = (pageWidth - 2 * margin - 10) / 2;
+      y += 10;
+      const halfWidth = (contentWidth - 15) / 2;
+      doc.setLineWidth(0.4);
 
-      // Left: Signature line
-      doc.setLineWidth(0.5);
+      // Left: Signature line | Right: Name line
       doc.line(margin, y, margin + halfWidth, y);
+      doc.line(margin + halfWidth + 15, y, pageWidth - margin, y);
 
-      // Right: Name line
-      doc.line(margin + halfWidth + 10, y, pageWidth - margin, y);
-
-      y += 6;
-      doc.setFontSize(9);
+      y += 4;
+      doc.setFontSize(7.5);
       doc.setFont("helvetica", "bolditalic");
-      doc.text("Signature of Participant /", margin, y);
-      doc.text("Participant\u2019s representative", margin, y + 4);
-
-      doc.text("Name of Participant / Participant\u2019s", margin + halfWidth + 10, y);
-      doc.text("representative", margin + halfWidth + 10, y + 4);
+      doc.text("Signature of Participant / Participant\u2019s representative", margin, y);
+      doc.text("Name of Participant / Participant\u2019s representative", margin + halfWidth + 15, y);
 
       // Date line for participant
-      y += 18;
+      y += 7;
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
       doc.text("Date:", margin, y);
-      doc.line(margin + 15, y, margin + 80, y);
+      doc.line(margin + 13, y, margin + 60, y);
 
       // Provider signature block
-      y += 25;
+      y += 10;
+      doc.setLineWidth(0.4);
       doc.line(margin, y, margin + halfWidth, y);
-      doc.line(margin + halfWidth + 10, y, pageWidth - margin, y);
+      doc.line(margin + halfWidth + 15, y, pageWidth - margin, y);
 
-      // Provider signature name (pre-filled)
+      // Provider signature name (pre-filled above the line)
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      doc.text(signatoryName, margin + halfWidth + 12, y - 3);
-
-      y += 6;
       doc.setFontSize(9);
-      doc.setFont("helvetica", "bolditalic");
-      doc.text("Signature of authorised person from", margin, y);
-      doc.text(`${orgName}`, margin, y + 4);
+      doc.text(signatoryName, margin + halfWidth + 17, y - 2);
 
-      doc.text("Name of authorised person from", margin + halfWidth + 10, y);
-      doc.text(`${orgName}`, margin + halfWidth + 10, y + 4);
+      y += 4;
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bolditalic");
+      doc.text(`Signature of authorised person from ${orgName}`, margin, y);
+      doc.text(`Name of authorised person from ${orgName}`, margin + halfWidth + 15, y);
 
       // Date line for provider (pre-filled with today)
-      y += 18;
+      y += 7;
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
       doc.text("Date:", margin, y);
       doc.setFont("helvetica", "normal");
       const today = new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
-      doc.text(today, margin + 17, y);
-      doc.line(margin + 15, y + 1, margin + 80, y + 1);
+      doc.text(today, margin + 15, y);
+      doc.line(margin + 13, y + 0.5, margin + 60, y + 0.5);
 
-      // Footer
-      const footer2Y = pageHeight - 30;
-      doc.setFontSize(8);
+      // ==========================================
+      // FOOTER (bottom of landscape page)
+      // ==========================================
+      const footerY = pageHeight - 18;
+      doc.setFontSize(7);
       doc.setTextColor(80, 80, 80);
-      doc.text(`${orgName} | ABN: ${orgAbn}`, margin, footer2Y);
-      doc.text(`T:${orgPhone} W: ${orgEmail}`, margin, footer2Y + 4);
-      doc.text(`Address: ${orgAddress}`, margin, footer2Y + 8);
+      doc.setFont("helvetica", "normal");
+
+      const footerLine1 = `${orgName}${orgAbn ? ` | ABN: ${orgAbn}` : ""}`;
+      doc.text(footerLine1, margin, footerY);
+
+      const footerParts: string[] = [];
+      if (orgPhone) footerParts.push(`T: ${orgPhone}`);
+      if (orgEmail) footerParts.push(`E: ${orgEmail}`);
+      if (footerParts.length > 0) {
+        doc.text(footerParts.join("  |  "), margin, footerY + 3.5);
+      }
+
+      if (orgAddress) {
+        doc.text(`Address: ${orgAddress}`, margin, footerY + 7);
+      }
+
       if (orgNdisReg) {
-        doc.text(`NDIS Reg # ${orgNdisReg}`, margin, footer2Y + 12);
+        doc.text(`NDIS Reg # ${orgNdisReg}`, margin, footerY + 10.5);
       }
 
       // Save PDF

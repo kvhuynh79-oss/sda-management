@@ -45,6 +45,8 @@ export default function ParticipantDetailPage() {
   const recordConsentMutation = useMutation(api.participants.recordConsent);
   const withdrawConsentMutation = useMutation(api.participants.withdrawConsent);
   const renewConsentMutation = useMutation(api.participants.renewConsent);
+  const archiveMutation = useMutation(api.participants.archive);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("sda_user");
@@ -91,6 +93,7 @@ export default function ParticipantDetailPage() {
       pending_move_in: "bg-yellow-600",
       moved_out: "bg-red-600",
       incomplete: "bg-orange-600",
+      archived: "bg-gray-500",
     };
     return colors[status] || "bg-gray-600";
   };
@@ -298,6 +301,34 @@ export default function ParticipantDetailPage() {
               {participant.status === "active" && (
                 <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
                   Move Out
+                </button>
+              )}
+              {participant.status !== "archived" && (
+                <button
+                  onClick={async () => {
+                    const ok = await confirmDialog({
+                      title: "Archive Participant",
+                      message: `Archive "${participant.firstName} ${participant.lastName}"? This will remove them from active lists.`,
+                      confirmLabel: "Archive",
+                      variant: "danger",
+                    });
+                    if (!ok) return;
+                    setIsArchiving(true);
+                    try {
+                      await archiveMutation({
+                        userId: user!.id as Id<"users">,
+                        participantId,
+                      });
+                      router.push("/participants");
+                    } catch (err) {
+                      await alertDialog("Failed to archive participant.");
+                      setIsArchiving(false);
+                    }
+                  }}
+                  disabled={isArchiving}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-700 text-white rounded-lg transition-colors"
+                >
+                  {isArchiving ? "Archiving..." : "Archive"}
                 </button>
               )}
             </div>

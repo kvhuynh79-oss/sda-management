@@ -328,7 +328,8 @@ export default defineSchema({
       v.literal("inactive"),
       v.literal("pending_move_in"),
       v.literal("moved_out"),
-      v.literal("incomplete")
+      v.literal("incomplete"),
+      v.literal("archived")
     ),
     silProviderName: v.optional(v.string()),
     supportCoordinatorName: v.optional(v.string()),

@@ -308,6 +308,7 @@ async function updateDwellingOccupancy(ctx: any, dwellingId: any) {
 export const getAll = query({
   args: {
     userId: v.id("users"), // Required for role-based filtering
+    includeArchived: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Get tenant context for multi-tenant isolation
@@ -324,7 +325,11 @@ export const getAll = query({
       .query("participants")
       .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .collect();
-    let participants = allParticipants.filter((p) => p.status !== "moved_out");
+    let participants = allParticipants.filter((p) => {
+      if (p.status === "moved_out") return false;
+      if (p.status === "archived" && !args.includeArchived) return false;
+      return true;
+    });
 
     // Role-based filtering for SIL provider users
     if (requestingUser.role === "sil_provider" && requestingUser.silProviderId) {
@@ -659,6 +664,37 @@ export const moveOut = mutation({
     });
 
     // Update dwelling occupancy (guard for incomplete participants without dwelling)
+    if (participant.dwellingId) {
+      await updateDwellingOccupancy(ctx, participant.dwellingId);
+    }
+
+    return { success: true };
+  },
+});
+
+// Archive a participant (soft delete - sets status to "archived")
+export const archive = mutation({
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    await requirePermission(ctx, args.userId, "participants", "delete");
+
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant) throw new Error("Participant not found");
+
+    if (participant.organizationId !== organizationId) {
+      throw new Error("Access denied: Participant belongs to different organization");
+    }
+
+    await ctx.db.patch(args.participantId, {
+      status: "archived",
+      updatedAt: Date.now(),
+    });
+
+    // Update dwelling occupancy if participant had a dwelling
     if (participant.dwellingId) {
       await updateDwellingOccupancy(ctx, participant.dwellingId);
     }

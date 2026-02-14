@@ -183,16 +183,14 @@ export default function ClaimsPage() {
       return;
     }
 
-    // Calculate support period based on participant's claim day
-    // Claim is for supports ALREADY delivered in the PREVIOUS billing cycle
-    // From = claimDay of PREVIOUS month, To = claimDay - 1 of CURRENT (selected) month
+    // Support period: day after previous claim day → current claim day
+    // e.g. claim day 13, Feb 2026: From = 2026-01-14, To = 2026-02-13
     const [yearStr, monthStr] = selectedPeriod.split("-");
     const year = parseInt(yearStr);
     const month = parseInt(monthStr);
     const claimDay = claim.claimDay || 1;
-    const fromDate = new Date(year, month - 2, claimDay); // month-2 because JS months are 0-indexed and we want previous month
-    const toDate = new Date(year, month - 1, claimDay - 1); // month-1 = selected month (0-indexed), day = claimDay - 1
-    // Format as YYYY-MM-DD (mandatory per NDIS spec)
+    const fromDate = new Date(year, month - 2, claimDay + 1); // prev month, day after claim day
+    const toDate = new Date(year, month - 1, claimDay); // current month, claim day
     const formatNdisDate = (d: Date) => {
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -202,8 +200,10 @@ export default function ClaimsPage() {
     const periodStart = formatNdisDate(fromDate);
     const periodEnd = formatNdisDate(toDate);
 
-    // Generate claim reference: claimDay + MM + YYYY, sanitized to only alphanumeric + / _ -
-    const claimRef = `${claimDay}${String(month).padStart(2, "0")}${year}`.replace(/[^a-zA-Z0-9/_-]/g, "").substring(0, 50);
+    // Claim reference: FirstName_DDMMYY (today's date)
+    const now = new Date();
+    const todayDDMMYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getFullYear()).slice(2)}`;
+    const claimRef = `${claim.participant.firstName}_${todayDDMMYY}`.replace(/[^a-zA-Z0-9/_-]/g, "").substring(0, 50);
 
     // CSV headers (exact NDIS format)
     const headers = [
@@ -280,7 +280,7 @@ export default function ClaimsPage() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `NDIS_${claim.participant.lastName}_${claim.participant.firstName}_${selectedPeriod}.csv`
+      `BLS_${todayDDMMYY}.csv`
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);

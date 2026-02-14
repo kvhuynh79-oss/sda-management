@@ -285,6 +285,8 @@ function ClaimsTab({ userId }: { userId: string }) {
     if (!userId) return;
 
     const [year, month] = selectedPeriod.split("-").map(Number);
+    const now = new Date();
+    const todayDDMMYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getFullYear()).slice(2)}`;
 
     // Decrypt NDIS numbers
     const ndisMap = new Map<string, string>();
@@ -336,10 +338,10 @@ function ClaimsTab({ userId }: { userId: string }) {
 
     const rows = paceClaims.map((claim) => {
       const claimDay = claim.claimDay || 1;
-      // Correct date calculation: claim is for supports ALREADY delivered in the PREVIOUS billing cycle
-      // From = claimDay of PREVIOUS month, To = claimDay - 1 of CURRENT (selected) month
-      const fromDate = new Date(year, month - 2, claimDay); // month-2 because JS months are 0-indexed and we want previous month
-      const toDate = new Date(year, month - 1, claimDay - 1); // month-1 = selected month (0-indexed), day = claimDay - 1
+      // Support period: day after previous claim day → current claim day
+      // e.g. claim day 13, Feb 2026: From = 2026-01-14, To = 2026-02-13
+      const fromDate = new Date(year, month - 2, claimDay + 1); // prev month, day after claim day
+      const toDate = new Date(year, month - 1, claimDay); // current month, claim day
 
       return {
         RegistrationNumber: (providerSettings?.ndisRegistrationNumber || "").replace(/\s/g, ""),
@@ -347,7 +349,7 @@ function ClaimsTab({ userId }: { userId: string }) {
         SupportsDeliveredFrom: toNdisDate(fromDate),
         SupportsDeliveredTo: toNdisDate(toDate),
         SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
-        ClaimReference: sanitizeClaimRef(`${claimDay}${String(month).padStart(2, "0")}${year}`),
+        ClaimReference: sanitizeClaimRef(`${claim.participant.firstName}_${todayDDMMYY}`),
         Quantity: "1",
         Hours: "",
         UnitPrice: claim.expectedAmount.toFixed(2),
@@ -370,7 +372,7 @@ function ClaimsTab({ userId }: { userId: string }) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `NDIS_Claims_${selectedPeriod}.csv`;
+    a.download = `BLS_${todayDDMMYY}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -426,6 +428,9 @@ function ClaimsTab({ userId }: { userId: string }) {
       return;
     }
     if (!userId) return;
+
+    const now = new Date();
+    const todayDDMMYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getFullYear()).slice(2)}`;
 
     const selectedClaimsList = filteredClaims?.filter(
       (c) => selectedClaims.has(`${c.participant._id}-${c.claimDay}`)
@@ -507,10 +512,10 @@ function ClaimsTab({ userId }: { userId: string }) {
 
     const rows = selectedClaimsList.map((claim) => {
       const claimDay = claim.claimDay || 1;
-      // Correct date calculation: claim is for supports ALREADY delivered in the PREVIOUS billing cycle
-      // From = claimDay of PREVIOUS month, To = claimDay - 1 of CURRENT (selected) month
-      const fromDate = new Date(year, month - 2, claimDay); // month-2 because JS months are 0-indexed and we want previous month
-      const toDate = new Date(year, month - 1, claimDay - 1); // month-1 = selected month (0-indexed), day = claimDay - 1
+      // Support period: day after previous claim day → current claim day
+      // e.g. claim day 13, Feb 2026: From = 2026-01-14, To = 2026-02-13
+      const fromDate = new Date(year, month - 2, claimDay + 1); // prev month, day after claim day
+      const toDate = new Date(year, month - 1, claimDay); // current month, claim day
 
       return {
         RegistrationNumber: (providerSettings?.ndisRegistrationNumber || "").replace(/\s/g, ""),
@@ -518,7 +523,7 @@ function ClaimsTab({ userId }: { userId: string }) {
         SupportsDeliveredFrom: toNdisDate(fromDate),
         SupportsDeliveredTo: toNdisDate(toDate),
         SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
-        ClaimReference: sanitizeClaimRef(`${claimDay}${String(month).padStart(2, "0")}${year}`),
+        ClaimReference: sanitizeClaimRef(`${claim.participant.firstName}_${todayDDMMYY}`),
         Quantity: "1",
         Hours: "",
         UnitPrice: claim.expectedAmount.toFixed(2),
@@ -541,7 +546,7 @@ function ClaimsTab({ userId }: { userId: string }) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${fileRef}.csv`;
+    a.download = `BLS_${todayDDMMYY}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 

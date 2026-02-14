@@ -9,7 +9,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { useOrganization } from "@/contexts/OrganizationContext";
+
 import { formatDate } from "@/utils/format";
 
 // ---------------------------------------------------------------------------
@@ -1337,42 +1337,13 @@ function PolicyDetailContent() {
 }
 
 // ---------------------------------------------------------------------------
-// BLS Gate - restrict to Better Living Solutions organisation only
-// ---------------------------------------------------------------------------
-
-function BlsGate({ children }: { children: React.ReactNode }) {
-  const { organization, isLoading } = useOrganization();
-  if (isLoading) return null;
-  if (organization?.slug !== "better-living-solutions") {
-    return (
-      <div className="min-h-screen bg-gray-900">
-        <Header currentPage="compliance" />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-24">
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Policy Details
-            </h1>
-            <p className="text-gray-400">
-              This feature is not available for your organisation.
-            </p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-  return <>{children}</>;
-}
-
-// ---------------------------------------------------------------------------
-// Page export with auth + BLS gate wrappers
+// Page export with auth wrapper
 // ---------------------------------------------------------------------------
 
 export default function PolicyDetailPage() {
   return (
     <RequireAuth>
-      <BlsGate>
-        <PolicyDetailContent />
-      </BlsGate>
+      <PolicyDetailContent />
     </RequireAuth>
   );
 }

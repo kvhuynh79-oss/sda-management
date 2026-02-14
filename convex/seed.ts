@@ -485,3 +485,165 @@ export const backfillAllTablesOrganizationId = mutation({
     };
   },
 });
+
+/**
+ * Seed all 40 AAH policies into the database.
+ * Creates policy records (metadata only - documents uploaded via UI).
+ *
+ * Usage: npx convex run seed:seedAahPolicies '{}'
+ * IDEMPOTENT: Skips if AAH already has policies.
+ */
+export const seedAahPolicies = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Find AAH organization by name or slug
+    const allOrgs = await ctx.db.query("organizations").collect();
+    const aahOrg = allOrgs.find((o) =>
+      o.name?.toLowerCase().includes("achieve") ||
+      o.slug?.toLowerCase().includes("aah") ||
+      o.slug?.toLowerCase().includes("achieve")
+    );
+
+    if (!aahOrg) {
+      throw new Error(
+        "AAH organization not found. Create it first with seedNewOrganization."
+      );
+    }
+
+    const organizationId = aahOrg._id;
+
+    // Check if AAH already has policies
+    const existing = await ctx.db
+      .query("policies")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    if (existing.length > 0) {
+      return {
+        success: true,
+        message: `AAH already has ${existing.length} policies. Skipping seed.`,
+        created: 0,
+      };
+    }
+
+    // Find an admin user for this org to use as createdBy
+    const orgUsers = await ctx.db
+      .query("users")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    const adminUser = orgUsers.find((u) => u.role === "admin") || orgUsers[0];
+    if (!adminUser) {
+      throw new Error("No users found for AAH organization. Create an admin user first.");
+    }
+
+    const now = Date.now();
+    const effectiveDate = "2026-02-14";
+
+    // All 40 AAH policies
+    const policies = [
+    // SDA Tenancy Management (14)
+    { title: "AAH-SDA-01 Glossary of Terms", description: "Standard glossary of SDA and NDIS terminology used across all Achieve Ability Housing policies and procedures.", category: "SDA Tenancy Management", fileName: "AAH-SDA-01_Glossary_of_Terms.docx" },
+    { title: "AAH-SDA-02 Introduction to AAH Tenant Services", description: "Overview of Achieve Ability Housing tenant and housing services, including SDA categories and support frameworks.", category: "SDA Tenancy Management", fileName: "AAH-SDA-02_Introduction_to_AAH_Tenant_Services.docx" },
+    { title: "AAH-SDA-03 Vacancy Management", description: "Procedures for managing SDA dwelling vacancies, waitlist management, and tenant matching.", category: "SDA Tenancy Management", fileName: "AAH-SDA-03_Vacancy_Management.docx" },
+    { title: "AAH-SDA-04 Rent", description: "Policy governing SDA rent calculations, Reasonable Rent Contribution (RRC), and payment procedures.", category: "SDA Tenancy Management", fileName: "AAH-SDA-04_Rent.docx" },
+    { title: "AAH-SDA-05 Appeals", description: "Formal appeals process for tenant decisions, including review timelines and escalation pathways.", category: "SDA Tenancy Management", fileName: "AAH-SDA-05_Appeals.docx" },
+    { title: "AAH-SDA-06 Rental Bonds", description: "Procedures for managing rental bonds in SDA properties, including collection, lodgement, and return.", category: "SDA Tenancy Management", fileName: "AAH-SDA-06_Rental_Bonds.docx" },
+    { title: "AAH-SDA-07 Establishing Tenancies", description: "Step-by-step process for establishing new SDA tenancies, from initial assessment to move-in.", category: "SDA Tenancy Management", fileName: "AAH-SDA-07_Establishing_Tenancies.docx" },
+    { title: "AAH-SDA-08 Visitors and Occupants", description: "Policy on visitors and additional occupants in SDA dwellings, including overnight stays and extended visits.", category: "SDA Tenancy Management", fileName: "AAH-SDA-08_Visitors_and_Occupants.docx" },
+    { title: "AAH-SDA-09 Deceased Tenant", description: "Sensitive procedures for managing tenancy when a tenant passes away, including family liaison and property handover.", category: "SDA Tenancy Management", fileName: "AAH-SDA-09_Deceased_Tenant.docx" },
+    { title: "AAH-SDA-10 Tenant Absences", description: "Policy for managing extended tenant absences from SDA dwellings, including notification requirements.", category: "SDA Tenancy Management", fileName: "AAH-SDA-10_Tenant_Absences.docx" },
+    { title: "AAH-SDA-11 Tenant Transfers", description: "Procedures for tenant transfers between SDA properties, including assessment criteria and transition planning.", category: "SDA Tenancy Management", fileName: "AAH-SDA-11_Tenant_Transfers.docx" },
+    { title: "AAH-SDA-12 Entry to Property", description: "Policy governing entry to SDA properties, including notice periods and emergency access protocols.", category: "SDA Tenancy Management", fileName: "AAH-SDA-12_Entry_to_Property.docx" },
+    { title: "AAH-SDA-13 Keys and Access", description: "Management of keys, access codes, and security systems for SDA dwellings.", category: "SDA Tenancy Management", fileName: "AAH-SDA-13_Keys_and_Access.docx" },
+    { title: "AAH-SDA-14 Debt Recovery", description: "Procedures for managing rent arrears and debt recovery in SDA tenancies, compliant with NSW tenancy law.", category: "SDA Tenancy Management", fileName: "AAH-SDA-14_Debt_Recovery.docx" },
+
+    // Tenant Rights & Engagement (5)
+    { title: "AAH-SDA-15 Complaints, Disputes and Nuisance", description: "Comprehensive complaints and disputes resolution procedures aligned with NDIS Practice Standards.", category: "Tenant Rights & Engagement", fileName: "AAH-SDA-15_Complaints_Disputes_Nuisance.docx" },
+    { title: "AAH-SDA-19 Tenancy Succession", description: "Policy for tenancy succession in SDA dwellings when a tenant can no longer maintain their tenancy.", category: "Tenant Rights & Engagement", fileName: "AAH-SDA-19_Tenancy_Succession.docx" },
+    { title: "AAH-SDA-24 Tenant Engagement", description: "Framework for meaningful tenant engagement, consultation, and participation in decision-making.", category: "Tenant Rights & Engagement", fileName: "AAH-SDA-24_Tenant_Engagement.docx" },
+    { title: "AAH-SDA-27 Tenant Rights and Responsibilities", description: "Statement of tenant rights and responsibilities in SDA dwellings under the Residential Tenancies Act.", category: "Tenant Rights & Engagement", fileName: "AAH-SDA-27_Tenant_Rights_and_Responsibilities.docx" },
+    { title: "AAH-SDA-28 Your Guide to SDA", description: "Accessible guide explaining Specialist Disability Accommodation to prospective and current tenants.", category: "Tenant Rights & Engagement", fileName: "AAH-SDA-28_Your_Guide_to_SDA.docx" },
+
+    // SDA Property Management (7)
+    { title: "AAH-SDA-16 Property Modifications", description: "Policy for managing property modifications in SDA dwellings, including approval processes and compliance.", category: "SDA Property Management", fileName: "AAH-SDA-16_Property_Modifications.docx" },
+    { title: "AAH-SDA-17 Repair Charges", description: "Framework for assessing and charging tenants for property damage beyond fair wear and tear.", category: "SDA Property Management", fileName: "AAH-SDA-17_Repair_Charges.docx" },
+    { title: "AAH-SDA-18 Water Charges", description: "Policy for water usage charges in SDA properties, including calculation methods and billing.", category: "SDA Property Management", fileName: "AAH-SDA-18_Water_Charges.docx" },
+    { title: "AAH-SDA-20 Outdoor Living Environments", description: "Standards for maintaining outdoor living areas in SDA properties, including gardens and communal spaces.", category: "SDA Property Management", fileName: "AAH-SDA-20_Outdoor_Living.docx" },
+    { title: "AAH-SDA-21 Dwelling Safety", description: "Safety standards and procedures for SDA dwellings, including fire safety and hazard management.", category: "SDA Property Management", fileName: "AAH-SDA-21_Dwelling_Safety.docx" },
+    { title: "AAH-SDA-22 Preventative Maintenance", description: "Scheduled maintenance program for SDA properties to ensure ongoing safety and quality.", category: "SDA Property Management", fileName: "AAH-SDA-22_Preventative_Maintenance.docx" },
+    { title: "AAH-SDA-23 Reactive Maintenance", description: "Procedures for responding to maintenance requests in SDA properties, including emergency repairs.", category: "SDA Property Management", fileName: "AAH-SDA-23_Reactive_Maintenance.docx" },
+
+    // SDA Operations (3)
+    { title: "AAH-SDA-25 Working with Providers", description: "Framework for collaboration between Achieve Ability Housing and SIL/support providers.", category: "SDA Operations", fileName: "AAH-SDA-25_Working_with_Providers.docx" },
+    { title: "AAH-SDA-26 Community Engagement", description: "Strategies for community engagement and social inclusion for SDA tenants.", category: "SDA Operations", fileName: "AAH-SDA-26_Community_Engagement.docx" },
+    { title: "AAH-SDA-30 Conflict of Interest", description: "Policy for identifying, declaring, and managing conflicts of interest in SDA operations.", category: "SDA Operations", fileName: "AAH-SDA-30_Conflict_of_Interest.docx" },
+
+    // NDIS Practice Standards (6)
+    { title: "AAH-NDIS-01 Privacy and Dignity", description: "Framework for protecting and upholding the privacy, confidentiality, and dignity of NDIS participants in SDA.", category: "NDIS Practice Standards", fileName: "AAH-NDIS-01_Privacy_and_Dignity.docx" },
+    { title: "AAH-NDIS-02 Freedom from Abuse and Neglect", description: "Policy ensuring all participants are free from abuse, neglect, violence, and exploitation.", category: "NDIS Practice Standards", fileName: "AAH-NDIS-02_Freedom_from_Abuse_and_Neglect.docx" },
+    { title: "AAH-NDIS-03 Independence and Informed Choice", description: "Supporting participant independence, informed choice, and decision-making in all aspects of SDA.", category: "NDIS Practice Standards", fileName: "AAH-NDIS-03_Independence_and_Informed_Choice.docx" },
+    { title: "AAH-NDIS-04 Individual Values and Beliefs", description: "Respecting and supporting individual values, beliefs, cultural identity, and personal preferences.", category: "NDIS Practice Standards", fileName: "AAH-NDIS-04_Individual_Values_and_Beliefs.docx" },
+    { title: "AAH-NDIS-05 VANE Policy", description: "Violence, Abuse, Neglect, and Exploitation prevention policy with mandatory reporting requirements.", category: "NDIS Practice Standards", fileName: "AAH-NDIS-05_VANE_Policy.docx" },
+    { title: "AAH-NDIS-06 Positive Behaviour Support", description: "Positive behaviour support framework aligned with NDIS Practice Standards and Quality Indicators.", category: "NDIS Practice Standards", fileName: "AAH-NDIS-06_Positive_Behaviour_Support.docx" },
+
+    // Agreements & Templates (2)
+    { title: "AAH-AGR-01 SDA Tenancy Agreement", description: "Standard tenancy agreement template for Specialist Disability Accommodation, compliant with the Residential Tenancies Act 2010 and NDIS requirements.", category: "Agreements & Templates", fileName: "AAH-AGR-01_SDA_Tenancy_Agreement.docx" },
+    { title: "AAH-AGR-02 SIL Provider Memorandum of Understanding", description: "Memorandum of Understanding template for formalising the relationship between AAH as SDA provider and Supported Independent Living (SIL) providers.", category: "Agreements & Templates", fileName: "AAH-AGR-02_SIL_Provider_MOU.docx" },
+
+    // Reference (3)
+    { title: "AAH-AGR-03 SDA Provider Responsibilities", description: "Reference document outlining the registered SDA provider responsibilities including property standards, tenant rights, NDIS compliance, and reporting obligations.", category: "Reference", fileName: "AAH-AGR-03_SDA_Provider_Responsibilities.docx" },
+    { title: "AAH-REF-01 Tenant Handbook", description: "Comprehensive tenant handbook covering all aspects of living in an Achieve Ability Housing SDA dwelling.", category: "Reference", fileName: "AAH-REF-01_Tenant_Handbook.docx" },
+    { title: "AAH Master Policy Manual Review Notes", description: "Internal review notes for the Achieve Ability Housing policy manual, tracking updates and revisions.", category: "Reference", fileName: "AAH_Master_Policy_Manual_Review_Notes.docx" },
+    ];
+
+    let created = 0;
+    for (const policy of policies) {
+      await ctx.db.insert("policies", {
+        organizationId,
+        title: policy.title,
+        description: policy.description,
+        category: policy.category,
+        documentFileName: policy.fileName,
+        version: "2.0",
+        effectiveDate,
+        status: "active" as const,
+        isActive: true,
+        createdBy: adminUser._id,
+        createdAt: now,
+        updatedAt: now,
+      });
+      created++;
+    }
+
+    console.log(`Created ${created} policies for AAH`);
+    return {
+      success: true,
+      message: `Created ${created} policies for AAH organization`,
+      created,
+      organizationId,
+    };
+  },
+});
+
+/**
+ * Attach a document file to an existing policy record.
+ * Used by the upload script after uploading .docx files to storage.
+ *
+ * Internal mutation - no auth check.
+ */
+export const attachDocumentToPolicy = internalMutation({
+  args: {
+    policyId: v.id("policies"),
+    documentStorageId: v.id("_storage"),
+    documentFileName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.policyId, {
+      documentStorageId: args.documentStorageId,
+      documentFileName: args.documentFileName,
+      updatedAt: Date.now(),
+    });
+    return { success: true };
+  },
+});

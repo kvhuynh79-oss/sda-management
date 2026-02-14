@@ -66,6 +66,13 @@ export const create = mutation({
       }),
     });
 
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "maintenance.created",
+      payload: { requestId, title: args.title, priority: args.priority },
+    });
+
     return requestId;
   },
 });
@@ -328,6 +335,13 @@ export const update = mutation({
       }
     }
 
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "maintenance.updated",
+      payload: { requestId: args.requestId },
+    });
+
     return { success: true };
   },
 });
@@ -371,6 +385,13 @@ export const completeRequest = mutation({
       warrantyPeriodMonths: args.warrantyPeriodMonths,
       warrantyExpiryDate,
       updatedAt: Date.now(),
+    });
+
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "maintenance.completed",
+      payload: { requestId: args.requestId },
     });
 
     return { success: true };

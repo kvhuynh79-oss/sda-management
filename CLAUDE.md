@@ -13,7 +13,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.4.0 (Participant Workflow + MTA Document)
+## Current Version: v2.5.0 (Post-Launch Features + Sentry + Google Calendar)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -40,7 +40,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 22. **Registration & Onboarding** - Self-service signup, pricing page, 4-step onboarding wizard
 23. **Participant Consent Workflow** - APP 3 compliant consent lifecycle (record, renew, withdraw), Easy Read PDF with illustrations, consent expiry alerts
 24. **Email Integration** - Postmark inbound webhook for email-to-communications, Outlook add-in manifest
-25. **Policies & Procedures** - Built-in compliance policy library with AI-generated summaries
+25. **Policies & Procedures** - Per-org compliance policy library with AI-generated summaries (BLS + AAH pre-loaded, other orgs upload their own)
 26. **Staff Files** - Employee records, NDIS screening compliance tracking
 27. **Emergency Plans** - EMP and BCP pages for business continuity
 28. **Audit Compliance Export** - 7-section NDIS audit pack PDF (certifications, incidents, complaints, plans, documents, audit integrity)
@@ -754,9 +754,57 @@ All 8 sprints of the SaaS transformation are complete.
   - Settings page: `/settings/integrations/calendar`
 - **Build**: 100 pages, 0 errors
 
+### AAH Policies + Multi-Org Policy Library (2026-02-14)
+- **BlsGate Removed**: Policies & Procedures feature now accessible to ALL organizations (was BLS-only)
+- **AAH Document Rebranding**: Python-docx find-and-replace pipeline rebrands BLS .docx files for any org
+  - `policies-review/org_config.py` - Organization details + replacement maps (BLS, AAH)
+  - `policies-review/generate_for_org.py` - CLI tool: `python generate_for_org.py AAH`
+  - Handles paragraphs, tables, headers, footers, nested tables, cross-run text splits
+  - Longest-first replacement ordering prevents partial matches
+- **AAH Policy Records**: 40 policies seeded via `convex/seed.ts:seedAahPolicies`
+  - Metadata: title, description, category, version, status, effectiveDate, reviewDueDate
+  - Documents: 40 .docx files uploaded to Convex storage via `upload_policies.mjs`
+  - Content: Full text extracted from .docx via `extract_docx_text.py` + `update_policy_content.mjs`
+  - AI Summaries: Claude API generated summary + 8 key points per policy via `generate_summaries.mjs`
+- **Multi-Org Design**: BLS + AAH get pre-loaded policies; other SaaS providers get empty section to upload their own
+- **Build**: 103 pages, 0 errors
+
+### Post-Launch Features + Config (2026-02-14)
+- **Sentry Error Tracking Configured**: DSN + auth token set in Vercel production env vars, redeployed
+- **Google Calendar OAuth Connected**: OAuth app at console.cloud.google.com, Calendar API enabled
+  - Env vars set in both Convex + Vercel: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
+  - Test user `kvhuynh79@gmail.com` added to OAuth consent screen
+  - Calendar syncing automatically every 15 minutes + manual "Sync Now" button
+- **Microsoft/Outlook Calendar OAuth**: Code ready, parked (MFA block on Azure portal for info@mmzbuildingsolutions.com.au)
+- **AI Document Analysis PDF Support**: Claude API now accepts PDF uploads via `anthropic-beta: pdfs-2024-09-25` header
+  - Modified: `convex/aiUtils.ts` (auto-detect PDF content, add beta header), `convex/aiDocumentAnalysis.ts` (removed PDF rejection), `convex/aiParsing.ts` (conditional beta header)
+- **Command Palette (Ctrl+K)**: 40+ commands with fuzzy search, recent pages, keyboard navigation
+  - `src/components/CommandPalette.tsx` - 9 actions + 31 pages across 8 categories
+  - Opens via Ctrl+K, `/` key, or Header search button
+  - Escape key fix: moved to global document listener for reliable closing
+- **Per-Org Data Export**: Admin-only full data export to JSON
+  - `convex/dataExport.ts` - parallel queries across 55+ tables, decrypts encrypted fields, strips secrets
+  - `src/app/settings/data-export/page.tsx` - export button, record counts, file size
+- **Outbound Webhooks**: Configurable per-org webhook system
+  - `convex/webhooks.ts` (680 lines) - CRUD, HMAC-SHA256 signing, 12 event types, 3 retries, auto-disable
+  - `src/app/settings/webhooks/page.tsx` (900 lines) - list, create, detail views with delivery history
+  - Schema: `webhooks` + `webhookDeliveries` tables with indexes
+  - Triggers wired into 6 backend files (10 events): participants, maintenanceRequests, incidents, payments, documents, inspections
+- **CI/CD Pipeline**: GitHub Actions + Playwright E2E test infrastructure
+  - `.github/workflows/ci.yml` - 4 jobs: typecheck, build (gate), lint, optional E2E
+  - `playwright.config.ts` - Chromium-only, auth setup with session reuse
+  - `tests/smoke.spec.ts` - login page, dashboard, 8 key pages, 4 public pages
+  - `tests/navigation.spec.ts` - 17 routes verified, header presence, page navigation
+  - `tests/auth.setup.ts` - real login or mock auth
+- **Easy Read PDF Template System**: Upload custom PDF templates for consent forms
+  - `src/utils/templatePdfOverlay.ts` (281 lines) - pdf-lib overlay engine with alignment, bold, wrap, color
+  - `src/app/settings/templates/page.tsx` (631 lines) - upload, field position editor, JSON export/import
+  - `convex/providerSettings.ts` - template upload/save/remove mutations
+  - `src/utils/easyReadConsentPdf.ts` - 3-tier fallback: custom template → local template → jsPDF illustrations
+- **Build**: 103 pages, 0 errors
+
 ### Remaining Launch Tasks
 - **Stripe Configuration**: Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs in Convex + Vercel env
-- **Sentry Configuration**: Set NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN in Vercel env
 - **Business Registration**: Register Pty Ltd with ASIC, apply for ABN, apply for Director ID
 - **Stripe Business Account**: Create account, configure 10% GST, link to Xero
 - **Trademark**: File with IP Australia for "MySDAManager" (Class 9 + 42)
@@ -829,16 +877,29 @@ All 8 sprints of the SaaS transformation are complete.
 42. Calendar Integration - ✅ (internal calendar, Google Calendar sync, Outlook Calendar sync, 4 views)
 43. Optional dwellingId - ✅ (schema + null guards across claims, expectedPayments, reports, silProviderPortal)
 
+### Completed (v2.4.1 - AAH Policies + Multi-Org Policy Library)
+44. Open Policies to All Orgs - ✅ (removed BlsGate from both policy pages, all orgs can access Policies & Procedures)
+45. AAH Policy Document Generation - ✅ (python-docx find-and-replace rebranding of 40 BLS .docx files to AAH branding)
+46. AAH Policy Seeding - ✅ (40 policy records created in Convex DB with metadata, .docx files uploaded to storage)
+47. AAH Policy Content Extraction - ✅ (full text extracted from 40 .docx files, populated `content` field for AI features)
+48. AAH AI Summaries - ✅ (Claude API generated summaries + 8 key points for all 40 AAH policies)
+49. Policy Tooling - ✅ (reusable scripts: `org_config.py`, `generate_for_org.py`, `extract_docx_text.py`, `upload_policies.mjs`, `update_policy_content.mjs`, `generate_summaries.mjs`)
+
+### Completed (v2.5.0 - Post-Launch Features + Sentry + Google Calendar)
+50. AI Document Analysis PDF Support - ✅ (Claude API `pdfs-2024-09-25` beta header, accepts PDF + image uploads)
+51. Command Palette (Ctrl+K) - ✅ (40+ commands, fuzzy search, recent pages, keyboard nav, grouped categories, Escape fix)
+52. Per-Org Data Export - ✅ (`convex/dataExport.ts`, admin-only, decrypts encrypted fields, strips secrets, JSON download)
+53. Outbound Webhooks - ✅ (`convex/webhooks.ts`, HMAC-SHA256 signing, 12 event types, 3 retries, auto-disable after 10 failures)
+54. CI/CD Pipeline - ✅ (GitHub Actions: typecheck, build, lint, optional Playwright E2E. `playwright.config.ts` + `tests/`)
+55. Easy Read PDF Template System - ✅ (`src/utils/templatePdfOverlay.ts`, pdf-lib overlay, field position editor at `/settings/templates`)
+56. Sentry Error Tracking Configured - ✅ (DSN + auth token set in Vercel env vars, redeployed)
+57. Google Calendar OAuth Connected - ✅ (OAuth app created, env vars set in Convex + Vercel, calendar syncing via 15-min cron)
+
 ### Future Enhancements (Post-Launch)
-44. **AI Document Analysis - PDF Support** - Currently only supports images (JPG, PNG, GIF, WEBP)
-   - **Workaround**: Users can take screenshots of PDFs and upload as images
-   - **Priority**: Medium
-45. **Automated CI/CD Testing** - Playwright E2E tests in CI pipeline
-46. **Data Export** - Per-org data export for compliance/migration
-47. **Webhook Outbound** - Configurable webhooks per org for integrations
-48. **Command Palette** - Cmd+K power user navigation
-49. **Easy Read Canva Template** - Replace jsPDF illustrations with stock photo template via pdf-lib overlay
-50. **App Store Submission** - Submit Capacitor app to App Store + Play Store
+58. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+59. **Wire Webhook Triggers** - `triggerWebhook` built but not yet called from mutation handlers (participants.ts, maintenance.ts, etc.)
+60. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+61. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -884,7 +945,7 @@ See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.
 6. Register Pty Ltd with ASIC + apply for ABN + Director ID
 7. Create Stripe business account + configure GST + link Xero
 8. Set Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, price IDs)
-9. Set Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)
+9. ~~Set Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)~~ DONE (2026-02-14)
 10. File trademark with IP Australia (Class 9 + 42)
 11. Secure .com.au domain under new ABN
 12. Load test with 10+ simultaneous organizations
@@ -904,4 +965,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-13 (v2.4.0 - Save Incomplete Participant, Archive Participant, MTA Schedule of Supports landscape PDF, Calendar Integration (Google + Outlook sync), optional dwellingId with null guards. 100 pages, 0 errors.)
+**Last Updated**: 2026-02-14 (v2.5.0 - Sentry configured, Google Calendar OAuth connected, 6 post-launch features: AI PDF support, Command Palette, Data Export, Webhooks, CI/CD, PDF Templates. 103 pages, 0 errors.)

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAuth, requireTenant } from "./authHelpers";
 
 // ============================================
@@ -425,6 +426,14 @@ export const completeInspection = mutation({
     }
 
     const today = new Date().toISOString().split("T")[0];
+
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "inspection.completed",
+      payload: { inspectionId: args.inspectionId },
+    });
+
     return await ctx.db.patch(args.inspectionId, {
       status: "completed",
       completedDate: today,

@@ -144,6 +144,13 @@ export const create = mutation({
       metadata: JSON.stringify({ ndisNumberIndex: ndisBlindIndex, status }),
     });
 
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "participant.created",
+      payload: { participantId, firstName: args.firstName, lastName: args.lastName },
+    });
+
     return participantId;
   },
 });
@@ -554,6 +561,13 @@ export const update = mutation({
       entityId: participantId,
       entityName: `${participant.firstName} ${participant.lastName}`,
       changes: JSON.stringify(filteredUpdates),
+    });
+
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "participant.updated",
+      payload: { participantId: args.participantId },
     });
 
     return { success: true };

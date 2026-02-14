@@ -69,6 +69,13 @@ export const create = mutation({
       });
     }
 
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "document.uploaded",
+      payload: { documentId, fileName: args.fileName, documentType: args.documentType },
+    });
+
     return documentId;
   },
 });

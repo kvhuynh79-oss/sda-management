@@ -189,6 +189,13 @@ export const create = mutation({
         createdBy: args.reportedBy,
       });
 
+      // Trigger webhook
+      await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+        organizationId,
+        event: "incident.created",
+        payload: { incidentId, title: args.title, incidentType: args.incidentType, severity: args.severity },
+      });
+
       return incidentId;
     } catch (error) {
       // Log the error
@@ -731,6 +738,13 @@ export const resolve = mutation({
         isNdisReportable: incident.isNdisReportable,
         ndisCommissionNotified: incident.ndisCommissionNotified,
       }),
+    });
+
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "incident.resolved",
+      payload: { incidentId: args.incidentId },
     });
 
     return { success: true };

@@ -141,6 +141,13 @@ export const create = mutation({
       });
     }
 
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId,
+      event: "payment.created",
+      payload: { paymentId, participantId: args.participantId, amount: args.actualAmount, paymentDate: args.paymentDate },
+    });
+
     return paymentId;
   },
 });

@@ -310,15 +310,15 @@ export default function NewDocumentPage() {
             </li>
             <li className="text-gray-400">/</li>
             <li>
-              <span className="text-gray-400">Documents</span>
+              <span className="text-gray-400">Evidence Vault</span>
             </li>
             <li className="text-gray-400">/</li>
-            <li className="text-white">Upload Document</li>
+            <li className="text-white">Add to Evidence Vault</li>
           </ol>
         </nav>
 
         <div className="bg-gray-800 rounded-lg p-6">
-          <h1 className="text-2xl font-bold text-white mb-6">Upload Document</h1>
+          <h1 className="text-2xl font-bold text-white mb-6">Add to Evidence Vault</h1>
 
           {error && (
             <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg text-red-200">

@@ -613,7 +613,7 @@ export const HELP_GUIDES: Record<string, HelpGuide> = {
   // ---------------------------------------------------------------------------
   documents: {
     id: "documents",
-    title: "Document Management Guide",
+    title: "Evidence Vault Guide",
     subtitle: "Upload, track, and manage compliance documents",
     overview:
       "Centralised document storage with expiry tracking, auto-certification linking, and AI-powered analysis. Every compliance-critical document is monitored for expiry, and the system generates alerts well before deadlines are missed.",
@@ -1647,7 +1647,7 @@ export const HELP_GUIDES: Record<string, HelpGuide> = {
     relatedLinks: [
       { label: "New Certification", href: "/compliance/certifications/new" },
       { label: "Compliance Dashboard", href: "/compliance" },
-      { label: "Documents", href: "/documents" },
+      { label: "Evidence Vault", href: "/documents" },
     ],
   },
 

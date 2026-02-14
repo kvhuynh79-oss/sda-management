@@ -2314,6 +2314,21 @@ export default defineSchema({
     .index("by_referrerType", ["referrerType"])
     .index("by_createdAt", ["createdAt"]),
 
+  // Marketing Leads - captured from landing page lead magnets (no auth required)
+  marketingLeads: defineTable({
+    name: v.string(),
+    email: v.string(),
+    organization: v.optional(v.string()),
+    role: v.optional(v.string()),
+    numberOfProperties: v.optional(v.number()),
+    source: v.string(), // "audit_checklist", "landing_page", etc.
+    downloadedAt: v.number(),
+    convertedToTrial: v.optional(v.boolean()),
+  })
+    .index("by_email", ["email"])
+    .index("by_source", ["source"])
+    .index("by_downloadedAt", ["downloadedAt"]),
+
   // API Keys table - REST API keys for external integrations (Sprint 7)
   apiKeys: defineTable({
     organizationId: v.id("organizations"),

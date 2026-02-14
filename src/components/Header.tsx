@@ -157,7 +157,7 @@ const NAV_CLUSTERS: NavCluster[] = [
       },
       {
         href: "/calendar",
-        label: "Calendar",
+        label: "Compliance Watchdog",
         description: "Unified scheduling and calendar view",
         icon: <CalendarDays className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["calendar"],
@@ -202,7 +202,7 @@ const NAV_CLUSTERS: NavCluster[] = [
       },
       {
         href: "/documents",
-        label: "Documents",
+        label: "Evidence Vault",
         description: "Document storage and expiry tracking",
         icon: <FileText className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["documents"],

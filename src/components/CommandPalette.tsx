@@ -190,12 +190,12 @@ const PAGE_COMMANDS: CommandItem[] = [
   },
   {
     id: "calendar",
-    label: "Calendar",
+    label: "Compliance Watchdog",
     href: "/calendar",
     group: "Pages",
     category: "Operations",
     icon: <CalendarDays className="w-4 h-4" aria-hidden="true" />,
-    keywords: ["schedule", "events", "month", "week", "day", "agenda"],
+    keywords: ["watchdog", "compliance", "alerts", "deadlines", "schedule", "events", "month", "week", "day", "agenda", "calendar"],
   },
 
   // Finance
@@ -230,12 +230,12 @@ const PAGE_COMMANDS: CommandItem[] = [
   },
   {
     id: "documents",
-    label: "Documents",
+    label: "Evidence Vault",
     href: "/documents",
     group: "Pages",
     category: "Compliance",
     icon: <FileText className="w-4 h-4" aria-hidden="true" />,
-    keywords: ["upload", "file", "pdf", "expiry", "certificate"],
+    keywords: ["evidence", "vault", "upload", "file", "pdf", "expiry", "certificate", "documents"],
   },
   {
     id: "certifications",

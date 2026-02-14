@@ -94,7 +94,7 @@ const MORE_SHEET_GROUPS: MoreSheetGroup[] = [
       },
       {
         href: "/calendar",
-        label: "Calendar",
+        label: "Compliance Watchdog",
         icon: <CalendarDays className="w-5 h-5" aria-hidden="true" />,
       },
     ],
@@ -119,7 +119,7 @@ const MORE_SHEET_GROUPS: MoreSheetGroup[] = [
     items: [
       {
         href: "/documents",
-        label: "Documents",
+        label: "Evidence Vault",
         icon: <FileText className="w-5 h-5" aria-hidden="true" />,
       },
       {

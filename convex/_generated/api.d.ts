@@ -53,6 +53,7 @@ import type * as lib_threadingEngine from "../lib/threadingEngine.js";
 import type * as maintenancePhotos from "../maintenancePhotos.js";
 import type * as maintenanceQuotes from "../maintenanceQuotes.js";
 import type * as maintenanceRequests from "../maintenanceRequests.js";
+import type * as marketingLeads from "../marketingLeads.js";
 import type * as mfa from "../mfa.js";
 import type * as migrations_encryptExistingData from "../migrations/encryptExistingData.js";
 import type * as ndisClaimExport from "../ndisClaimExport.js";
@@ -151,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   maintenancePhotos: typeof maintenancePhotos;
   maintenanceQuotes: typeof maintenanceQuotes;
   maintenanceRequests: typeof maintenanceRequests;
+  marketingLeads: typeof marketingLeads;
   mfa: typeof mfa;
   "migrations/encryptExistingData": typeof migrations_encryptExistingData;
   ndisClaimExport: typeof ndisClaimExport;

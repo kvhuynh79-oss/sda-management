@@ -35,9 +35,17 @@ export const getByPeriod = query({
           }
         }
 
+        // Decrypt NDIS number for display and CSV export
+        const decryptedParticipant = participant
+          ? {
+              ...participant,
+              ndisNumber: (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber,
+            }
+          : participant;
+
         return {
           ...claim,
-          participant,
+          participant: decryptedParticipant,
           plan,
           dwelling,
           property,
@@ -99,8 +107,14 @@ export const getDashboard = query({
         const isDueToday = !existingClaim && currentDay === claimDay;
         const isUpcoming = !existingClaim && currentDay < claimDay;
 
+        // Decrypt NDIS number for display and CSV export
+        const decryptedParticipant = {
+          ...participant,
+          ndisNumber: (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber,
+        };
+
         return {
-          participant,
+          participant: decryptedParticipant,
           plan: currentPlan,
           dwelling,
           property,
@@ -528,7 +542,7 @@ export const getPaceExport = query({
         const plan = await ctx.db.get(claim.planId);
 
         return {
-          ndisNumber: (participant ? (await decryptField(participant.ndisNumber)) || participant.ndisNumber : ""),
+          ndisNumber: (participant ? (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber : ""),
           firstName: participant?.firstName || "",
           lastName: participant?.lastName || "",
           supportItemNumber: plan?.supportItemNumber || "01_021_0115_1_1",
@@ -617,5 +631,24 @@ export const remove = mutation({
     }
     await ctx.db.delete(args.claimId);
     return { success: true };
+  },
+});
+
+// Get decrypted NDIS number for a participant (used by CSV export)
+export const getDecryptedNdisNumber = query({
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const participant = await ctx.db.get(args.participantId);
+    if (!participant || participant.organizationId !== organizationId) {
+      return { ndisNumber: "" };
+    }
+
+    const decrypted = await decryptField(participant.ndisNumber);
+    return { ndisNumber: decrypted ?? "" };
   },
 });

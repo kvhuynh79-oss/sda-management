@@ -124,7 +124,7 @@ export const generateClaimData = query({
 
       claims.push({
         RegistrationNumber: providerSettings.ndisRegistrationNumber,
-        NDISNumber: (await decryptField(participant.ndisNumber)) || participant.ndisNumber,
+        NDISNumber: (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber,
         SupportsDeliveredFrom: args.periodStart,
         SupportsDeliveredTo: args.periodEnd,
         SupportNumber: plan.supportItemNumber || providerSettings.defaultSupportItemNumber,

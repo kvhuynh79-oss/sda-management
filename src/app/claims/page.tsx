@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -39,6 +39,7 @@ export default function ClaimsPage() {
     notes: "",
   });
 
+  const convex = useConvex();
   const userId = user ? (user.id as Id<"users">) : undefined;
   const dashboard = useQuery(api.claims.getDashboard, userId ? { userId } : "skip");
   const summary = useQuery(api.claims.getMonthlySummary, userId ? { userId, claimPeriod: selectedPeriod } : "skip");
@@ -158,6 +159,22 @@ export default function ClaimsPage() {
       await alertDialog("Please configure provider settings first (go to Payments > NDIS Export > Provider Settings)");
       return;
     }
+    if (!userId) return;
+
+    // Fetch decrypted NDIS number directly from the server
+    // This ensures we always get the decrypted value regardless of
+    // whether the dashboard query returned encrypted or decrypted data
+    let ndisNumber = "";
+    try {
+      const result = await convex.query(api.claims.getDecryptedNdisNumber, {
+        userId,
+        participantId: claim.participant._id,
+      });
+      ndisNumber = result.ndisNumber;
+    } catch (err) {
+      console.error("Failed to decrypt NDIS number:", err);
+      ndisNumber = claim.participant.ndisNumber || "";
+    }
 
     // Get the first and last day of the selected period
     const [year, month] = selectedPeriod.split("-");
@@ -191,7 +208,7 @@ export default function ClaimsPage() {
     // Build the row data
     const row = {
       RegistrationNumber: providerSettings.ndisRegistrationNumber || "",
-      NDISNumber: claim.participant.ndisNumber || "",
+      NDISNumber: ndisNumber,
       SupportsDeliveredFrom: periodStart,
       SupportsDeliveredTo: periodEnd,
       SupportNumber: claim.plan.supportItemNumber || providerSettings.defaultSupportItemNumber || "",

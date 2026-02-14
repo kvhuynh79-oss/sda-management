@@ -13,7 +13,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.5.0 (Post-Launch Features + Sentry + Google Calendar)
+## Current Version: v2.6.0 (Marketing Sprint + SEO + Blog)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -48,10 +48,22 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 30. **Save Incomplete Participant** - Create profiles with just first/last name before full NDIS data available
 31. **MTA Schedule of Supports** - Landscape PDF matching BLS template with org-specific branding
 32. **Archive Participant** - Soft archive with confirmation, filtered from active lists
+33. **Marketing Website** - 9 marketing pages (Features, Security, About, Contact, FAQ, Compare, Blog) with shared layout
+34. **SEO Infrastructure** - robots.txt, sitemap.xml, OG/Twitter images, structured data (JSON-LD)
+35. **Blog System** - 6 articles with categories, search, share buttons, individual post pages
+36. **Lead Capture** - Audit checklist PDF download with email capture via marketingLeads table
 
 ## Project Structure
 ```
-src/app/                    # Next.js pages (93+ routes)
+src/app/                    # Next.js pages (116+ routes)
+├── (marketing)/            # Marketing pages (shared MarketingHeader/Footer layout)
+│   ├── features/           # Feature showcase
+│   ├── security/           # Security & compliance details
+│   ├── about/              # About page
+│   ├── contact/            # Contact form with lead capture
+│   ├── faq/                # FAQ accordion
+│   ├── compare/            # MySDAManager vs competitors
+│   └── blog/               # Blog with 6 articles
 ├── dashboard/              # Main dashboard
 ├── properties/             # Property CRUD + detail pages
 ├── participants/           # Participant management
@@ -99,12 +111,21 @@ convex/                     # Backend functions
 └── ...
 
 src/components/
-├── Header.tsx              # Main navigation header
+├── Header.tsx              # Main navigation header (app)
 ├── BottomNav.tsx           # Mobile bottom navigation bar
 ├── LockScreen.tsx          # Inactivity PIN lock overlay
 ├── RequireAuth.tsx         # Auth wrapper with lock screen
 ├── PushNotificationPrompt.tsx # Push notification settings UI
 ├── ui/ConfirmDialog.tsx    # Styled alert/confirm replacement
+├── marketing/
+│   ├── MarketingHeader.tsx # Sticky header with full nav + mobile hamburger
+│   ├── MarketingFooter.tsx # Trust badges, footer columns, legal links
+│   ├── LandingPage.tsx     # Homepage with workaround messaging + lead capture
+│   ├── ContactForm.tsx     # Contact form component
+│   ├── FaqAccordion.tsx    # Expandable FAQ sections
+│   ├── BlogPostGrid.tsx    # Blog post card grid
+│   ├── BlogCategoryFilter.tsx # Blog category filter tabs
+│   └── ShareButton.tsx     # Social share dropdown
 └── ...
 
 worker/
@@ -803,6 +824,41 @@ All 8 sprints of the SaaS transformation are complete.
   - `src/utils/easyReadConsentPdf.ts` - 3-tier fallback: custom template → local template → jsPDF illustrations
 - **Build**: 103 pages, 0 errors
 
+### Marketing Sprint (2026-02-14)
+- **Marketing Website**: 9 pages under `(marketing)` route group with shared layout
+  - `MarketingHeader` (7 nav links + mobile hamburger) + `MarketingFooter` (trust badges, columns)
+  - Features (27KB comprehensive), Security, About, Contact (with lead capture), FAQ, Compare, Blog
+  - Landing page rewritten with "workaround replacement" positioning
+  - Pricing page upgraded with shared MarketingHeader/Footer
+- **SEO Infrastructure**: `robots.txt`, `sitemap.xml`, OG/Twitter image generation (`opengraph-image.tsx`, `twitter-image.tsx`)
+  - `src/lib/seo.ts` - JSON-LD structured data generators (Organization, FAQ, Breadcrumb, BlogPosting)
+  - Metadata on all pages with keywords, canonical URLs, Open Graph
+- **Blog System**: `src/lib/blog.ts` with 6 articles across 4 categories
+  - Categories: Compliance, Product Updates, Industry News, Best Practices
+  - Components: `BlogPostGrid`, `BlogCategoryFilter`, `ShareButton`
+  - Individual post pages at `/blog/[slug]` with related posts
+- **Lead Capture**: `convex/marketingLeads.ts` - audit checklist PDF download captures email
+  - `marketingLeads` table in schema with `by_organizationId` index
+- **Marketing Content** (in `marketing/` dir):
+  - `brand-guidelines.md` - Comprehensive brand identity document
+  - `linkedin-campaign-calendar.md` - 12-week LinkedIn content calendar
+  - `email-sequences.md` - Nurture + onboarding email sequences
+  - `outbound-playbook.md` - Outbound sales strategy
+  - `social-media-kit.md` - Multi-platform social media content
+  - `linkedin-authority-posts.md`, `linkedin-posts-audit-fear.md` - Ready-to-post LinkedIn content
+- **Strategy Docs**: `COMPETITOR_ANALYSIS.md`, `SOCIAL_MEDIA_MARKETING.md`
+- **Marketing Feature List**: `marketing/feature-list.md` - 12-category comprehensive feature document for website/pitch decks
+- **Demo Org Seed**: `seedDemoOrg` internalMutation in `convex/seed.ts` - fictional "Horizon SDA Group" with 93 records (5 properties, 8 participants, 10 maintenance, 5 incidents, etc.)
+  - Login: `demo@horizonsda.com.au` / `Demo2026!` (idempotent, checks slug before creating)
+- **App Screenshots**: 26 desktop (1920x1080) + 78 social crops (LinkedIn/Twitter/Instagram) via Playwright
+  - Script: `test_marketing_screenshots.py` | Output: `marketing/screenshots/` + `marketing/screenshots/social/`
+  - 5 key screenshots served from `public/marketing/` for landing page
+- **Landing Page Screenshot Sections**:
+  - Hero dashboard screenshot below hero text with gradient fade
+  - Sliding carousel gallery (5 screenshots: Dashboard, Properties, Participants, Incidents, Compliance)
+  - CSS translateX transitions, left/right arrows on hover, dot indicators
+- **Build**: 116 pages, 0 errors
+
 ### Remaining Launch Tasks
 - **Stripe Configuration**: Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs in Convex + Vercel env
 - **Business Registration**: Register Pty Ltd with ASIC, apply for ABN, apply for Director ID
@@ -895,11 +951,25 @@ All 8 sprints of the SaaS transformation are complete.
 56. Sentry Error Tracking Configured - ✅ (DSN + auth token set in Vercel env vars, redeployed)
 57. Google Calendar OAuth Connected - ✅ (OAuth app created, env vars set in Convex + Vercel, calendar syncing via 15-min cron)
 
-### Future Enhancements (Post-Launch)
-58. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-59. **Wire Webhook Triggers** - `triggerWebhook` built but not yet called from mutation handlers (participants.ts, maintenance.ts, etc.)
-60. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-61. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+### Completed (v2.6.0 - Marketing Sprint + SEO + Blog)
+58. Marketing Website - ✅ (9 pages: Features, Security, About, Contact, FAQ, Compare, Blog under `(marketing)` route group)
+59. SEO Infrastructure - ✅ (robots.txt, sitemap.xml, OG/Twitter images, JSON-LD structured data, `src/lib/seo.ts`)
+60. Blog System - ✅ (`src/lib/blog.ts`, 6 articles, 4 categories, search, share, individual post pages)
+61. Lead Capture - ✅ (`convex/marketingLeads.ts`, audit checklist PDF download with email capture)
+62. Landing Page Rewrite - ✅ (workaround-replacement messaging, consistent nav with all marketing pages)
+63. Pricing Page Upgrade - ✅ (shared MarketingHeader/Footer, mobile hamburger menu)
+64. Marketing Content - ✅ (brand guidelines, LinkedIn campaigns, email sequences, outbound playbook, social media kit)
+65. Competitor Analysis - ✅ (`COMPETITOR_ANALYSIS.md`, `SOCIAL_MEDIA_MARKETING.md` strategy docs)
+66. Marketing Feature List - ✅ (`marketing/feature-list.md`, 12-category benefit-focused feature document)
+67. Demo Org Seed Data - ✅ (`seedDemoOrg` in `convex/seed.ts`, 93 records for fictional "Horizon SDA Group")
+68. App Screenshots - ✅ (26 desktop + 78 social crops via Playwright, `marketing/screenshots/`)
+69. Landing Page Screenshots - ✅ (hero dashboard image + sliding 5-screenshot carousel with arrows and dot nav)
+
+### Post-Launch Tasks
+70. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+71. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+72. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+73. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -965,4 +1035,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-14 (v2.5.0 - Sentry configured, Google Calendar OAuth connected, 6 post-launch features: AI PDF support, Command Palette, Data Export, Webhooks, CI/CD, PDF Templates. 103 pages, 0 errors.)
+**Last Updated**: 2026-02-14 (v2.6.0 - Marketing sprint complete. 9 marketing pages, blog, SEO, lead capture. Feature list, demo org seed, 26 screenshots + 78 social crops. Landing page hero image + sliding carousel. 116 pages, 0 errors.)

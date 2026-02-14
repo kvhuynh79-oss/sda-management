@@ -161,29 +161,61 @@ export default function ClaimsPage() {
     }
     if (!userId) return;
 
-    // Fetch decrypted NDIS number directly from the server
-    // This ensures we always get the decrypted value regardless of
-    // whether the dashboard query returned encrypted or decrypted data
+    // Fetch decrypted NDIS number from the server
     let ndisNumber = "";
+    let decryptionError: string | null = null;
+
     try {
       const result = await convex.query(api.claims.getDecryptedNdisNumber, {
         userId,
         participantId: claim.participant._id,
       });
       ndisNumber = result.ndisNumber;
+      decryptionError = result.error ?? null;
     } catch (err) {
-      console.error("Failed to decrypt NDIS number:", err);
-      ndisNumber = claim.participant.ndisNumber || "";
+      console.error("Failed to call getDecryptedNdisNumber:", err);
+      decryptionError = `Server query failed: ${err instanceof Error ? err.message : String(err)}`;
     }
 
-    // Get the first and last day of the selected period
-    const [year, month] = selectedPeriod.split("-");
-    const periodStart = `${year}-${month}-01`;
-    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-    const periodEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
+    // Safety check: NEVER put encrypted values into CSV
+    // Check all possible failure states
+    if (ndisNumber.startsWith("enc:") || ndisNumber === "[encrypted]") {
+      ndisNumber = "";
+      decryptionError = decryptionError || "NDIS number is still encrypted after decryption attempt";
+    }
 
-    // Generate claim reference (short format: MMYYYY-NN)
-    const claimRef = `${month}${year}-01`;
+    if (!ndisNumber || decryptionError) {
+      console.error(
+        `[NDIS Export] Cannot export for ${claim.participant.firstName} ${claim.participant.lastName}:`,
+        decryptionError || "Empty NDIS number",
+        `Dashboard ndisNumber value: ${claim.participant.ndisNumber?.substring(0, 15)}...`
+      );
+      await alertDialog(
+        `Cannot export: NDIS number for ${claim.participant.firstName} ${claim.participant.lastName} could not be decrypted.\n\n` +
+        `Error: ${decryptionError || "NDIS number is empty"}\n\n` +
+        `Please check that the ENCRYPTION_KEY environment variable is correctly set in your Convex dashboard (Settings > Environment Variables).`
+      );
+      return;
+    }
+
+    // Calculate support period based on participant's claim day
+    // e.g. claim day 13: From = 12th of selected month, To = 13th of next month
+    const [yearStr, monthStr] = selectedPeriod.split("-");
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr);
+    const claimDay = claim.claimDay || 1;
+    const fromDate = new Date(year, month - 1, claimDay - 1);
+    const toDate = new Date(year, month, claimDay);
+    const formatNdisDate = (d: Date) => {
+      const dd = d.getDate();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      return `${dd}/${mm}/${d.getFullYear()}`;
+    };
+    const periodStart = formatNdisDate(fromDate);
+    const periodEnd = formatNdisDate(toDate);
+
+    // Generate claim reference: claimDay + MM + YYYY
+    const claimRef = `${claimDay}${String(month).padStart(2, "0")}${year}`;
 
     // CSV headers (exact NDIS format)
     const headers = [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
@@ -208,6 +208,7 @@ function ClaimsTab({ userId }: { userId: string }) {
   // Bulk selection state
   const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
 
+  const convex = useConvex();
   const dashboard = useQuery(api.claims.getDashboard, { userId: userId as Id<"users"> });
   const providerSettings = useQuery(api.providerSettings.get, { userId: userId as Id<"users"> });
   const createClaim = useMutation(api.claims.create);
@@ -281,32 +282,68 @@ function ClaimsTab({ userId }: { userId: string }) {
       await alertDialog("No PACE claims pending for export");
       return;
     }
-    const [year, month] = selectedPeriod.split("-");
-    const periodStart = `${year}-${month}-01`;
-    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-    const periodEnd = `${year}-${month}-${String(lastDay).padStart(2, "0")}`;
-    const claimRef = `${month}${year}-01`;
+    if (!userId) return;
+
+    const [year, month] = selectedPeriod.split("-").map(Number);
+
+    // Decrypt NDIS numbers
+    const ndisMap = new Map<string, string>();
+    const decryptionErrors: string[] = [];
+
+    await Promise.all(
+      paceClaims.map(async (claim) => {
+        const pid = claim.participant._id as Id<"participants">;
+        if (ndisMap.has(pid)) return;
+        try {
+          const result = await convex.query(api.claims.getDecryptedNdisNumber, {
+            userId: userId as Id<"users">,
+            participantId: pid,
+          });
+          if (!result.ndisNumber || result.error || result.ndisNumber.startsWith("enc:")) {
+            decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
+          } else {
+            ndisMap.set(pid, result.ndisNumber);
+          }
+        } catch {
+          decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
+        }
+      })
+    );
+
+    if (decryptionErrors.length > 0) {
+      await alertDialog(
+        `Cannot export: NDIS numbers could not be decrypted for: ${decryptionErrors.join(", ")}.\n\n` +
+        `Please check that ENCRYPTION_KEY is correctly set in your Convex dashboard.`
+      );
+      return;
+    }
 
     const headers = ["RegistrationNumber", "NDISNumber", "SupportsDeliveredFrom", "SupportsDeliveredTo", "SupportNumber", "ClaimReference", "Quantity", "Hours", "UnitPrice", "GSTCode", "AuthorisedBy", "ParticipantApproved", "InKindFundingProgram", "ClaimType", "CancellationReason", "ABN of Support Provider"];
 
-    const rows = paceClaims.map((claim) => ({
-      RegistrationNumber: providerSettings?.ndisRegistrationNumber || "",
-      NDISNumber: claim.participant.ndisNumber,
-      SupportsDeliveredFrom: periodStart,
-      SupportsDeliveredTo: periodEnd,
-      SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
-      ClaimReference: claimRef,
-      Quantity: "1",
-      Hours: "",
-      UnitPrice: claim.expectedAmount.toFixed(2),
-      GSTCode: providerSettings?.defaultGstCode || "P2",
-      AuthorisedBy: "",
-      ParticipantApproved: "",
-      InKindFundingProgram: "",
-      ClaimType: "",
-      CancellationReason: "",
-      "ABN of Support Provider": providerSettings?.abn || "",
-    }));
+    const rows = paceClaims.map((claim) => {
+      const claimDay = claim.claimDay || 1;
+      const fromDate = new Date(year, month - 1, claimDay - 1);
+      const toDate = new Date(year, month, claimDay);
+
+      return {
+        RegistrationNumber: providerSettings?.ndisRegistrationNumber || "",
+        NDISNumber: ndisMap.get(claim.participant._id as string) || "",
+        SupportsDeliveredFrom: toNdisDate(fromDate),
+        SupportsDeliveredTo: toNdisDate(toDate),
+        SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
+        ClaimReference: `${claimDay}${String(month).padStart(2, "0")}${year}`,
+        Quantity: "1",
+        Hours: "",
+        UnitPrice: claim.expectedAmount.toFixed(2),
+        GSTCode: providerSettings?.defaultGstCode || "P2",
+        AuthorisedBy: "",
+        ParticipantApproved: "",
+        InKindFundingProgram: "",
+        ClaimType: "",
+        CancellationReason: "",
+        "ABN of Support Provider": providerSettings?.abn || "",
+      };
+    });
 
     let csvContent = headers.join(",") + "\n";
     rows.forEach((row) => {
@@ -347,12 +384,21 @@ function ClaimsTab({ userId }: { userId: string }) {
     setSelectedClaims(new Set());
   };
 
+  // Helper: format Date as D/MM/YYYY for NDIS portal
+  const toNdisDate = (d: Date): string => {
+    const day = d.getDate();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${day}/${mm}/${yyyy}`;
+  };
+
   // Export selected claims to CSV (PACE format for NDIS portal)
   const exportSelectedClaimsCsv = async () => {
     if (selectedClaims.size === 0) {
       await alertDialog("Please select at least one claim to export");
       return;
     }
+    if (!userId) return;
 
     const selectedClaimsList = filteredClaims?.filter(
       (c) => selectedClaims.has(`${c.participant._id}-${c.claimDay}`)
@@ -363,16 +409,40 @@ function ClaimsTab({ userId }: { userId: string }) {
       return;
     }
 
-    // Calculate previous month's date range (service period is previous month)
     const [year, month] = selectedPeriod.split("-").map(Number);
-    const prevMonth = month === 1 ? 12 : month - 1;
-    const prevYear = month === 1 ? year - 1 : year;
-    const prevMonthLastDay = new Date(prevYear, prevMonth, 0).getDate();
-    // NDIS format: YYYY/MM/DD
-    const periodStart = `${prevYear}/${String(prevMonth).padStart(2, "0")}/01`;
-    const periodEnd = `${prevYear}/${String(prevMonth).padStart(2, "0")}/${String(prevMonthLastDay).padStart(2, "0")}`;
-    // ClaimReference format: day + month + year (e.g., 5012026 for 5th Jan 2026)
     const fileRef = `${String(month).padStart(2, "0")}${year}`;
+
+    // Decrypt NDIS numbers for all selected participants
+    const ndisMap = new Map<string, string>();
+    const decryptionErrors: string[] = [];
+
+    await Promise.all(
+      selectedClaimsList.map(async (claim) => {
+        const pid = claim.participant._id as Id<"participants">;
+        if (ndisMap.has(pid)) return;
+        try {
+          const result = await convex.query(api.claims.getDecryptedNdisNumber, {
+            userId: userId as Id<"users">,
+            participantId: pid,
+          });
+          if (!result.ndisNumber || result.error || result.ndisNumber.startsWith("enc:")) {
+            decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
+          } else {
+            ndisMap.set(pid, result.ndisNumber);
+          }
+        } catch {
+          decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
+        }
+      })
+    );
+
+    if (decryptionErrors.length > 0) {
+      await alertDialog(
+        `Cannot export: NDIS numbers could not be decrypted for: ${decryptionErrors.join(", ")}.\n\n` +
+        `Please check that ENCRYPTION_KEY is correctly set in your Convex dashboard.`
+      );
+      return;
+    }
 
     // NDIS exact headers
     const headers = [
@@ -394,24 +464,31 @@ function ClaimsTab({ userId }: { userId: string }) {
       "ABN of Support Provider",
     ];
 
-    const rows = selectedClaimsList.map((claim) => ({
-      RegistrationNumber: providerSettings?.ndisRegistrationNumber || "",
-      NDISNumber: claim.participant.ndisNumber,
-      SupportsDeliveredFrom: periodStart,
-      SupportsDeliveredTo: periodEnd,
-      SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
-      ClaimReference: `${claim.claimDay}${String(month).padStart(2, "0")}${year}`,
-      Quantity: "1",
-      Hours: "",
-      UnitPrice: claim.expectedAmount.toFixed(2),
-      GSTCode: providerSettings?.defaultGstCode || "P2",
-      AuthorisedBy: "",
-      ParticipantApproved: "",
-      InKindFundingProgram: "",
-      ClaimType: "",
-      CancellationReason: "",
-      "ABN of Support Provider": providerSettings?.abn || "",
-    }));
+    const rows = selectedClaimsList.map((claim) => {
+      const claimDay = claim.claimDay || 1;
+      // Support period: from (claimDay - 1) of selected month to claimDay of next month
+      const fromDate = new Date(year, month - 1, claimDay - 1);
+      const toDate = new Date(year, month, claimDay);
+
+      return {
+        RegistrationNumber: providerSettings?.ndisRegistrationNumber || "",
+        NDISNumber: ndisMap.get(claim.participant._id as string) || "",
+        SupportsDeliveredFrom: toNdisDate(fromDate),
+        SupportsDeliveredTo: toNdisDate(toDate),
+        SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
+        ClaimReference: `${claimDay}${String(month).padStart(2, "0")}${year}`,
+        Quantity: "1",
+        Hours: "",
+        UnitPrice: claim.expectedAmount.toFixed(2),
+        GSTCode: providerSettings?.defaultGstCode || "P2",
+        AuthorisedBy: "",
+        ParticipantApproved: "",
+        InKindFundingProgram: "",
+        ClaimType: "",
+        CancellationReason: "",
+        "ABN of Support Provider": providerSettings?.abn || "",
+      };
+    });
 
     let csvContent = headers.join(",") + "\n";
     rows.forEach((row) => {

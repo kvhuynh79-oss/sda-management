@@ -708,9 +708,17 @@ export default function CommandPalette() {
     [close, router]
   );
 
-  // Keyboard shortcut to open (Ctrl+K / Cmd+K / forward-slash)
+  // Keyboard shortcut to open (Ctrl+K / Cmd+K / forward-slash / Escape to close)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Escape to close
+      if (e.key === "Escape" && isOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+        return;
+      }
+
       // Ctrl+K / Cmd+K
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();

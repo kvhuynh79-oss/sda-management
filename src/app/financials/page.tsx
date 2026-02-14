@@ -295,14 +295,15 @@ function ClaimsTab({ userId }: { userId: string }) {
         const pid = claim.participant._id as Id<"participants">;
         if (ndisMap.has(pid)) return;
         try {
-          const result = await convex.query(api.claims.getDecryptedNdisNumber, {
+          const participant = await convex.query(api.participants.getById, {
             userId: userId as Id<"users">,
             participantId: pid,
           });
-          if (!result.ndisNumber || result.ndisNumber.startsWith("enc:")) {
+          const ndis = participant?.ndisNumber || "";
+          if (!ndis || ndis.startsWith("enc:") || ndis === "[encrypted]") {
             decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
           } else {
-            ndisMap.set(pid, result.ndisNumber);
+            ndisMap.set(pid, ndis);
           }
         } catch {
           decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
@@ -421,14 +422,15 @@ function ClaimsTab({ userId }: { userId: string }) {
         const pid = claim.participant._id as Id<"participants">;
         if (ndisMap.has(pid)) return;
         try {
-          const result = await convex.query(api.claims.getDecryptedNdisNumber, {
+          const participant = await convex.query(api.participants.getById, {
             userId: userId as Id<"users">,
             participantId: pid,
           });
-          if (!result.ndisNumber || result.ndisNumber.startsWith("enc:")) {
+          const ndis = participant?.ndisNumber || "";
+          if (!ndis || ndis.startsWith("enc:") || ndis === "[encrypted]") {
             decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
           } else {
-            ndisMap.set(pid, result.ndisNumber);
+            ndisMap.set(pid, ndis);
           }
         } catch {
           decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);

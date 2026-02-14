@@ -161,17 +161,17 @@ export default function ClaimsPage() {
     }
     if (!userId) return;
 
-    // Fetch decrypted NDIS number from the server
+    // Fetch decrypted NDIS number via participants.getById (proven working path)
     let ndisNumber = "";
 
     try {
-      const result = await convex.query(api.claims.getDecryptedNdisNumber, {
+      const participant = await convex.query(api.participants.getById, {
         userId,
         participantId: claim.participant._id,
       });
-      ndisNumber = result.ndisNumber;
+      ndisNumber = participant?.ndisNumber || "";
     } catch (err) {
-      console.error("Failed to call getDecryptedNdisNumber:", err);
+      console.error("Failed to fetch participant for NDIS number:", err);
     }
 
     // Safety check: NEVER put encrypted values into CSV

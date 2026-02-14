@@ -3,10 +3,25 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { generateAuditChecklistPdf } from "@/utils/auditChecklistPdf";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+
+/* ──────────────────────────────────────────────────────────────────────
+   Screenshot gallery data
+   ────────────────────────────────────────────────────────────────────── */
+const GALLERY_SCREENSHOTS = [
+  { src: "/marketing/dashboard.png", label: "Dashboard", description: "Real-time overview of your entire SDA portfolio" },
+  { src: "/marketing/properties.png", label: "Properties", description: "Manage properties, dwellings, and occupancy" },
+  { src: "/marketing/participants.png", label: "Participants", description: "NDIS participant profiles with plan tracking" },
+  { src: "/marketing/incidents.png", label: "Incidents", description: "Incident reporting with NDIS severity levels" },
+  { src: "/marketing/certifications.png", label: "Compliance", description: "Track certifications and expiry dates" },
+  { src: "/marketing/tasks.png", label: "Tasks", description: "Follow-ups, communications, and task management" },
+  { src: "/marketing/calendar.png", label: "Calendar", description: "Integrated calendar with Google sync" },
+  { src: "/marketing/command-palette.png", label: "Command Palette", description: "Ctrl+K to navigate anywhere instantly" },
+] as const;
 
 /* ──────────────────────────────────────────────────────────────────────
    Workaround comparison data
@@ -140,6 +155,9 @@ export function LandingPage() {
 
   // Mobile header menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Screenshot gallery
+  const [activeScreenshot, setActiveScreenshot] = useState(0);
 
   const submitLead = useMutation(api.marketingLeads.submitLead);
 
@@ -414,6 +432,26 @@ export function LandingPage() {
                 App installed
               </div>
             )}
+          </div>
+        </section>
+
+        {/* ================================================================
+            SECTION 2.5: Hero Dashboard Screenshot
+            ================================================================ */}
+        <section className="pb-16 sm:pb-20 px-4 -mt-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="relative rounded-xl overflow-hidden border border-gray-700 shadow-2xl shadow-teal-900/20">
+              <Image
+                src="/marketing/dashboard.png"
+                alt="MySDAManager dashboard showing property portfolio, tasks, and operations overview"
+                width={1920}
+                height={1080}
+                className="w-full h-auto"
+                priority
+              />
+              {/* Gradient fade at bottom */}
+              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-gray-900/80 to-transparent" aria-hidden="true" />
+            </div>
           </div>
         </section>
 
@@ -701,6 +739,62 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+            SECTION 6.5: Screenshot Gallery
+            ================================================================ */}
+        <section className="py-16 sm:py-20 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                See it in action
+              </h2>
+              <p className="text-gray-400 max-w-xl mx-auto">
+                Purpose-built for SDA providers. Every screen designed around NDIS workflows.
+              </p>
+            </div>
+
+            {/* Tab buttons */}
+            <div className="flex flex-wrap justify-center gap-2 mb-8" role="tablist" aria-label="Feature screenshots">
+              {GALLERY_SCREENSHOTS.map((item, i) => (
+                <button
+                  key={item.label}
+                  role="tab"
+                  aria-selected={activeScreenshot === i}
+                  aria-controls={`screenshot-panel-${i}`}
+                  onClick={() => setActiveScreenshot(i)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                    activeScreenshot === i
+                      ? "bg-teal-600 text-white"
+                      : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Screenshot display */}
+            <div
+              id={`screenshot-panel-${activeScreenshot}`}
+              role="tabpanel"
+              className="relative rounded-xl overflow-hidden border border-gray-700 shadow-2xl shadow-teal-900/20"
+            >
+              <Image
+                src={GALLERY_SCREENSHOTS[activeScreenshot].src}
+                alt={GALLERY_SCREENSHOTS[activeScreenshot].description}
+                width={1920}
+                height={1080}
+                className="w-full h-auto"
+              />
+            </div>
+
+            {/* Caption */}
+            <p className="text-center text-gray-400 text-sm mt-4">
+              {GALLERY_SCREENSHOTS[activeScreenshot].description}
+            </p>
           </div>
         </section>
 

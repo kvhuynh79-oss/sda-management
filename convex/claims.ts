@@ -39,7 +39,14 @@ export const getByPeriod = query({
         const decryptedParticipant = participant
           ? {
               ...participant,
-              ndisNumber: (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber,
+              ndisNumber: await (async () => {
+                const decrypted = await decryptField(participant.ndisNumber);
+                // Never leak encrypted values to the client
+                if (!decrypted || decrypted === "[encrypted]" || decrypted.startsWith("enc:")) {
+                  return participant.ndisNumber?.startsWith("enc:") ? "[encrypted]" : (participant.ndisNumber || "");
+                }
+                return decrypted;
+              })(),
             }
           : participant;
 
@@ -110,7 +117,14 @@ export const getDashboard = query({
         // Decrypt NDIS number for display and CSV export
         const decryptedParticipant = {
           ...participant,
-          ndisNumber: (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber,
+          ndisNumber: await (async () => {
+            const decrypted = await decryptField(participant.ndisNumber);
+            // Never leak encrypted values to the client
+            if (!decrypted || decrypted === "[encrypted]" || decrypted.startsWith("enc:")) {
+              return participant.ndisNumber?.startsWith("enc:") ? "[encrypted]" : (participant.ndisNumber || "");
+            }
+            return decrypted;
+          })(),
         };
 
         return {
@@ -542,7 +556,14 @@ export const getPaceExport = query({
         const plan = await ctx.db.get(claim.planId);
 
         return {
-          ndisNumber: (participant ? (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber : ""),
+          ndisNumber: await (async () => {
+            if (!participant) return "";
+            const decrypted = await decryptField(participant.ndisNumber);
+            if (!decrypted || decrypted === "[encrypted]" || decrypted.startsWith("enc:")) {
+              return participant.ndisNumber?.startsWith("enc:") ? "[encrypted]" : (participant.ndisNumber || "");
+            }
+            return decrypted;
+          })(),
           firstName: participant?.firstName || "",
           lastName: participant?.lastName || "",
           supportItemNumber: plan?.supportItemNumber || "01_021_0115_1_1",
@@ -648,7 +669,31 @@ export const getDecryptedNdisNumber = query({
       return { ndisNumber: "" };
     }
 
-    const decrypted = await decryptField(participant.ndisNumber);
-    return { ndisNumber: decrypted ?? "" };
+    const rawValue = participant.ndisNumber;
+
+    // If the value is not encrypted (plaintext NDIS number), return it directly
+    if (!rawValue || !rawValue.startsWith("enc:")) {
+      return { ndisNumber: rawValue || "" };
+    }
+
+    // Value is encrypted - attempt decryption
+    try {
+      const decrypted = await decryptField(rawValue);
+
+      if (!decrypted || decrypted === "[encrypted]" || decrypted.startsWith("enc:")) {
+        console.error(
+          `[NDIS Export] Decryption failed for participant ${args.participantId}. ` +
+          `Check that ENCRYPTION_KEY is set correctly in Convex dashboard.`
+        );
+        return { ndisNumber: "" };
+      }
+
+      return { ndisNumber: decrypted };
+    } catch (err) {
+      console.error(
+        `[NDIS Export] Decryption threw for participant ${args.participantId}: ${err}`
+      );
+      return { ndisNumber: "" };
+    }
   },
 });

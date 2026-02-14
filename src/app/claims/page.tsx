@@ -163,7 +163,6 @@ export default function ClaimsPage() {
 
     // Fetch decrypted NDIS number from the server
     let ndisNumber = "";
-    let decryptionError: string | null = null;
 
     try {
       const result = await convex.query(api.claims.getDecryptedNdisNumber, {
@@ -171,29 +170,15 @@ export default function ClaimsPage() {
         participantId: claim.participant._id,
       });
       ndisNumber = result.ndisNumber;
-      decryptionError = result.error ?? null;
     } catch (err) {
       console.error("Failed to call getDecryptedNdisNumber:", err);
-      decryptionError = `Server query failed: ${err instanceof Error ? err.message : String(err)}`;
     }
 
     // Safety check: NEVER put encrypted values into CSV
-    // Check all possible failure states
-    if (ndisNumber.startsWith("enc:") || ndisNumber === "[encrypted]") {
-      ndisNumber = "";
-      decryptionError = decryptionError || "NDIS number is still encrypted after decryption attempt";
-    }
-
-    if (!ndisNumber || decryptionError) {
-      console.error(
-        `[NDIS Export] Cannot export for ${claim.participant.firstName} ${claim.participant.lastName}:`,
-        decryptionError || "Empty NDIS number",
-        `Dashboard ndisNumber value: ${claim.participant.ndisNumber?.substring(0, 15)}...`
-      );
+    if (!ndisNumber || ndisNumber.startsWith("enc:") || ndisNumber === "[encrypted]") {
       await alertDialog(
         `Cannot export: NDIS number for ${claim.participant.firstName} ${claim.participant.lastName} could not be decrypted.\n\n` +
-        `Error: ${decryptionError || "NDIS number is empty"}\n\n` +
-        `Please check that the ENCRYPTION_KEY environment variable is correctly set in your Convex dashboard (Settings > Environment Variables).`
+        `Please check that ENCRYPTION_KEY is correctly set in your Convex dashboard.`
       );
       return;
     }

@@ -299,7 +299,7 @@ function ClaimsTab({ userId }: { userId: string }) {
             userId: userId as Id<"users">,
             participantId: pid,
           });
-          if (!result.ndisNumber || result.error || result.ndisNumber.startsWith("enc:")) {
+          if (!result.ndisNumber || result.ndisNumber.startsWith("enc:")) {
             decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
           } else {
             ndisMap.set(pid, result.ndisNumber);
@@ -425,7 +425,7 @@ function ClaimsTab({ userId }: { userId: string }) {
             userId: userId as Id<"users">,
             participantId: pid,
           });
-          if (!result.ndisNumber || result.error || result.ndisNumber.startsWith("enc:")) {
+          if (!result.ndisNumber || result.ndisNumber.startsWith("enc:")) {
             decryptionErrors.push(`${claim.participant.firstName} ${claim.participant.lastName}`);
           } else {
             ndisMap.set(pid, result.ndisNumber);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, useCallback, useRef, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,9 +18,6 @@ const GALLERY_SCREENSHOTS = [
   { src: "/marketing/participants.png", label: "Participants", description: "NDIS participant profiles with plan tracking" },
   { src: "/marketing/incidents.png", label: "Incidents", description: "Incident reporting with NDIS severity levels" },
   { src: "/marketing/certifications.png", label: "Compliance", description: "Track certifications and expiry dates" },
-  { src: "/marketing/tasks.png", label: "Tasks", description: "Follow-ups, communications, and task management" },
-  { src: "/marketing/calendar.png", label: "Calendar", description: "Integrated calendar with Google sync" },
-  { src: "/marketing/command-palette.png", label: "Command Palette", description: "Ctrl+K to navigate anywhere instantly" },
 ] as const;
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -743,7 +740,7 @@ export function LandingPage() {
         </section>
 
         {/* ================================================================
-            SECTION 6.5: Screenshot Gallery
+            SECTION 6.5: Screenshot Carousel
             ================================================================ */}
         <section className="py-16 sm:py-20 px-4">
           <div className="max-w-6xl mx-auto">
@@ -756,45 +753,80 @@ export function LandingPage() {
               </p>
             </div>
 
-            {/* Tab buttons */}
-            <div className="flex flex-wrap justify-center gap-2 mb-8" role="tablist" aria-label="Feature screenshots">
-              {GALLERY_SCREENSHOTS.map((item, i) => (
-                <button
-                  key={item.label}
-                  role="tab"
-                  aria-selected={activeScreenshot === i}
-                  aria-controls={`screenshot-panel-${i}`}
-                  onClick={() => setActiveScreenshot(i)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
-                    activeScreenshot === i
-                      ? "bg-teal-600 text-white"
-                      : "bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700"
-                  }`}
+            {/* Carousel */}
+            <div className="relative group">
+              {/* Slides container */}
+              <div className="overflow-hidden rounded-xl border border-gray-700 shadow-2xl shadow-teal-900/20">
+                <div
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${activeScreenshot * 100}%)` }}
                 >
-                  {item.label}
+                  {GALLERY_SCREENSHOTS.map((item) => (
+                    <div key={item.label} className="w-full flex-shrink-0">
+                      <Image
+                        src={item.src}
+                        alt={item.description}
+                        width={1920}
+                        height={1080}
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Left arrow */}
+              {activeScreenshot > 0 && (
+                <button
+                  onClick={() => setActiveScreenshot((prev) => prev - 1)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-gray-900/80 border border-gray-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:opacity-100"
+                  aria-label="Previous screenshot"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
-              ))}
+              )}
+
+              {/* Right arrow */}
+              {activeScreenshot < GALLERY_SCREENSHOTS.length - 1 && (
+                <button
+                  onClick={() => setActiveScreenshot((prev) => prev + 1)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-gray-900/80 border border-gray-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:opacity-100"
+                  aria-label="Next screenshot"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
             </div>
 
-            {/* Screenshot display */}
-            <div
-              id={`screenshot-panel-${activeScreenshot}`}
-              role="tabpanel"
-              className="relative rounded-xl overflow-hidden border border-gray-700 shadow-2xl shadow-teal-900/20"
-            >
-              <Image
-                src={GALLERY_SCREENSHOTS[activeScreenshot].src}
-                alt={GALLERY_SCREENSHOTS[activeScreenshot].description}
-                width={1920}
-                height={1080}
-                className="w-full h-auto"
-              />
+            {/* Label + dots */}
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <p className="text-white font-medium text-sm">
+                {GALLERY_SCREENSHOTS[activeScreenshot].label}
+                <span className="text-gray-400 font-normal ml-2">
+                  &mdash; {GALLERY_SCREENSHOTS[activeScreenshot].description}
+                </span>
+              </p>
+              <div className="flex gap-2" role="tablist" aria-label="Screenshot navigation">
+                {GALLERY_SCREENSHOTS.map((item, i) => (
+                  <button
+                    key={item.label}
+                    role="tab"
+                    aria-selected={activeScreenshot === i}
+                    aria-label={item.label}
+                    onClick={() => setActiveScreenshot(i)}
+                    className={`h-2 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                      activeScreenshot === i
+                        ? "w-8 bg-teal-500"
+                        : "w-2 bg-gray-600 hover:bg-gray-500"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
-
-            {/* Caption */}
-            <p className="text-center text-gray-400 text-sm mt-4">
-              {GALLERY_SCREENSHOTS[activeScreenshot].description}
-            </p>
           </div>
         </section>
 

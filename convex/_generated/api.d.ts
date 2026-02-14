@@ -32,6 +32,7 @@ import type * as complaints from "../complaints.js";
 import type * as complianceCertifications from "../complianceCertifications.js";
 import type * as contractors from "../contractors.js";
 import type * as crons from "../crons.js";
+import type * as dataExport from "../dataExport.js";
 import type * as documents from "../documents.js";
 import type * as dwellings from "../dwellings.js";
 import type * as emergencyManagementPlans from "../emergencyManagementPlans.js";
@@ -95,6 +96,7 @@ import type * as supportCoordinators from "../supportCoordinators.js";
 import type * as tasks from "../tasks.js";
 import type * as vacancyListings from "../vacancyListings.js";
 import type * as validationHelpers from "../validationHelpers.js";
+import type * as webhooks from "../webhooks.js";
 import type * as xero from "../xero.js";
 
 import type {
@@ -128,6 +130,7 @@ declare const fullApi: ApiFromModules<{
   complianceCertifications: typeof complianceCertifications;
   contractors: typeof contractors;
   crons: typeof crons;
+  dataExport: typeof dataExport;
   documents: typeof documents;
   dwellings: typeof dwellings;
   emergencyManagementPlans: typeof emergencyManagementPlans;
@@ -191,6 +194,7 @@ declare const fullApi: ApiFromModules<{
   tasks: typeof tasks;
   vacancyListings: typeof vacancyListings;
   validationHelpers: typeof validationHelpers;
+  webhooks: typeof webhooks;
   xero: typeof xero;
 }>;
 

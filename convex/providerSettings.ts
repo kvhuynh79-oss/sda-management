@@ -198,6 +198,175 @@ export const updateMtaSettings = mutation({
   },
 });
 
+// ── Easy Read Template Management ─────────────────────────
+
+// Generate upload URL for Easy Read PDF template
+export const generateTemplateUploadUrl = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireTenant(ctx, args.userId);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Save Easy Read template reference after upload
+export const saveEasyReadTemplate = mutation({
+  args: {
+    userId: v.id("users"),
+    storageId: v.string(),
+    fileName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const now = Date.now();
+
+    const existing = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        easyReadTemplateStorageId: args.storageId,
+        easyReadTemplateFileName: args.fileName,
+        easyReadTemplateUploadedAt: now,
+        updatedAt: now,
+      });
+      return { success: true };
+    } else {
+      await ctx.db.insert("providerSettings", {
+        organizationId,
+        providerName: "",
+        ndisRegistrationNumber: "",
+        abn: "",
+        defaultGstCode: "GST",
+        defaultSupportItemNumber: "",
+        easyReadTemplateStorageId: args.storageId,
+        easyReadTemplateFileName: args.fileName,
+        easyReadTemplateUploadedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { success: true };
+    }
+  },
+});
+
+// Remove Easy Read template
+export const removeEasyReadTemplate = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const now = Date.now();
+
+    const existing = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
+
+    if (existing) {
+      // Delete the stored file if it exists
+      if (existing.easyReadTemplateStorageId) {
+        try {
+          await ctx.storage.delete(existing.easyReadTemplateStorageId as any);
+        } catch {
+          // File may already be deleted
+        }
+      }
+
+      await ctx.db.patch(existing._id, {
+        easyReadTemplateStorageId: undefined,
+        easyReadTemplateFileName: undefined,
+        easyReadTemplateUploadedAt: undefined,
+        updatedAt: now,
+      });
+      return { success: true };
+    }
+
+    return { success: false, error: "No settings found" };
+  },
+});
+
+// Save Easy Read field map (JSON positions for template overlay)
+export const saveEasyReadFieldMap = mutation({
+  args: {
+    userId: v.id("users"),
+    fieldMapJson: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const now = Date.now();
+
+    // Validate JSON
+    try {
+      JSON.parse(args.fieldMapJson);
+    } catch {
+      throw new Error("Invalid JSON for field map");
+    }
+
+    const existing = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        easyReadFieldMap: args.fieldMapJson,
+        updatedAt: now,
+      });
+      return { success: true };
+    } else {
+      await ctx.db.insert("providerSettings", {
+        organizationId,
+        providerName: "",
+        ndisRegistrationNumber: "",
+        abn: "",
+        defaultGstCode: "GST",
+        defaultSupportItemNumber: "",
+        easyReadFieldMap: args.fieldMapJson,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { success: true };
+    }
+  },
+});
+
+// Get Easy Read template URL (resolves storage ID to downloadable URL)
+export const getEasyReadTemplateUrl = query({
+  args: {
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    if (!args.userId) return null;
+
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const settings = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .first();
+
+    if (!settings?.easyReadTemplateStorageId) return null;
+
+    try {
+      const url = await ctx.storage.getUrl(settings.easyReadTemplateStorageId as any);
+      return {
+        url: url ?? null,
+        fileName: settings.easyReadTemplateFileName ?? "template.pdf",
+        uploadedAt: settings.easyReadTemplateUploadedAt ?? null,
+        fieldMap: settings.easyReadFieldMap ?? null,
+      };
+    } catch {
+      return null;
+    }
+  },
+});
+
 // Calculate RRC amounts for the current user's organization
 export const calculateRrc = query({
   args: {

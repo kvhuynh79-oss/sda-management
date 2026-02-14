@@ -2,80 +2,28 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import Anthropic from "@anthropic-ai/sdk";
+import {
+  callClaudeAPI,
+  createVisionMessage,
+  extractJSON,
+} from "./aiUtils";
 
-export const analyzeDocument = action({
-  args: {
-    storageId: v.id("_storage"),
-    fileName: v.string(),
-    fileType: v.string(),
-  },
-  handler: async (ctx, args): Promise<{
-    documentType: string;
-    category: string;
-    linkedEntityType?: "property" | "participant";
-    linkedEntityIdentifier?: string;
-    description?: string;
-    invoiceNumber?: string;
-    invoiceDate?: string;
-    invoiceAmount?: number;
-    vendor?: string;
-    expiryDate?: string;
-    confidence?: "high" | "medium" | "low";
-  }> => {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error("ANTHROPIC_API_KEY not configured. Please add it to your environment variables.");
-    }
+// Result type for document analysis
+interface DocumentAnalysisResult {
+  documentType: string;
+  category: string;
+  linkedEntityType?: "property" | "participant";
+  linkedEntityIdentifier?: string;
+  description?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  invoiceAmount?: number;
+  vendor?: string;
+  expiryDate?: string;
+  confidence?: "high" | "medium" | "low";
+}
 
-    const anthropic = new Anthropic({ apiKey });
-
-    // Get file URL from storage
-    const fileUrl = await ctx.storage.getUrl(args.storageId);
-    if (!fileUrl) throw new Error("File not found in storage");
-
-    // Only support images for now (PDFs would need conversion or SDK upgrade)
-    const isImage = args.fileType.startsWith("image/");
-    const isPDF = args.fileType === "application/pdf";
-
-    if (isPDF) {
-      throw new Error("PDF analysis is not yet supported. Please take a screenshot of the PDF and upload it as an image (JPG or PNG) instead.");
-    }
-
-    if (!isImage) {
-      throw new Error("Only image files are supported for AI analysis. Please upload a JPG or PNG.");
-    }
-
-    // Fetch the file
-    const response = await fetch(fileUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch file: ${response.statusText}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-
-    // Determine media type (only images supported)
-    const mediaType = args.fileType as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
-
-    try {
-      const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-5-20250929",
-        max_tokens: 1024,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: mediaType,
-                  data: base64,
-                },
-              },
-              {
-                type: "text",
-                text: `Analyze this document image and extract key information. Return ONLY valid JSON with no markdown code blocks or formatting:
+const ANALYSIS_PROMPT = `Analyze this document and extract key information. Return ONLY valid JSON with no markdown code blocks or formatting:
 
 {
   "documentType": "one of: invoice, receipt, quote, ndis_plan, lease, service_agreement, fire_safety_certificate, building_compliance_certificate, sda_design_certificate, sda_registration_cert, ndis_practice_standards_cert, ndis_worker_screening, insurance, report, other",
@@ -100,27 +48,51 @@ Analysis Guidelines:
 - Use "other" for documentType if document type is ambiguous
 - Leave fields empty (null or empty string) if information is not visible in the document
 - For dates, always use YYYY-MM-DD format
-- For amounts, extract only the number (e.g., 450.00, not $450.00)`,
-              },
-            ],
-          },
-        ],
-      });
+- For amounts, extract only the number (e.g., 450.00, not $450.00)`;
 
-      // Extract JSON from Claude's response
-      const content = message.content[0];
-      if (content.type !== "text") {
-        throw new Error("Unexpected response format from Claude API");
-      }
+export const analyzeDocument = action({
+  args: {
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    fileType: v.string(),
+  },
+  handler: async (ctx, args): Promise<DocumentAnalysisResult> => {
+    // Get file URL from storage
+    const fileUrl = await ctx.storage.getUrl(args.storageId);
+    if (!fileUrl) throw new Error("File not found in storage");
 
-      const jsonText = content.text.trim();
-      // Remove markdown code blocks if present
-      const cleanJson = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
-      const extracted = JSON.parse(cleanJson);
+    const isImage = args.fileType.startsWith("image/");
+    const isPDF = args.fileType === "application/pdf";
+
+    if (!isImage && !isPDF) {
+      throw new Error(
+        "Only image files (JPG, PNG, GIF, WebP) and PDF files are supported for AI analysis."
+      );
+    }
+
+    // Fetch the file from storage
+    const response = await fetch(fileUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+    try {
+      // Use createVisionMessage which handles both images and PDFs
+      // For PDFs it creates a "document" content block, for images an "image" block
+      // callClaudeAPI automatically adds the PDF beta header when document blocks are present
+      const message = createVisionMessage(ANALYSIS_PROMPT, base64, args.fileType);
+
+      const systemPrompt =
+        "You are a document analysis expert for Australian NDIS (National Disability Insurance Scheme) and SDA (Specialist Disability Accommodation) documents. Analyze the provided document and return structured JSON with extracted information.";
+
+      const responseText = await callClaudeAPI(systemPrompt, [message], 1024);
+      const extracted = extractJSON<DocumentAnalysisResult>(responseText);
 
       // Convert invoiceAmount from string to number if present
       if (extracted.invoiceAmount) {
-        extracted.invoiceAmount = parseFloat(extracted.invoiceAmount);
+        extracted.invoiceAmount = parseFloat(String(extracted.invoiceAmount));
       }
 
       // Ensure confidence is set
@@ -134,7 +106,9 @@ Analysis Guidelines:
       if (error instanceof Error) {
         throw new Error(`AI analysis failed: ${error.message}`);
       }
-      throw new Error("AI analysis failed. Please try again or fill in the fields manually.");
+      throw new Error(
+        "AI analysis failed. Please try again or fill in the fields manually."
+      );
     }
   },
 });

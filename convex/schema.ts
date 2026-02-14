@@ -753,6 +753,11 @@ export default defineSchema({
     mtaDailyRate: v.optional(v.number()),
     mtaSupportItemNumber: v.optional(v.string()),
     mtaLastUpdated: v.optional(v.string()),
+    // Easy Read Consent PDF Template settings
+    easyReadTemplateStorageId: v.optional(v.string()), // Convex storage ID for uploaded PDF template
+    easyReadTemplateFileName: v.optional(v.string()), // Original file name for display
+    easyReadTemplateUploadedAt: v.optional(v.number()), // Timestamp of upload
+    easyReadFieldMap: v.optional(v.string()), // JSON string of FieldMapping[] for template overlay positions
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -2541,6 +2546,46 @@ export default defineSchema({
     .index("by_externalEventId", ["externalEventId", "externalProvider"])
     .index("by_linkedTask", ["linkedTaskId"])
     .index("by_createdBy", ["createdBy"]),
+
+  // ============================================
+  // WEBHOOKS TABLES
+  // ============================================
+
+  // Webhooks table - outbound webhook endpoints configured per organization
+  webhooks: defineTable({
+    organizationId: v.id("organizations"),
+    url: v.string(), // HTTPS endpoint URL
+    secret: v.string(), // HMAC-SHA256 signing secret (stored hashed)
+    events: v.array(v.string()), // Array of event types subscribed to
+    isActive: v.boolean(),
+    description: v.optional(v.string()), // Friendly description
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+    lastTriggeredAt: v.optional(v.number()), // Last successful delivery timestamp
+    failureCount: v.number(), // Consecutive failure count (resets on success)
+    lastError: v.optional(v.string()), // Last error message
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_isActive", ["isActive"])
+    .index("by_organizationId_isActive", ["organizationId", "isActive"]),
+
+  // Webhook Deliveries table - log of all delivery attempts
+  webhookDeliveries: defineTable({
+    webhookId: v.id("webhooks"),
+    organizationId: v.id("organizations"),
+    event: v.string(), // Event type (e.g., "participant.created")
+    payload: v.string(), // JSON string of the payload sent
+    statusCode: v.optional(v.number()), // HTTP response status code
+    response: v.optional(v.string()), // First 1000 chars of response body
+    success: v.boolean(),
+    attemptCount: v.number(), // How many attempts were made
+    error: v.optional(v.string()), // Error message if failed
+    duration: v.optional(v.number()), // Request duration in ms
+    createdAt: v.number(),
+  })
+    .index("by_webhookId", ["webhookId"])
+    .index("by_organizationId", ["organizationId"])
+    .index("by_webhookId_createdAt", ["webhookId", "createdAt"]),
 
   // Calendar OAuth connections (Google/Outlook)
   calendarConnections: defineTable({

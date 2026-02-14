@@ -59,6 +59,20 @@ export interface ClaudeResponse {
   };
 }
 
+// Helper function to check if messages contain PDF document blocks
+function messagesContainPdfDocument(messages: ClaudeMessage[]): boolean {
+  for (const msg of messages) {
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (block.type === "document") {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 // Helper function to call Claude API
 export async function callClaudeAPI(
   systemPrompt: string,
@@ -72,13 +86,20 @@ export async function callClaudeAPI(
     );
   }
 
+  // Build headers - add PDF beta header when document blocks are present
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": ANTHROPIC_VERSION,
+  };
+
+  if (messagesContainPdfDocument(messages)) {
+    headers["anthropic-beta"] = "pdfs-2024-09-25";
+  }
+
   const response = await fetch(CLAUDE_API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": ANTHROPIC_VERSION,
-    },
+    headers,
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: maxTokens,
@@ -117,13 +138,20 @@ export async function callClaudeWithTools(
     );
   }
 
+  // Build headers - add PDF beta header when document blocks are present
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": ANTHROPIC_VERSION,
+  };
+
+  if (messagesContainPdfDocument(messages)) {
+    headers["anthropic-beta"] = "pdfs-2024-09-25";
+  }
+
   const response = await fetch(CLAUDE_API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": ANTHROPIC_VERSION,
-    },
+    headers,
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: maxTokens,

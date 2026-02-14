@@ -38,6 +38,7 @@ export default function ParticipantDetailPage() {
   const userIdTyped = user ? (user.id as Id<"users">) : undefined;
   const participant = useQuery(api.participants.getById, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
   const providerSettings = useQuery(api.providerSettings.get, userIdTyped ? { userId: userIdTyped } : "skip");
+  const easyReadTemplate = useQuery(api.providerSettings.getEasyReadTemplateUrl, userIdTyped ? { userId: userIdTyped } : "skip");
   const documents = useQuery(api.documents.getByParticipant, userIdTyped ? { participantId, userId: userIdTyped } : "skip");
   const moveInMutation = useMutation(api.participants.moveIn);
   const revertToPendingMutation = useMutation(api.participants.revertToPending);
@@ -155,9 +156,13 @@ export default function ParticipantDetailPage() {
     const params = consentPdfParams();
     if (!params) return;
     // Try template-based PDF first (Canva design with images)
-    const success = await generateEasyReadFromTemplate(params);
+    // Pass custom template URL and field map if org has uploaded one
+    const success = await generateEasyReadFromTemplate(params, {
+      templateUrl: easyReadTemplate?.url,
+      fieldMapJson: easyReadTemplate?.fieldMap,
+    });
     if (!success) {
-      // Fallback to jsPDF-based generator (text-only)
+      // Fallback to jsPDF-based generator (text-only illustrations)
       generateEasyReadConsentPdf(params);
     }
   };

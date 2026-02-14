@@ -184,23 +184,26 @@ export default function ClaimsPage() {
     }
 
     // Calculate support period based on participant's claim day
-    // e.g. claim day 13: From = 12th of selected month, To = 13th of next month
+    // Claim is for supports ALREADY delivered in the PREVIOUS billing cycle
+    // From = claimDay of PREVIOUS month, To = claimDay - 1 of CURRENT (selected) month
     const [yearStr, monthStr] = selectedPeriod.split("-");
     const year = parseInt(yearStr);
     const month = parseInt(monthStr);
     const claimDay = claim.claimDay || 1;
-    const fromDate = new Date(year, month - 1, claimDay - 1);
-    const toDate = new Date(year, month, claimDay);
+    const fromDate = new Date(year, month - 2, claimDay); // month-2 because JS months are 0-indexed and we want previous month
+    const toDate = new Date(year, month - 1, claimDay - 1); // month-1 = selected month (0-indexed), day = claimDay - 1
+    // Format as YYYY-MM-DD (mandatory per NDIS spec)
     const formatNdisDate = (d: Date) => {
-      const dd = d.getDate();
+      const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, "0");
-      return `${dd}/${mm}/${d.getFullYear()}`;
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
     };
     const periodStart = formatNdisDate(fromDate);
     const periodEnd = formatNdisDate(toDate);
 
-    // Generate claim reference: claimDay + MM + YYYY
-    const claimRef = `${claimDay}${String(month).padStart(2, "0")}${year}`;
+    // Generate claim reference: claimDay + MM + YYYY, sanitized to only alphanumeric + / _ -
+    const claimRef = `${claimDay}${String(month).padStart(2, "0")}${year}`.replace(/[^a-zA-Z0-9/_-]/g, "").substring(0, 50);
 
     // CSV headers (exact NDIS format)
     const headers = [
@@ -222,24 +225,41 @@ export default function ClaimsPage() {
       "ABN of Support Provider",
     ];
 
+    // Validate SupportNumber is not empty
+    const supportNumber = claim.plan.supportItemNumber || providerSettings.defaultSupportItemNumber || "";
+    if (!supportNumber) {
+      await alertDialog(
+        `Cannot export: Support Item Number is missing for ${claim.participant.firstName} ${claim.participant.lastName}.\n\n` +
+        `Please set a Support Item Number on their plan, or configure a default in Provider Settings.`
+      );
+      return;
+    }
+
+    // Validate GST code - must be P1, P2, or P5
+    const gstCode = ((): string => {
+      const code = providerSettings.defaultGstCode;
+      if (code === "P1" || code === "P2" || code === "P5") return code;
+      return "P2"; // Default to P2 (GST Free) for SDA
+    })();
+
     // Build the row data
     const row = {
-      RegistrationNumber: providerSettings.ndisRegistrationNumber || "",
+      RegistrationNumber: (providerSettings.ndisRegistrationNumber || "").replace(/\s/g, ""),
       NDISNumber: ndisNumber,
       SupportsDeliveredFrom: periodStart,
       SupportsDeliveredTo: periodEnd,
-      SupportNumber: claim.plan.supportItemNumber || providerSettings.defaultSupportItemNumber || "",
+      SupportNumber: supportNumber,
       ClaimReference: claimRef,
       Quantity: "1",
       Hours: "",
       UnitPrice: claim.expectedAmount.toFixed(2),
-      GSTCode: providerSettings.defaultGstCode || "P2",
+      GSTCode: gstCode,
       AuthorisedBy: "",
       ParticipantApproved: "",
       InKindFundingProgram: "",
       ClaimType: "",
       CancellationReason: "",
-      "ABN of Support Provider": providerSettings.abn || "",
+      "ABN of Support Provider": (providerSettings.abn || "").replace(/\s/g, ""),
     };
 
     // Build CSV content

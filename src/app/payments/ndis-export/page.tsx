@@ -118,9 +118,38 @@ export default function NDISExportPage() {
     }
   };
 
+  // Helper: sanitize ClaimReference — only alphanumeric, /, _, - allowed (up to 50 chars)
+  const sanitizeClaimRef = (ref: string): string => {
+    return String(ref || "").replace(/[^a-zA-Z0-9/_-]/g, "").substring(0, 50);
+  };
+
+  // Helper: validate GST code — must be P1, P2, or P5 per NDIS spec
+  const validGstCode = (code: string | undefined): string => {
+    if (code === "P1" || code === "P2" || code === "P5") return code;
+    return "P2"; // Default to P2 (GST Free) for SDA
+  };
+
   const exportToCSV = async () => {
     if (!claimData || !claimData.claims || claimData.claims.length === 0) {
       await alertDialog("No claim data to export");
+      return;
+    }
+
+    // Check for encrypted NDIS numbers before exporting
+    const encryptedClaims = claimData.claims.filter(
+      (c: Record<string, unknown>) => {
+        const ndis = c.NDISNumber as string;
+        return !ndis || ndis.startsWith("enc:") || ndis === "[encrypted]";
+      }
+    );
+    if (encryptedClaims.length > 0) {
+      const names = encryptedClaims
+        .map((c: Record<string, unknown>) => c._participantName)
+        .join(", ");
+      await alertDialog(
+        `Cannot export: NDIS numbers could not be decrypted for: ${names}.\n\n` +
+        `Please check that the ENCRYPTION_KEY environment variable is correctly set in your Convex dashboard (Settings > Environment Variables).`
+      );
       return;
     }
 
@@ -147,9 +176,38 @@ export default function NDISExportPage() {
     // Build CSV content
     let csvContent = headers.join(",") + "\n";
 
+    // Validate that no SupportNumber is empty before proceeding
+    const missingSupportClaims = claimData.claims.filter(
+      (c: Record<string, unknown>) => !c.SupportNumber
+    );
+    if (missingSupportClaims.length > 0) {
+      const names = missingSupportClaims
+        .map((c: Record<string, unknown>) => c._participantName)
+        .join(", ");
+      await alertDialog(
+        `Cannot export: Support Item Number is missing for: ${names}.\n\n` +
+        `Please set a Support Item Number on their plan, or configure a default in Provider Settings.`
+      );
+      return;
+    }
+
     claimData.claims.forEach((claim: Record<string, unknown>) => {
       const row = headers.map((header) => {
-        const value = claim[header] ?? "";
+        let value = claim[header] ?? "";
+        // Sanitize fields per NDIS spec
+        if (header === "RegistrationNumber" && typeof value === "string") {
+          value = value.replace(/\s/g, ""); // Strip spaces from registration number
+        }
+        if (header === "ABN of Support Provider" && typeof value === "string") {
+          value = value.replace(/\s/g, ""); // Strip spaces from ABN
+        }
+        if (header === "GSTCode") {
+          value = validGstCode(typeof value === "string" ? value : undefined);
+        }
+        if (header === "ClaimReference" && typeof value === "string") {
+          value = sanitizeClaimRef(value); // Only alphanumeric + / _ -
+        }
+        // Dates are already YYYY-MM-DD from the server — do NOT convert
         // Escape values that contain commas or quotes
         if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
           return `"${value.replace(/"/g, '""')}"`;

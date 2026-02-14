@@ -321,28 +321,43 @@ function ClaimsTab({ userId }: { userId: string }) {
 
     const headers = ["RegistrationNumber", "NDISNumber", "SupportsDeliveredFrom", "SupportsDeliveredTo", "SupportNumber", "ClaimReference", "Quantity", "Hours", "UnitPrice", "GSTCode", "AuthorisedBy", "ParticipantApproved", "InKindFundingProgram", "ClaimType", "CancellationReason", "ABN of Support Provider"];
 
+    // Validate SupportNumber is not empty before proceeding
+    const missingSupport = paceClaims.filter(
+      (c) => !(c.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber)
+    );
+    if (missingSupport.length > 0) {
+      const names = missingSupport.map((c) => `${c.participant.firstName} ${c.participant.lastName}`).join(", ");
+      await alertDialog(
+        `Cannot export: Support Item Number is missing for: ${names}.\n\n` +
+        `Please set a Support Item Number on their plan, or configure a default in Provider Settings.`
+      );
+      return;
+    }
+
     const rows = paceClaims.map((claim) => {
       const claimDay = claim.claimDay || 1;
-      const fromDate = new Date(year, month - 1, claimDay - 1);
-      const toDate = new Date(year, month, claimDay);
+      // Correct date calculation: claim is for supports ALREADY delivered in the PREVIOUS billing cycle
+      // From = claimDay of PREVIOUS month, To = claimDay - 1 of CURRENT (selected) month
+      const fromDate = new Date(year, month - 2, claimDay); // month-2 because JS months are 0-indexed and we want previous month
+      const toDate = new Date(year, month - 1, claimDay - 1); // month-1 = selected month (0-indexed), day = claimDay - 1
 
       return {
-        RegistrationNumber: providerSettings?.ndisRegistrationNumber || "",
+        RegistrationNumber: (providerSettings?.ndisRegistrationNumber || "").replace(/\s/g, ""),
         NDISNumber: ndisMap.get(claim.participant._id as string) || "",
         SupportsDeliveredFrom: toNdisDate(fromDate),
         SupportsDeliveredTo: toNdisDate(toDate),
         SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
-        ClaimReference: `${claimDay}${String(month).padStart(2, "0")}${year}`,
+        ClaimReference: sanitizeClaimRef(`${claimDay}${String(month).padStart(2, "0")}${year}`),
         Quantity: "1",
         Hours: "",
         UnitPrice: claim.expectedAmount.toFixed(2),
-        GSTCode: providerSettings?.defaultGstCode || "P2",
+        GSTCode: validGstCode(providerSettings?.defaultGstCode),
         AuthorisedBy: "",
         ParticipantApproved: "",
         InKindFundingProgram: "",
         ClaimType: "",
         CancellationReason: "",
-        "ABN of Support Provider": providerSettings?.abn || "",
+        "ABN of Support Provider": (providerSettings?.abn || "").replace(/\s/g, ""),
       };
     });
 
@@ -385,12 +400,23 @@ function ClaimsTab({ userId }: { userId: string }) {
     setSelectedClaims(new Set());
   };
 
-  // Helper: format Date as D/MM/YYYY for NDIS portal
+  // Helper: format Date as YYYY-MM-DD for NDIS portal (mandatory format per spec)
   const toNdisDate = (d: Date): string => {
-    const day = d.getDate();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
     const yyyy = d.getFullYear();
-    return `${day}/${mm}/${yyyy}`;
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Helper: sanitize ClaimReference — only alphanumeric, /, _, - allowed (up to 50 chars)
+  const sanitizeClaimRef = (ref: string): string => {
+    return ref.replace(/[^a-zA-Z0-9/_-]/g, "").substring(0, 50);
+  };
+
+  // Helper: validate GST code — must be P1, P2, or P5 per NDIS spec
+  const validGstCode = (code: string | undefined): string => {
+    if (code === "P1" || code === "P2" || code === "P5") return code;
+    return "P2"; // Default to P2 (GST Free) for SDA
   };
 
   // Export selected claims to CSV (PACE format for NDIS portal)
@@ -466,29 +492,43 @@ function ClaimsTab({ userId }: { userId: string }) {
       "ABN of Support Provider",
     ];
 
+    // Validate SupportNumber is not empty before proceeding
+    const missingSupport = selectedClaimsList.filter(
+      (c) => !(c.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber)
+    );
+    if (missingSupport.length > 0) {
+      const names = missingSupport.map((c) => `${c.participant.firstName} ${c.participant.lastName}`).join(", ");
+      await alertDialog(
+        `Cannot export: Support Item Number is missing for: ${names}.\n\n` +
+        `Please set a Support Item Number on their plan, or configure a default in Provider Settings.`
+      );
+      return;
+    }
+
     const rows = selectedClaimsList.map((claim) => {
       const claimDay = claim.claimDay || 1;
-      // Support period: from (claimDay - 1) of selected month to claimDay of next month
-      const fromDate = new Date(year, month - 1, claimDay - 1);
-      const toDate = new Date(year, month, claimDay);
+      // Correct date calculation: claim is for supports ALREADY delivered in the PREVIOUS billing cycle
+      // From = claimDay of PREVIOUS month, To = claimDay - 1 of CURRENT (selected) month
+      const fromDate = new Date(year, month - 2, claimDay); // month-2 because JS months are 0-indexed and we want previous month
+      const toDate = new Date(year, month - 1, claimDay - 1); // month-1 = selected month (0-indexed), day = claimDay - 1
 
       return {
-        RegistrationNumber: providerSettings?.ndisRegistrationNumber || "",
+        RegistrationNumber: (providerSettings?.ndisRegistrationNumber || "").replace(/\s/g, ""),
         NDISNumber: ndisMap.get(claim.participant._id as string) || "",
         SupportsDeliveredFrom: toNdisDate(fromDate),
         SupportsDeliveredTo: toNdisDate(toDate),
         SupportNumber: claim.plan.supportItemNumber || providerSettings?.defaultSupportItemNumber || "",
-        ClaimReference: `${claimDay}${String(month).padStart(2, "0")}${year}`,
+        ClaimReference: sanitizeClaimRef(`${claimDay}${String(month).padStart(2, "0")}${year}`),
         Quantity: "1",
         Hours: "",
         UnitPrice: claim.expectedAmount.toFixed(2),
-        GSTCode: providerSettings?.defaultGstCode || "P2",
+        GSTCode: validGstCode(providerSettings?.defaultGstCode),
         AuthorisedBy: "",
         ParticipantApproved: "",
         InKindFundingProgram: "",
         ClaimType: "",
         CancellationReason: "",
-        "ABN of Support Provider": providerSettings?.abn || "",
+        "ABN of Support Provider": (providerSettings?.abn || "").replace(/\s/g, ""),
       };
     });
 

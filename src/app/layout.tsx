@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmDialogProvider } from "@/components/ui/ConfirmDialog";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import CommandPalette from "@/components/CommandPalette";
+import { generateOrganizationSchema } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,11 +21,34 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "MySDAManager",
+    default:
+      "MySDAManager -- NDIS SDA Compliance & Property Management Software",
     template: "%s | MySDAManager",
   },
-  description: "Specialist Disability Accommodation Property Management System",
+  description:
+    "Australia's purpose-built SDA management platform. Evidence vault, compliance alerts, Xero invoicing. Audit-ready from day one.",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://mysdamanager.com"),
+  openGraph: {
+    siteName: "MySDAManager",
+    locale: "en_AU",
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  keywords: [
+    "SDA management software",
+    "NDIS provider compliance tool",
+    "SDA participant record keeping",
+    "NDIS audit software",
+    "SDA property management Australia",
+  ],
+  robots: {
+    index: true,
+    follow: true,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -58,6 +82,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(generateOrganizationSchema()),
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

@@ -2321,9 +2321,13 @@ export default defineSchema({
     organization: v.optional(v.string()),
     role: v.optional(v.string()),
     numberOfProperties: v.optional(v.number()),
-    source: v.string(), // "audit_checklist", "landing_page", etc.
+    source: v.string(), // "audit_checklist", "landing_page", "contact_form", etc.
     downloadedAt: v.number(),
     convertedToTrial: v.optional(v.boolean()),
+    // Contact form fields
+    inquiryType: v.optional(v.string()), // "general", "demo", "support", "partnership"
+    message: v.optional(v.string()),
+    phone: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_source", ["source"])

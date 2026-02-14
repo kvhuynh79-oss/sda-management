@@ -41,6 +41,48 @@ export const submitLead = mutation({
 });
 
 /**
+ * Submit a contact form inquiry from the website.
+ * PUBLIC mutation — no authentication required.
+ */
+export const submitInquiry = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    organization: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    inquiryType: v.string(),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(args.email)) {
+      throw new Error("Invalid email address");
+    }
+
+    if (!args.name.trim()) {
+      throw new Error("Name is required");
+    }
+
+    if (!args.message.trim()) {
+      throw new Error("Message is required");
+    }
+
+    const leadId = await ctx.db.insert("marketingLeads", {
+      name: args.name.trim(),
+      email: args.email.trim().toLowerCase(),
+      organization: args.organization?.trim() || undefined,
+      phone: args.phone?.trim() || undefined,
+      inquiryType: args.inquiryType,
+      message: args.message.trim(),
+      source: "contact_form",
+      downloadedAt: Date.now(),
+    });
+
+    return { success: true, leadId };
+  },
+});
+
+/**
  * Get all marketing leads (admin only).
  */
 export const getAll = query({

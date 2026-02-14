@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { MarketingHeader } from "@/components/marketing/MarketingHeader";
+import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
 // ---------------------------------------------------------------------------
 // Types & Data
@@ -99,6 +101,84 @@ const PLANS: PricingPlan[] = [
   },
 ];
 
+// FAQ data
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+const FAQ_ITEMS: FaqItem[] = [
+  {
+    question: "How long is the free trial?",
+    answer:
+      "14 days, no credit card required. You get full access to all features in your chosen plan during the trial period.",
+  },
+  {
+    question: "Can I change plans later?",
+    answer:
+      "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately and billing is prorated.",
+  },
+  {
+    question: "What payment methods do you accept?",
+    answer:
+      "All major credit and debit cards via Stripe, including Visa, Mastercard, and American Express.",
+  },
+  {
+    question: "Is there a setup fee?",
+    answer:
+      "No setup fees, no hidden costs. The price you see is the price you pay.",
+  },
+  {
+    question: "Can I cancel anytime?",
+    answer:
+      "Yes, you can cancel your subscription at any time. Your data will remain available for 30 days after cancellation.",
+  },
+  {
+    question: "What's included in the free trial?",
+    answer:
+      "Full access to all features in your chosen plan. No restrictions, no watermarks, no limitations.",
+  },
+  {
+    question: "Do you offer discounts for annual billing?",
+    answer:
+      "Yes, save 17% when you choose annual billing. Toggle the billing switch above to see annual pricing.",
+  },
+  {
+    question: "Do you offer a not-for-profit discount?",
+    answer:
+      "Contact us for special pricing for registered charities and not-for-profits. We are committed to supporting organisations that serve the disability community.",
+  },
+];
+
+// Testimonial placeholders
+interface Testimonial {
+  quote: string;
+  provider: string;
+  location: string;
+  properties: string;
+}
+
+const TESTIMONIALS: Testimonial[] = [
+  {
+    quote: "Testimonial coming soon",
+    provider: "Provider Name",
+    location: "Sydney, NSW",
+    properties: "12 properties managed",
+  },
+  {
+    quote: "Testimonial coming soon",
+    provider: "Provider Name",
+    location: "Melbourne, VIC",
+    properties: "8 properties managed",
+  },
+  {
+    quote: "Testimonial coming soon",
+    provider: "Provider Name",
+    location: "Brisbane, QLD",
+    properties: "20 properties managed",
+  },
+];
+
 // Feature comparison rows for the table
 const COMPARISON_CATEGORIES = [
   {
@@ -179,6 +259,72 @@ function CreditCardIcon() {
 }
 
 // ---------------------------------------------------------------------------
+// FAQ Accordion
+// ---------------------------------------------------------------------------
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className || "h-5 w-5"}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+  );
+}
+
+function PricingFaq() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggle = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  return (
+    <section className="pb-20">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold text-white text-center mb-10">
+          Frequently asked questions
+        </h2>
+
+        <div className="divide-y divide-gray-700 border border-gray-700 rounded-xl bg-gray-800 overflow-hidden">
+          {FAQ_ITEMS.map((item, index) => (
+            <div key={item.question}>
+              <button
+                type="button"
+                onClick={() => toggle(index)}
+                aria-expanded={openIndex === index}
+                className="w-full flex items-center justify-between px-6 py-4 text-left transition-colors hover:bg-gray-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset"
+              >
+                <span className="text-sm font-medium text-white pr-4">
+                  {item.question}
+                </span>
+                <ChevronDownIcon
+                  className={`h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200 ${
+                    openIndex === index ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {openIndex === index && (
+                <div className="px-6 pb-4">
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    {item.answer}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -202,41 +348,10 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* ----------------------------------------------------------------- */}
-      {/* Header                                                            */}
-      {/* ----------------------------------------------------------------- */}
-      <header className="border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <img src="/mysda-logo-dark.svg" alt="MySDAManager" className="h-8 w-auto" />
-            </Link>
-            <nav className="flex items-center gap-6">
-              <Link
-                href="/pricing"
-                className="text-teal-400 font-medium text-sm"
-                aria-current="page"
-              >
-                Pricing
-              </Link>
-              <Link
-                href="/login"
-                className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-              >
-                Get Started
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-900 flex flex-col">
+      <MarketingHeader />
 
+      <main className="flex-1">
       {/* ----------------------------------------------------------------- */}
       {/* Hero Section                                                       */}
       {/* ----------------------------------------------------------------- */}
@@ -492,32 +607,107 @@ export default function PricingPage() {
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* Footer                                                             */}
+      {/* FAQ Accordion                                                      */}
       {/* ----------------------------------------------------------------- */}
-      <footer className="border-t border-gray-800 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-gray-400">
-              <ShieldIcon />
-              <span className="text-sm">MySDAManager</span>
+      <PricingFaq />
+
+      {/* ----------------------------------------------------------------- */}
+      {/* ROI Calculator                                                     */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="pb-20">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-white text-center mb-10">
+            The real cost of workarounds
+          </h2>
+
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            {/* Manual cost */}
+            <div className="px-6 py-5 border-b border-gray-700">
+              <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Manual compliance management
+              </span>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="text-gray-300 text-sm">4 hours/week</span>
+                <span className="text-gray-400" aria-hidden="true">x</span>
+                <span className="text-gray-300 text-sm">$75/hour</span>
+                <span className="text-gray-400" aria-hidden="true">x</span>
+                <span className="text-gray-300 text-sm">52 weeks</span>
+                <span className="text-gray-400" aria-hidden="true">=</span>
+                <span className="text-xl font-bold text-red-400">$15,600/year</span>
+              </div>
             </div>
-            <div className="flex items-center gap-6">
-              <Link href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
-                Pricing
-              </Link>
-              <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
-                Login
-              </Link>
-              <Link href="/register" className="text-sm text-gray-400 hover:text-white transition-colors">
-                Register
-              </Link>
+
+            {/* MySDAManager cost */}
+            <div className="px-6 py-5 border-b border-gray-700">
+              <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                MySDAManager Professional
+              </span>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="text-gray-300 text-sm">$450/month</span>
+                <span className="text-gray-400" aria-hidden="true">x</span>
+                <span className="text-gray-300 text-sm">12 months</span>
+                <span className="text-gray-400" aria-hidden="true">=</span>
+                <span className="text-xl font-bold text-teal-400">$5,400/year</span>
+              </div>
             </div>
-            <p className="text-sm text-gray-400">
-              &copy; {new Date().getFullYear()} MySDAManager. All rights reserved.
-            </p>
+
+            {/* Savings */}
+            <div className="px-6 py-8 bg-teal-950/20 text-center">
+              <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                Your annual savings
+              </span>
+              <span className="block text-5xl sm:text-6xl font-bold text-teal-400">$10,200</span>
+              <span className="block text-sm text-gray-400 mt-2">per year</span>
+            </div>
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Testimonial Placeholders                                           */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="pb-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-white text-center mb-10">
+            Trusted by SDA providers across Australia
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((testimonial) => (
+              <div
+                key={testimonial.location}
+                className="bg-gray-800 rounded-xl border border-gray-700 p-6 flex flex-col"
+              >
+                <svg
+                  className="h-8 w-8 text-gray-600 mb-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11h4v10H0z" />
+                </svg>
+                <p className="text-sm text-gray-400 italic flex-grow mb-4">
+                  &ldquo;{testimonial.quote}&rdquo;
+                </p>
+                <div className="pt-4 border-t border-gray-700">
+                  <p className="text-sm font-medium text-white">
+                    {testimonial.provider}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    {testimonial.location}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {testimonial.properties}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      </main>
+
+      <MarketingFooter />
     </div>
   );
 }

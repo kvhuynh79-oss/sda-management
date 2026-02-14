@@ -3,6 +3,12 @@
     Main layout for the MySDAManager "My Tasks" widget.
     Dark theme matching the app's bg-gray-900 (#111827).
 
+    SAMSUNG ONE UI FIX (2026-02-13):
+    - Removed ALL layout_weight usage (Samsung fails to measure weighted views during placement)
+    - All views use wrap_content or fixed heights
+    - Only ONE state container is visible at a time (controlled by provider code)
+    - The initial inflation uses widget_my_tasks_initial.xml instead of this file
+
     Structure:
     - Header: "My tasks" title + org subtitle + "+" add button
     - Task container: dynamically populated task rows
@@ -76,8 +82,7 @@
     <LinearLayout
         android:id="@+id/widget_task_container"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:visibility="gone" />
 
@@ -85,10 +90,11 @@
     <LinearLayout
         android:id="@+id/widget_empty_state"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
         android:visibility="gone">
 
         <TextView
@@ -108,21 +114,22 @@
             android:textSize="12sp" />
     </LinearLayout>
 
-    <!-- Auth State (Not Logged In) - visible by default so Samsung sees content on initial inflation -->
+    <!-- Auth State (Not Logged In) -->
     <LinearLayout
         android:id="@+id/widget_auth_state"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
-        android:visibility="visible">
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:visibility="gone">
 
         <TextView
             android:id="@+id/widget_auth_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Loading..."
+            android:text="Open app to sign in"
             android:textColor="#9CA3AF"
             android:textSize="13sp" />
     </LinearLayout>
@@ -131,10 +138,11 @@
     <LinearLayout
         android:id="@+id/widget_error_state"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
         android:visibility="gone">
 
         <TextView

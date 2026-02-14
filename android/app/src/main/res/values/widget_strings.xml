@@ -1,7 +1,3 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget-specific strings in a separate file so Capacitor's cap sync
-     doesn't overwrite them (it regenerates strings.xml from capacitor.config.ts). -->
 <resources>
-    <string name="widget_label">My Tasks</string>
-    <string name="widget_description">View and complete your upcoming tasks</string>
 </resources>

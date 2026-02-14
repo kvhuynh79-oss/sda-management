@@ -4,4 +4,5 @@
     <string name="title_activity_main">MySDAManager</string>
     <string name="package_name">com.mysdamanager.app</string>
     <string name="custom_url_scheme">com.mysdamanager.app</string>
+    <!-- Widget strings defined in strings_widget.xml -->
 </resources>

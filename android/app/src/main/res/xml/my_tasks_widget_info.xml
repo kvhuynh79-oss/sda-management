@@ -1,27 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Widget metadata for the MySDAManager "My Tasks" widget.
-
-    SAMSUNG ONE UI FIX (2026-02-13):
-    - Reduced default size from 4x3 to 3x2 to fit Galaxy Z Fold cover screen
-    - Added android:previewLayout (required by Samsung One UI on API 31+)
-    - Added android:label (Samsung reads this for the widget picker title)
-    - Kept minWidth/minHeight for pre-Android 12 devices
-    - targetCellWidth/Height for Android 12+ grid-based sizing
-    - description must resolve to a real @string resource (Samsung validates this)
+    Widget metadata - stripped to absolute minimum for Samsung debugging.
+    Only required attributes: minWidth, minHeight, updatePeriodMillis, initialLayout.
+    Add optional attributes back after placement succeeds.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
     android:minHeight="110dp"
-    android:targetCellWidth="3"
-    android:targetCellHeight="2"
-    android:minResizeWidth="110dp"
-    android:minResizeHeight="80dp"
-    android:maxResizeWidth="420dp"
-    android:maxResizeHeight="530dp"
-    android:updatePeriodMillis="900000"
+    android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_my_tasks_initial"
-    android:previewImage="@drawable/widget_preview"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen"
-    android:description="@string/widget_description" />
+    android:widgetCategory="home_screen" />

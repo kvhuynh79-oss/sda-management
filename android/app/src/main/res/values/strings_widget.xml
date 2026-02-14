@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- String resources for the MySDAManager widget -->
 <resources>
-    <string name="widget_name">My Tasks</string>
+    <string name="widget_label">My Tasks</string>
     <string name="widget_description">View your upcoming tasks from MySDAManager. Stay on top of follow-ups, funding reviews, and maintenance requests.</string>
     <string name="widget_title">My tasks</string>
     <string name="widget_subtitle_default">MySDAManager</string>

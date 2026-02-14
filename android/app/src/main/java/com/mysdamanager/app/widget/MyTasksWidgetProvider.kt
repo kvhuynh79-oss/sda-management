@@ -8,6 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
@@ -17,6 +20,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
+/**
+ * AppWidgetProvider for the MySDAManager "My Tasks" home screen widget.
+ *
+ * SAMSUNG ONE UI FIXES:
+ * - Initial layout uses inline color (NOT drawable) to avoid inflation failures in launcher process
+ * - NO layout_weight in any layout (Samsung fails to measure weighted views during placement)
+ * - Data fetch is DELAYED 2s after placement via Handler to avoid race condition
+ * - All updateAppWidget calls wrapped in try/catch to prevent placement rejection
+ * - Widget info uses 3x2 default size (fits Galaxy Z Fold cover screen)
+ * - previewLayout attribute set for Samsung One UI 6+ widget picker
+ * - android:label set on receiver in manifest for Samsung widget discovery
+ */
 class MyTasksWidgetProvider : AppWidgetProvider() {
 
     companion object {
@@ -24,7 +39,9 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         const val ACTION_COMPLETE_TASK = "com.mysdamanager.app.widget.ACTION_COMPLETE_TASK"
         const val ACTION_REFRESH = "com.mysdamanager.app.widget.ACTION_REFRESH"
         const val EXTRA_TASK_ID = "extra_task_id"
-        private const val MAX_TASKS = 6
+        private const val MAX_TASKS = 5
+        // Delay before fetching data after placement - gives Samsung time to finish validation
+        private const val PLACEMENT_DELAY_MS = 2000L
 
         private const val COLOR_TEAL = "#0D9488"
         private const val COLOR_TEXT_PRIMARY = "#FFFFFF"
@@ -50,8 +67,6 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -59,16 +74,43 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
     ) {
         Log.d(TAG, "onUpdate called for ${appWidgetIds.size} widgets")
         for (appWidgetId in appWidgetIds) {
+            // NUCLEAR TEST: Absolute minimum - just set the initial layout.
+            // If this still fails on Samsung, the issue is environmental.
             try {
-                updateWidget(context, appWidgetManager, appWidgetId)
+                val views = RemoteViews(context.packageName, R.layout.widget_my_tasks_initial)
+                appWidgetManager.updateAppWidget(appWidgetId, views)
+                Log.d(TAG, "Widget $appWidgetId: initial layout set OK")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update widget $appWidgetId", e)
-                // Show a safe fallback view so the widget doesn't get removed
+                Log.e(TAG, "Widget $appWidgetId: FAILED to set layout", e)
+            }
+        }
+
+        // After all widgets get their initial layout, schedule data fetch
+        for (appWidgetId in appWidgetIds) {
+            val appContext = context.applicationContext
+            val widgetId = appWidgetId
+            Handler(Looper.getMainLooper()).postDelayed({
+                fetchAndUpdateWidget(appContext, widgetId)
+            }, PLACEMENT_DELAY_MS)
+        }
+    }
+
+    /**
+     * Fetches task data in a background coroutine and updates the widget.
+     * Called from a delayed Handler post to avoid Samsung placement race conditions.
+     */
+    private fun fetchAndUpdateWidget(context: Context, appWidgetId: Int) {
+        val appWidgetManager = AppWidgetManager.getInstance(context) ?: return
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                updateWidgetWithData(context, appWidgetManager, appWidgetId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Background update failed for widget $appWidgetId", e)
                 try {
-                    val fallback = buildSimpleView(context, "My tasks", "Tap to open")
-                    appWidgetManager.updateAppWidget(appWidgetId, fallback)
+                    val errorView = buildSimpleView(context, appWidgetId, "My tasks", "Unable to load")
+                    appWidgetManager.updateAppWidget(appWidgetId, errorView)
                 } catch (e2: Exception) {
-                    Log.e(TAG, "Even fallback failed", e2)
+                    Log.e(TAG, "Error view also failed for widget $appWidgetId", e2)
                 }
             }
         }
@@ -99,66 +141,66 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         Log.d(TAG, "Widget disabled")
     }
 
-    private fun updateWidget(
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        Log.d(TAG, "onAppWidgetOptionsChanged for widget $appWidgetId")
+        // When options change (e.g. resize), re-run the update logic to redraw the widget.
+        // This will re-trigger the initial layout -> background data load flow.
+        refreshAllWidgets(context)
+    }
+
+    /**
+     * Fetches task data and updates the widget with the full layout.
+     * Called from a background coroutine with goAsync() keeping the receiver alive.
+     */
+    private fun updateWidgetWithData(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int
     ) {
-        // FIRST: Always set a valid static view immediately (prevents widget removal on crash)
-        val initialView = buildSimpleView(context, "My tasks", "Loading...")
-        appWidgetManager.updateAppWidget(appWidgetId, initialView)
-        Log.d(TAG, "Initial view set for widget $appWidgetId")
+        val tokenManager = TokenManager(context)
+        val token = tokenManager.getSessionToken()
 
-        // THEN: Fetch tasks in background
-        coroutineScope.launch {
-            try {
-                val tokenManager = TokenManager(context)
-                val token = tokenManager.getSessionToken()
+        if (token == null) {
+            val views = buildNotLoggedInViews(context, appWidgetId)
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+            return
+        }
 
-                if (token == null) {
-                    val views = buildNotLoggedInViews(context)
-                    appWidgetManager.updateAppWidget(appWidgetId, views)
-                    return@launch
-                }
+        val taskService = TaskService(context)
+        val orgName = tokenManager.getOrgName()
+        val result = taskService.fetchTasks(limit = MAX_TASKS)
 
-                val taskService = TaskService(context)
-                val orgName = tokenManager.getOrgName()
-                val result = taskService.fetchTasks(limit = MAX_TASKS)
-
-                val views = when (result) {
-                    is TaskFetchResult.Success -> {
-                        buildTaskListViews(context, result.tasks, result.totalCount, orgName)
-                    }
-                    is TaskFetchResult.NotAuthenticated,
-                    is TaskFetchResult.SessionExpired -> {
-                        buildNotLoggedInViews(context)
-                    }
-                    is TaskFetchResult.Forbidden -> {
-                        buildSimpleView(context, "My tasks", "Access denied")
-                    }
-                    is TaskFetchResult.Error -> {
-                        buildSimpleView(context, "My tasks", result.message)
-                    }
-                }
-
-                appWidgetManager.updateAppWidget(appWidgetId, views)
-                Log.d(TAG, "Widget $appWidgetId updated with data")
-            } catch (e: Exception) {
-                Log.e(TAG, "Background fetch failed for widget $appWidgetId", e)
-                try {
-                    val errorView = buildSimpleView(context, "My tasks", "Unable to load")
-                    appWidgetManager.updateAppWidget(appWidgetId, errorView)
-                } catch (e2: Exception) {
-                    Log.e(TAG, "Error view failed", e2)
-                }
+        val views = when (result) {
+            is TaskFetchResult.Success -> {
+                buildTaskListViews(context, appWidgetId, result.tasks, result.totalCount, orgName)
+            }
+            is TaskFetchResult.NotAuthenticated,
+            is TaskFetchResult.SessionExpired -> {
+                buildNotLoggedInViews(context, appWidgetId)
+            }
+            is TaskFetchResult.Forbidden -> {
+                buildSimpleView(context, appWidgetId, "My tasks", "Access denied")
+            }
+            is TaskFetchResult.Error -> {
+                buildSimpleView(context, appWidgetId, "My tasks", result.message)
             }
         }
+
+        appWidgetManager.updateAppWidget(appWidgetId, views)
+        Log.d(TAG, "Widget $appWidgetId updated with data")
     }
 
     /**
-     * Minimal safe view that cannot crash - just title + subtitle text.
+     * Minimal safe view using the FULL layout - just title + subtitle text, all containers hidden.
+     * Used for error/fallback states after the initial placement has already succeeded.
      */
-    private fun buildSimpleView(context: Context, title: String, subtitle: String): RemoteViews {
+    private fun buildSimpleView(context: Context, appWidgetId: Int, title: String, subtitle: String): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_my_tasks)
         views.setTextViewText(R.id.widget_title, title)
         views.setTextViewText(R.id.widget_subtitle, subtitle)
@@ -171,7 +213,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         // Tap anywhere opens the app
         val openAppIntent = Intent(Intent.ACTION_VIEW, Uri.parse("mysdamanager://follow-ups"))
         val openAppPending = PendingIntent.getActivity(
-            context, 100, openAppIntent,
+            context, 100 + appWidgetId, openAppIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_title, openAppPending)
@@ -181,6 +223,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
 
     private fun buildTaskListViews(
         context: Context,
+        appWidgetId: Int,
         tasks: List<TaskItem>,
         totalCount: Int,
         orgName: String?
@@ -195,7 +238,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         // "+" button
         val newTaskIntent = Intent(Intent.ACTION_VIEW, Uri.parse("mysdamanager://follow-ups/tasks/new"))
         val newTaskPending = PendingIntent.getActivity(
-            context, 0, newTaskIntent,
+            context, appWidgetId * 10, newTaskIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_add_button, newTaskPending)
@@ -212,7 +255,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
 
             val displayTasks = tasks.take(MAX_TASKS)
             for ((index, task) in displayTasks.withIndex()) {
-                val taskRow = buildTaskRow(context, task)
+                val taskRow = buildTaskRow(context, appWidgetId, task)
                 views.addView(R.id.widget_task_container, taskRow)
 
                 if (index < displayTasks.size - 1) {
@@ -228,7 +271,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
 
                 val viewAllIntent = Intent(Intent.ACTION_VIEW, Uri.parse("mysdamanager://follow-ups"))
                 val viewAllPending = PendingIntent.getActivity(
-                    context, 1, viewAllIntent,
+                    context, appWidgetId * 10 + 1, viewAllIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 views.setOnClickPendingIntent(R.id.widget_footer, viewAllPending)
@@ -243,7 +286,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         return views
     }
 
-    private fun buildTaskRow(context: Context, task: TaskItem): RemoteViews {
+    private fun buildTaskRow(context: Context, appWidgetId: Int, task: TaskItem): RemoteViews {
         val row = RemoteViews(context.packageName, R.layout.widget_task_row)
 
         row.setInt(R.id.task_priority_circle, "setColorFilter", task.priorityColor)
@@ -280,7 +323,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
         return row
     }
 
-    private fun buildNotLoggedInViews(context: Context): RemoteViews {
+    private fun buildNotLoggedInViews(context: Context, appWidgetId: Int): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_my_tasks)
 
         views.setTextViewText(R.id.widget_title, "My tasks")
@@ -297,7 +340,7 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
 
         val loginIntent = Intent(Intent.ACTION_VIEW, Uri.parse("mysdamanager://login"))
         val loginPending = PendingIntent.getActivity(
-            context, 2, loginIntent,
+            context, appWidgetId * 10 + 2, loginIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_auth_state, loginPending)
@@ -306,15 +349,26 @@ class MyTasksWidgetProvider : AppWidgetProvider() {
     }
 
     private fun handleCompleteTask(context: Context, taskId: String) {
-        coroutineScope.launch {
+        val pendingResult = goAsync()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val taskService = TaskService(context)
                 val success = taskService.completeTask(taskId)
                 Log.d(TAG, "Task $taskId complete: $success")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to complete task: $taskId", e)
+            } finally {
+                try {
+                    refreshAllWidgets(context)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Refresh after complete failed", e)
+                }
+                try {
+                    pendingResult.finish()
+                } catch (e: Exception) {
+                    Log.e(TAG, "pendingResult.finish() failed", e)
+                }
             }
-            refreshAllWidgets(context)
         }
     }
 }

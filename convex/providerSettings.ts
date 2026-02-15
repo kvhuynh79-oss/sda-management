@@ -79,6 +79,7 @@ export const upsert = mutation({
         abn: args.abn || "",
         defaultGstCode: args.defaultGstCode || "P2",
         defaultSupportItemNumber: args.defaultSupportItemNumber || "",
+        orgAbbreviation: args.orgAbbreviation,
         contactEmail: args.contactEmail,
         contactPhone: args.contactPhone,
         address: args.address,

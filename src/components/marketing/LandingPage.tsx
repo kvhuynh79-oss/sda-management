@@ -190,7 +190,7 @@ export function LandingPage() {
     }
 
     try {
-      generateAuditChecklistPdf(leadName);
+      await generateAuditChecklistPdf(leadName);
     } catch {
       // PDF generation fallback - should not fail but guard anyway
     }

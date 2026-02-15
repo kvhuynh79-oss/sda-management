@@ -1,10 +1,39 @@
 import jsPDF from "jspdf";
 
+/** Render the shield-house logo SVG to a PNG data URL via canvas. */
+function renderLogoToDataUrl(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 48" width="132" height="144" fill="none">
+      <path d="M22 2L4 10v12c0 11 7.7 21.3 18 24 10.3-2.7 18-13 18-24V10L22 2z" fill="white" opacity="0.3"/>
+      <path d="M22 2L4 10v12c0 11 7.7 21.3 18 24 10.3-2.7 18-13 18-24V10L22 2z" stroke="white" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+      <path d="M22 14l-10 8h3v8h5v-5h4v5h5v-8h3L22 14z" fill="white"/>
+    </svg>`;
+    const img = new Image();
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 132;
+      canvas.height = 144;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("No canvas context")); return; }
+      ctx.drawImage(img, 0, 0, 132, 144);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Logo render failed"));
+    };
+    img.src = url;
+  });
+}
+
 /**
  * Generate a branded 12-point NDIS SDA Audit Readiness Checklist PDF.
  * Used as a lead magnet on the landing page.
  */
-export function generateAuditChecklistPdf(leadName: string): void {
+export async function generateAuditChecklistPdf(leadName: string): Promise<void> {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
@@ -15,17 +44,28 @@ export function generateAuditChecklistPdf(leadName: string): void {
   doc.setFillColor(13, 148, 136); // teal-600
   doc.rect(0, 0, pageWidth, 42, "F");
 
+  // Logo icon
+  const textX = margin;
+  let logoOffset = 0;
+  try {
+    const logoDataUrl = await renderLogoToDataUrl();
+    doc.addImage(logoDataUrl, "PNG", margin, 5, 11, 12);
+    logoOffset = 14;
+  } catch {
+    // Fallback: no logo icon, just text
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.text("MySDAManager", margin, 18);
+  doc.text("MySDAManager", textX + logoOffset, 18);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text("NDIS SDA Compliance & Property Management Software", margin, 26);
+  doc.text("NDIS SDA Compliance & Property Management Software", textX + logoOffset, 26);
 
   doc.setFontSize(9);
-  doc.text("mysdamanager.com", margin, 34);
+  doc.text("mysdamanager.com", textX + logoOffset, 34);
 
   // --- Title ---
   y = 56;

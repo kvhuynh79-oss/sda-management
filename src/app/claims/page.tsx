@@ -189,7 +189,7 @@ export default function ClaimsPage() {
     const year = parseInt(yearStr);
     const month = parseInt(monthStr);
     const claimDay = claim.claimDay || 1;
-    const fromDate = new Date(year, month - 2, claimDay + 1); // prev month, day after claim day
+    const fromDate = new Date(year, month - 2, claimDay - 1); // prev month, one day before claim day
     const toDate = new Date(year, month - 1, claimDay); // current month, claim day
     const formatNdisDate = (d: Date) => {
       const yyyy = d.getFullYear();

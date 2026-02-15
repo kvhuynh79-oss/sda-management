@@ -339,9 +339,9 @@ function ClaimsTab({ userId }: { userId: string }) {
 
     const rows = paceClaims.map((claim) => {
       const claimDay = claim.claimDay || 1;
-      // Support period: day after previous claim day → current claim day
-      // e.g. claim day 13, Feb 2026: From = 2026-01-14, To = 2026-02-13
-      const fromDate = new Date(year, month - 2, claimDay + 1); // prev month, day after claim day
+      // Support period: one day before claim day (prev month) → claim day (current month)
+      // e.g. claim day 13, Feb 2026: From = 2026-01-12, To = 2026-02-13
+      const fromDate = new Date(year, month - 2, claimDay - 1); // prev month, one day before claim day
       const toDate = new Date(year, month - 1, claimDay); // current month, claim day
 
       return {
@@ -514,9 +514,9 @@ function ClaimsTab({ userId }: { userId: string }) {
 
     const rows = selectedClaimsList.map((claim) => {
       const claimDay = claim.claimDay || 1;
-      // Support period: day after previous claim day → current claim day
-      // e.g. claim day 13, Feb 2026: From = 2026-01-14, To = 2026-02-13
-      const fromDate = new Date(year, month - 2, claimDay + 1); // prev month, day after claim day
+      // Support period: one day before claim day (prev month) → claim day (current month)
+      // e.g. claim day 13, Feb 2026: From = 2026-01-12, To = 2026-02-13
+      const fromDate = new Date(year, month - 2, claimDay - 1); // prev month, one day before claim day
       const toDate = new Date(year, month - 1, claimDay); // current month, claim day
 
       return {

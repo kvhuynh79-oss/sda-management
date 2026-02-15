@@ -733,8 +733,9 @@ export default defineSchema({
     providerName: v.string(),
     ndisRegistrationNumber: v.string(),
     abn: v.string(),
-    defaultGstCode: v.string(),
+    defaultGstCode: v.string(), // Must be P1, P2, or P5 per NDIS spec (P2 = GST Free for SDA)
     defaultSupportItemNumber: v.string(),
+    orgAbbreviation: v.optional(v.string()), // Short code for CSV filenames, e.g. "BLS", "AAH"
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
     address: v.optional(v.string()),

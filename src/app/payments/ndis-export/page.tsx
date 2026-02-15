@@ -27,6 +27,7 @@ export default function NDISExportPage() {
     abn: "",
     defaultGstCode: "P2",
     defaultSupportItemNumber: "",
+    orgAbbreviation: "",
   });
 
   const userId = user ? (user.id as Id<"users">) : undefined;
@@ -74,6 +75,7 @@ export default function NDISExportPage() {
         abn: providerSettings.abn || "",
         defaultGstCode: providerSettings.defaultGstCode || "P2",
         defaultSupportItemNumber: providerSettings.defaultSupportItemNumber || "",
+        orgAbbreviation: (providerSettings as any).orgAbbreviation || "",
       });
     }
   }, [providerSettings]);
@@ -223,9 +225,11 @@ export default function NDISExportPage() {
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
 
-    // Filename format: NDIS_Claims_YYYY-MM.csv
-    const monthYear = periodStart.substring(0, 7);
-    link.setAttribute("download", `NDIS_Claims_${monthYear}.csv`);
+    // Filename format: {ORG}_{DDMMYYYY}.csv (e.g. BLS_15022026.csv)
+    const now = new Date();
+    const todayDDMMYYYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${now.getFullYear()}`;
+    const orgCode = (providerSettings as any)?.orgAbbreviation || settingsForm.providerName?.substring(0, 3).toUpperCase() || "NDIS";
+    link.setAttribute("download", `${orgCode}_${todayDDMMYYYY}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -355,7 +359,26 @@ export default function NDISExportPage() {
                   >
                     <option value="P2">P2 - GST Free</option>
                     <option value="P1">P1 - GST Applicable</option>
+                    <option value="P5">P5 - Input Taxed</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Organisation Abbreviation
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.orgAbbreviation}
+                    onChange={(e) =>
+                      setSettingsForm({ ...settingsForm, orgAbbreviation: e.target.value.toUpperCase() })
+                    }
+                    maxLength={10}
+                    placeholder="BLS"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Used in CSV export filenames (e.g. BLS_15022026.csv)
+                  </p>
                 </div>
               </div>
               <div className="flex gap-4 mt-6">

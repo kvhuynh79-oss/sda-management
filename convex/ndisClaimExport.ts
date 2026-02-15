@@ -29,6 +29,7 @@ export const saveProviderSettings = mutation({
     abn: v.string(),
     defaultGstCode: v.string(),
     defaultSupportItemNumber: v.string(),
+    orgAbbreviation: v.optional(v.string()),
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
     address: v.optional(v.string()),
@@ -99,8 +100,17 @@ export const generateClaimData = query({
       participants = allParticipants.filter((p) => p.status === "active");
     }
 
+    // Validate and sanitize GSTCode — must be P1, P2, or P5 per NDIS spec
+    const validGstCode = (code: string | undefined): string => {
+      if (code === "P1" || code === "P2" || code === "P5") return code;
+      return "P2"; // Default to P2 (GST Free) for SDA
+    };
+
+    // Today's date for ClaimReference format: FirstName_DDMMYY
+    const now = new Date();
+    const todayDDMMYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getFullYear()).slice(2)}`;
+
     const claims = [];
-    let claimRefCounter = 1;
 
     for (const participant of participants) {
       if (!participant) continue;
@@ -117,28 +127,39 @@ export const generateClaimData = query({
       // Use the monthly SDA amount directly (not calculated from daily rate)
       const unitPrice = plan.monthlySdaAmount || (plan.dailySdaRate ? plan.dailySdaRate * 30 : 0);
 
-      // Generate claim reference (format: MMYYYY + counter, e.g., 012026001)
-      const monthYear = args.periodStart.substring(5, 7) + args.periodStart.substring(0, 4);
-      const claimRef = monthYear + String(claimRefCounter).padStart(3, "0");
-      claimRefCounter++;
+      // ClaimReference format: FirstName_DDMMYY (alphanumeric, /, _, - only, max 50 chars)
+      const claimRef = `${participant.firstName}_${todayDDMMYY}`.replace(/[^a-zA-Z0-9/_-]/g, "").substring(0, 50);
+
+      // SupportNumber — must not be empty
+      const supportNumber = plan.supportItemNumber || providerSettings.defaultSupportItemNumber || "";
 
       claims.push({
-        RegistrationNumber: providerSettings.ndisRegistrationNumber,
-        NDISNumber: (await decryptField(participant.ndisNumber)) ?? participant.ndisNumber,
+        // Strip spaces from RegistrationNumber (stored as "405 005 2336", must be "4050052336")
+        RegistrationNumber: (providerSettings.ndisRegistrationNumber || "").replace(/\s/g, ""),
+        NDISNumber: await (async () => {
+          const decrypted = await decryptField(participant.ndisNumber);
+          // Never leak encrypted values - return empty string if decryption fails
+          if (!decrypted || decrypted === "[encrypted]" || decrypted.startsWith("enc:")) {
+            console.error(`[NDIS Export] Decryption failed for participant ${participant._id}. Check ENCRYPTION_KEY env var.`);
+            return "";
+          }
+          return decrypted;
+        })(),
         SupportsDeliveredFrom: args.periodStart,
         SupportsDeliveredTo: args.periodEnd,
-        SupportNumber: plan.supportItemNumber || providerSettings.defaultSupportItemNumber,
+        SupportNumber: supportNumber,
         ClaimReference: claimRef,
         Quantity: 1,
         Hours: "",
         UnitPrice: unitPrice.toFixed(2),
-        GSTCode: providerSettings.defaultGstCode,
+        GSTCode: validGstCode(providerSettings.defaultGstCode),
         AuthorisedBy: "",
         ParticipantApproved: "",
         InKindFundingProgram: "",
         ClaimType: "",
         CancellationReason: "",
-        "ABN of Support Provider": providerSettings.abn,
+        // Strip spaces from ABN (stored as "87 630 237 277", must be "87630237277")
+        "ABN of Support Provider": (providerSettings.abn || "").replace(/\s/g, ""),
         // Additional metadata for display (not in CSV)
         _participantName: `${participant.firstName} ${participant.lastName}`,
         _monthlyAmount: plan.monthlySdaAmount || 0,
@@ -147,7 +168,17 @@ export const generateClaimData = query({
       });
     }
 
-    return { claims, providerSettings };
+    return {
+      claims,
+      providerSettings: {
+        ...providerSettings,
+        // Return sanitized values so client-side doesn't need to re-strip
+        ndisRegistrationNumber: (providerSettings.ndisRegistrationNumber || "").replace(/\s/g, ""),
+        abn: (providerSettings.abn || "").replace(/\s/g, ""),
+        defaultGstCode: validGstCode(providerSettings.defaultGstCode),
+        orgAbbreviation: (providerSettings as any).orgAbbreviation || "",
+      },
+    };
   },
 });
 

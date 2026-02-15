@@ -46,6 +46,9 @@ function OrganizationSettingsContent() {
   const [bankBsb, setBankBsb] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [bankAccountName, setBankAccountName] = useState("");
+  const [orgAbbreviation, setOrgAbbreviation] = useState("");
+  const [defaultGstCode, setDefaultGstCode] = useState("P2");
+  const [defaultSupportItemNumber, setDefaultSupportItemNumber] = useState("");
   const [isSavingProvider, setIsSavingProvider] = useState(false);
 
   useEffect(() => {
@@ -208,6 +211,9 @@ function OrganizationSettingsContent() {
       setBankBsb(providerSettings.bankBsb || "");
       setBankAccountNumber(providerSettings.bankAccountNumber || "");
       setBankAccountName(providerSettings.bankAccountName || "");
+      setOrgAbbreviation((providerSettings as any).orgAbbreviation || "");
+      setDefaultGstCode(providerSettings.defaultGstCode || "P2");
+      setDefaultSupportItemNumber(providerSettings.defaultSupportItemNumber || "");
     }
   }, [providerSettings]);
 
@@ -321,13 +327,16 @@ function OrganizationSettingsContent() {
     if (!user) return;
     setIsSavingProvider(true);
     try {
+      // Validate GST code — must be P1, P2, or P5 per NDIS spec
+      const validGst = (defaultGstCode === "P1" || defaultGstCode === "P2" || defaultGstCode === "P5") ? defaultGstCode : "P2";
       await upsertProvider({
         userId: user.id as Id<"users">,
         providerName: providerName.trim(),
         ndisRegistrationNumber: ndisRegistrationNumber.trim(),
         abn: abn.trim(),
-        defaultGstCode: "GST",
-        defaultSupportItemNumber: "",
+        defaultGstCode: validGst,
+        defaultSupportItemNumber: defaultSupportItemNumber.trim(),
+        orgAbbreviation: orgAbbreviation.trim().toUpperCase() || undefined,
         contactEmail: contactEmail.trim() || undefined,
         contactPhone: contactPhone.trim() || undefined,
         address: address.trim() || undefined,
@@ -593,6 +602,25 @@ function OrganizationSettingsContent() {
                   <div>
                     <label htmlFor="ndis-reg" className="block text-sm font-medium text-gray-300 mb-1">NDIS Registration Number</label>
                     <input id="ndis-reg" type="text" value={ndisRegistrationNumber} onChange={(e) => setNdisRegistrationNumber(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="XXX XXX XXXX" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label htmlFor="org-abbreviation" className="block text-sm font-medium text-gray-300 mb-1">Organisation Abbreviation</label>
+                      <input id="org-abbreviation" type="text" value={orgAbbreviation} onChange={(e) => setOrgAbbreviation(e.target.value.toUpperCase())} maxLength={10} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="BLS" />
+                      <p className="text-xs text-gray-500 mt-1">Used in CSV export filenames (e.g. BLS_15022026.csv)</p>
+                    </div>
+                    <div>
+                      <label htmlFor="default-gst-code" className="block text-sm font-medium text-gray-300 mb-1">Default GST Code</label>
+                      <select id="default-gst-code" value={defaultGstCode} onChange={(e) => setDefaultGstCode(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
+                        <option value="P2">P2 - GST Free</option>
+                        <option value="P1">P1 - GST Applicable</option>
+                        <option value="P5">P5 - Input Taxed</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="default-support-item" className="block text-sm font-medium text-gray-300 mb-1">Default Support Item Number</label>
+                      <input id="default-support-item" type="text" value={defaultSupportItemNumber} onChange={(e) => setDefaultSupportItemNumber(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" placeholder="06_431_0131_2_2" />
+                    </div>
                   </div>
                 </div>
 

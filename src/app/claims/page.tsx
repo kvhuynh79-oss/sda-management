@@ -278,10 +278,10 @@ export default function ClaimsPage() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `BLS_${todayDDMMYY}.csv`
-    );
+    // Filename format: {ORG}_{DDMMYYYY}.csv (e.g. BLS_15022026.csv)
+    const todayDDMMYYYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${now.getFullYear()}`;
+    const orgCode = (providerSettings as any)?.orgAbbreviation || providerSettings?.providerName?.substring(0, 3).toUpperCase() || "NDIS";
+    link.setAttribute("download", `${orgCode}_${todayDDMMYYYY}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();

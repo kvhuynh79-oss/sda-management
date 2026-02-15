@@ -287,6 +287,7 @@ function ClaimsTab({ userId }: { userId: string }) {
     const [year, month] = selectedPeriod.split("-").map(Number);
     const now = new Date();
     const todayDDMMYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getFullYear()).slice(2)}`;
+    const todayDDMMYYYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${now.getFullYear()}`;
 
     // Decrypt NDIS numbers
     const ndisMap = new Map<string, string>();
@@ -372,7 +373,8 @@ function ClaimsTab({ userId }: { userId: string }) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `BLS_${todayDDMMYY}.csv`;
+    const orgCode = (providerSettings as any)?.orgAbbreviation || providerSettings?.providerName?.substring(0, 3).toUpperCase() || "NDIS";
+    a.download = `${orgCode}_${todayDDMMYYYY}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -431,6 +433,7 @@ function ClaimsTab({ userId }: { userId: string }) {
 
     const now = new Date();
     const todayDDMMYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getFullYear()).slice(2)}`;
+    const todayDDMMYYYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${now.getFullYear()}`;
 
     const selectedClaimsList = filteredClaims?.filter(
       (c) => selectedClaims.has(`${c.participant._id}-${c.claimDay}`)
@@ -442,7 +445,6 @@ function ClaimsTab({ userId }: { userId: string }) {
     }
 
     const [year, month] = selectedPeriod.split("-").map(Number);
-    const fileRef = `${String(month).padStart(2, "0")}${year}`;
 
     // Decrypt NDIS numbers for all selected participants
     const ndisMap = new Map<string, string>();
@@ -546,7 +548,8 @@ function ClaimsTab({ userId }: { userId: string }) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `BLS_${todayDDMMYY}.csv`;
+    const orgCode = (providerSettings as any)?.orgAbbreviation || providerSettings?.providerName?.substring(0, 3).toUpperCase() || "NDIS";
+    a.download = `${orgCode}_${todayDDMMYYYY}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 

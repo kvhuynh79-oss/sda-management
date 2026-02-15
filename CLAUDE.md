@@ -839,6 +839,8 @@ All 8 sprints of the SaaS transformation are complete.
   - Individual post pages at `/blog/[slug]` with related posts
 - **Lead Capture**: `convex/marketingLeads.ts` - audit checklist PDF download captures email
   - `marketingLeads` table in schema with `by_organizationId` index
+  - Email notification via Resend on every lead/inquiry submission (to admin)
+  - Admin leads dashboard at `/admin/leads` with stats, search, source filters
 - **Marketing Content** (in `marketing/` dir):
   - `brand-guidelines.md` - Comprehensive brand identity document
   - `linkedin-campaign-calendar.md` - 12-week LinkedIn content calendar
@@ -857,15 +859,15 @@ All 8 sprints of the SaaS transformation are complete.
   - Hero dashboard screenshot below hero text with gradient fade
   - Sliding carousel gallery (5 screenshots: Dashboard, Properties, Participants, Incidents, Compliance)
   - CSS translateX transitions, left/right arrows on hover, dot indicators
-- **Build**: 116 pages, 0 errors
+- **Build**: 117 pages, 0 errors
 
-### Remaining Launch Tasks
+### Remaining Launch Tasks (ALL EXTERNAL - No Code Needed)
 - **Stripe Configuration**: Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs in Convex + Vercel env
 - **Business Registration**: Register Pty Ltd with ASIC, apply for ABN, apply for Director ID
 - **Stripe Business Account**: Create account, configure 10% GST, link to Xero
 - **Trademark**: File with IP Australia for "MySDAManager" (Class 9 + 42)
 - **Domain**: Secure .com.au under new ABN
-- **Performance**: Load test with 10+ simultaneous organizations
+- ~~**Performance**: Load test with 10+ simultaneous organizations~~ DONE (Grade A+, 180/180 queries, avg 283ms)
 - **DNS**: Configure custom org subdomains (if needed)
 
 ## Reference Documents
@@ -964,12 +966,14 @@ All 8 sprints of the SaaS transformation are complete.
 67. Demo Org Seed Data - ✅ (`seedDemoOrg` in `convex/seed.ts`, 93 records for fictional "Horizon SDA Group")
 68. App Screenshots - ✅ (26 desktop + 78 social crops via Playwright, `marketing/screenshots/`)
 69. Landing Page Screenshots - ✅ (hero dashboard image + sliding 5-screenshot carousel with arrows and dot nav)
+70. Lead Notification + Dashboard - ✅ (Resend email on lead/inquiry capture, admin leads page at `/admin/leads` with stats/search/filters)
+71. Load Test - ✅ (12 orgs, 180/180 queries, avg 283ms, Grade A+, tenant isolation verified)
 
 ### Post-Launch Tasks
-70. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
-71. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-72. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-73. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+72. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+73. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+74. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+75. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -1035,4 +1039,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-14 (v2.6.0 - Marketing sprint complete. 9 marketing pages, blog, SEO, lead capture. Feature list, demo org seed, 26 screenshots + 78 social crops. Landing page hero image + sliding carousel. 116 pages, 0 errors.)
+**Last Updated**: 2026-02-16 (v2.6.1 - Lead notification emails via Resend + admin leads dashboard. Competitor analysis + social media marketing plan. Load test passed A+. 117 pages, 0 errors.)

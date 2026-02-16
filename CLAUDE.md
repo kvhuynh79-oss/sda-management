@@ -859,6 +859,8 @@ All 8 sprints of the SaaS transformation are complete.
   - Hero dashboard screenshot below hero text with gradient fade
   - Sliding carousel gallery (5 screenshots: Dashboard, Properties, Participants, Incidents, Compliance)
   - CSS translateX transitions, left/right arrows on hover, dot indicators
+- **Communications Auto-Link Participant**: Free-text participant names in communications now auto-search for existing participant by name, or create an incomplete profile if not found. Applied to both create and update mutations.
+- **Lead Email Notifications**: Resend email on every lead/inquiry submission to admin. Admin leads dashboard at `/admin/leads` with stats, search, source filters.
 - **Build**: 117 pages, 0 errors
 
 ### Remaining Launch Tasks (ALL EXTERNAL - No Code Needed)

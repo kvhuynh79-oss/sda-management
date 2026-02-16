@@ -252,6 +252,64 @@ export const create = mutation({
       }
     }
 
+    // AUTO-LINK PARTICIPANT: When free-text name is provided without a linked participant,
+    // search for an existing participant by name or create an incomplete one.
+    let resolvedParticipantId = args.linkedParticipantId;
+    let resolvedFreeTextName = args.freeTextParticipantName;
+
+    if (!resolvedParticipantId && resolvedFreeTextName && resolvedFreeTextName.trim()) {
+      const nameParts = resolvedFreeTextName.trim().split(/\s+/);
+      const searchFirstName = nameParts[0];
+      const searchLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+      // Search for existing participant by name within this org
+      const existingParticipants = await ctx.db
+        .query("participants")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.and(
+          q.eq(q.field("firstName"), searchFirstName),
+          q.eq(q.field("lastName"), searchLastName),
+          q.neq(q.field("status"), "archived")
+        ))
+        .first();
+
+      if (existingParticipants) {
+        // Found existing participant - link it
+        resolvedParticipantId = existingParticipants._id;
+        resolvedFreeTextName = undefined; // Clear free text since we linked
+      } else if (searchLastName) {
+        // No match found - create incomplete participant
+        const now2 = Date.now();
+        const newParticipantId = await ctx.db.insert("participants", {
+          organizationId,
+          firstName: searchFirstName,
+          lastName: searchLastName,
+          ndisNumber: "",
+          dateOfBirth: "",
+          email: "",
+          phone: "",
+          status: "incomplete",
+          createdAt: now2,
+          updatedAt: now2,
+        });
+        resolvedParticipantId = newParticipantId;
+        resolvedFreeTextName = undefined;
+
+        // Create profile_incomplete alert
+        await ctx.db.insert("alerts", {
+          organizationId,
+          alertType: "profile_incomplete",
+          severity: "warning",
+          title: `Incomplete profile: ${searchFirstName} ${searchLastName}`,
+          message: `Participant created from communications. Complete their NDIS details.`,
+          linkedParticipantId: newParticipantId,
+          triggerDate: new Date().toISOString().split("T")[0],
+          status: "active",
+          createdAt: now2,
+        });
+      }
+    }
+
     // Create communication with thread assignment and organizationId
     // Note: explicitly list fields instead of ...args to avoid inserting non-schema fields
     // (skipConsultationGate, existingThreadId are mutation args only, not stored)
@@ -267,9 +325,9 @@ export const create = mutation({
       contactPhone: args.contactPhone,
       subject: args.subject,
       summary: args.summary,
-      linkedParticipantId: args.linkedParticipantId,
+      linkedParticipantId: resolvedParticipantId,
       linkedPropertyId: args.linkedPropertyId,
-      freeTextParticipantName: args.freeTextParticipantName,
+      freeTextParticipantName: resolvedFreeTextName,
       propertyTbd: args.propertyTbd,
       linkedIncidentId: args.linkedIncidentId,
       attachmentStorageId: args.attachmentStorageId,
@@ -286,9 +344,9 @@ export const create = mutation({
       // Threading fields
       isThreadStarter: threadResult.isNewThread,
       requiresFollowUp: false,
-      isParticipantInvolved: args.linkedParticipantId != null,
+      isParticipantInvolved: resolvedParticipantId != null,
       threadId: threadResult.threadId,
-      participantId: args.linkedParticipantId,
+      participantId: resolvedParticipantId,
       createdBy: args.createdBy,
       createdAt: now,
       updatedAt: now,
@@ -542,6 +600,56 @@ export const update = mutation({
     // Verify org ownership
     if (existing.organizationId !== organizationId) {
       throw new Error("Access denied: Communication belongs to different organization");
+    }
+
+    // AUTO-LINK PARTICIPANT on update: same logic as create
+    if (!updates.linkedParticipantId && updates.freeTextParticipantName && updates.freeTextParticipantName.trim()) {
+      const nameParts = updates.freeTextParticipantName.trim().split(/\s+/);
+      const searchFirstName = nameParts[0];
+      const searchLastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+      const existingParticipant = await ctx.db
+        .query("participants")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .filter((q) => q.and(
+          q.eq(q.field("firstName"), searchFirstName),
+          q.eq(q.field("lastName"), searchLastName),
+          q.neq(q.field("status"), "archived")
+        ))
+        .first();
+
+      if (existingParticipant) {
+        updates.linkedParticipantId = existingParticipant._id;
+        updates.freeTextParticipantName = undefined;
+      } else if (searchLastName) {
+        const now2 = Date.now();
+        const newParticipantId = await ctx.db.insert("participants", {
+          organizationId,
+          firstName: searchFirstName,
+          lastName: searchLastName,
+          ndisNumber: "",
+          dateOfBirth: "",
+          email: "",
+          phone: "",
+          status: "incomplete",
+          createdAt: now2,
+          updatedAt: now2,
+        });
+        updates.linkedParticipantId = newParticipantId;
+        updates.freeTextParticipantName = undefined;
+
+        await ctx.db.insert("alerts", {
+          organizationId,
+          alertType: "profile_incomplete",
+          severity: "warning",
+          title: `Incomplete profile: ${searchFirstName} ${searchLastName}`,
+          message: `Participant created from communications. Complete their NDIS details.`,
+          linkedParticipantId: newParticipantId,
+          triggerDate: new Date().toISOString().split("T")[0],
+          status: "active",
+          createdAt: now2,
+        });
+      }
     }
 
     await ctx.db.patch(id, {

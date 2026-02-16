@@ -482,6 +482,78 @@ export default defineSchema({
     .index("by_participant_status", ["participantId", "status"])
     .index("by_organizationId", ["organizationId"]),
 
+  // MTA (Medium Term Accommodation) Claims table
+  mtaClaims: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    participantId: v.id("participants"),
+    planId: v.optional(v.id("participantPlans")),
+
+    // MTA Agreement period (full 90-day max agreement)
+    mtaAgreementStart: v.string(), // ISO date "YYYY-MM-DD"
+    mtaAgreementEnd: v.string(),   // ISO date "YYYY-MM-DD"
+
+    // Claim period (the specific window being invoiced)
+    claimPeriodStart: v.string(),  // ISO date
+    claimPeriodEnd: v.string(),    // ISO date
+
+    // Claim frequency
+    claimFrequency: v.union(
+      v.literal("weekly"),
+      v.literal("fortnightly"),
+      v.literal("monthly")
+    ),
+
+    // Financial
+    dailyRate: v.number(),
+    numberOfDays: v.number(),
+    claimAmount: v.number(),
+    supportItemNumber: v.string(),
+
+    // Invoice
+    invoiceNumber: v.string(),
+    invoiceDate: v.optional(v.string()),
+    dueDate: v.optional(v.string()),
+
+    // Plan Manager
+    planManagerName: v.optional(v.string()),
+    planManagerEmail: v.optional(v.string()),
+
+    // Status lifecycle
+    status: v.union(
+      v.literal("pending"),
+      v.literal("submitted"),
+      v.literal("paid"),
+      v.literal("rejected"),
+      v.literal("partial")
+    ),
+
+    // Payment tracking
+    claimDate: v.optional(v.string()),
+    paidDate: v.optional(v.string()),
+    paidAmount: v.optional(v.number()),
+    paymentReference: v.optional(v.string()),
+    notes: v.optional(v.string()),
+
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_participant", ["participantId"])
+    .index("by_status", ["status"])
+    .index("by_invoiceNumber", ["invoiceNumber"])
+    .index("by_organizationId", ["organizationId"])
+    .index("by_participant_agreement", ["participantId", "mtaAgreementStart"]),
+
+  // Invoice counters for auto-incrementing invoice numbers per org per month
+  invoiceCounters: defineTable({
+    organizationId: v.id("organizations"),
+    yearMonth: v.string(), // "MMYY" format e.g. "0226"
+    lastNumber: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org_yearMonth", ["organizationId", "yearMonth"])
+    .index("by_organizationId", ["organizationId"]),
+
   // Maintenance Requests table
   maintenanceRequests: defineTable({
     organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this record belongs to

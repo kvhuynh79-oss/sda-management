@@ -56,6 +56,7 @@ import type * as maintenanceRequests from "../maintenanceRequests.js";
 import type * as marketingLeads from "../marketingLeads.js";
 import type * as mfa from "../mfa.js";
 import type * as migrations_encryptExistingData from "../migrations/encryptExistingData.js";
+import type * as mtaClaims from "../mtaClaims.js";
 import type * as ndisClaimExport from "../ndisClaimExport.js";
 import type * as notificationHelpers from "../notificationHelpers.js";
 import type * as notifications from "../notifications.js";
@@ -155,6 +156,7 @@ declare const fullApi: ApiFromModules<{
   marketingLeads: typeof marketingLeads;
   mfa: typeof mfa;
   "migrations/encryptExistingData": typeof migrations_encryptExistingData;
+  mtaClaims: typeof mtaClaims;
   ndisClaimExport: typeof ndisClaimExport;
   notificationHelpers: typeof notificationHelpers;
   notifications: typeof notifications;

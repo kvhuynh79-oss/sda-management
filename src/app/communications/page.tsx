@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -29,6 +30,9 @@ function CommunicationsContent() {
   const [user, setUser] = useState<{ id: string; role: string } | null>(null);
   const [showDeletedItems, setShowDeletedItems] = useState(false);
   const [showNewLeadForm, setShowNewLeadForm] = useState(false);
+  const [isSyncingEmail, setIsSyncingEmail] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ synced: number; skipped: number; errors: number } | null>(null);
+  const syncEmails = useAction(api.inboundEmail.syncInboundEmails);
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -44,6 +48,24 @@ function CommunicationsContent() {
       }
     }
   }, []);
+
+  const handleSyncEmail = useCallback(async () => {
+    if (!user || isSyncingEmail) return;
+    setIsSyncingEmail(true);
+    setSyncResult(null);
+    try {
+      const result = await syncEmails({ userId: user.id as Id<"users"> });
+      setSyncResult(result);
+      // Auto-clear result after 5 seconds
+      setTimeout(() => setSyncResult(null), 5000);
+    } catch (err) {
+      console.error("Email sync failed:", err);
+      setSyncResult({ synced: 0, skipped: 0, errors: 1 });
+      setTimeout(() => setSyncResult(null), 5000);
+    } finally {
+      setIsSyncingEmail(false);
+    }
+  }, [user, isSyncingEmail, syncEmails]);
 
   // View state from URL
   const activeView = (searchParams.get("view") as ViewMode) || "thread";
@@ -214,6 +236,15 @@ function CommunicationsContent() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Communications</h1>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleSyncEmail}
+              disabled={isSyncingEmail}
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-300 hover:text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+              title="Sync inbound emails from Postmark"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncingEmail ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{isSyncingEmail ? "Syncing..." : "Sync Email"}</span>
+            </button>
             <Link
               href="/follow-ups/tasks/new"
               className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
@@ -234,6 +265,24 @@ function CommunicationsContent() {
             </Link>
           </div>
         </div>
+
+        {/* Sync Result Toast */}
+        {syncResult && (
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm ${
+            syncResult.errors > 0
+              ? "bg-red-900/40 border border-red-700 text-red-400"
+              : syncResult.synced > 0
+                ? "bg-teal-900/40 border border-teal-700 text-teal-400"
+                : "bg-gray-800 border border-gray-700 text-gray-400"
+          }`}>
+            <RefreshCw className="w-4 h-4 flex-shrink-0" />
+            {syncResult.synced > 0
+              ? `Synced ${syncResult.synced} new email${syncResult.synced > 1 ? "s" : ""}`
+              : syncResult.errors > 0
+                ? "Email sync failed. Check Postmark configuration."
+                : "No new emails to sync"}
+          </div>
+        )}
 
         {/* Stats Header */}
         <StatsHeader

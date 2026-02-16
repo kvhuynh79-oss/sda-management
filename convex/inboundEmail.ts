@@ -17,8 +17,9 @@
  * @module inboundEmail
  */
 
-import { mutation } from "./_generated/server";
+import { mutation, action } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 import {
   findOrCreateThread,
   type CommunicationForThreading,
@@ -765,3 +766,119 @@ function resolveCommunicationDate(emailDate?: string): string {
     return new Date().toISOString().split("T")[0];
   }
 }
+
+// ---------------------------------------------------------------------------
+// Action: syncInboundEmails
+// ---------------------------------------------------------------------------
+
+/**
+ * Manually sync inbound emails from Postmark's Messages API.
+ * Fetches recent inbound messages and processes any that weren't
+ * already captured by the webhook (e.g., if the webhook was down).
+ *
+ * Requires POSTMARK_SERVER_TOKEN env var.
+ */
+export const syncInboundEmails = action({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<{ synced: number; skipped: number; errors: number }> => {
+    const postmarkToken = process.env.POSTMARK_SERVER_TOKEN;
+    if (!postmarkToken) {
+      throw new Error("POSTMARK_SERVER_TOKEN is not configured. Set it in Convex environment variables.");
+    }
+
+    const webhookSecret = process.env.INBOUND_EMAIL_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      throw new Error("INBOUND_EMAIL_WEBHOOK_SECRET is not configured.");
+    }
+
+    // Fetch recent inbound messages from Postmark (last 50)
+    const response = await fetch(
+      "https://api.postmarkapp.com/messages/inbound?count=50&offset=0",
+      {
+        headers: {
+          Accept: "application/json",
+          "X-Postmark-Server-Token": postmarkToken,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Postmark API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    const messages = data.InboundMessages || [];
+
+    let synced = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const msg of messages) {
+      const fromEmail = msg.FromFull?.Email || msg.From || "";
+      const toAddress = msg.ToFull?.[0]?.Email || msg.To || "";
+      const subject = msg.Subject || "(No Subject)";
+      const messageId = msg.MessageID || "";
+
+      if (!fromEmail || !toAddress) {
+        skipped++;
+        continue;
+      }
+
+      // Fetch full message details (includes TextBody)
+      let textBody = msg.TextBody || "";
+      if (!textBody && messageId) {
+        try {
+          const detailRes = await fetch(
+            `https://api.postmarkapp.com/messages/inbound/${messageId}/details`,
+            {
+              headers: {
+                Accept: "application/json",
+                "X-Postmark-Server-Token": postmarkToken,
+              },
+            }
+          );
+          if (detailRes.ok) {
+            const detail = await detailRes.json();
+            textBody = detail.TextBody || "";
+          }
+        } catch {
+          // Fall through with empty body
+        }
+      }
+
+      if (!textBody) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        await ctx.runMutation(api.inboundEmail.processInboundEmail, {
+          webhookSecret,
+          fromEmail,
+          fromName: msg.FromFull?.Name || msg.FromName || fromEmail,
+          toAddress,
+          subject,
+          textBody,
+          strippedReply: undefined,
+          emailDate: msg.Date || undefined,
+        });
+        synced++;
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        // Duplicates will naturally be handled by threading - they'll join existing threads
+        // But if the org isn't found or other config errors, count as skipped
+        if (errMsg.includes("No organization found") || errMsg.includes("Unauthorized")) {
+          skipped++;
+        } else {
+          console.error(`[Email Sync] Failed to process message ${messageId}: ${errMsg}`);
+          errors++;
+        }
+      }
+    }
+
+    return { synced, skipped, errors };
+  },
+});

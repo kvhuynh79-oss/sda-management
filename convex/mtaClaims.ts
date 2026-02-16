@@ -1046,31 +1046,30 @@ function generateClaimWindows(
   const windows: Array<{ start: string; end: string }> = [];
 
   if (frequency === "monthly") {
-    // Monthly: use calendar month boundaries
+    // Monthly: rolling periods from agreement start date
+    // e.g. Feb 19 -> Mar 19 -> Apr 19 -> May 19
     let currentStart = agreementStart;
 
     while (currentStart < agreementEnd) {
       const startDate = new Date(currentStart + "T00:00:00Z");
-      // Move to 1st of next month
-      const nextMonth = new Date(Date.UTC(
+      // Add 1 month to the start date (same day of month)
+      const nextPeriod = new Date(Date.UTC(
         startDate.getUTCFullYear(),
         startDate.getUTCMonth() + 1,
-        1
+        startDate.getUTCDate()
       ));
-      // End of this window is the day before 1st of next month, or agreementEnd (whichever is earlier)
-      const windowEndDate = new Date(nextMonth.getTime() - 86400000); // last day of current month
-      let windowEnd = windowEndDate.toISOString().split("T")[0];
+      let windowEnd = nextPeriod.toISOString().split("T")[0];
 
+      // Truncate to agreement end if this window extends past it
       if (windowEnd > agreementEnd) {
         windowEnd = agreementEnd;
       }
 
-      if (currentStart <= windowEnd) {
+      if (currentStart < windowEnd) {
         windows.push({ start: currentStart, end: windowEnd });
       }
 
-      // Next window starts on 1st of next month
-      currentStart = nextMonth.toISOString().split("T")[0];
+      currentStart = windowEnd;
     }
   } else {
     // Weekly (7 days) or fortnightly (14 days)

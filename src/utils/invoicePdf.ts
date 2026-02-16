@@ -28,9 +28,9 @@ export interface InvoiceParams {
 
   // Invoice details
   invoiceNumber: string;
-  invoiceDate: string; // "10 Nov 2025" format
+  invoiceDate: string; // "19 Jan 2026" format
   dueDate: string;
-  reference: string; // "Faith Tofilau - SDA" or "Faith Tofilau - MTA"
+  reference: string; // "SDA payments" or "Faith Tofilau - MTA"
 
   // Customer (participant)
   customerName: string;
@@ -47,17 +47,43 @@ export interface InvoiceParams {
 }
 
 // ---------------------------------------------------------------------------
+// Layout constants
+// ---------------------------------------------------------------------------
+
+const PW = 210; // page width (A4 portrait)
+const PH = 297; // page height
+const ML = 15; // margin left
+const MR = 15; // margin right
+const CW = PW - ML - MR; // content width
+
+// Three-column header X positions
+const LEFT_COL_X = ML;
+const CENTER_COL_X = 78;
+const RIGHT_COL_X = 145;
+
+// Line-items table column layout
+const COL_DESC_X = ML;
+const COL_DESC_W = 88;
+const COL_QTY_X = COL_DESC_X + COL_DESC_W;
+const COL_QTY_W = 22;
+const COL_PRICE_X = COL_QTY_X + COL_QTY_W;
+const COL_PRICE_W = 25;
+const COL_GST_X = COL_PRICE_X + COL_PRICE_W;
+const TABLE_RIGHT = PW - MR;
+
+// Colors
+const DARK_TEXT: [number, number, number] = [40, 40, 40];
+const GRAY_LABEL: [number, number, number] = [110, 110, 110];
+const HEADER_BG: [number, number, number] = [80, 80, 80];
+const LIGHT_LINE: [number, number, number] = [200, 200, 200];
+const FOOTER_GRAY: [number, number, number] = [130, 130, 130];
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const PAGE_WIDTH = 210;
-const PAGE_HEIGHT = 297;
-const MARGIN_LEFT = 15;
-const MARGIN_RIGHT = 15;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
-
-/** Format a number as AUD currency without the $ sign (e.g. "3,670.33"). */
-function fmtCurrency(amount: number): string {
+/** Format a number as currency without the $ sign (e.g. "3,758.42"). */
+function fmt(amount: number): string {
   return new Intl.NumberFormat("en-AU", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -69,45 +95,53 @@ function fmtQty(n: number): string {
   return n.toFixed(2);
 }
 
-/** Draw a thin horizontal line across the content area. */
-function drawHLine(
+/** Draw a thin horizontal line. */
+function hline(
   doc: jsPDF,
   y: number,
-  color: [number, number, number] = [200, 200, 200],
-  lineWidth = 0.3,
-  x1 = MARGIN_LEFT,
-  x2 = PAGE_WIDTH - MARGIN_RIGHT
+  color: [number, number, number] = LIGHT_LINE,
+  width = 0.3,
+  x1 = ML,
+  x2 = PW - MR
 ): void {
   doc.setDrawColor(...color);
-  doc.setLineWidth(lineWidth);
+  doc.setLineWidth(width);
   doc.line(x1, y, x2, y);
 }
 
-/** Draw the footer line that appears on every page. */
-function drawPageFooter(doc: jsPDF, providerAbn: string, providerAddress: string): void {
-  const footerY = PAGE_HEIGHT - 10;
-  drawHLine(doc, footerY - 3, [180, 180, 180], 0.2);
+/** Draw the footer that appears on every page. */
+function drawFooter(doc: jsPDF, abn: string, address: string): void {
+  const fy = PH - 10;
+  hline(doc, fy - 3, [180, 180, 180], 0.2);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.setTextColor(120, 120, 120);
-  const footerText = `ABN: ${providerAbn}.  Registered Office: ${providerAddress}`;
-  doc.text(footerText, PAGE_WIDTH / 2, footerY, { align: "center" });
+  doc.setTextColor(...FOOTER_GRAY);
+  const txt = abn
+    ? `ABN: ${abn}.  Registered Office: ${address}`
+    : `Registered Office: ${address}`;
+  doc.text(txt, PW / 2, fy, { align: "center" });
 }
 
-// ---------------------------------------------------------------------------
-// Column layout constants for the line-items table
-// ---------------------------------------------------------------------------
+/** Draw the dark table header bar. Returns the y after the header. */
+function drawTableHeader(doc: jsPDF, y: number): number {
+  const hh = 9; // header height
 
-// Column positions (x) and widths
-const COL_DESC_X = MARGIN_LEFT;
-const COL_DESC_W = 90;
-const COL_QTY_X = COL_DESC_X + COL_DESC_W;
-const COL_QTY_W = 20;
-const COL_PRICE_X = COL_QTY_X + COL_QTY_W;
-const COL_PRICE_W = 25;
-const COL_GST_X = COL_PRICE_X + COL_PRICE_W;
-const COL_GST_W = 22;
-const TABLE_RIGHT = PAGE_WIDTH - MARGIN_RIGHT;
+  // 2-pass: draw filled rect first, then all text on top
+  doc.setFillColor(...HEADER_BG);
+  doc.rect(COL_DESC_X, y, CW, hh, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(255, 255, 255);
+  const ty = y + 6;
+  doc.text("Description", COL_DESC_X + 3, ty);
+  doc.text("Quantity", COL_QTY_X + COL_QTY_W - 2, ty, { align: "right" });
+  doc.text("Unit Price", COL_PRICE_X + COL_PRICE_W - 2, ty, { align: "right" });
+  doc.text("GST", COL_GST_X + 2, ty);
+  doc.text("Amount AUD", TABLE_RIGHT - 2, ty, { align: "right" });
+
+  return y + hh;
+}
 
 // ---------------------------------------------------------------------------
 // Main export
@@ -116,7 +150,7 @@ const TABLE_RIGHT = PAGE_WIDTH - MARGIN_RIGHT;
 /**
  * Generate a Xero-style Tax Invoice PDF and trigger a browser download.
  *
- * Page 1: Tax Invoice with header info, line items table, totals, and payment details.
+ * Page 1: Tax Invoice with header info, line items table, totals, payment details.
  * Page 2: Payment Advice tear-off slip.
  */
 export async function generateInvoicePdf(params: InvoiceParams): Promise<void> {
@@ -126,40 +160,49 @@ export async function generateInvoicePdf(params: InvoiceParams): Promise<void> {
   // PAGE 1 - TAX INVOICE
   // =========================================================================
 
-  let y = 18;
-
-  // --- Logo (top-right) ---
+  // --- Logo (top-right corner, ~35x25mm) ---
   if (params.logoUrl) {
     try {
-      doc.addImage(params.logoUrl, "PNG", PAGE_WIDTH - MARGIN_RIGHT - 40, 10, 40, 20);
+      doc.addImage(params.logoUrl, "PNG", PW - MR - 38, 10, 38, 25);
     } catch {
       // Logo failed to load - continue without it
     }
   }
 
-  // --- "TAX INVOICE" title (top-left) ---
+  // --- "TAX INVOICE" title (top-left, large bold) ---
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(24);
+  doc.setFontSize(28);
   doc.setTextColor(50, 50, 50);
-  doc.text("TAX INVOICE", MARGIN_LEFT, y);
-  y += 12;
+  doc.text("TAX INVOICE", ML, 25);
 
-  // --- Customer address block (left column) ---
+  // =========================================================================
+  // THREE-COLUMN HEADER AREA (y ~ 42 to ~110)
+  // =========================================================================
+
+  const headerStartY = 42;
+
+  // ----- LEFT COLUMN: Customer / participant address -----
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(40, 40, 40);
-  const customerLines = params.customerName
-    ? [params.customerName, ...params.customerAddress.split("\n")]
-    : params.customerAddress.split("\n");
-  for (const line of customerLines) {
-    doc.text(line, MARGIN_LEFT, y);
-    y += 4;
+  doc.setFontSize(11);
+  doc.setTextColor(...DARK_TEXT);
+  let leftY = headerStartY;
+
+  // Customer name
+  if (params.customerName) {
+    doc.text(params.customerName, LEFT_COL_X, leftY);
+    leftY += 6;
+  }
+  // Address lines
+  const addrLines = params.customerAddress
+    ? params.customerAddress.split("\n").filter(Boolean)
+    : [];
+  for (const line of addrLines) {
+    doc.text(line.trim(), LEFT_COL_X, leftY);
+    leftY += 5.5;
   }
 
-  // --- Centre column: Invoice metadata ---
-  const centreX = 80;
-  let metaY = 30;
-
+  // ----- CENTER COLUMN: Invoice metadata (label + value pairs) -----
+  let centerY = headerStartY;
   const metaFields: [string, string][] = [
     ["Invoice Date", params.invoiceDate],
     ["Invoice Number", params.invoiceNumber],
@@ -167,247 +210,262 @@ export async function generateInvoicePdf(params: InvoiceParams): Promise<void> {
     ["ABN", params.providerAbn],
   ];
 
-  doc.setFontSize(8);
   for (const [label, value] of metaFields) {
+    // Label (small, bold, gray)
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(100, 100, 100);
-    doc.text(label, centreX, metaY);
-    metaY += 4;
+    doc.setFontSize(8);
+    doc.setTextColor(...GRAY_LABEL);
+    doc.text(label, CENTER_COL_X, centerY);
+    centerY += 4.5;
+
+    // Value (normal, dark, slightly larger)
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(40, 40, 40);
-    doc.text(value, centreX, metaY);
-    metaY += 7;
+    doc.setFontSize(10);
+    doc.setTextColor(...DARK_TEXT);
+    doc.text(value || "", CENTER_COL_X, centerY);
+    centerY += 10;
   }
 
-  // --- Right column: Provider address ---
-  const rightX = 140;
-  let provY = 30;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(40, 40, 40);
-  const providerAddrLines = params.providerBillingAddress.split("\n");
-  for (const line of providerAddrLines) {
-    doc.text(line, rightX, provY);
-    provY += 4;
+  // ----- RIGHT COLUMN: Provider name and address -----
+  let rightY = headerStartY;
+  const rightColMaxW = PW - MR - RIGHT_COL_X; // available width for right column
+
+  const provLines = params.providerBillingAddress
+    ? params.providerBillingAddress.split("\n").filter(Boolean)
+    : [];
+
+  // First line = provider name (bold), remaining lines = address (normal)
+  for (let i = 0; i < provLines.length; i++) {
+    const line = provLines[i].trim();
+    if (!line) continue;
+
+    if (i === 0) {
+      // Provider name - bold, may need wrapping if long
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...DARK_TEXT);
+      const nameWrapped: string[] = doc.splitTextToSize(line, rightColMaxW);
+      for (const nl of nameWrapped) {
+        doc.text(nl, RIGHT_COL_X, rightY);
+        rightY += 5;
+      }
+    } else {
+      // Address lines - normal, wrap if needed
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...DARK_TEXT);
+      const addrWrapped: string[] = doc.splitTextToSize(line, rightColMaxW);
+      for (const al of addrWrapped) {
+        doc.text(al, RIGHT_COL_X, rightY);
+        rightY += 5;
+      }
+    }
   }
+
   // Phone below address
-  provY += 1;
-  doc.text(params.providerPhone, rightX, provY);
-
-  // Move y past the three-column header area
-  y = Math.max(y, metaY, provY) + 8;
+  if (params.providerPhone) {
+    rightY += 1;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...DARK_TEXT);
+    doc.text(params.providerPhone, RIGHT_COL_X, rightY);
+    rightY += 5;
+  }
 
   // =========================================================================
   // LINE ITEMS TABLE
   // =========================================================================
 
-  // --- Table header ---
-  const headerH = 8;
-  const headerY = y;
+  // Start table below the tallest column with some padding
+  let y = Math.max(leftY, centerY, rightY) + 10;
 
-  // 2-pass: first draw all header fill rects, then draw all header text
-  doc.setFillColor(80, 80, 80);
-  doc.rect(COL_DESC_X, headerY, CONTENT_WIDTH, headerH, "F");
+  // Ensure minimum starting position so table doesn't overlap headers
+  y = Math.max(y, 115);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(255, 255, 255);
-  const headerTextY = headerY + 5.5;
-  doc.text("Description", COL_DESC_X + 2, headerTextY);
-  doc.text("Quantity", COL_QTY_X + COL_QTY_W - 2, headerTextY, { align: "right" });
-  doc.text("Unit Price", COL_PRICE_X + COL_PRICE_W - 2, headerTextY, { align: "right" });
-  doc.text("GST", COL_GST_X + 2, headerTextY);
-  doc.text("Amount AUD", TABLE_RIGHT - 2, headerTextY, { align: "right" });
-
-  y = headerY + headerH;
+  // Draw table header
+  y = drawTableHeader(doc, y);
 
   // --- Table rows ---
-  doc.setTextColor(40, 40, 40);
-  const lineItemTopPad = 3;
-  const lineItemBottomPad = 3;
-  const lineItemFontSize = 8;
-  const lineSpacing = 3.5; // vertical space per line of description text
+  const rowPadTop = 4;
+  const rowPadBot = 4;
+  const descFontSize = 9;
+  const lineH = 4; // vertical space per line of description
 
   for (let i = 0; i < params.lineItems.length; i++) {
     const item = params.lineItems[i];
 
-    // Split description into wrapped lines
+    // Wrap description text
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(lineItemFontSize);
+    doc.setFontSize(descFontSize);
     const descLines: string[] = [];
     const rawLines = item.description.split("\n");
     for (const rawLine of rawLines) {
-      const wrapped = doc.splitTextToSize(rawLine, COL_DESC_W - 4);
+      const wrapped = doc.splitTextToSize(rawLine, COL_DESC_W - 6);
       descLines.push(...wrapped);
     }
 
-    // Calculate row height
-    const descHeight = descLines.length * lineSpacing;
-    const rowH = Math.max(descHeight + lineItemTopPad + lineItemBottomPad, 10);
+    // Row height
+    const descHeight = descLines.length * lineH;
+    const rowH = Math.max(descHeight + rowPadTop + rowPadBot, 12);
 
-    // Check for page overflow: leave space for totals + payment + footer (~80mm)
-    if (y + rowH > PAGE_HEIGHT - 80) {
-      drawPageFooter(doc, params.providerAbn, params.providerAddress);
+    // Page overflow check: leave ~80mm for totals + payment + footer
+    if (y + rowH > PH - 80) {
+      drawFooter(doc, params.providerAbn, params.providerAddress);
       doc.addPage();
       y = 18;
-
-      // Redraw table header on new page
-      doc.setFillColor(80, 80, 80);
-      doc.rect(COL_DESC_X, y, CONTENT_WIDTH, headerH, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(255, 255, 255);
-      const hTextY = y + 5.5;
-      doc.text("Description", COL_DESC_X + 2, hTextY);
-      doc.text("Quantity", COL_QTY_X + COL_QTY_W - 2, hTextY, { align: "right" });
-      doc.text("Unit Price", COL_PRICE_X + COL_PRICE_W - 2, hTextY, { align: "right" });
-      doc.text("GST", COL_GST_X + 2, hTextY);
-      doc.text("Amount AUD", TABLE_RIGHT - 2, hTextY, { align: "right" });
-      y += headerH;
-      doc.setTextColor(40, 40, 40);
+      y = drawTableHeader(doc, y);
     }
 
     // Alternate row background
     if (i % 2 === 0) {
       doc.setFillColor(248, 248, 248);
-      doc.rect(COL_DESC_X, y, CONTENT_WIDTH, rowH, "F");
+      doc.rect(COL_DESC_X, y, CW, rowH, "F");
     }
 
-    // Row border (bottom)
-    drawHLine(doc, y + rowH, [220, 220, 220], 0.15);
+    // Row bottom border
+    hline(doc, y + rowH, [220, 220, 220], 0.15);
 
     // Description text
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(lineItemFontSize);
-    doc.setTextColor(40, 40, 40);
-    let textY = y + lineItemTopPad + 3;
+    doc.setFontSize(descFontSize);
+    doc.setTextColor(...DARK_TEXT);
+    let textY = y + rowPadTop + 3;
     for (const line of descLines) {
-      doc.text(line, COL_DESC_X + 2, textY);
-      textY += lineSpacing;
+      doc.text(line, COL_DESC_X + 3, textY);
+      textY += lineH;
     }
 
-    // Quantity (vertically centred in row)
+    // Vertically centered Y for numeric columns
     const midY = y + rowH / 2 + 1;
+
+    // Quantity
+    doc.setFontSize(descFontSize);
     doc.text(fmtQty(item.quantity), COL_QTY_X + COL_QTY_W - 2, midY, { align: "right" });
 
     // Unit Price
-    doc.text(fmtCurrency(item.unitPrice), COL_PRICE_X + COL_PRICE_W - 2, midY, {
-      align: "right",
-    });
+    doc.text(fmt(item.unitPrice), COL_PRICE_X + COL_PRICE_W - 2, midY, { align: "right" });
 
     // GST
-    doc.setFontSize(7.5);
+    doc.setFontSize(8);
     doc.text(item.gst, COL_GST_X + 2, midY);
 
     // Amount
-    doc.setFontSize(lineItemFontSize);
-    doc.text(fmtCurrency(item.amount), TABLE_RIGHT - 2, midY, { align: "right" });
+    doc.setFontSize(descFontSize);
+    doc.text(fmt(item.amount), TABLE_RIGHT - 2, midY, { align: "right" });
 
     y += rowH;
   }
 
-  // --- Bottom border of table ---
-  drawHLine(doc, y, [80, 80, 80], 0.4);
+  // Bottom border of table
+  hline(doc, y, [80, 80, 80], 0.5);
 
   // =========================================================================
   // TOTALS SECTION (right-aligned below table)
   // =========================================================================
 
-  y += 6;
-  const totalsLabelX = COL_GST_X;
+  y += 8;
+  const totalsLabelX = COL_GST_X - 5;
   const totalsValueX = TABLE_RIGHT - 2;
-  const totalsLineH = 6;
 
   // Subtotal
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
+  doc.setTextColor(...GRAY_LABEL);
   doc.text("Subtotal", totalsLabelX, y);
-  doc.setTextColor(40, 40, 40);
-  doc.text(fmtCurrency(params.subtotal), totalsValueX, y, { align: "right" });
-  y += totalsLineH;
+  doc.setTextColor(...DARK_TEXT);
+  doc.text(fmt(params.subtotal), totalsValueX, y, { align: "right" });
+  y += 7;
+
+  // Separator line
+  hline(doc, y - 2, [180, 180, 180], 0.3, totalsLabelX, TABLE_RIGHT);
 
   // TOTAL AUD
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setTextColor(50, 50, 50);
   doc.text("TOTAL AUD", totalsLabelX, y);
-  doc.text(fmtCurrency(params.totalAmount), totalsValueX, y, { align: "right" });
-  y += totalsLineH;
+  doc.text(fmt(params.totalAmount), totalsValueX, y, { align: "right" });
+  y += 7;
 
   // Less Amount Paid (optional)
   if (params.amountPaid !== undefined && params.amountPaid > 0) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
+    doc.setTextColor(...GRAY_LABEL);
     doc.text("Less Amount Paid", totalsLabelX, y);
-    doc.setTextColor(40, 40, 40);
-    doc.text(fmtCurrency(params.amountPaid), totalsValueX, y, { align: "right" });
-    y += totalsLineH;
-  }
+    doc.setTextColor(...DARK_TEXT);
+    doc.text(fmt(params.amountPaid), totalsValueX, y, { align: "right" });
+    y += 7;
 
-  // Amount Due
-  if (params.amountPaid !== undefined && params.amountPaid > 0) {
-    drawHLine(doc, y - 2, [150, 150, 150], 0.3, totalsLabelX, TABLE_RIGHT);
-    y += 2;
+    // Amount Due separator
+    hline(doc, y - 2, [150, 150, 150], 0.3, totalsLabelX, TABLE_RIGHT);
+
+    // AMOUNT DUE AUD
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setTextColor(50, 50, 50);
     doc.text("AMOUNT DUE AUD", totalsLabelX, y);
-    doc.text(fmtCurrency(params.amountDue), totalsValueX, y, { align: "right" });
-    y += totalsLineH;
+    doc.text(fmt(params.amountDue), totalsValueX, y, { align: "right" });
+    y += 7;
   }
 
   // =========================================================================
   // PAYMENT DETAILS (bottom-left of page 1)
   // =========================================================================
 
-  // Ensure enough space; if not, the payment section stays above the footer
-  y = Math.max(y + 10, PAGE_HEIGHT - 60);
+  // Position payment section: either below totals with spacing, or at a
+  // fixed position if there's lots of empty space
+  y = Math.max(y + 12, PH - 62);
 
-  drawHLine(doc, y, [180, 180, 180], 0.3);
-  y += 6;
+  hline(doc, y, [180, 180, 180], 0.3);
+  y += 7;
 
+  // Due Date (bold, prominent)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(50, 50, 50);
+  doc.text(`Due Date: ${params.dueDate}`, ML, y);
+  y += 7;
+
+  // EFT label
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(50, 50, 50);
-  doc.text(`Due Date: ${params.dueDate}`, MARGIN_LEFT, y);
+  doc.text("EFT:", ML, y);
   y += 6;
 
-  doc.text("EFT:", MARGIN_LEFT, y);
-  y += 5;
-
-  // Measure label widths while STILL bold, before switching
-  doc.setFontSize(8.5);
-  const accountNameLabel = "Account Name: ";
-  const bsbLabel = "BSB: ";
-  const accLabel = "ACC: ";
-  const accountNameLabelW = doc.getTextWidth(accountNameLabel);
-  const bsbLabelW = doc.getTextWidth(bsbLabel);
-  const accLabelW = doc.getTextWidth(accLabel);
+  // Bank details - measure ALL label widths while STILL in bold to avoid
+  // the jsPDF getTextWidth font mismatch issue
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  const lbl1 = "Account Name: ";
+  const lbl2 = "BSB: ";
+  const lbl3 = "ACC: ";
+  const lbl1w = doc.getTextWidth(lbl1);
+  const lbl2w = doc.getTextWidth(lbl2);
+  const lbl3w = doc.getTextWidth(lbl3);
 
   // Account Name
   doc.setFont("helvetica", "bold");
-  doc.text(accountNameLabel, MARGIN_LEFT, y);
+  doc.text(lbl1, ML, y);
   doc.setFont("helvetica", "normal");
-  doc.text(params.bankAccountName, MARGIN_LEFT + accountNameLabelW, y);
-  y += 4.5;
+  doc.text(params.bankAccountName || "", ML + lbl1w, y);
+  y += 5;
 
   // BSB
   doc.setFont("helvetica", "bold");
-  doc.text(bsbLabel, MARGIN_LEFT, y);
+  doc.text(lbl2, ML, y);
   doc.setFont("helvetica", "normal");
-  doc.text(params.bankBsb, MARGIN_LEFT + bsbLabelW, y);
-  y += 4.5;
+  doc.text(params.bankBsb || "", ML + lbl2w, y);
+  y += 5;
 
   // ACC
   doc.setFont("helvetica", "bold");
-  doc.text(accLabel, MARGIN_LEFT, y);
+  doc.text(lbl3, ML, y);
   doc.setFont("helvetica", "normal");
-  doc.text(params.bankAccountNumber, MARGIN_LEFT + accLabelW, y);
+  doc.text(params.bankAccountNumber || "", ML + lbl3w, y);
 
   // --- Page 1 footer ---
-  drawPageFooter(doc, params.providerAbn, params.providerAddress);
+  drawFooter(doc, params.providerAbn, params.providerAddress);
 
   // =========================================================================
   // PAGE 2 - PAYMENT ADVICE
@@ -416,97 +474,104 @@ export async function generateInvoicePdf(params: InvoiceParams): Promise<void> {
   doc.addPage();
   y = 15;
 
-  // --- Dashed cut line with scissors indicator ---
+  // --- Dashed cut line with scissors ---
   doc.setDrawColor(150, 150, 150);
   doc.setLineWidth(0.3);
   doc.setLineDashPattern([3, 2], 0);
-  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
-  doc.setLineDashPattern([], 0); // reset dash
+  doc.line(ML, y, PW - MR, y);
+  doc.setLineDashPattern([], 0);
 
   // Scissors symbol
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setTextColor(150, 150, 150);
-  doc.text("\u2702", MARGIN_LEFT - 2, y + 1);
+  doc.text("\u2702", ML - 3, y + 1);
 
-  y += 12;
+  y += 14;
 
   // --- "PAYMENT ADVICE" title ---
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(50, 50, 50);
-  doc.text("PAYMENT ADVICE", MARGIN_LEFT, y);
-  y += 14;
+  doc.text("PAYMENT ADVICE", ML, y);
+  y += 16;
 
   // --- "To:" block (left side) ---
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
-  doc.text("To:", MARGIN_LEFT, y);
+  doc.setTextColor(...GRAY_LABEL);
+  doc.text("To:", ML, y);
 
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(40, 40, 40);
-  let toY = y + 5;
-  const toLines = [params.providerName, ...params.providerBillingAddress.split("\n"), params.providerPhone];
+  doc.setFontSize(9);
+  doc.setTextColor(...DARK_TEXT);
+  let toY = y + 6;
+  // providerBillingAddress already includes the provider name as its first line,
+  // so we don't prepend providerName separately to avoid duplication.
+  const toLines = [
+    ...params.providerBillingAddress.split("\n").filter(Boolean),
+    params.providerPhone,
+  ].filter(Boolean);
   for (const line of toLines) {
-    doc.text(line, MARGIN_LEFT + 4, toY);
-    toY += 4.5;
+    doc.text(line, ML + 4, toY);
+    toY += 5;
   }
 
-  // --- Info table (right side) ---
+  // --- Info table (right side) with alternating row backgrounds ---
   const infoX = 115;
   const infoValX = 165;
   let infoY = y;
+  const infoRowH = 9;
 
   const infoRows: [string, string][] = [
     ["Customer", params.customerName],
     ["Invoice Number", params.invoiceNumber],
-    ["Amount Due", fmtCurrency(params.amountDue)],
+    ["Amount Due", fmt(params.amountDue)],
     ["Due Date", params.dueDate],
   ];
 
   for (let ri = 0; ri < infoRows.length; ri++) {
     const [label, value] = infoRows[ri];
 
-    // Alternate row background
+    // Alternating background
     if (ri % 2 === 0) {
       doc.setFillColor(245, 245, 245);
-      doc.rect(infoX - 2, infoY - 4, 82, 8, "F");
+      doc.rect(infoX - 2, infoY - 4.5, 82, infoRowH, "F");
     }
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(9);
+    doc.setTextColor(...GRAY_LABEL);
     doc.text(label, infoX, infoY);
 
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(40, 40, 40);
-    doc.text(value, infoValX, infoY);
+    doc.setTextColor(...DARK_TEXT);
+    doc.text(value || "", infoValX, infoY);
 
-    infoY += 8;
+    infoY += infoRowH;
   }
 
-  // "Amount Enclosed" line (blank for manual entry)
+  // "Amount Enclosed" row
   doc.setFillColor(245, 245, 245);
-  doc.rect(infoX - 2, infoY - 4, 82, 8, "F");
+  doc.rect(infoX - 2, infoY - 4.5, 82, infoRowH, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(80, 80, 80);
+  doc.setFontSize(9);
+  doc.setTextColor(...GRAY_LABEL);
   doc.text("Amount Enclosed", infoX, infoY);
 
-  // Underline for writing
-  drawHLine(doc, infoY + 1, [180, 180, 180], 0.3, infoValX, infoValX + 28);
-  infoY += 5;
+  // Underline for manual writing
+  hline(doc, infoY + 1.5, [180, 180, 180], 0.3, infoValX, infoValX + 28);
+  infoY += 6;
 
-  // Small helper text
+  // Helper text
   doc.setFont("helvetica", "italic");
   doc.setFontSize(7);
   doc.setTextColor(140, 140, 140);
   doc.text("Enter the amount you are paying above", infoValX, infoY);
 
   // --- Page 2 footer ---
-  drawPageFooter(doc, params.providerAbn, params.providerAddress);
+  drawFooter(doc, params.providerAbn, params.providerAddress);
 
   // =========================================================================
   // SAVE

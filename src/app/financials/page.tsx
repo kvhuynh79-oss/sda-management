@@ -8,7 +8,39 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Id } from "../../../convex/_generated/dataModel";
+
+/** Convert an image URL to a base64 data URL for PDF embedding. */
+async function loadLogoAsDataUrl(url: string): Promise<string | undefined> {
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    return await new Promise<string>((resolve, reject) => {
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("No canvas context")); return; }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+/** Format a date string (YYYY-MM-DD) into human-readable format (e.g. "19 Jan 2026"). */
+function formatInvoiceDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}
 
 type TabType = "payments" | "claims" | "owner_payments" | "mta_claims";
 
@@ -196,6 +228,7 @@ function TabButton({
 // ============================================
 function ClaimsTab({ userId }: { userId: string }) {
   const { alert: alertDialog } = useConfirmDialog();
+  const { organization } = useOrganization();
   const [selectedPeriod, setSelectedPeriod] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -663,7 +696,11 @@ function ClaimsTab({ userId }: { userId: string }) {
       const formatDateShort = (d: Date) =>
         `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
-      const propertyAddr = `${claim.property?.addressLine1 || ""} ${claim.property?.suburb || ""} ${claim.property?.state || ""} ${claim.property?.postcode || ""}`.trim();
+      // Include dwelling number in the address
+      const dwellingNum = claim.dwelling?.dwellingName || "";
+      const fullAddr = claim.property
+        ? `${dwellingNum ? dwellingNum + " " : ""}${claim.property.addressLine1 || ""} ${claim.property.suburb || ""} ${claim.property.state || ""} ${claim.property.postcode || ""}`.trim()
+        : "";
 
       const dob = participant.dateOfBirth
         ? (() => {
@@ -672,12 +709,19 @@ function ClaimsTab({ userId }: { userId: string }) {
           })()
         : "";
 
+      // Load org logo for the PDF
+      let logoDataUrl: string | undefined;
+      if (organization?.resolvedLogoUrl) {
+        logoDataUrl = await loadLogoAsDataUrl(organization.resolvedLogoUrl);
+      }
+
       await generateInvoicePdf({
         providerName: providerSettings?.providerName || "",
         providerAbn: providerSettings?.abn || "",
         providerAddress: providerSettings?.address || "",
-        providerBillingAddress: providerSettings?.address || "",
+        providerBillingAddress: `${providerSettings?.providerName || ""}\n${providerSettings?.address || ""}`,
         providerPhone: providerSettings?.contactPhone || "",
+        logoUrl: logoDataUrl,
         bankAccountName: providerSettings?.bankAccountName || "",
         bankBsb: providerSettings?.bankBsb || "",
         bankAccountNumber: providerSettings?.bankAccountNumber || "",
@@ -685,10 +729,10 @@ function ClaimsTab({ userId }: { userId: string }) {
         invoiceDate: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
         dueDate: new Date(Date.now() + 30 * 86400000).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
         reference: `${participant.firstName} ${participant.lastName} - SDA`,
-        customerName: claim.plan?.planManagerName || `${participant.firstName} ${participant.lastName}`,
-        customerAddress: propertyAddr,
+        customerName: `${participant.firstName} ${participant.lastName}`,
+        customerAddress: `${dwellingNum ? dwellingNum + " " : ""}${claim.property?.addressLine1 || ""}\n${(claim.property?.suburb || "").toUpperCase()} ${claim.property?.postcode || ""}\nAUSTRALIA`,
         lineItems: [{
-          description: `Participant Name: ${participant.firstName} ${participant.lastName}\nDOB: ${dob}\nNDIS#: ${participant.ndisNumber || ""}\nSupport # ${claim.plan?.supportItemNumber || providerSettings?.defaultSupportItemNumber || ""}\nSpecialist Disability Accommodation\nDates: ${formatDateShort(fromDate)} - ${formatDateShort(toDate)}\n(Yearly SDA funding is $${((claim.expectedAmount * 12) || 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })})\nAddress: SDA address : ${propertyAddr}`,
+          description: `Participant Name: ${participant.firstName} ${participant.lastName}\nDOB: ${dob}\nNDIS#: ${participant.ndisNumber || ""}\nSupport # ${claim.plan?.supportItemNumber || providerSettings?.defaultSupportItemNumber || ""}\nSpecialist Disability Accommodation\nDates: ${formatDateShort(fromDate)} - ${formatDateShort(toDate)}\n(Yearly SDA funding is $${((claim.expectedAmount * 12) || 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })})\nAddress: SDA address : ${fullAddr}`,
           quantity: 1,
           unitPrice: claim.expectedAmount,
           gst: "GST Free",
@@ -2511,7 +2555,8 @@ function AddOwnerPaymentModal({
 // MTA CLAIMS TAB
 // ============================================
 function MtaClaimsTab({ userId }: { userId: string }) {
-  const { alert: alertDialog } = useConfirmDialog();
+  const { alert: alertDialog, confirm: confirmDialog } = useConfirmDialog();
+  const { organization } = useOrganization();
   const convex = useConvex();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -2531,6 +2576,7 @@ function MtaClaimsTab({ userId }: { userId: string }) {
   const mtaMarkPaid = useMutation(api.mtaClaims.markPaid);
   const mtaMarkRejected = useMutation(api.mtaClaims.markRejected);
   const mtaRevertToPending = useMutation(api.mtaClaims.revertToPending);
+  const removeMtaClaim = useMutation(api.mtaClaims.remove);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(amount);
@@ -2614,6 +2660,23 @@ function MtaClaimsTab({ userId }: { userId: string }) {
     }
   };
 
+  const handleDeleteMtaClaim = async (claimId: Id<"mtaClaims">, participantName: string) => {
+    const confirmed = await confirmDialog({
+      title: "Delete MTA Claim",
+      message: `Are you sure you want to delete this MTA claim for ${participantName}?`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (confirmed) {
+      try {
+        await removeMtaClaim({ userId: userId as Id<"users">, claimId });
+      } catch (error) {
+        console.error("Error deleting MTA claim:", error);
+        await alertDialog("Failed to delete MTA claim");
+      }
+    }
+  };
+
   const handleGenerateMtaInvoice = async (claim: NonNullable<typeof mtaDashboard>["claims"][number]) => {
     try {
       const { generateInvoicePdf } = await import("@/utils/invoicePdf");
@@ -2625,8 +2688,10 @@ function MtaClaimsTab({ userId }: { userId: string }) {
       }
 
       const property = claim.property;
-      const propertyAddr = property
-        ? `${property.addressLine1 || ""} ${property.suburb || ""} ${property.state || ""} ${property.postcode || ""}`.trim()
+      const dwelling = claim.dwelling;
+      const dwellingNum = dwelling?.dwellingName || "";
+      const fullAddr = property
+        ? `${dwellingNum ? dwellingNum + " " : ""}${property.addressLine1 || ""} ${property.suburb || ""} ${property.state || ""} ${property.postcode || ""}`.trim()
         : "";
 
       const dob = participant.dateOfBirth
@@ -2636,23 +2701,38 @@ function MtaClaimsTab({ userId }: { userId: string }) {
           })()
         : "";
 
+      // Load org logo for the PDF
+      let logoDataUrl: string | undefined;
+      if (organization?.resolvedLogoUrl) {
+        logoDataUrl = await loadLogoAsDataUrl(organization.resolvedLogoUrl);
+      }
+
+      // Format invoice and due dates from stored YYYY-MM-DD to human-readable
+      const invoiceDate = claim.invoiceDate
+        ? formatInvoiceDate(claim.invoiceDate)
+        : new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+      const dueDate = claim.dueDate
+        ? formatInvoiceDate(claim.dueDate)
+        : new Date(Date.now() + 30 * 86400000).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+
       await generateInvoicePdf({
         providerName: providerSettings?.providerName || "",
         providerAbn: providerSettings?.abn || "",
         providerAddress: providerSettings?.address || "",
-        providerBillingAddress: providerSettings?.address || "",
+        providerBillingAddress: `${providerSettings?.providerName || ""}\n${providerSettings?.address || ""}`,
         providerPhone: providerSettings?.contactPhone || "",
+        logoUrl: logoDataUrl,
         bankAccountName: providerSettings?.bankAccountName || "",
         bankBsb: providerSettings?.bankBsb || "",
         bankAccountNumber: providerSettings?.bankAccountNumber || "",
         invoiceNumber: claim.invoiceNumber,
-        invoiceDate: claim.invoiceDate || new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
-        dueDate: claim.dueDate || new Date(Date.now() + 30 * 86400000).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }),
+        invoiceDate,
+        dueDate,
         reference: `${participant.firstName} ${participant.lastName} - MTA`,
-        customerName: claim.planManagerName || `${participant.firstName} ${participant.lastName}`,
-        customerAddress: propertyAddr,
+        customerName: `${participant.firstName} ${participant.lastName}`,
+        customerAddress: `${dwellingNum ? dwellingNum + " " : ""}${property?.addressLine1 || ""}\n${(property?.suburb || "").toUpperCase()} ${property?.postcode || ""}\nAUSTRALIA`,
         lineItems: [{
-          description: `Participant Name: ${participant.firstName} ${participant.lastName}\nDOB: ${dob}\nNDIS#: ${participant.ndisNumber || ""}\nSupport item Number:\nMTA: ${claim.supportItemNumber}\nService Type: (Medium Term Accommodation)\nMTA provided dates: ${formatDate(claim.claimPeriodStart)} - ${formatDate(claim.claimPeriodEnd)}\nAddress: ${propertyAddr}`,
+          description: `Participant Name: ${participant.firstName} ${participant.lastName}\nDOB: ${dob}\nNDIS#: ${participant.ndisNumber || ""}\nSupport # ${claim.supportItemNumber}\nMedium Term Accommodation\nDates: ${formatDate(claim.claimPeriodStart)} - ${formatDate(claim.claimPeriodEnd)}\nAddress: ${fullAddr}`,
           quantity: claim.numberOfDays,
           unitPrice: claim.dailyRate,
           gst: "GST Free",
@@ -2805,6 +2885,14 @@ function MtaClaimsTab({ userId }: { userId: string }) {
                     >
                       Invoice
                     </button>
+                    {(claim.status === "pending" || claim.status === "rejected") && (
+                      <button
+                        onClick={() => handleDeleteMtaClaim(claim._id, `${claim.participant?.firstName} ${claim.participant?.lastName}`)}
+                        className="px-3 py-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm rounded"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

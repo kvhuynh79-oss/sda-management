@@ -83,6 +83,11 @@ export const getDashboard = query({
           ? {
               ...participant,
               ndisNumber: await decryptNdisNumber(participant.ndisNumber),
+              dateOfBirth: await (async () => {
+                if (!participant.dateOfBirth) return participant.dateOfBirth;
+                const d = await decryptField(participant.dateOfBirth);
+                return d && d !== "[encrypted]" && !d.startsWith("enc:") ? d : participant.dateOfBirth;
+              })(),
             }
           : null;
 
@@ -185,6 +190,11 @@ export const getByOrganization = query({
           ? {
               ...participant,
               ndisNumber: await decryptNdisNumber(participant.ndisNumber),
+              dateOfBirth: await (async () => {
+                if (!participant.dateOfBirth) return participant.dateOfBirth;
+                const d = await decryptField(participant.dateOfBirth);
+                return d && d !== "[encrypted]" && !d.startsWith("enc:") ? d : participant.dateOfBirth;
+              })(),
             }
           : null;
 
@@ -264,6 +274,11 @@ export const getById = query({
       ? {
           ...participant,
           ndisNumber: await decryptNdisNumber(participant.ndisNumber),
+          dateOfBirth: await (async () => {
+            if (!participant.dateOfBirth) return participant.dateOfBirth;
+            const d = await decryptField(participant.dateOfBirth);
+            return d && d !== "[encrypted]" && !d.startsWith("enc:") ? d : participant.dateOfBirth;
+          })(),
         }
       : null;
 

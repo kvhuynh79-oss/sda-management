@@ -106,6 +106,12 @@ export default defineSchema({
     inboundEmailAddress: v.optional(v.string()), // Unique forwarding address (e.g., "bls-abc123@inbound.mysdamanager.com")
     inboundEmailEnabled: v.optional(v.boolean()), // Whether email forwarding is active
     postmarkHashAddress: v.optional(v.string()), // Postmark default hash address for fallback routing
+    // Super-admin notes about this organization
+    adminNotes: v.optional(v.string()),
+    // Managed onboarding service request tracking
+    onboardingServiceRequested: v.optional(v.boolean()),
+    onboardingServiceRequestedAt: v.optional(v.number()),
+    onboardingServiceTier: v.optional(v.string()), // "starter" | "professional" | "enterprise"
   })
     .index("by_slug", ["slug"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])
@@ -2199,6 +2205,12 @@ export default defineSchema({
     // Read tracking
     readAt: v.optional(v.string()), // ISO string when message was read
 
+    // Postmark message ID for deduplication
+    postmarkMessageId: v.optional(v.string()),
+
+    // Manual thread linking tracking
+    manuallyLinkedAt: v.optional(v.number()), // Timestamp when manually linked to a thread
+
     // Soft delete
     isDeleted: v.optional(v.boolean()),
     deletedAt: v.optional(v.number()),
@@ -2223,7 +2235,8 @@ export default defineSchema({
     .index("by_linked_incident", ["linkedIncidentId"])
     .index("by_isDeleted", ["isDeleted"])
     .index("by_organizationId", ["organizationId"])
-    .index("by_org_contactName", ["organizationId", "contactName"]),
+    .index("by_org_contactName", ["organizationId", "contactName"])
+    .index("by_postmarkMessageId", ["postmarkMessageId"]),
 
   // Thread summaries table - performance cache for thread views
   threadSummaries: defineTable({
@@ -2698,4 +2711,52 @@ export default defineSchema({
     .index("by_organizationId", ["organizationId"])
     .index("by_userId_provider", ["userId", "provider"])
     .index("by_syncEnabled", ["syncEnabled"]),
+
+  // Support Tickets - customer-facing issue tracking with SLA
+  supportTickets: defineTable({
+    organizationId: v.id("organizations"),
+    createdByUserId: v.id("users"),
+    // Ticket metadata
+    ticketNumber: v.string(),           // TKT-0001 (auto-increment platform-wide)
+    subject: v.string(),
+    description: v.string(),
+    severity: v.string(),               // "critical" | "high" | "normal" | "low"
+    category: v.string(),               // "bug" | "how_to" | "feature_request" | "billing" | "data_issue" | "other"
+    status: v.string(),                 // "open" | "in_progress" | "waiting_on_customer" | "resolved" | "closed"
+    // Context (auto-captured)
+    pageUrl: v.optional(v.string()),    // URL where issue was reported
+    browserInfo: v.optional(v.string()),// User agent string
+    screenshotStorageId: v.optional(v.id("_storage")), // html2canvas screenshot
+    // SLA tracking
+    slaDeadline: v.number(),            // createdAt + 24hrs (or 4hrs for enterprise critical)
+    firstResponseAt: v.optional(v.number()),
+    resolvedAt: v.optional(v.number()),
+    // Assignment
+    assignedTo: v.optional(v.string()), // Super-admin name (for future multi-admin)
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_status", ["status"])
+    .index("by_severity", ["severity"])
+    .index("by_createdAt", ["createdAt"]),
+
+  // Support Ticket Messages - threaded replies on tickets
+  supportTicketMessages: defineTable({
+    ticketId: v.id("supportTickets"),
+    authorUserId: v.optional(v.id("users")),  // null for system messages
+    authorName: v.string(),
+    authorRole: v.string(),                    // "customer" | "admin" | "system"
+    message: v.string(),
+    attachmentStorageId: v.optional(v.id("_storage")),
+    createdAt: v.number(),
+  })
+    .index("by_ticketId", ["ticketId"]),
+
+  // Platform-wide ticket counter for auto-incrementing TKT-XXXX numbers
+  supportTicketCounters: defineTable({
+    lastNumber: v.number(),
+    updatedAt: v.number(),
+  }),
 });

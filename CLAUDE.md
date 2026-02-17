@@ -13,7 +13,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.6.0 (Marketing Sprint + SEO + Blog)
+## Current Version: v2.7.0 (MTA Claims + SDA Plan-Managed Invoices)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -22,7 +22,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 4. **Contractor Management** - Track contractors, send quote requests via email
 5. **Quote Request Workflow** - Email contractors, receive quotes via public link
 6. **Property Inspections** - Mobile-optimized checklists (BLS template)
-7. **Payments** - Track SDA payments and generate NDIS export files
+7. **Payments** - Track SDA payments, generate NDIS export files, MTA claims, plan-managed tax invoices
 8. **Documents** - Store documents with expiry tracking + AI analysis
 9. **Alerts** - Automated alerts for expiries, vacancies, maintenance
 10. **Reports** - Compliance, financial, and contractor reports
@@ -52,6 +52,8 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 34. **SEO Infrastructure** - robots.txt, sitemap.xml, OG/Twitter images, structured data (JSON-LD)
 35. **Blog System** - 6 articles with categories, search, share buttons, individual post pages
 36. **Lead Capture** - Audit checklist PDF download with email capture via marketingLeads table
+37. **MTA Claims** - Medium Term Accommodation claims with auto-invoice generation, bulk create (weekly/fortnightly/monthly), rolling period windows
+38. **SDA Plan-Managed Invoices** - Tax invoice PDF generation for plan-managed SDA participants (Xero-format)
 
 ## Project Structure
 ```
@@ -108,6 +110,7 @@ convex/                     # Backend functions
 ├── crons.ts                # Scheduled jobs
 ├── communications.ts       # Communication log tracking
 ├── tasks.ts                # Follow-up task management
+├── mtaClaims.ts            # MTA claims + invoice number generation
 └── ...
 
 src/components/
@@ -164,6 +167,8 @@ worker/
 - `communications` - Communication logs (emails, calls, SMS, meetings)
 - `tasks` - Follow-up tasks linked to participants/communications
 - `pushSubscriptions` - Web Push notification subscriptions per user/device
+- `mtaClaims` - Medium Term Accommodation claims with invoice tracking
+- `invoiceCounters` - Auto-incrementing invoice numbers per org per month
 
 ## Important Business Context
 
@@ -863,6 +868,34 @@ All 8 sprints of the SaaS transformation are complete.
 - **Lead Email Notifications**: Resend email on every lead/inquiry submission to admin. Admin leads dashboard at `/admin/leads` with stats, search, source filters.
 - **Build**: 117 pages, 0 errors
 
+### MTA Claims + SDA Plan-Managed Invoices (2026-02-16)
+- **MTA Claims Tab**: New 4th tab on Financials page for Medium Term Accommodation claims
+  - Schema: `mtaClaims` + `invoiceCounters` tables with 7 indexes
+  - Backend: `convex/mtaClaims.ts` - 13 functions (getDashboard, getByOrganization, getByParticipant, getById, create, bulkCreateForAgreement, markSubmitted, markPaid, markRejected, revertToPending, remove, update, getNextInvoiceNumber)
+  - All use `requireTenant()` + `requirePermission("payments", ...)`
+  - Agreement: max 90 days, claim frequency (weekly/fortnightly/monthly)
+  - Bulk create: "Generate All Claims" button creates all claim windows for agreement
+  - Rolling monthly periods from agreement start date (NOT calendar month boundaries)
+  - Auto-generated invoice numbers: `INV-0001` format (sequential per org per month)
+  - Status lifecycle: pending → submitted → paid (also rejected, partial)
+  - Delete button for pending/rejected claims with ConfirmDialog
+  - 5 stat cards: Active Agreements, Total MTA Amount, Claims This Month, Pending, Paid
+  - DOB decryption in all queries returning participant data
+- **SDA Plan-Managed Invoice**: "Generate Invoice" button on existing Claims tab
+  - Visible only for `plan_managed` claim method participants
+  - Fixed `claimMethod` derivation: falls back to `fundingManagementType` from participant plan
+  - Per-claim and bulk invoice generation
+- **Shared Tax Invoice PDF**: `src/utils/invoicePdf.ts` (585 lines) - Xero-format tax invoice
+  - Portrait A4, 28pt "TAX INVOICE" title, three-column header layout
+  - Left: customer address (11pt, 5.5mm spacing) | Center: invoice metadata (8pt labels, 10pt values) | Right: provider (bold name, normal address)
+  - 9mm dark table header bar (2-pass rendering), alternating row backgrounds
+  - Multi-line description support with text wrapping
+  - Totals section with separator lines (6mm spacing to prevent overlap)
+  - Payment details: Due Date, EFT bank details (bold labels measured while bold to prevent getTextWidth mismatch)
+  - Page 2: Payment Advice with scissors cut line, "To:" block, alternating-row info table, "Amount Enclosed" write-in line
+  - Logo loading via `loadLogoAsDataUrl()` canvas conversion
+- **Build**: 117 pages, 0 errors
+
 ### Remaining Launch Tasks (ALL EXTERNAL - No Code Needed)
 - **Stripe Configuration**: Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, product/price IDs in Convex + Vercel env
 - **Business Registration**: Register Pty Ltd with ASIC, apply for ABN, apply for Director ID
@@ -971,11 +1004,16 @@ All 8 sprints of the SaaS transformation are complete.
 70. Lead Notification + Dashboard - ✅ (Resend email on lead/inquiry capture, admin leads page at `/admin/leads` with stats/search/filters)
 71. Load Test - ✅ (12 orgs, 180/180 queries, avg 283ms, Grade A+, tenant isolation verified)
 
+### Completed (v2.7.0 - MTA Claims + SDA Plan-Managed Invoices)
+72. MTA Claims Tab - ✅ (`convex/mtaClaims.ts`, 13 functions, bulk create with rolling monthly windows, auto-invoice numbers `INV-0001`)
+73. SDA Plan-Managed Invoice - ✅ ("Generate Invoice" on Claims tab for plan-managed participants, claimMethod derivation fix)
+74. Shared Tax Invoice PDF - ✅ (`src/utils/invoicePdf.ts`, 585 lines, Xero-format, 2-page with Payment Advice, logo support)
+
 ### Post-Launch Tasks
-72. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
-73. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-74. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-75. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+75. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+76. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+77. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+78. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -1041,4 +1079,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-16 (v2.6.1 - Lead notification emails via Resend + admin leads dashboard. Competitor analysis + social media marketing plan. Load test passed A+. 117 pages, 0 errors.)
+**Last Updated**: 2026-02-16 (v2.7.0 - MTA Claims tab + SDA plan-managed invoice PDF + shared Xero-format tax invoice generator. 117 pages, 0 errors.)

@@ -52,7 +52,8 @@ interface BottomNavProps {
     | "schedule"
     | "contractors"
     | "follow-ups"
-    | "calendar";
+    | "calendar"
+    | "support";
 }
 
 // ── "More" sheet item definitions ─────────────────────────────────

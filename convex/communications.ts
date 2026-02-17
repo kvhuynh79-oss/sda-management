@@ -723,6 +723,24 @@ export const remove = mutation({
   },
 });
 
+// Mark a communication as read
+export const markAsRead = mutation({
+  args: {
+    userId: v.id("users"),
+    communicationId: v.id("communications"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const comm = await ctx.db.get(args.communicationId);
+    if (!comm || comm.organizationId !== organizationId) return;
+    if (comm.readAt) return; // Already read
+    await ctx.db.patch(args.communicationId, {
+      readAt: new Date().toISOString(),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // MANUAL THREAD MANAGEMENT (Task 2.4)
 
 /**
@@ -1047,6 +1065,7 @@ export const moveToThread = mutation({
     await ctx.db.patch(args.communicationId, {
       threadId: args.targetThreadId,
       isThreadStarter: false,
+      manuallyLinkedAt: Date.now(),
       updatedAt: Date.now(),
     });
 

@@ -7,7 +7,9 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmDialogProvider } from "@/components/ui/ConfirmDialog";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import CommandPalette from "@/components/CommandPalette";
+import SupportButton from "@/components/SupportButton";
 import { generateOrganizationSchema } from "@/lib/seo";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -100,11 +102,32 @@ export default function RootLayout({
                 <ConfirmDialogProvider>
                   <CommandPalette />
                   {children}
+                  <SupportButton />
                 </ConfirmDialogProvider>
               </ToastProvider>
             </ThemeProvider>
           </OrganizationProvider>
         </ConvexClientProvider>
+        {/* Tawk.to Live Chat - only loads when property ID is configured */}
+        {process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID && (
+          <Script
+            id="tawk-to"
+            strategy="lazyOnload"
+            dangerouslySetInnerHTML={{
+              __html: `
+                var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+                (function(){
+                  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+                  s1.async=true;
+                  s1.src='https://embed.tawk.to/${process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID}/default';
+                  s1.charset='UTF-8';
+                  s1.setAttribute('crossorigin','*');
+                  s0.parentNode.insertBefore(s1,s0);
+                })();
+              `,
+            }}
+          />
+        )}
       </body>
     </html>
   );

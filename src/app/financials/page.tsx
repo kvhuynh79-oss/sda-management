@@ -2750,6 +2750,24 @@ function MtaClaimsTab({ userId }: { userId: string }) {
 
   return (
     <div>
+      {/* Bank Details Warning - show when missing */}
+      {providerSettings && (!providerSettings.bankBsb || !providerSettings.bankAccountNumber || !providerSettings.bankAccountName) && (
+        <div className="mb-6 p-4 bg-yellow-900/30 border border-yellow-700/50 rounded-lg flex items-start gap-3">
+          <svg className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <div>
+            <div className="text-yellow-400 text-sm font-medium">Bank Details Missing</div>
+            <div className="text-gray-400 text-xs mt-1">
+              Your invoices will not include payment details until you configure bank information.{" "}
+              <a href="/settings/organization" className="text-teal-400 hover:text-teal-300 underline">
+                Update in Settings
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Action Bar */}
       <div className="flex justify-between items-center mb-6">
         <div />
@@ -2900,6 +2918,39 @@ function MtaClaimsTab({ userId }: { userId: string }) {
           ))}
         </div>
       )}
+
+      {/* NDIS Bulk Upload Resources */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-5 mt-6">
+        <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+          <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          NDIS Bulk Upload Resources
+        </h3>
+        <p className="text-gray-400 text-sm mb-4">Official NDIS templates for bulk payment claims</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <a href="/resources/Bulk_File_Upload_Information.pdf" download
+             className="flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+            <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <div>
+              <div className="text-white text-sm font-medium">Bulk File Upload Information</div>
+              <div className="text-gray-400 text-xs">PDF - Field format reference guide</div>
+            </div>
+          </a>
+          <a href="/resources/Bulk_Payment_Reference_Upload_Template.csv" download
+             className="flex items-center gap-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+            <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <div>
+              <div className="text-white text-sm font-medium">Bulk Payment Upload Template</div>
+              <div className="text-gray-400 text-xs">CSV - Header template for NDIS portal</div>
+            </div>
+          </a>
+        </div>
+      </div>
 
       {/* Create MTA Claim Modal */}
       {showCreateModal && (

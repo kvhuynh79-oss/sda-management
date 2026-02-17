@@ -230,6 +230,92 @@ export const getOrganizationDetail = query({
       .order("desc")
       .take(10);
 
+    // Get provider settings for this org
+    const providerSettings = await ctx.db
+      .query("providerSettings")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .first();
+
+    const providerInfo = providerSettings
+      ? {
+          bankBsb: providerSettings.bankBsb,
+          bankAccountNumber: providerSettings.bankAccountNumber,
+          bankAccountName: providerSettings.bankAccountName,
+          abn: providerSettings.abn,
+          phone: providerSettings.contactPhone,
+        }
+      : null;
+
+    // Get support ticket stats
+    const supportTickets = await ctx.db
+      .query("supportTickets")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .order("desc")
+      .collect();
+
+    const openTicketCount = supportTickets.filter(
+      (t) => t.status === "open" || t.status === "in_progress" || t.status === "waiting_on_customer"
+    ).length;
+    const latestTicket = supportTickets.length > 0 ? supportTickets[0] : null;
+
+    // Feature usage counts for this month
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    const maintenanceRequests = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+    const maintenanceThisMonth = maintenanceRequests.filter(
+      (m) => m._creationTime >= monthStart
+    ).length;
+
+    const incidents = await ctx.db
+      .query("incidents")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+    const incidentsThisMonth = incidents.filter(
+      (i) => i._creationTime >= monthStart
+    ).length;
+
+    const allDocuments = await ctx.db
+      .query("documents")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+    const documentsThisMonth = allDocuments.filter(
+      (d) => d._creationTime >= monthStart
+    ).length;
+
+    const communications = await ctx.db
+      .query("communications")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+    const communicationsThisMonth = communications.filter(
+      (c) => c._creationTime >= monthStart
+    ).length;
+
+    const inspections = await ctx.db
+      .query("inspections")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+    const inspectionsThisMonth = inspections.filter(
+      (ins) => ins._creationTime >= monthStart
+    ).length;
+
     return {
       organization: org,
       users: sanitizedUsers,
@@ -244,6 +330,29 @@ export const getOrganizationDetail = query({
         documents: documents.length,
       },
       recentAuditLogs: auditLogs,
+      providerInfo,
+      supportTicketStats: {
+        totalCount: supportTickets.length,
+        openCount: openTicketCount,
+        latestTicket: latestTicket
+          ? {
+              _id: latestTicket._id,
+              ticketNumber: latestTicket.ticketNumber,
+              subject: latestTicket.subject,
+              severity: latestTicket.severity,
+              status: latestTicket.status,
+              createdAt: latestTicket.createdAt,
+            }
+          : null,
+      },
+      featureUsageThisMonth: {
+        maintenance: maintenanceThisMonth,
+        incidents: incidentsThisMonth,
+        documents: documentsThisMonth,
+        communications: communicationsThisMonth,
+        inspections: inspectionsThisMonth,
+      },
+      adminNotes: org.adminNotes ?? null,
     };
   },
 });
@@ -320,6 +429,121 @@ export const getPlatformMetrics = query({
       totalParticipants: allParticipants.length,
       revenueByPlan,
       subscriptionBreakdown,
+    };
+  },
+});
+
+/**
+ * Get financial metrics across all organizations.
+ * Returns MRR, ARR, ARPU, churn rate, conversion rate, at-risk orgs, and a revenue table.
+ */
+export const getFinancialMetrics = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx, args.userId);
+    const orgs = await ctx.db.query("organizations").collect();
+
+    const PRICES: Record<string, number> = {
+      starter: 250,
+      professional: 450,
+      enterprise: 600,
+    };
+    const activePayingOrgs = orgs.filter(
+      (o) => o.isActive && o.subscriptionStatus === "active"
+    );
+    const mrr = activePayingOrgs.reduce(
+      (sum, o) => sum + (PRICES[o.plan] || 0),
+      0
+    );
+    const arr = mrr * 12;
+    const arpu =
+      activePayingOrgs.length > 0 ? mrr / activePayingOrgs.length : 0;
+
+    const mrrByPlan = {
+      starter:
+        activePayingOrgs.filter((o) => o.plan === "starter").length * 250,
+      professional:
+        activePayingOrgs.filter((o) => o.plan === "professional").length * 450,
+      enterprise:
+        activePayingOrgs.filter((o) => o.plan === "enterprise").length * 600,
+    };
+
+    const now = Date.now();
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+    const trialExpiringSoon = orgs.filter(
+      (o) =>
+        o.subscriptionStatus === "trialing" &&
+        o.trialEndsAt &&
+        o.trialEndsAt - now < sevenDaysMs &&
+        o.trialEndsAt > now
+    );
+    const pastDue = orgs.filter(
+      (o) => o.subscriptionStatus === "past_due"
+    );
+    const trialExpired = orgs.filter(
+      (o) =>
+        o.subscriptionStatus === "trialing" &&
+        o.trialEndsAt &&
+        o.trialEndsAt < now
+    );
+    const canceled = orgs.filter(
+      (o) => o.subscriptionStatus === "canceled"
+    );
+    const churnRate =
+      orgs.length > 0
+        ? ((canceled.length / orgs.length) * 100).toFixed(1)
+        : "0";
+    const trialingCount = orgs.filter(
+      (o) => o.subscriptionStatus === "trialing"
+    ).length;
+    const conversionRate =
+      trialingCount + activePayingOrgs.length > 0
+        ? (
+            (activePayingOrgs.length /
+              (trialingCount + activePayingOrgs.length)) *
+            100
+          ).toFixed(0)
+        : "0";
+
+    const revenueTable = orgs
+      .filter((o) => o.isActive)
+      .map((o) => ({
+        _id: o._id,
+        name: o.name,
+        plan: o.plan,
+        subscriptionStatus: o.subscriptionStatus,
+        monthlyAmount:
+          o.subscriptionStatus === "active" ? PRICES[o.plan] || 0 : 0,
+        trialEndsAt: o.trialEndsAt,
+        createdAt: o.createdAt,
+      }))
+      .sort((a, b) => b.monthlyAmount - a.monthlyAmount);
+
+    return {
+      mrr,
+      arr,
+      arpu,
+      mrrByPlan,
+      activePayingCount: activePayingOrgs.length,
+      trialCount: trialingCount,
+      canceledCount: canceled.length,
+      churnRate,
+      conversionRate,
+      atRiskOrgs: {
+        trialExpiringSoon: trialExpiringSoon.map((o) => ({
+          _id: o._id,
+          name: o.name,
+          trialEndsAt: o.trialEndsAt,
+        })),
+        pastDue: pastDue.map((o) => ({ _id: o._id, name: o.name })),
+        trialExpired: trialExpired.map((o) => ({
+          _id: o._id,
+          name: o.name,
+          trialEndsAt: o.trialEndsAt,
+        })),
+      },
+      revenueTable,
     };
   },
 });
@@ -642,6 +866,53 @@ export const impersonateOrganization = mutation({
       recentIncidents: incidentSummaries,
       recentPayments: paymentSummaries,
     };
+  },
+});
+
+/**
+ * Update admin-only internal notes on an organization.
+ * These notes are visible only to super-admins for tracking org health,
+ * onboarding progress, support context, etc.
+ */
+export const updateAdminNotes = mutation({
+  args: {
+    userId: v.id("users"),
+    orgId: v.id("organizations"),
+    notes: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx, args.userId);
+
+    const org = await ctx.db.get(args.orgId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.orgId, { adminNotes: args.notes });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Get recent support tickets for a specific organization.
+ * Returns the 10 most recent tickets, sorted by creation time descending.
+ */
+export const getOrgTickets = query({
+  args: {
+    userId: v.id("users"),
+    orgId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx, args.userId);
+
+    const tickets = await ctx.db
+      .query("supportTickets")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.orgId)
+      )
+      .order("desc")
+      .take(10);
+
+    return tickets;
   },
 });
 

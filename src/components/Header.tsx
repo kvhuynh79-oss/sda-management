@@ -60,6 +60,8 @@ export type CurrentPage =
   | "ai"
   | "settings"
   | "admin"
+  | "support"
+  | "help"
   // Legacy - kept for backwards compatibility during transition
   | "payments"
   | "claims"

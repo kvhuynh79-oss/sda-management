@@ -309,7 +309,7 @@ export const getById = query({
 
 /**
  * getNextInvoiceNumber - Generate the next sequential invoice number for this org.
- * Format: INV-MMYY-0001
+ * Format: INV-0001
  * Uses invoiceCounters table for atomic incrementing.
  */
 export const getNextInvoiceNumber = mutation({
@@ -347,7 +347,7 @@ export const getNextInvoiceNumber = mutation({
       });
     }
 
-    return `INV-${yearMonth}-${String(nextNumber).padStart(4, "0")}`;
+    return `INV-${String(nextNumber).padStart(4, "0")}`;
   },
 });
 

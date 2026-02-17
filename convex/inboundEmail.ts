@@ -380,6 +380,7 @@ export const processInboundEmail = mutation({
     textBody: v.string(),
     strippedReply: v.optional(v.string()),
     emailDate: v.optional(v.string()),
+    postmarkMessageId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // -----------------------------------------------------------------------
@@ -571,6 +572,31 @@ export const processInboundEmail = mutation({
     );
 
     // -----------------------------------------------------------------------
+    // 6b. Deduplicate by Postmark MessageID
+    // -----------------------------------------------------------------------
+    if (args.postmarkMessageId) {
+      const existing = await ctx.db
+        .query("communications")
+        .withIndex("by_postmarkMessageId", (q) =>
+          q.eq("postmarkMessageId", args.postmarkMessageId)
+        )
+        .first();
+      if (existing) return {
+        communicationId: existing._id,
+        threadId: existing.threadId || threadResult.threadId,
+        contactName,
+        contactEmail,
+        contactType: detection.contactType,
+        stakeholderEntityType: detection.stakeholderEntityType,
+        stakeholderEntityId: detection.stakeholderEntityId,
+        linkedParticipantId: detection.linkedParticipantId,
+        subject,
+        isForwarded: parsed.isForwarded,
+        isNewThread: false,
+      };
+    }
+
+    // -----------------------------------------------------------------------
     // 7. Insert communication record
     // -----------------------------------------------------------------------
     const communicationId = await ctx.db.insert("communications", {
@@ -590,6 +616,7 @@ export const processInboundEmail = mutation({
       stakeholderEntityId: detection.stakeholderEntityId,
       // Auto-linked participant from SC/SIL relationship tables
       linkedParticipantId: detection.linkedParticipantId as any, // Schema: v.optional(v.id("participants"))
+      postmarkMessageId: args.postmarkMessageId,
       createdBy: forwarderUserId as any, // Typed as Id<"users"> in schema
       createdAt: now,
       updatedAt: now,
@@ -864,6 +891,7 @@ export const syncInboundEmails = action({
           textBody,
           strippedReply: undefined,
           emailDate: msg.Date || undefined,
+          postmarkMessageId: messageId || undefined,
         });
         synced++;
       } catch (err) {

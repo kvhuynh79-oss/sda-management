@@ -141,6 +141,7 @@ function OnboardingSetupContent() {
   const [step, setStep] = useState<OnboardingStep>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [setupRequested, setSetupRequested] = useState(false);
 
   // Step 1: Welcome & org details
   const [timezone, setTimezone] = useState("Australia/Sydney");
@@ -161,6 +162,7 @@ function OnboardingSetupContent() {
   // Convex mutations
   const createProperty = useMutation(api.properties.create);
   const createDwelling = useMutation(api.dwellings.create);
+  const submitLead = useMutation(api.marketingLeads.submitLead);
 
   // ---- Handlers ----
   const handleNext = () => {
@@ -226,6 +228,22 @@ function OnboardingSetupContent() {
       setIsSubmitting(false);
     }
   }, [dwellingName, maxParticipants, createdPropertyId, user, createDwelling, sdaCategory]);
+
+  const handleRequestSetup = useCallback(async (tier: string) => {
+    if (!user) return;
+    try {
+      await submitLead({
+        name: `${user.firstName} ${user.lastName}`.trim() || user.email || "Unknown",
+        email: user.email || "",
+        source: "onboarding_setup_service",
+        role: tier,
+      });
+      setSetupRequested(true);
+    } catch (error) {
+      console.error("Failed to request setup:", error);
+      setSetupRequested(true);
+    }
+  }, [user, submitLead]);
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -588,6 +606,77 @@ function OnboardingSetupContent() {
             <p className="text-gray-400 mb-10 max-w-md mx-auto">
               Your organization is ready to go. Here are some next steps to get the most out of MySDAManager.
             </p>
+
+            {/* Managed Onboarding Service */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-white mb-2">Need Help Getting Started?</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Let our team handle the setup. We&apos;ll configure your organization, import your data, and train your staff.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Starter Setup */}
+                <div className="bg-gray-700 border border-gray-600 rounded-lg p-4">
+                  <div className="text-teal-400 text-sm font-medium mb-1">Starter Setup</div>
+                  <div className="text-2xl font-bold text-white mb-2">$1,500</div>
+                  <ul className="text-gray-400 text-xs space-y-1 mb-4 text-left">
+                    <li>Up to 10 properties imported</li>
+                    <li>User accounts configured</li>
+                    <li>1 hour training session</li>
+                  </ul>
+                  <button
+                    onClick={() => handleRequestSetup("starter")}
+                    disabled={setupRequested}
+                    className="w-full px-3 py-2 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Request Setup
+                  </button>
+                </div>
+
+                {/* Professional Setup */}
+                <div className="bg-gray-700 border-2 border-teal-500 rounded-lg p-4 relative">
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full">Popular</div>
+                  <div className="text-teal-400 text-sm font-medium mb-1">Professional Setup</div>
+                  <div className="text-2xl font-bold text-white mb-2">$2,500</div>
+                  <ul className="text-gray-400 text-xs space-y-1 mb-4 text-left">
+                    <li>Up to 50 properties imported</li>
+                    <li>Full data migration</li>
+                    <li>3 hours training</li>
+                    <li>30-day support</li>
+                  </ul>
+                  <button
+                    onClick={() => handleRequestSetup("professional")}
+                    disabled={setupRequested}
+                    className="w-full px-3 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Request Setup
+                  </button>
+                </div>
+
+                {/* Enterprise Setup */}
+                <div className="bg-gray-700 border border-gray-600 rounded-lg p-4">
+                  <div className="text-teal-400 text-sm font-medium mb-1">Enterprise Setup</div>
+                  <div className="text-2xl font-bold text-white mb-2">$4,500</div>
+                  <ul className="text-gray-400 text-xs space-y-1 mb-4 text-left">
+                    <li>Unlimited properties</li>
+                    <li>Custom integrations</li>
+                    <li>Dedicated account manager</li>
+                    <li>90-day support</li>
+                  </ul>
+                  <button
+                    onClick={() => handleRequestSetup("enterprise")}
+                    disabled={setupRequested}
+                    className="w-full px-3 py-2 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Request Setup
+                  </button>
+                </div>
+              </div>
+              {setupRequested && (
+                <div className="mt-4 p-3 bg-teal-900/30 border border-teal-700/50 rounded-lg text-teal-400 text-sm">
+                  Setup request submitted! Our team will contact you within 24 hours.
+                </div>
+              )}
+            </div>
 
             {/* Action cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">

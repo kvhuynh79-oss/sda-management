@@ -95,6 +95,7 @@ import type * as staff from "../staff.js";
 import type * as stripe from "../stripe.js";
 import type * as superAdmin from "../superAdmin.js";
 import type * as supportCoordinators from "../supportCoordinators.js";
+import type * as supportTickets from "../supportTickets.js";
 import type * as tasks from "../tasks.js";
 import type * as vacancyListings from "../vacancyListings.js";
 import type * as validationHelpers from "../validationHelpers.js";
@@ -195,6 +196,7 @@ declare const fullApi: ApiFromModules<{
   stripe: typeof stripe;
   superAdmin: typeof superAdmin;
   supportCoordinators: typeof supportCoordinators;
+  supportTickets: typeof supportTickets;
   tasks: typeof tasks;
   vacancyListings: typeof vacancyListings;
   validationHelpers: typeof validationHelpers;

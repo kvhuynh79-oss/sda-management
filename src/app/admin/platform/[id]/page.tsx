@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -30,7 +30,27 @@ import {
   User,
   Activity,
   FileText,
+  CreditCard,
+  MessageSquare,
+  BarChart3,
+  StickyNote,
+  Wrench,
+  AlertTriangle,
+  FileCheck,
+  Mail,
+  ClipboardList,
+  Save,
 } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const PLAN_PRICES: Record<string, number> = {
+  starter: 250,
+  professional: 450,
+  enterprise: 600,
+};
 
 // ---------------------------------------------------------------------------
 // Helper: format relative time
@@ -55,7 +75,8 @@ function formatRelativeTime(timestamp: number | null | undefined): string {
   });
 }
 
-function formatDate(timestamp: number): string {
+function formatDate(timestamp: number | undefined | null): string {
+  if (!timestamp) return "N/A";
   return new Date(timestamp).toLocaleDateString("en-AU", {
     day: "numeric",
     month: "short",
@@ -88,8 +109,9 @@ function PlanBadge({ plan }: { plan: "starter" | "professional" | "enterprise" }
 function SubscriptionStatusBadge({
   status,
 }: {
-  status: "active" | "trialing" | "past_due" | "canceled";
+  status: "active" | "trialing" | "past_due" | "canceled" | undefined;
 }) {
+  if (!status) return null;
   const config = {
     active: { variant: "success" as const, label: "Active" },
     trialing: { variant: "warning" as const, label: "Trialing" },
@@ -99,6 +121,45 @@ function SubscriptionStatusBadge({
   const { variant, label } = config[status];
   return (
     <Badge variant={variant} size="sm" dot>
+      {label}
+    </Badge>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Ticket status badge
+// ---------------------------------------------------------------------------
+
+function TicketStatusBadge({ status }: { status: string }) {
+  const config: Record<string, { variant: "success" | "info" | "warning" | "error" | "neutral"; label: string }> = {
+    open: { variant: "error", label: "Open" },
+    in_progress: { variant: "info", label: "In Progress" },
+    waiting_on_customer: { variant: "warning", label: "Waiting" },
+    resolved: { variant: "success", label: "Resolved" },
+    closed: { variant: "neutral", label: "Closed" },
+  };
+  const { variant, label } = config[status] || { variant: "neutral" as const, label: status };
+  return (
+    <Badge variant={variant} size="xs">
+      {label}
+    </Badge>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Ticket severity badge
+// ---------------------------------------------------------------------------
+
+function TicketSeverityBadge({ severity }: { severity: string }) {
+  const config: Record<string, { variant: "error" | "warning" | "info" | "neutral"; label: string }> = {
+    critical: { variant: "error", label: "Critical" },
+    high: { variant: "warning", label: "High" },
+    normal: { variant: "info", label: "Normal" },
+    low: { variant: "neutral", label: "Low" },
+  };
+  const { variant, label } = config[severity] || { variant: "neutral" as const, label: severity };
+  return (
+    <Badge variant={variant} size="xs">
       {label}
     </Badge>
   );
@@ -126,6 +187,22 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// Usage card (inline component for feature usage)
+// ---------------------------------------------------------------------------
+
+function UsageCard({ label, count, icon }: { label: string; count: number; icon: React.ReactNode }) {
+  return (
+    <div className="bg-gray-700 rounded-lg p-3 text-center">
+      <div className="flex justify-center mb-1 text-gray-400" aria-hidden="true">
+        {icon}
+      </div>
+      <div className="text-2xl font-bold text-white">{count}</div>
+      <div className="text-gray-400 text-xs">{label}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Skeleton loader
 // ---------------------------------------------------------------------------
 
@@ -146,6 +223,8 @@ function DetailSkeleton() {
             ))}
           </div>
           <div className="bg-gray-800 rounded-lg p-6 h-64" />
+          <div className="bg-gray-800 rounded-lg p-6 h-40" />
+          <div className="bg-gray-800 rounded-lg p-6 h-48" />
         </div>
       </main>
     </div>
@@ -509,11 +588,19 @@ function OrganizationDetailContent() {
   const dbUser = useQuery(api.auth.getUser, userId ? { userId } : "skip");
   const isSuperAdmin = dbUser?.isSuperAdmin === true;
 
-  // Organization detail query - returns { organization, users, counts, recentAuditLogs }
+  // Organization detail query - returns { organization, users, counts, recentAuditLogs, providerInfo, supportTicketStats, featureUsageThisMonth, adminNotes }
   const orgData = useQuery(
     api.superAdmin.getOrganizationDetail,
     userId && isSuperAdmin && orgId
       ? { userId, organizationId: orgId as Id<"organizations"> }
+      : "skip"
+  );
+
+  // Support tickets query
+  const orgTickets = useQuery(
+    api.superAdmin.getOrgTickets,
+    userId && isSuperAdmin && orgId
+      ? { userId, orgId: orgId as Id<"organizations"> }
       : "skip"
   );
 
@@ -522,6 +609,7 @@ function OrganizationDetailContent() {
   const extendTrialMutation = useMutation(api.superAdmin.extendTrial);
   const adjustPlanLimitsMutation = useMutation(api.superAdmin.adjustPlanLimits);
   const impersonateOrganization = useMutation(api.superAdmin.impersonateOrganization);
+  const updateNotes = useMutation(api.superAdmin.updateAdminNotes);
 
   // Local state
   const [showAdjustLimits, setShowAdjustLimits] = useState(false);
@@ -530,12 +618,39 @@ function OrganizationDetailContent() {
   const [impersonationData, setImpersonationData] = useState<any>(null);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
 
   // Unwrap the nested response
   const org = orgData?.organization;
   const orgUsers = orgData?.users || [];
   const counts = orgData?.counts;
   const recentAuditLogs = orgData?.recentAuditLogs || [];
+  const providerInfo = orgData?.providerInfo;
+  const supportTicketStats = orgData?.supportTicketStats;
+  const featureUsage = orgData?.featureUsageThisMonth;
+
+  // Derived data
+  const adminUser = useMemo(
+    () => orgUsers.find((u) => u.role === "admin"),
+    [orgUsers]
+  );
+
+  const daysActive = useMemo(() => {
+    if (!org?.createdAt) return 0;
+    return Math.floor((Date.now() - org.createdAt) / 86400000);
+  }, [org?.createdAt]);
+
+  // Sync admin notes from server when data loads
+  useEffect(() => {
+    if (orgData?.adminNotes !== undefined && orgData?.adminNotes !== null) {
+      setAdminNotes(orgData.adminNotes);
+    }
+  }, [orgData?.adminNotes]);
+
+  // Track whether notes have been modified from server state
+  const notesModified = adminNotes !== (orgData?.adminNotes ?? "");
 
   // ---- Handlers ----
 
@@ -627,6 +742,24 @@ function OrganizationDetailContent() {
     }
   }, [userId, org, impersonateOrganization]);
 
+  const handleSaveNotes = useCallback(async () => {
+    if (!userId || !orgId) return;
+    try {
+      setNotesSaving(true);
+      await updateNotes({
+        userId,
+        orgId: orgId as Id<"organizations">,
+        notes: adminNotes,
+      });
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to save notes:", err);
+    } finally {
+      setNotesSaving(false);
+    }
+  }, [userId, orgId, adminNotes, updateNotes]);
+
   // ---- Access denied ----
   if (dbUser !== undefined && !isSuperAdmin) {
     return (
@@ -660,7 +793,7 @@ function OrganizationDetailContent() {
 
   // ---- Limit utilization helpers ----
   const userUtilization = org.maxUsers > 0
-    ? Math.min(((counts?.properties || 0) > 0 ? orgUsers.length / org.maxUsers : orgUsers.length / org.maxUsers) * 100, 100)
+    ? Math.min((orgUsers.length / org.maxUsers) * 100, 100)
     : 0;
   const propertyUtilization = org.maxProperties > 0
     ? Math.min(((counts?.properties || 0) / org.maxProperties) * 100, 100)
@@ -762,6 +895,71 @@ function OrganizationDetailContent() {
           />
         </div>
 
+        {/* ---- Organization Contact Info ---- */}
+        <section
+          className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-8"
+          aria-labelledby="org-details-heading"
+        >
+          <h2
+            id="org-details-heading"
+            className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4"
+          >
+            Organization Details
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Admin Contact */}
+            <div>
+              <div className="text-gray-400 text-xs mb-1">Admin Contact</div>
+              {adminUser ? (
+                <>
+                  <div className="text-white text-sm">
+                    {adminUser.firstName} {adminUser.lastName}
+                  </div>
+                  <div className="text-gray-400 text-xs">{adminUser.email}</div>
+                  {adminUser.phone && (
+                    <div className="text-gray-400 text-xs">{adminUser.phone}</div>
+                  )}
+                </>
+              ) : (
+                <div className="text-gray-400 text-sm">No admin user found</div>
+              )}
+            </div>
+
+            {/* Org Slug */}
+            <div>
+              <div className="text-gray-400 text-xs mb-1">Slug</div>
+              <div className="text-white text-sm font-mono">{org.slug}</div>
+            </div>
+
+            {/* Created Date */}
+            <div>
+              <div className="text-gray-400 text-xs mb-1">Created</div>
+              <div className="text-white text-sm">{formatDate(org.createdAt)}</div>
+              <div className="text-gray-400 text-xs">{daysActive} days active</div>
+            </div>
+
+            {/* Provider Settings - only show if available */}
+            {providerInfo && (
+              <>
+                <div>
+                  <div className="text-gray-400 text-xs mb-1">ABN</div>
+                  <div className="text-white text-sm">{providerInfo.abn || "Not set"}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs mb-1">Phone</div>
+                  <div className="text-white text-sm">{providerInfo.phone || "Not set"}</div>
+                </div>
+                <div>
+                  <div className="text-gray-400 text-xs mb-1">Bank Details</div>
+                  <div className="text-white text-sm">
+                    {providerInfo.bankBsb ? "Configured" : "Not set"}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
         {/* ---- Plan & Limits ---- */}
         <section
           className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8"
@@ -846,6 +1044,70 @@ function OrganizationDetailContent() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* ---- Billing & Subscription ---- */}
+        <section
+          className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-8"
+          aria-labelledby="billing-heading"
+        >
+          <h2
+            id="billing-heading"
+            className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2"
+          >
+            <CreditCard className="w-4 h-4 text-gray-400" aria-hidden="true" />
+            Billing & Subscription
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-gray-400 text-xs mb-1">Monthly Amount</div>
+              <div className="text-white text-lg font-semibold">
+                ${PLAN_PRICES[org.plan] || 0}
+              </div>
+            </div>
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-gray-400 text-xs mb-1">Status</div>
+              <div className="mt-1">
+                <SubscriptionStatusBadge status={org.subscriptionStatus} />
+              </div>
+            </div>
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-gray-400 text-xs mb-1">Plan</div>
+              <div className="mt-1">
+                <PlanBadge plan={org.plan} />
+              </div>
+            </div>
+            {org.trialEndsAt ? (
+              <div className="bg-gray-700 rounded-lg p-3">
+                <div className="text-gray-400 text-xs mb-1">Trial Ends</div>
+                <div className="text-white text-sm">{formatDate(org.trialEndsAt)}</div>
+                {org.trialEndsAt > Date.now() ? (
+                  <div className="text-yellow-400 text-xs">
+                    {Math.ceil((org.trialEndsAt - Date.now()) / 86400000)} days remaining
+                  </div>
+                ) : (
+                  <div className="text-red-400 text-xs">Expired</div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-700 rounded-lg p-3">
+                <div className="text-gray-400 text-xs mb-1">Stripe Customer</div>
+                <div className="text-white text-sm font-mono truncate">
+                  {org.stripeCustomerId ? org.stripeCustomerId.slice(0, 18) + "..." : "Not linked"}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {org.onboardingServiceRequested && (
+            <div className="mt-3 px-3 py-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" aria-hidden="true" />
+              <span className="text-yellow-400 text-sm font-medium">Managed Setup Requested</span>
+              <span className="text-gray-400 text-xs ml-2">
+                Tier: {org.onboardingServiceTier || "Not specified"}
+              </span>
+            </div>
+          )}
         </section>
 
         {/* ---- Users Table ---- */}
@@ -937,6 +1199,164 @@ function OrganizationDetailContent() {
                 )}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        {/* ---- Support Tickets ---- */}
+        <section
+          className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-8"
+          aria-labelledby="tickets-heading"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2
+              id="tickets-heading"
+              className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2"
+            >
+              <MessageSquare className="w-4 h-4 text-gray-400" aria-hidden="true" />
+              Support Tickets
+              {supportTicketStats && supportTicketStats.openCount > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                  {supportTicketStats.openCount}
+                </span>
+              )}
+            </h2>
+            <div className="flex items-center gap-3">
+              {supportTicketStats && (
+                <span className="text-gray-400 text-xs">
+                  {supportTicketStats.totalCount} total
+                </span>
+              )}
+            </div>
+          </div>
+
+          {orgTickets && orgTickets.length > 0 ? (
+            <div className="space-y-2">
+              {orgTickets.map((ticket) => (
+                <div
+                  key={ticket._id}
+                  className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="text-white text-sm font-mono flex-shrink-0">
+                      {ticket.ticketNumber}
+                    </span>
+                    <span className="text-gray-300 text-sm truncate">
+                      {ticket.subject}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                    <TicketSeverityBadge severity={ticket.severity} />
+                    <TicketStatusBadge status={ticket.status} />
+                    <span className="text-gray-400 text-xs whitespace-nowrap hidden sm:inline">
+                      {formatRelativeTime(ticket.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : orgTickets === undefined ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="w-5 h-5 border-2 border-gray-600 border-t-gray-400 rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <MessageSquare className="w-8 h-8 text-gray-600 mx-auto mb-2" aria-hidden="true" />
+              <p className="text-gray-400 text-sm">No support tickets</p>
+            </div>
+          )}
+        </section>
+
+        {/* ---- Feature Usage (This Month) ---- */}
+        <section
+          className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-8"
+          aria-labelledby="usage-heading"
+        >
+          <h2
+            id="usage-heading"
+            className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2"
+          >
+            <BarChart3 className="w-4 h-4 text-gray-400" aria-hidden="true" />
+            Feature Usage (This Month)
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <UsageCard
+              label="Maintenance"
+              count={featureUsage?.maintenance ?? 0}
+              icon={<Wrench className="w-4 h-4" />}
+            />
+            <UsageCard
+              label="Incidents"
+              count={featureUsage?.incidents ?? 0}
+              icon={<AlertTriangle className="w-4 h-4" />}
+            />
+            <UsageCard
+              label="Documents"
+              count={featureUsage?.documents ?? 0}
+              icon={<FileCheck className="w-4 h-4" />}
+            />
+            <UsageCard
+              label="Communications"
+              count={featureUsage?.communications ?? 0}
+              icon={<Mail className="w-4 h-4" />}
+            />
+            <UsageCard
+              label="Inspections"
+              count={featureUsage?.inspections ?? 0}
+              icon={<ClipboardList className="w-4 h-4" />}
+            />
+          </div>
+        </section>
+
+        {/* ---- Admin Notes ---- */}
+        <section
+          className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-8"
+          aria-labelledby="admin-notes-heading"
+        >
+          <h2
+            id="admin-notes-heading"
+            className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2"
+          >
+            <StickyNote className="w-4 h-4 text-gray-400" aria-hidden="true" />
+            Admin Notes
+          </h2>
+          <textarea
+            value={adminNotes}
+            onChange={(e) => setAdminNotes(e.target.value)}
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[100px] resize-y"
+            placeholder="Internal notes about this organization (onboarding progress, support context, health observations...)"
+            aria-label="Admin notes for this organization"
+          />
+          <div className="flex items-center gap-3 mt-2">
+            <button
+              onClick={handleSaveNotes}
+              disabled={notesSaving || !notesModified}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 min-h-[44px] ${
+                notesSaving || !notesModified
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : "bg-teal-600 hover:bg-teal-700 text-white"
+              }`}
+            >
+              {notesSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" aria-hidden="true" />
+                  Save Notes
+                </>
+              )}
+            </button>
+            {notesSaved && (
+              <span className="text-green-400 text-sm flex items-center gap-1" role="status">
+                <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                Saved
+              </span>
+            )}
+            {notesModified && !notesSaved && !notesSaving && (
+              <span className="text-yellow-400 text-xs">Unsaved changes</span>
+            )}
           </div>
         </section>
 

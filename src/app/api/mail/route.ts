@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     const textBody = payload.TextBody || "";
     const strippedReply = payload.StrippedTextReply || undefined;
     const emailDate = payload.Date || undefined;
+    const postmarkMessageId = payload.MessageID || undefined;
 
     if (!fromEmail || !toAddress) {
       console.error("[Inbound Email] Missing From or To address");
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
       textBody,
       strippedReply,
       emailDate,
+      postmarkMessageId,
     });
 
     console.log(

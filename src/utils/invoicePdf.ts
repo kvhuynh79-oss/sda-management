@@ -376,8 +376,8 @@ export async function generateInvoicePdf(params: InvoiceParams): Promise<void> {
   doc.text(fmt(params.subtotal), totalsValueX, y, { align: "right" });
   y += 7;
 
-  // Separator line
-  hline(doc, y - 2, [180, 180, 180], 0.3, totalsLabelX, TABLE_RIGHT);
+  // Gap above total
+  y += 2;
 
   // TOTAL AUD
   doc.setFont("helvetica", "bold");
@@ -397,8 +397,8 @@ export async function generateInvoicePdf(params: InvoiceParams): Promise<void> {
     doc.text(fmt(params.amountPaid), totalsValueX, y, { align: "right" });
     y += 7;
 
-    // Amount Due separator
-    hline(doc, y - 2, [150, 150, 150], 0.3, totalsLabelX, TABLE_RIGHT);
+    // Gap above amount due
+    y += 2;
 
     // AMOUNT DUE AUD
     doc.setFont("helvetica", "bold");

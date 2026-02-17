@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { LifeBuoy, X, Camera, Loader2, CheckCircle2 } from "lucide-react";
+import { LifeBuoy, X, Camera, Loader2, CheckCircle2, ArrowRight, Clock, MessageSquare, Plus, ChevronLeft } from "lucide-react";
 
 type Severity = "critical" | "high" | "normal" | "low";
 type Category = "bug" | "how_to" | "feature_request" | "billing" | "data_issue" | "other";
@@ -51,9 +52,33 @@ const CATEGORY_OPTIONS: { value: Category; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
+type PanelView = "list" | "form";
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  open: { label: "Open", color: "bg-red-500/20 text-red-400" },
+  in_progress: { label: "In Progress", color: "bg-yellow-500/20 text-yellow-400" },
+  waiting_on_customer: { label: "Action Needed", color: "bg-blue-500/20 text-blue-400" },
+  resolved: { label: "Resolved", color: "bg-green-500/20 text-green-400" },
+  closed: { label: "Closed", color: "bg-gray-500/20 text-gray-400" },
+};
+
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
 export default function SupportButton() {
   const user = usePassiveAuth();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [panelView, setPanelView] = useState<PanelView>("list");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [successTicketNumber, setSuccessTicketNumber] = useState<string | null>(null);
@@ -120,14 +145,14 @@ export default function SupportButton() {
     };
   }, [isOpen]);
 
-  // Auto-close after success
+  // Auto-switch to list after success (longer delay to let user read)
   useEffect(() => {
     if (successTicketNumber) {
       const timer = setTimeout(() => {
-        setIsOpen(false);
         setSuccessTicketNumber(null);
         resetForm();
-      }, 3000);
+        setPanelView("list");
+      }, 4000);
       return () => clearTimeout(timer);
     }
   }, [successTicketNumber]);
@@ -283,11 +308,13 @@ export default function SupportButton() {
       <button
         id="support-trigger-button"
         onClick={() => {
-          setIsOpen(!isOpen);
           if (!isOpen) {
+            // Open panel: show list if there are tickets, else show form
+            setPanelView(openTicketCount > 0 ? "list" : "form");
             setSuccessTicketNumber(null);
             setError("");
           }
+          setIsOpen(!isOpen);
         }}
         className="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-50 w-14 h-14 bg-teal-600 hover:bg-teal-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
         aria-label="Open support ticket form"
@@ -318,7 +345,7 @@ export default function SupportButton() {
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Submit a support ticket"
+        aria-label={panelView === "list" ? "Support tickets" : "Submit a support ticket"}
         className={`
           fixed bottom-0 right-0 z-50
           w-full md:w-[480px] md:max-w-lg md:right-8 md:bottom-8 md:rounded-xl
@@ -332,8 +359,19 @@ export default function SupportButton() {
         {/* Panel header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
+            {panelView === "form" && tickets && tickets.length > 0 && !successTicketNumber && (
+              <button
+                onClick={() => setPanelView("list")}
+                className="p-1 text-gray-400 hover:text-white rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                aria-label="Back to ticket list"
+              >
+                <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+              </button>
+            )}
             <LifeBuoy className="w-5 h-5 text-teal-400" aria-hidden="true" />
-            <h2 className="text-lg font-semibold text-white">Submit Support Ticket</h2>
+            <h2 className="text-lg font-semibold text-white">
+              {panelView === "list" ? "Support" : "New Ticket"}
+            </h2>
           </div>
           <button
             onClick={() => setIsOpen(false)}
@@ -354,8 +392,104 @@ export default function SupportButton() {
               <p className="text-gray-400 mb-1">Your ticket number is:</p>
               <p className="text-2xl font-bold text-teal-400">{successTicketNumber}</p>
               <p className="text-sm text-gray-400 mt-4">
-                We will respond as soon as possible. This panel will close automatically.
+                We will respond as soon as possible.
               </p>
+              <button
+                onClick={() => {
+                  setSuccessTicketNumber(null);
+                  resetForm();
+                  setPanelView("list");
+                }}
+                className="mt-4 text-sm text-teal-400 hover:text-teal-300 transition-colors underline"
+              >
+                View your tickets
+              </button>
+            </div>
+          ) : panelView === "list" ? (
+            /* ── Ticket list view ── */
+            <div className="space-y-3">
+              {/* New Ticket button */}
+              <button
+                onClick={() => setPanelView("form")}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+              >
+                <Plus className="w-4 h-4" aria-hidden="true" />
+                New Ticket
+              </button>
+
+              {/* Tickets */}
+              {!tickets ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-gray-700/50 rounded-lg p-3 animate-pulse">
+                      <div className="h-4 bg-gray-600 rounded w-20 mb-2" />
+                      <div className="h-4 bg-gray-600 rounded w-3/4" />
+                    </div>
+                  ))}
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="text-center py-6">
+                  <MessageSquare className="w-10 h-10 text-gray-400 mx-auto mb-2" aria-hidden="true" />
+                  <p className="text-sm text-gray-400">No tickets yet. Create one above!</p>
+                </div>
+              ) : (
+                tickets.map((ticket) => {
+                  const st = STATUS_LABELS[ticket.status] || STATUS_LABELS.open;
+                  const hasNewReply = ticket.status === "waiting_on_customer" ||
+                    (ticket.messageCount > 0 && ticket.status !== "closed" && ticket.status !== "resolved");
+                  return (
+                    <button
+                      key={ticket._id}
+                      onClick={() => {
+                        setIsOpen(false);
+                        router.push(`/support/${ticket._id}`);
+                      }}
+                      className="w-full text-left bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-lg p-3 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono text-teal-400">{ticket.ticketNumber}</span>
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${st.color}`}>
+                              {st.label}
+                            </span>
+                          </div>
+                          <p className="text-sm text-white font-medium truncate">{ticket.subject}</p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors flex-shrink-0 mt-1" aria-hidden="true" />
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" aria-hidden="true" />
+                          {formatRelativeTime(ticket.updatedAt)}
+                        </span>
+                        {ticket.messageCount > 0 && (
+                          <span className="flex items-center gap-1">
+                            <MessageSquare className="w-3 h-3" aria-hidden="true" />
+                            {ticket.messageCount}
+                          </span>
+                        )}
+                        {hasNewReply && (
+                          <span className="text-teal-400 font-medium">Reply available</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+
+              {/* View all link */}
+              {tickets && tickets.length > 0 && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    router.push("/support");
+                  }}
+                  className="w-full text-center text-sm text-teal-400 hover:text-teal-300 transition-colors py-2"
+                >
+                  View all tickets
+                </button>
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

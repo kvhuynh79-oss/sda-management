@@ -593,6 +593,7 @@ export const processInboundEmail = mutation({
         subject,
         isForwarded: parsed.isForwarded,
         isNewThread: false,
+        isNew: false,
       };
     }
 
@@ -676,6 +677,7 @@ export const processInboundEmail = mutation({
       subject,
       isForwarded: parsed.isForwarded,
       isNewThread: threadResult.isNewThread,
+      isNew: true,
     };
   },
 });
@@ -848,7 +850,7 @@ export const syncInboundEmails = action({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args): Promise<{ synced: number; skipped: number; errors: number }> => {
+  handler: async (ctx, args): Promise<{ synced: number; existing: number; skipped: number; errors: number }> => {
     const postmarkToken = process.env.POSTMARK_SERVER_TOKEN;
     if (!postmarkToken) {
       throw new Error("POSTMARK_SERVER_TOKEN is not configured. Set it in Convex environment variables.");
@@ -859,9 +861,13 @@ export const syncInboundEmails = action({
       throw new Error("INBOUND_EMAIL_WEBHOOK_SECRET is not configured.");
     }
 
-    // Fetch recent inbound messages from Postmark (last 50)
+    // Only fetch emails from the last 3 days to avoid re-processing old messages
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const fromDate = threeDaysAgo.toISOString().split("T")[0];
+
     const response = await fetch(
-      "https://api.postmarkapp.com/messages/inbound?count=50&offset=0",
+      `https://api.postmarkapp.com/messages/inbound?count=50&offset=0&fromdate=${fromDate}`,
       {
         headers: {
           Accept: "application/json",
@@ -879,6 +885,7 @@ export const syncInboundEmails = action({
     const messages = data.InboundMessages || [];
 
     let synced = 0;
+    let existing = 0;
     let skipped = 0;
     let errors = 0;
 
@@ -921,7 +928,7 @@ export const syncInboundEmails = action({
       }
 
       try {
-        await ctx.runMutation(api.inboundEmail.processInboundEmail, {
+        const result = await ctx.runMutation(api.inboundEmail.processInboundEmail, {
           webhookSecret,
           fromEmail,
           fromName: msg.FromFull?.Name || msg.FromName || fromEmail,
@@ -932,7 +939,11 @@ export const syncInboundEmails = action({
           emailDate: msg.Date || undefined,
           postmarkMessageId: messageId || undefined,
         });
-        synced++;
+        if (result.isNew) {
+          synced++;
+        } else {
+          existing++;
+        }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
         // Duplicates will naturally be handled by threading - they'll join existing threads
@@ -946,6 +957,6 @@ export const syncInboundEmails = action({
       }
     }
 
-    return { synced, skipped, errors };
+    return { synced, existing, skipped, errors };
   },
 });

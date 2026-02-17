@@ -31,7 +31,7 @@ function CommunicationsContent() {
   const [showDeletedItems, setShowDeletedItems] = useState(false);
   const [showNewLeadForm, setShowNewLeadForm] = useState(false);
   const [isSyncingEmail, setIsSyncingEmail] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ synced: number; skipped: number; errors: number } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ synced: number; existing: number; skipped: number; errors: number } | null>(null);
   const syncEmails = useAction(api.inboundEmail.syncInboundEmails);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ function CommunicationsContent() {
       setTimeout(() => setSyncResult(null), 5000);
     } catch (err) {
       console.error("Email sync failed:", err);
-      setSyncResult({ synced: 0, skipped: 0, errors: 1 });
+      setSyncResult({ synced: 0, existing: 0, skipped: 0, errors: 1 });
       setTimeout(() => setSyncResult(null), 5000);
     } finally {
       setIsSyncingEmail(false);
@@ -276,11 +276,13 @@ function CommunicationsContent() {
                 : "bg-gray-800 border border-gray-700 text-gray-400"
           }`}>
             <RefreshCw className="w-4 h-4 flex-shrink-0" />
-            {syncResult.synced > 0
-              ? `Synced ${syncResult.synced} new email${syncResult.synced > 1 ? "s" : ""}`
-              : syncResult.errors > 0
-                ? "Email sync failed. Check Postmark configuration."
-                : "No new emails to sync"}
+            {syncResult.errors > 0
+              ? "Email sync failed. Check Postmark configuration."
+              : syncResult.synced > 0
+                ? `Synced ${syncResult.synced} new email${syncResult.synced > 1 ? "s" : ""}${syncResult.existing > 0 ? ` (${syncResult.existing} already imported)` : ""}`
+                : syncResult.existing > 0
+                  ? `No new emails (${syncResult.existing} already imported)`
+                  : "No new emails found"}
           </div>
         )}
 

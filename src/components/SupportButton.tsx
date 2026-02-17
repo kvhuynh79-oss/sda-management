@@ -249,7 +249,7 @@ export default function SupportButton() {
         options?: Record<string, unknown>
       ) => Promise<HTMLCanvasElement>;
 
-      const canvas = await html2canvas(document.body, {
+      const capturePromise = html2canvas(document.body, {
         useCORS: true,
         allowTaint: true,
         scale: 1,
@@ -270,6 +270,10 @@ export default function SupportButton() {
           return false;
         },
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Screenshot timed out after 10s")), 10000)
+      );
+      const canvas = await Promise.race([capturePromise, timeoutPromise]);
 
       restoreVisibility();
 
@@ -302,13 +306,8 @@ export default function SupportButton() {
     } catch (err) {
       console.error("Screenshot capture failed:", err);
       restoreVisibility();
-      // Show actual error in development, generic message in production
       const msg = err instanceof Error ? err.message : String(err);
-      if (process.env.NODE_ENV === "development") {
-        setError(`Screenshot failed: ${msg}`);
-      } else {
-        setError("Screenshot capture is not available. You can still submit the ticket without one.");
-      }
+      setError(`Screenshot failed: ${msg}. You can still submit the ticket without one.`);
     } finally {
       setIsCapturing(false);
     }

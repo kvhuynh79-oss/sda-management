@@ -98,7 +98,7 @@ const nextConfig: NextConfig = {
       // Images: allow data URIs and blobs for uploads
       "img-src 'self' data: blob: https:",
       // API connections to Convex
-      "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud",
+      "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.ingest.sentry.io https://*.sentry.io",
       // Workers for PWA
       "worker-src 'self'",
       // Prevent framing (clickjacking protection)

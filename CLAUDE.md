@@ -13,7 +13,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.7.0 (MTA Claims + SDA Plan-Managed Invoices)
+## Current Version: v2.7.2 (Comms Email Sync + Self-Diagnosis)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -1009,11 +1009,33 @@ All 8 sprints of the SaaS transformation are complete.
 73. SDA Plan-Managed Invoice - ✅ ("Generate Invoice" on Claims tab for plan-managed participants, claimMethod derivation fix)
 74. Shared Tax Invoice PDF - ✅ (`src/utils/invoicePdf.ts`, 585 lines, Xero-format, 2-page with Payment Advice, logo support)
 
+### Completed (v2.7.1 - Feature Visibility Gating)
+75. Feature Visibility Gating - ✅ (isSuperAdmin propagation from backend → login → localStorage, superAdminOnly on CommandPalette + Settings)
+    - Super Admin Dashboard: hidden from non-super-admins (CommandPalette `superAdminOnly`)
+    - API Keys: hidden from non-super-admins (CommandPalette + Settings page)
+    - PDF Templates: BLS-only (org slug gate on Settings page)
+    - AI Assistant, Audit Log, Launch Checklist: visible to all org admins
+    - `convex/auth.ts`: `isSuperAdmin` added to SessionLoginResult + both token return objects
+    - `src/app/login/page.tsx`: stores `isSuperAdmin` in localStorage for both normal + MFA login
+    - SupportButton screenshot fix: `allowTaint: false` + cross-origin image filtering
+
+### Completed (v2.7.2 - Comms Email Sync + Self-Diagnosis)
+76. Inbound Email Unread Fix - ✅ (`convex/inboundEmail.ts:625-662`) - processInboundEmail now creates/updates threadSummaries with `hasUnread: true`
+77. regenerateThreadSummary Fix - ✅ (`convex/communications.ts:834`) - calculates hasUnread from actual `readAt` fields instead of hardcoding false
+78. markAsRead Thread Sync - ✅ (`convex/communications.ts:742-756`) - recalculates thread summary hasUnread after individual message read
+79. Screenshot Tawk.to Fix - ✅ (`src/components/SupportButton.tsx:223-240`) - hides Tawk.to widget elements before html2canvas capture, restores after
+80. Self-Diagnosis Wizard - ✅ (`src/components/SupportButton.tsx:550-689`) - "Before You Submit" view intercepts ticket creation
+    - Contextual help card matched from 20 route-to-guide mappings
+    - 6-category selector (Bug, How-to, Feature Request, Billing, Data Issue, Other)
+    - How-to deflection with Help Center + contextual guide links
+    - 4-item optional troubleshooting checklist (refresh, session, cache, guide)
+    - "I still need help" button proceeds to form with pre-filled category
+
 ### Post-Launch Tasks
-75. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
-76. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-77. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-78. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+81. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+82. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+83. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+84. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -1079,4 +1101,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-16 (v2.7.0 - MTA Claims tab + SDA plan-managed invoice PDF + shared Xero-format tax invoice generator. 117 pages, 0 errors.)
+**Last Updated**: 2026-02-17 (v2.7.2 - Comms email sync fix: inbound email threadSummaries, regenerateThreadSummary hasUnread calc, markAsRead thread sync. SupportButton Tawk.to screenshot fix + self-diagnosis wizard with contextual help. 120 pages, 0 errors.)

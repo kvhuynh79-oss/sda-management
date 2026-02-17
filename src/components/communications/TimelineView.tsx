@@ -124,6 +124,7 @@ export function TimelineView({
   const [linkToThreadComm, setLinkToThreadComm] = useState<string | null>(null);
   const deleteCommunication = useMutation(api.communications.remove);
   const moveToThread = useMutation(api.communications.moveToThread);
+  const markAsReadMutation = useMutation(api.communications.markAsRead);
   const canDelete = userRole === "admin" || userRole === "property_manager";
   const canLinkToThread = userRole === "admin" || userRole === "property_manager";
 
@@ -298,11 +299,16 @@ export function TimelineView({
                   return (
                   <article
                     key={comm._id}
-                    className={`bg-gray-800 rounded-lg p-4 transition-colors cursor-pointer ${isExpanded ? "ring-1 ring-teal-600/40" : "hover:bg-gray-700"}`}
+                    className={`bg-gray-800 rounded-lg p-4 transition-colors cursor-pointer border-l-4 ${!comm.readAt ? "border-teal-600" : "border-transparent"} ${isExpanded ? "ring-1 ring-teal-600/40" : "hover:bg-gray-700"}`}
                     role="article"
                     aria-label={`${comm.type.replace(/_/g, " ")} ${comm.direction === "inbound" ? "from" : "to"} ${comm.contactName}${comm.subject ? `: ${comm.subject}` : ""}`}
                     aria-expanded={isExpanded}
-                    onClick={() => toggleExpanded(comm._id)}
+                    onClick={() => {
+                      toggleExpanded(comm._id);
+                      if (!comm.readAt && userId) {
+                        markAsReadMutation({ userId: userId as Id<"users">, communicationId: comm._id }).catch(() => {});
+                      }
+                    }}
                   >
                     <div className="flex gap-3">
                       {isSelecting && onToggleSelect && (
@@ -331,9 +337,9 @@ export function TimelineView({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
-                        <h4 className="text-sm font-medium text-white">{comm.contactName}</h4>
+                        <h4 className={`text-sm ${!comm.readAt ? "font-bold text-white" : "font-medium text-gray-200"}`}>{comm.contactName}</h4>
                         {comm.subject && (
-                          <p className="text-sm text-gray-300 mt-0.5">{comm.subject}</p>
+                          <p className={`text-sm mt-0.5 ${!comm.readAt ? "font-semibold text-gray-200" : "text-gray-300"}`}>{comm.subject}</p>
                         )}
                         <p className={`text-sm text-gray-400 mt-0.5 ${isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"}`}>{comm.summary}</p>
                         {isExpanded && comm.contactEmail && (

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { LifeBuoy, X, Camera, Loader2, CheckCircle2, ArrowRight, Clock, MessageSquare, Plus, ChevronLeft } from "lucide-react";
+import { LifeBuoy, X, Camera, Loader2, CheckCircle2, ArrowRight, Clock, MessageSquare, Plus, ChevronLeft, BookOpen } from "lucide-react";
+import { HELP_GUIDES } from "@/constants/helpGuides";
 
 type Severity = "critical" | "high" | "normal" | "low";
 type Category = "bug" | "how_to" | "feature_request" | "billing" | "data_issue" | "other";
@@ -52,7 +53,37 @@ const CATEGORY_OPTIONS: { value: Category; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-type PanelView = "list" | "form";
+const ROUTE_TO_GUIDE: Record<string, string> = {
+  "/properties": "properties",
+  "/participants": "participants",
+  "/operations": "maintenance",
+  "/maintenance": "maintenance",
+  "/inspections": "inspections",
+  "/incidents": "incidents",
+  "/contractors": "contractors",
+  "/database": "contractors",
+  "/financials": "payments",
+  "/payments": "payments",
+  "/follow-ups": "communications",
+  "/documents": "documents",
+  "/compliance/complaints": "complaints",
+  "/compliance/certifications": "certifications",
+  "/compliance/staff": "staff",
+  "/calendar": "calendar",
+  "/alerts": "alerts",
+  "/reports": "reports",
+  "/settings": "settings",
+  "/dashboard": "dashboard",
+};
+
+const TROUBLESHOOTING_STEPS = [
+  { id: "refresh", label: "Refresh the page", description: "Many issues resolve with a simple page refresh." },
+  { id: "session", label: "Check your session", description: "Your session may have expired. Try logging out and back in." },
+  { id: "cache", label: "Hard refresh (Ctrl+Shift+R)", description: "Clears cached data that may cause display issues." },
+  { id: "guide", label: "Read the help guide", description: "Each page has a contextual guide with step-by-step instructions." },
+];
+
+type PanelView = "list" | "diagnose" | "form";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   open: { label: "Open", color: "bg-red-500/20 text-red-400" },
@@ -92,6 +123,7 @@ export default function SupportButton() {
   const [category, setCategory] = useState<Category>("bug");
   const [screenshotBlob, setScreenshotBlob] = useState<Blob | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [diagnosisChecked, setDiagnosisChecked] = useState<Set<string>>(new Set());
 
   // Convex queries and mutations
   const tickets = useQuery(
@@ -105,6 +137,14 @@ export default function SupportButton() {
   const openTicketCount = tickets?.filter(
     (t) => t.status === "open" || t.status === "in_progress" || t.status === "waiting_on_customer"
   ).length ?? 0;
+
+  const currentGuide = useMemo(() => {
+    if (typeof window === "undefined" || !isOpen) return null;
+    const path = window.location.pathname;
+    const key = ROUTE_TO_GUIDE[path]
+      || Object.entries(ROUTE_TO_GUIDE).find(([route]) => path.startsWith(route + "/"))?.[1];
+    return key ? HELP_GUIDES[key] || null : null;
+  }, [isOpen]);
 
   // Close panel on Escape
   useEffect(() => {
@@ -168,6 +208,7 @@ export default function SupportButton() {
     }
     setScreenshotPreview(null);
     setError("");
+    setDiagnosisChecked(new Set());
   }, [screenshotPreview]);
 
   const handleCaptureScreenshot = async () => {
@@ -179,10 +220,16 @@ export default function SupportButton() {
     const triggerButton = document.getElementById("support-trigger-button");
     const backdrop = panel?.previousElementSibling as HTMLElement | null;
 
+    // Query Tawk.to elements BEFORE defining restoreVisibility (closure scoping)
+    const tawkElements = document.querySelectorAll<HTMLElement>(
+      '[id^="tawk-"], [class*="tawk-"]'
+    );
+
     const restoreVisibility = () => {
       if (panel) panel.style.display = "";
       if (triggerButton) triggerButton.style.display = "";
       if (backdrop) backdrop.style.display = "";
+      tawkElements.forEach((el) => { el.style.display = ""; });
     };
 
     try {
@@ -190,6 +237,7 @@ export default function SupportButton() {
       if (panel) panel.style.display = "none";
       if (triggerButton) triggerButton.style.display = "none";
       if (backdrop) backdrop.style.display = "none";
+      tawkElements.forEach((el) => { el.style.display = "none"; });
 
       // Small delay to let the browser repaint
       await new Promise((r) => setTimeout(r, 100));
@@ -317,8 +365,8 @@ export default function SupportButton() {
         id="support-trigger-button"
         onClick={() => {
           if (!isOpen) {
-            // Open panel: show list if there are tickets, else show form
-            setPanelView(openTicketCount > 0 ? "list" : "form");
+            // Open panel: show list if there are tickets, else show diagnosis wizard
+            setPanelView(openTicketCount > 0 ? "list" : "diagnose");
             setSuccessTicketNumber(null);
             setError("");
           }
@@ -353,7 +401,7 @@ export default function SupportButton() {
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={panelView === "list" ? "Support tickets" : "Submit a support ticket"}
+        aria-label={panelView === "list" ? "Support tickets" : panelView === "diagnose" ? "Before you submit" : "Submit a support ticket"}
         className={`
           fixed bottom-0 right-0 z-50
           w-full md:w-[480px] md:max-w-lg md:right-8 md:bottom-8 md:rounded-xl
@@ -367,9 +415,9 @@ export default function SupportButton() {
         {/* Panel header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
-            {panelView === "form" && tickets && tickets.length > 0 && !successTicketNumber && (
+            {(panelView === "form" || panelView === "diagnose") && tickets && tickets.length > 0 && !successTicketNumber && (
               <button
-                onClick={() => setPanelView("list")}
+                onClick={() => setPanelView(panelView === "form" ? "diagnose" : "list")}
                 className="p-1 text-gray-400 hover:text-white rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                 aria-label="Back to ticket list"
               >
@@ -378,7 +426,7 @@ export default function SupportButton() {
             )}
             <LifeBuoy className="w-5 h-5 text-teal-400" aria-hidden="true" />
             <h2 className="text-lg font-semibold text-white">
-              {panelView === "list" ? "Support" : "New Ticket"}
+              {panelView === "list" ? "Support" : panelView === "diagnose" ? "Before You Submit" : "New Ticket"}
             </h2>
           </div>
           <button
@@ -418,7 +466,7 @@ export default function SupportButton() {
             <div className="space-y-3">
               {/* New Ticket button */}
               <button
-                onClick={() => setPanelView("form")}
+                onClick={() => setPanelView("diagnose")}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
               >
                 <Plus className="w-4 h-4" aria-hidden="true" />
@@ -498,6 +546,146 @@ export default function SupportButton() {
                   View all tickets
                 </button>
               )}
+            </div>
+          ) : panelView === "diagnose" ? (
+            <div className="space-y-4">
+              {/* Contextual help suggestion */}
+              {currentGuide && (
+                <div className="bg-teal-900/30 border border-teal-700/50 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="w-5 h-5 text-teal-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-white mb-1">
+                        Help available for this page
+                      </p>
+                      <p className="text-sm text-gray-400 mb-2">
+                        {currentGuide.overview.substring(0, 150)}...
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsOpen(false);
+                          const path = window.location.pathname;
+                          window.location.href = `${path}?showHelp=true`;
+                        }}
+                        className="text-sm text-teal-400 hover:text-teal-300 font-medium transition-colors"
+                      >
+                        Open Help Guide
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Category selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  What kind of issue are you experiencing?
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setCategory(opt.value)}
+                      className={`px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                        category === opt.value
+                          ? "bg-teal-600/20 border-teal-600 text-teal-400"
+                          : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* How-to deflection */}
+              {category === "how_to" && (
+                <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4">
+                  <p className="text-sm text-yellow-300 mb-2 font-medium">
+                    Before submitting, have you checked:
+                  </p>
+                  <ul className="space-y-1.5">
+                    <li>
+                      <a href="/help" className="text-sm text-teal-400 hover:text-teal-300 transition-colors">
+                        Help Center - search all guides
+                      </a>
+                    </li>
+                    {currentGuide && (
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsOpen(false);
+                            window.location.href = `${window.location.pathname}?showHelp=true`;
+                          }}
+                          className="text-sm text-teal-400 hover:text-teal-300 transition-colors"
+                        >
+                          {currentGuide.title}
+                        </button>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Quick troubleshooting checklist */}
+              <div>
+                <p className="text-sm font-medium text-gray-300 mb-2">
+                  Quick troubleshooting
+                </p>
+                <div className="space-y-2">
+                  {TROUBLESHOOTING_STEPS.map((step) => (
+                    <label
+                      key={step.id}
+                      className="flex items-start gap-3 bg-gray-700/50 rounded-lg p-3 cursor-pointer hover:bg-gray-700 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={diagnosisChecked.has(step.id)}
+                        onChange={() => {
+                          setDiagnosisChecked((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(step.id)) next.delete(step.id); else next.add(step.id);
+                            return next;
+                          });
+                        }}
+                        className="mt-0.5 w-4 h-4 rounded border-gray-500 bg-gray-600 text-teal-500 focus:ring-teal-500"
+                      />
+                      <div>
+                        <span className="text-sm text-white">{step.label}</span>
+                        <p className="text-xs text-gray-400 mt-0.5">{step.description}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-2 border-t border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDiagnosisChecked(new Set());
+                    setPanelView("form");
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-medium text-sm"
+                >
+                  I still need help
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDiagnosisChecked(new Set());
+                    setCategory("bug");
+                    setPanelView("list");
+                  }}
+                  className="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors font-medium text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

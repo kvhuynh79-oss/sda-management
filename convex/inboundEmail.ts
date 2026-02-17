@@ -623,6 +623,45 @@ export const processInboundEmail = mutation({
     });
 
     // -----------------------------------------------------------------------
+    // 7b. Update or create threadSummary for unread tracking
+    // -----------------------------------------------------------------------
+    const existingSummary = await ctx.db
+      .query("threadSummaries")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadResult.threadId))
+      .first();
+
+    if (existingSummary) {
+      const updateFields: Record<string, any> = {
+        lastActivityAt: now,
+        messageCount: existingSummary.messageCount + 1,
+        hasUnread: true,
+        previewText: (cleanedBody || "(Empty email body)").substring(0, 100),
+      };
+      if (!existingSummary.participantNames.includes(contactName)) {
+        updateFields.participantNames = [...existingSummary.participantNames, contactName];
+      }
+      if (!existingSummary.participantId && detection.linkedParticipantId) {
+        updateFields.participantId = detection.linkedParticipantId;
+      }
+      await ctx.db.patch(existingSummary._id, updateFields);
+    } else {
+      await ctx.db.insert("threadSummaries", {
+        organizationId,
+        threadId: threadResult.threadId,
+        participantId: detection.linkedParticipantId as any,
+        startedAt: now,
+        lastActivityAt: now,
+        messageCount: 1,
+        participantNames: [contactName],
+        subject: subject || `Email from ${contactName}`,
+        previewText: (cleanedBody || "(Empty email body)").substring(0, 100),
+        hasUnread: true,
+        complianceCategories: ["none"],
+        requiresAction: false,
+      });
+    }
+
+    // -----------------------------------------------------------------------
     // 8. Return result
     // -----------------------------------------------------------------------
     return {

@@ -738,6 +738,22 @@ export const markAsRead = mutation({
       readAt: new Date().toISOString(),
       updatedAt: Date.now(),
     });
+
+    // Recalculate thread summary hasUnread status
+    if (comm.threadId) {
+      const threadComms = await ctx.db
+        .query("communications")
+        .withIndex("by_thread", (q) => q.eq("threadId", comm.threadId!))
+        .collect();
+      const hasUnread = threadComms.some((c) => !c.readAt && !c.isDeleted);
+      const summary = await ctx.db
+        .query("threadSummaries")
+        .withIndex("by_thread", (q) => q.eq("threadId", comm.threadId!))
+        .first();
+      if (summary) {
+        await ctx.db.patch(summary._id, { hasUnread });
+      }
+    }
   },
 });
 
@@ -815,7 +831,7 @@ async function regenerateThreadSummary(
     participantNames,
     subject: firstComm.subject || `${firstComm.communicationType} with ${firstComm.contactName}`,
     previewText: lastComm.summary.substring(0, 100),
-    hasUnread: false, // Reset to false on regeneration
+    hasUnread: activeThreadComms.some((c: any) => !c.readAt),
     complianceCategories: complianceCategories.length > 0 ? complianceCategories : ["none"],
     requiresAction,
   };
@@ -1945,6 +1961,7 @@ export const getTimelineView = query({
           participantName: pid ? participantMap.get(pid) || null : null,
           communicationDate: c.communicationDate,
           communicationTime: c.communicationTime,
+          readAt: c.readAt,
         };
       }),
       nextCursor: hasMore ? String(page[page.length - 1].createdAt) : null,

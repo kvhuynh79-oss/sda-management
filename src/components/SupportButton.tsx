@@ -251,7 +251,7 @@ export default function SupportButton() {
 
       const canvas = await html2canvas(document.body, {
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         scale: 1,
         logging: false,
         backgroundColor: "#111827",
@@ -260,10 +260,10 @@ export default function SupportButton() {
         ignoreElements: (el: Element) => {
           if (el.tagName === "IFRAME") return true;
           if (el.tagName === "VIDEO") return true;
-          // Skip cross-origin images that would taint the canvas
+          // Skip cross-origin images that could cause issues
           if (el.tagName === "IMG") {
             const src = (el as HTMLImageElement).src || "";
-            if (src && !src.startsWith(window.location.origin) && !src.startsWith("data:")) {
+            if (src && !src.startsWith(window.location.origin) && !src.startsWith("data:") && !src.startsWith("blob:")) {
               return true;
             }
           }
@@ -273,9 +273,22 @@ export default function SupportButton() {
 
       restoreVisibility();
 
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), "image/png", 0.85);
-      });
+      // Try toBlob first; if canvas is tainted, fall back to toDataURL
+      let blob: Blob | null = null;
+      try {
+        blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), "image/png", 0.85);
+        });
+      } catch {
+        // Canvas is tainted by cross-origin content - convert via dataURL fallback
+        try {
+          const dataUrl = canvas.toDataURL("image/png");
+          const res = await fetch(dataUrl);
+          blob = await res.blob();
+        } catch {
+          // Both methods failed - still continue with null blob
+        }
+      }
 
       if (blob) {
         if (screenshotPreview) {
@@ -289,8 +302,13 @@ export default function SupportButton() {
     } catch (err) {
       console.error("Screenshot capture failed:", err);
       restoreVisibility();
-      // Provide a more helpful message
-      setError("Screenshot capture is not available. You can still submit the ticket without one.");
+      // Show actual error in development, generic message in production
+      const msg = err instanceof Error ? err.message : String(err);
+      if (process.env.NODE_ENV === "development") {
+        setError(`Screenshot failed: ${msg}`);
+      } else {
+        setError("Screenshot capture is not available. You can still submit the ticket without one.");
+      }
     } finally {
       setIsCapturing(false);
     }

@@ -242,57 +242,30 @@ export default function SupportButton() {
       // Small delay to let the browser repaint
       await new Promise((r) => setTimeout(r, 100));
 
-      // Dynamic import of html2canvas - handle both ESM and CJS exports
-      const mod = await import("html2canvas");
-      const html2canvas = (typeof mod.default === "function" ? mod.default : mod) as (
-        element: HTMLElement,
-        options?: Record<string, unknown>
-      ) => Promise<HTMLCanvasElement>;
+      // Use html-to-image (supports modern CSS including oklch colors)
+      const { toBlob } = await import("html-to-image");
 
-      const capturePromise = html2canvas(document.body, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 1,
-        logging: false,
+      const capturePromise = toBlob(document.body, {
+        quality: 0.85,
         backgroundColor: "#111827",
-        foreignObjectRendering: false,
-        removeContainer: true,
-        ignoreElements: (el: Element) => {
-          if (el.tagName === "IFRAME") return true;
-          if (el.tagName === "VIDEO") return true;
-          // Skip cross-origin images that could cause issues
+        pixelRatio: 1,
+        filter: (el: HTMLElement) => {
+          if (el.tagName === "IFRAME" || el.tagName === "VIDEO") return false;
           if (el.tagName === "IMG") {
             const src = (el as HTMLImageElement).src || "";
             if (src && !src.startsWith(window.location.origin) && !src.startsWith("data:") && !src.startsWith("blob:")) {
-              return true;
+              return false;
             }
           }
-          return false;
+          return true;
         },
       });
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Screenshot timed out after 10s")), 10000)
       );
-      const canvas = await Promise.race([capturePromise, timeoutPromise]);
+      const blob = await Promise.race([capturePromise, timeoutPromise]);
 
       restoreVisibility();
-
-      // Try toBlob first; if canvas is tainted, fall back to toDataURL
-      let blob: Blob | null = null;
-      try {
-        blob = await new Promise<Blob | null>((resolve) => {
-          canvas.toBlob((b) => resolve(b), "image/png", 0.85);
-        });
-      } catch {
-        // Canvas is tainted by cross-origin content - convert via dataURL fallback
-        try {
-          const dataUrl = canvas.toDataURL("image/png");
-          const res = await fetch(dataUrl);
-          blob = await res.blob();
-        } catch {
-          // Both methods failed - still continue with null blob
-        }
-      }
 
       if (blob) {
         if (screenshotPreview) {

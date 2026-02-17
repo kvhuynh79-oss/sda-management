@@ -54,6 +54,7 @@ interface CommandItem {
   category: string;
   icon: React.ReactNode;
   keywords: string[];
+  superAdminOnly?: boolean;
 }
 
 // ── Page commands ─────────────────────────────────────────────────
@@ -352,7 +353,7 @@ const PAGE_COMMANDS: CommandItem[] = [
     keywords: ["task", "todo", "reminder", "action"],
   },
 
-  // Admin
+  // Admin (super-admin only)
   {
     id: "admin-ai",
     label: "AI Assistant",
@@ -361,6 +362,7 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "Admin",
     icon: <Sparkles className="w-4 h-4" aria-hidden="true" />,
     keywords: ["ai", "claude", "analyse", "analyze", "document", "assistant"],
+    superAdminOnly: true,
   },
   {
     id: "admin-platform",
@@ -370,6 +372,7 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "Admin",
     icon: <Shield className="w-4 h-4" aria-hidden="true" />,
     keywords: ["admin", "platform", "organizations", "super", "impersonate"],
+    superAdminOnly: true,
   },
   {
     id: "admin-audit",
@@ -379,6 +382,7 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "Admin",
     icon: <ScrollText className="w-4 h-4" aria-hidden="true" />,
     keywords: ["audit", "log", "trail", "history", "changes"],
+    superAdminOnly: true,
   },
   {
     id: "admin-launch",
@@ -388,6 +392,7 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "Admin",
     icon: <Rocket className="w-4 h-4" aria-hidden="true" />,
     keywords: ["launch", "checklist", "go live", "setup"],
+    superAdminOnly: true,
   },
 
   // Help
@@ -770,6 +775,30 @@ export default function CommandPalette() {
   const dialogRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Check if user is super-admin to filter admin-only commands
+  const isSuperAdmin = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const stored = localStorage.getItem("sda_user");
+      if (!stored) return false;
+      const user = JSON.parse(stored);
+      return user.isSuperAdmin === true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Filter out super-admin-only commands for non-super-admins
+  const visibleCommands = useMemo(() => {
+    if (isSuperAdmin) return ALL_COMMANDS;
+    return ALL_COMMANDS.filter((cmd) => !cmd.superAdminOnly);
+  }, [isSuperAdmin]);
+
+  const visiblePageCommands = useMemo(() => {
+    if (isSuperAdmin) return PAGE_COMMANDS;
+    return PAGE_COMMANDS.filter((cmd) => !cmd.superAdminOnly);
+  }, [isSuperAdmin]);
+
   // Re-read recent pages each time palette opens
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const recentIds = useMemo(() => getRecentPages(), [isOpen]);
@@ -777,17 +806,17 @@ export default function CommandPalette() {
   // Filter and sort commands
   const filteredCommands = useMemo(() => {
     if (!query.trim()) {
-      return ALL_COMMANDS;
+      return visibleCommands;
     }
 
-    return ALL_COMMANDS.map((cmd) => ({
+    return visibleCommands.map((cmd) => ({
       cmd,
       score: matchScore(query, cmd),
     }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .map(({ cmd }) => cmd);
-  }, [query]);
+  }, [query, visibleCommands]);
 
   // Build display list with grouped sections
   const displayItems = useMemo((): DisplayEntry[] => {
@@ -797,7 +826,7 @@ export default function CommandPalette() {
     if (!query.trim()) {
       // Show recent pages first if any exist
       const recentItems = recentIds
-        .map((id) => ALL_COMMANDS.find((c) => c.id === id))
+        .map((id) => visibleCommands.find((c) => c.id === id))
         .filter(Boolean) as CommandItem[];
 
       if (recentItems.length > 0) {
@@ -817,7 +846,7 @@ export default function CommandPalette() {
 
       // Pages grouped by category
       const categories = new Map<string, CommandItem[]>();
-      for (const cmd of PAGE_COMMANDS) {
+      for (const cmd of visiblePageCommands) {
         const cat = categories.get(cmd.category) || [];
         cat.push(cmd);
         categories.set(cmd.category, cat);
@@ -861,7 +890,7 @@ export default function CommandPalette() {
     }
 
     return items;
-  }, [query, filteredCommands, recentIds]);
+  }, [query, filteredCommands, recentIds, visibleCommands, visiblePageCommands]);
 
   // Count total selectable items
   const selectableCount = useMemo(

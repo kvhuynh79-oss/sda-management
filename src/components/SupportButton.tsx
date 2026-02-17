@@ -203,14 +203,22 @@ export default function SupportButton() {
 
       const canvas = await html2canvas(document.body, {
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         scale: 1,
         logging: false,
         backgroundColor: "#111827",
-        // Ignore cross-origin images that would taint the canvas
+        foreignObjectRendering: false,
+        removeContainer: true,
         ignoreElements: (el: Element) => {
           if (el.tagName === "IFRAME") return true;
           if (el.tagName === "VIDEO") return true;
+          // Skip cross-origin images that would taint the canvas
+          if (el.tagName === "IMG") {
+            const src = (el as HTMLImageElement).src || "";
+            if (src && !src.startsWith(window.location.origin) && !src.startsWith("data:")) {
+              return true;
+            }
+          }
           return false;
         },
       });

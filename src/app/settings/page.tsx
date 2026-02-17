@@ -10,6 +10,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import Link from "next/link";
 import { RequireAuth } from "@/components/RequireAuth";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 type UserRole = "admin" | "property_manager" | "staff" | "accountant" | "sil_provider";
 
@@ -35,6 +36,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
+  const { organization } = useOrganization();
   const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; role: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -366,6 +368,7 @@ export default function SettingsPage() {
                   </svg>
                 </div>
               </Link>
+              {organization?.slug === "better-living-solutions" && (
               <Link
                 href="/settings/templates"
                 className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
@@ -388,6 +391,7 @@ export default function SettingsPage() {
                   </svg>
                 </div>
               </Link>
+              )}
               <Link
                 href="/settings/data-export"
                 className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"

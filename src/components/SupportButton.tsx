@@ -147,19 +147,34 @@ export default function SupportButton() {
 
   const handleCaptureScreenshot = async () => {
     setIsCapturing(true);
-    try {
-      // Temporarily hide the support panel so it doesn't appear in the screenshot
-      if (panelRef.current) {
-        panelRef.current.style.display = "none";
-      }
-      const triggerButton = document.getElementById("support-trigger-button");
-      if (triggerButton) {
-        triggerButton.style.display = "none";
-      }
+    setError("");
 
-      // Dynamic import of html2canvas
-      const html2canvasModule = await import("html2canvas");
-      const html2canvas = html2canvasModule.default;
+    // Store refs for restoration
+    const panel = panelRef.current;
+    const triggerButton = document.getElementById("support-trigger-button");
+    const backdrop = panel?.previousElementSibling as HTMLElement | null;
+
+    const restoreVisibility = () => {
+      if (panel) panel.style.display = "";
+      if (triggerButton) triggerButton.style.display = "";
+      if (backdrop) backdrop.style.display = "";
+    };
+
+    try {
+      // Temporarily hide the support UI so it doesn't appear in the screenshot
+      if (panel) panel.style.display = "none";
+      if (triggerButton) triggerButton.style.display = "none";
+      if (backdrop) backdrop.style.display = "none";
+
+      // Small delay to let the browser repaint
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Dynamic import of html2canvas - handle both ESM and CJS exports
+      const mod = await import("html2canvas");
+      const html2canvas = (typeof mod.default === "function" ? mod.default : mod) as (
+        element: HTMLElement,
+        options?: Record<string, unknown>
+      ) => Promise<HTMLCanvasElement>;
 
       const canvas = await html2canvas(document.body, {
         useCORS: true,
@@ -167,39 +182,34 @@ export default function SupportButton() {
         scale: 1,
         logging: false,
         backgroundColor: "#111827",
+        // Ignore cross-origin images that would taint the canvas
+        ignoreElements: (el: Element) => {
+          if (el.tagName === "IFRAME") return true;
+          if (el.tagName === "VIDEO") return true;
+          return false;
+        },
       });
 
-      // Restore visibility
-      if (panelRef.current) {
-        panelRef.current.style.display = "";
-      }
-      if (triggerButton) {
-        triggerButton.style.display = "";
-      }
+      restoreVisibility();
 
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((b) => resolve(b), "image/png", 0.85);
       });
 
       if (blob) {
-        // Revoke previous preview
         if (screenshotPreview) {
           URL.revokeObjectURL(screenshotPreview);
         }
         setScreenshotBlob(blob);
         setScreenshotPreview(URL.createObjectURL(blob));
+      } else {
+        setError("Screenshot captured but failed to convert. Try again.");
       }
     } catch (err) {
       console.error("Screenshot capture failed:", err);
-      setError("Failed to capture screenshot. Please try again.");
-      // Restore visibility in case of error
-      if (panelRef.current) {
-        panelRef.current.style.display = "";
-      }
-      const triggerButton = document.getElementById("support-trigger-button");
-      if (triggerButton) {
-        triggerButton.style.display = "";
-      }
+      restoreVisibility();
+      // Provide a more helpful message
+      setError("Screenshot capture is not available. You can still submit the ticket without one.");
     } finally {
       setIsCapturing(false);
     }

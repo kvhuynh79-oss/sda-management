@@ -760,6 +760,7 @@ interface SessionLoginResult {
     role: string;
     silProviderId?: Id<"silProviders">;
     providerName?: string;
+    isSuperAdmin?: boolean;
   };
   token?: string;
   refreshToken?: string;
@@ -956,6 +957,7 @@ export const createSessionAndProcessLogin = internalMutation({
         role: user.role,
         silProviderId,
         providerName,
+        isSuperAdmin: user.isSuperAdmin ?? false,
       },
       token: args.token,
       refreshToken: args.refreshToken,
@@ -1120,6 +1122,7 @@ export const updateSessionTokens = internalMutation({
         role: user.role,
         silProviderId,
         providerName,
+        isSuperAdmin: user.isSuperAdmin ?? false,
       },
       token: args.token,
       refreshToken: args.refreshToken,

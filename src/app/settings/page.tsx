@@ -37,7 +37,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
   const { organization } = useOrganization();
-  const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; firstName: string; lastName: string; role: string; isSuperAdmin?: boolean } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
@@ -351,6 +351,7 @@ export default function SettingsPage() {
                   </svg>
                 </div>
               </Link>
+              {user.isSuperAdmin && (
               <Link
                 href="/settings/api-keys"
                 className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors"
@@ -368,6 +369,7 @@ export default function SettingsPage() {
                   </svg>
                 </div>
               </Link>
+              )}
               {organization?.slug === "better-living-solutions" && (
               <Link
                 href="/settings/templates"

@@ -80,6 +80,7 @@ export default function LoginPage() {
           lastName: result.user.lastName,
           role: result.user.role,
           expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+          isSuperAdmin: result.user.isSuperAdmin ?? false,
         };
         // Include SIL provider fields for portal access
         if (result.user.silProviderId) {
@@ -132,6 +133,7 @@ export default function LoginPage() {
         lastName: result.user.lastName,
         role: result.user.role,
         expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+        isSuperAdmin: result.user.isSuperAdmin ?? false,
       };
       if (result.user.silProviderId) {
         mfaUserData.silProviderId = result.user.silProviderId;

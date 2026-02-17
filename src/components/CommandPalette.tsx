@@ -105,6 +105,7 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "General",
     icon: <Key className="w-4 h-4" aria-hidden="true" />,
     keywords: ["api", "key", "token", "integration", "rest"],
+    superAdminOnly: true,
   },
   {
     id: "settings-xero",
@@ -353,7 +354,7 @@ const PAGE_COMMANDS: CommandItem[] = [
     keywords: ["task", "todo", "reminder", "action"],
   },
 
-  // Admin (super-admin only)
+  // Admin
   {
     id: "admin-ai",
     label: "AI Assistant",
@@ -362,7 +363,6 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "Admin",
     icon: <Sparkles className="w-4 h-4" aria-hidden="true" />,
     keywords: ["ai", "claude", "analyse", "analyze", "document", "assistant"],
-    superAdminOnly: true,
   },
   {
     id: "admin-platform",
@@ -382,7 +382,6 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "Admin",
     icon: <ScrollText className="w-4 h-4" aria-hidden="true" />,
     keywords: ["audit", "log", "trail", "history", "changes"],
-    superAdminOnly: true,
   },
   {
     id: "admin-launch",
@@ -392,7 +391,6 @@ const PAGE_COMMANDS: CommandItem[] = [
     category: "Admin",
     icon: <Rocket className="w-4 h-4" aria-hidden="true" />,
     keywords: ["launch", "checklist", "go live", "setup"],
-    superAdminOnly: true,
   },
 
   // Help

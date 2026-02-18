@@ -45,7 +45,21 @@ export async function POST(request: NextRequest) {
     const toAddress =
       payload.ToFull?.[0]?.Email || payload.To || "";
     const subject = payload.Subject || "(No Subject)";
-    const textBody = payload.TextBody || "";
+    // Prefer TextBody; fallback to stripped HTML for HTML-only emails
+    let textBody = payload.TextBody || "";
+    if (!textBody && payload.HtmlBody) {
+      textBody = payload.HtmlBody
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/\s+/g, " ")
+        .trim();
+    }
     const strippedReply = payload.StrippedTextReply || undefined;
     const emailDate = payload.Date || undefined;
     const postmarkMessageId = payload.MessageID || undefined;

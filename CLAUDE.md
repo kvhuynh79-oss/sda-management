@@ -13,7 +13,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.7.2 (Comms Email Sync + Self-Diagnosis)
+## Current Version: v2.7.3 (Screenshot Fix + Email Sync Counters + Calendar Sync)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -1030,12 +1030,31 @@ All 8 sprints of the SaaS transformation are complete.
     - How-to deflection with Help Center + contextual guide links
     - 4-item optional troubleshooting checklist (refresh, session, cache, guide)
     - "I still need help" button proceeds to form with pre-filled category
+81. Timeline Read/Unread Indicators - ✅ (`src/components/communications/TimelineView.tsx`) - teal left border + bold text for unread
+    - Backend: `readAt` field added to `getTimelineView` query response
+    - Auto-mark as read when user clicks to expand a timeline entry
+    - Visual: `border-l-4 border-teal-600` for unread, `border-transparent` for read
+
+### Completed (v2.7.3 - Screenshot Fix + Email Sync Counters + Calendar Sync)
+82. Screenshot: html-to-image - ✅ Replaced html2canvas with `html-to-image` library (html2canvas can't parse `oklch()` CSS colors from modern Tailwind)
+    - Uses browser-native SVG foreignObject rendering - supports all modern CSS
+    - 10s timeout via `Promise.race`, cross-origin image filter, Tawk.to widget hiding
+    - Always shows actual error message (removed webpack-dead-code-eliminated dev check)
+83. CSP: Sentry domains - ✅ Added `https://*.ingest.sentry.io https://*.sentry.io` to `connect-src` in `next.config.ts`
+84. Email Sync Counters - ✅ (`convex/inboundEmail.ts`) - `isNew` flag on processInboundEmail return, 3-day `fromdate` filter on Postmark API
+    - Frontend shows "No new emails (X already imported)" instead of misleading "Synced X emails"
+85. Calendar Sync Button - ✅ (`src/app/calendar/page.tsx`) - "Sync Calendar" button in header next to "+ New Event"
+    - Iterates over connected providers (Google/Outlook) and calls `triggerSync` for each
+86. HTML-only Email Fix - ✅ (`convex/inboundEmail.ts` + `src/app/api/mail/route.ts`) - strips HTML tags as fallback when TextBody is empty
+87. BLS Inbound Email Enabled - ✅ (`convex/seed.ts:setBlsPostmarkHash`) - now also sets `inboundEmailEnabled: true`
 
 ### Post-Launch Tasks
-81. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
-82. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-83. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-84. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+88. **URGENT: Vercel Env Var** - Set `INBOUND_EMAIL_WEBHOOK_SECRET` in Vercel dashboard (same value as Convex). Without this, inbound email webhook silently fails.
+89. **URGENT: Email Forwarding Address** - Forward Outlook emails to `d303a05b1210f59df8afd11b3059b067@inbound.postmarkapp.com` (NOT `*@inbound.mysdamanager.com` - that domain has no MX records in Postmark).
+90. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+91. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+92. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+93. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -1101,4 +1120,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-17 (v2.7.2 - Comms email sync fix: inbound email threadSummaries, regenerateThreadSummary hasUnread calc, markAsRead thread sync. SupportButton Tawk.to screenshot fix + self-diagnosis wizard with contextual help. 120 pages, 0 errors.)
+**Last Updated**: 2026-02-18 (v2.7.3 - Screenshot: replaced html2canvas with html-to-image (oklch fix). Email sync: isNew flag + 3-day date filter + accurate counters. Calendar sync button on /calendar page. HTML-only email handling in webhook + manual sync. CSP Sentry domains. BLS inboundEmailEnabled. PENDING: Set INBOUND_EMAIL_WEBHOOK_SECRET in Vercel + use Postmark hash address for forwarding. 120 pages, 0 errors.)

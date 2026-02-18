@@ -900,7 +900,7 @@ export const syncInboundEmails = action({
         continue;
       }
 
-      // Fetch full message details (includes TextBody)
+      // Fetch full message details (includes TextBody and HtmlBody)
       let textBody = msg.TextBody || "";
       if (!textBody && messageId) {
         try {
@@ -916,10 +916,39 @@ export const syncInboundEmails = action({
           if (detailRes.ok) {
             const detail = await detailRes.json();
             textBody = detail.TextBody || "";
+            // Fallback: strip HTML tags from HtmlBody for HTML-only emails
+            if (!textBody && detail.HtmlBody) {
+              textBody = detail.HtmlBody
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/&nbsp;/g, " ")
+                .replace(/&amp;/g, "&")
+                .replace(/&lt;/g, "<")
+                .replace(/&gt;/g, ">")
+                .replace(/&quot;/g, '"')
+                .replace(/\s+/g, " ")
+                .trim();
+            }
           }
         } catch {
           // Fall through with empty body
         }
+      }
+
+      // Fallback: strip HTML from list-level HtmlBody for HTML-only emails
+      if (!textBody && msg.HtmlBody) {
+        textBody = msg.HtmlBody
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/\s+/g, " ")
+          .trim();
       }
 
       if (!textBody) {

@@ -287,22 +287,28 @@ export default function SupportTicketDetailPage() {
                 {ticket.screenshotUrl && (
                   <div className="mt-4 border-t border-gray-700 pt-4">
                     <p className="text-sm font-medium text-gray-300 mb-2">Attached Screenshot</p>
-                    <div className="relative rounded-lg overflow-hidden border border-gray-600 inline-block">
+                    <a
+                      href={ticket.screenshotUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg overflow-hidden border border-gray-600 inline-block hover:border-gray-500 transition-colors cursor-pointer"
+                    >
                       <img
                         src={ticket.screenshotUrl}
-                        alt="Screenshot submitted with ticket"
-                        className="max-h-48 w-auto object-contain bg-gray-900"
+                        alt="Screenshot attached to ticket"
+                        className="max-h-64 w-auto object-contain bg-gray-900"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                          const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                          if (fallback) (fallback as HTMLElement).style.display = "flex";
+                        }}
                       />
-                      <a
-                        href={ticket.screenshotUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="absolute top-2 right-2 p-1.5 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-                        aria-label="Open screenshot in new tab"
-                      >
-                        <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                      </a>
-                    </div>
+                      <div className="hidden items-center gap-2 p-4 text-gray-400">
+                        <ImageIcon className="w-5 h-5" aria-hidden="true" />
+                        <span className="text-sm">Click to view screenshot in new tab</span>
+                        <ExternalLink className="w-4 h-4 ml-auto" aria-hidden="true" />
+                      </div>
+                    </a>
                   </div>
                 )}
               </div>

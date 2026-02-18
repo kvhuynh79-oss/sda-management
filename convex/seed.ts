@@ -314,6 +314,7 @@ export const setBlsPostmarkHash = mutation({
     if (!blsOrg) throw new Error("BLS org not found");
     await ctx.db.patch(blsOrg._id, {
       postmarkHashAddress: "d303a05b1210f59df8afd11b3059b067@inbound.postmarkapp.com",
+      inboundEmailEnabled: true,
     });
     return { success: true, orgId: blsOrg._id };
   },

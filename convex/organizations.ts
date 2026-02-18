@@ -175,6 +175,34 @@ export const create = mutation({
       createdAt: now,
     });
 
+    // Auto-generate unique inbound email address for new org
+    let inboundAddress: string | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const randomBytes = new Uint8Array(4);
+      crypto.getRandomValues(randomBytes);
+      const suffix = Array.from(randomBytes)
+        .map((b) => b.toString(36))
+        .join("")
+        .substring(0, 6);
+      const candidate = `${args.slug}-${suffix}@inbound.mysdamanager.com`;
+      const existing = await ctx.db
+        .query("organizations")
+        .withIndex("by_inboundEmailAddress", (q) =>
+          q.eq("inboundEmailAddress", candidate)
+        )
+        .first();
+      if (!existing) {
+        inboundAddress = candidate;
+        break;
+      }
+    }
+    if (inboundAddress) {
+      await ctx.db.patch(organizationId, {
+        inboundEmailAddress: inboundAddress,
+        inboundEmailEnabled: true,
+      });
+    }
+
     return organizationId;
   },
 });
@@ -546,15 +574,30 @@ export const generateInboundEmailAddress = mutation({
     const org = await ctx.db.get(organizationId);
     if (!org) throw new Error("Organization not found");
 
-    // Generate 6-char random suffix
-    const randomBytes = new Uint8Array(4);
-    crypto.getRandomValues(randomBytes);
-    const suffix = Array.from(randomBytes)
-      .map((b) => b.toString(36))
-      .join("")
-      .substring(0, 6);
-
-    const address = `${org.slug}-${suffix}@inbound.mysdamanager.com`;
+    // Generate unique address with retry
+    let address: string = "";
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const randomBytes = new Uint8Array(4);
+      crypto.getRandomValues(randomBytes);
+      const suffix = Array.from(randomBytes)
+        .map((b) => b.toString(36))
+        .join("")
+        .substring(0, 6);
+      const candidate = `${org.slug}-${suffix}@inbound.mysdamanager.com`;
+      const existing = await ctx.db
+        .query("organizations")
+        .withIndex("by_inboundEmailAddress", (q) =>
+          q.eq("inboundEmailAddress", candidate)
+        )
+        .first();
+      if (!existing) {
+        address = candidate;
+        break;
+      }
+    }
+    if (!address) {
+      throw new Error("Failed to generate unique inbound email address after 5 attempts");
+    }
 
     await ctx.db.patch(organizationId, {
       inboundEmailAddress: address,

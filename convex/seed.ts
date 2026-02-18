@@ -1141,3 +1141,63 @@ export const seedDemoOrg = internalMutation({
     return { success: true, skipped: false, organizationId: orgId, adminUserId: adminId, counts, totalRecords: total };
   },
 });
+
+/**
+ * Backfill inbound email addresses for all existing organizations.
+ * Generates unique forwarding addresses for orgs that don't have one.
+ * IDEMPOTENT: Skips orgs that already have an inboundEmailAddress.
+ *
+ * Usage: npx convex run seed:backfillInboundEmailAddresses '{}'
+ */
+export const backfillInboundEmailAddresses = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const orgs = await ctx.db.query("organizations").collect();
+    let updated = 0;
+    let skipped = 0;
+
+    for (const org of orgs) {
+      if (org.inboundEmailAddress) {
+        skipped++;
+        continue;
+      }
+
+      let address: string | null = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const randomBytes = new Uint8Array(4);
+        crypto.getRandomValues(randomBytes);
+        const suffix = Array.from(randomBytes)
+          .map((b) => b.toString(36))
+          .join("")
+          .substring(0, 6);
+        const candidate = `${org.slug}-${suffix}@inbound.mysdamanager.com`;
+
+        const existing = await ctx.db
+          .query("organizations")
+          .withIndex("by_inboundEmailAddress", (q) =>
+            q.eq("inboundEmailAddress", candidate)
+          )
+          .first();
+
+        if (!existing) {
+          address = candidate;
+          break;
+        }
+      }
+
+      if (!address) {
+        console.error(`Failed to generate address for ${org.slug}`);
+        continue;
+      }
+
+      await ctx.db.patch(org._id, {
+        inboundEmailAddress: address,
+        inboundEmailEnabled: true,
+      });
+      updated++;
+      console.log(`Generated ${address} for ${org.name}`);
+    }
+
+    return { updated, skipped, total: orgs.length };
+  },
+});

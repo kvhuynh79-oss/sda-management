@@ -13,7 +13,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.7.3 (Screenshot Fix + Email Sync Counters + Calendar Sync)
+## Current Version: v2.7.5 (Multi-Org Inbound Email)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -1048,13 +1048,32 @@ All 8 sprints of the SaaS transformation are complete.
 86. HTML-only Email Fix - ✅ (`convex/inboundEmail.ts` + `src/app/api/mail/route.ts`) - strips HTML tags as fallback when TextBody is empty
 87. BLS Inbound Email Enabled - ✅ (`convex/seed.ts:setBlsPostmarkHash`) - now also sets `inboundEmailEnabled: true`
 
+### Completed (v2.7.4 - Ticket Screenshot Fix + isSuperAdmin Cache Fix)
+88. Ticket Screenshot Display Fix - ✅ Admin page (`/admin/platform/tickets/[id]`) used wrong manual URL construction (`${CONVEX_URL}/api/storage/${storageId}`)
+    - Root cause: Convex storage URLs cannot be manually constructed - must use `ctx.storage.getUrl()` in backend
+    - Fixed both admin and user ticket detail pages to use pre-resolved `screenshotUrl` from backend `getById` query
+    - Added clickable `<a>` wrapper (opens in new tab) + `onError` fallback for broken images
+    - Also fixed message attachment URLs on admin page (`msg.attachmentUrl` instead of manual construction)
+89. isSuperAdmin PWA Cache Fix - ✅ Service worker cached old JS bundle that didn't store `isSuperAdmin` in localStorage
+    - Fix: Users must clear site data (Application > Storage > Clear site data) then re-login after deploy
+    - Added `ExternalLink` import to admin ticket page
+
+### Completed (v2.7.5 - Multi-Org Inbound Email)
+90. Multi-Org Inbound Email - ✅ Single Postmark server + custom domain scales to unlimited orgs
+    - MX record: `inbound.mysdamanager.com` → `inbound.postmarkapp.com` (Vercel DNS)
+    - Postmark inbound domain: `inbound.mysdamanager.com`, webhook: `https://mysdamanager.com/api/mail`
+    - Auto-generate `{slug}-{random}@inbound.mysdamanager.com` on org registration (`convex/registration.ts` + `convex/organizations.ts`)
+    - Uniqueness check with 5-attempt retry loop on `by_inboundEmailAddress` index
+    - Backfilled 27 existing orgs via `seed.ts:backfillInboundEmailAddresses`
+    - BLS: `better-living-solutions-48yt40@inbound.mysdamanager.com` + hash fallback
+    - AAH: `achieve-ability-housing-4r8104@inbound.mysdamanager.com`
+    - Verified: 4 curl tests (AAH routing, BLS new address, BLS hash fallback, unknown org rejection)
+
 ### Post-Launch Tasks
-88. **URGENT: Vercel Env Var** - Set `INBOUND_EMAIL_WEBHOOK_SECRET` in Vercel dashboard (same value as Convex). Without this, inbound email webhook silently fails.
-89. **URGENT: Email Forwarding Address** - Forward Outlook emails to `d303a05b1210f59df8afd11b3059b067@inbound.postmarkapp.com` (NOT `*@inbound.mysdamanager.com` - that domain has no MX records in Postmark).
-90. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
-91. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-92. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-93. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+91. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+92. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+93. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+94. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -1120,4 +1139,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-18 (v2.7.3 - Screenshot: replaced html2canvas with html-to-image (oklch fix). Email sync: isNew flag + 3-day date filter + accurate counters. Calendar sync button on /calendar page. HTML-only email handling in webhook + manual sync. CSP Sentry domains. BLS inboundEmailEnabled. PENDING: Set INBOUND_EMAIL_WEBHOOK_SECRET in Vercel + use Postmark hash address for forwarding. 120 pages, 0 errors.)
+**Last Updated**: 2026-02-18 (v2.7.5 - Multi-org inbound email: MX records for inbound.mysdamanager.com configured in Vercel DNS, Postmark inbound domain set. Auto-generate per-org email addresses on registration. Backfilled 29 orgs. Uniqueness check with retry. BLS hash fallback preserved. 4 curl tests verified. 120 pages, 0 errors.)

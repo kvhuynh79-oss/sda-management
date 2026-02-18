@@ -146,6 +146,34 @@ export const createOrganizationInternal = internalMutation({
       createdAt: Date.now(),
     });
 
+    // Auto-generate unique inbound email address for new org
+    let inboundAddress: string | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const randomBytes = new Uint8Array(4);
+      crypto.getRandomValues(randomBytes);
+      const suffix = Array.from(randomBytes)
+        .map((b) => b.toString(36))
+        .join("")
+        .substring(0, 6);
+      const candidate = `${args.slug}-${suffix}@inbound.mysdamanager.com`;
+      const existing = await ctx.db
+        .query("organizations")
+        .withIndex("by_inboundEmailAddress", (q) =>
+          q.eq("inboundEmailAddress", candidate)
+        )
+        .first();
+      if (!existing) {
+        inboundAddress = candidate;
+        break;
+      }
+    }
+    if (inboundAddress) {
+      await ctx.db.patch(organizationId, {
+        inboundEmailAddress: inboundAddress,
+        inboundEmailEnabled: true,
+      });
+    }
+
     return organizationId;
   },
 });

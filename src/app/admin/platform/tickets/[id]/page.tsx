@@ -25,6 +25,7 @@ import {
   UserCheck,
   Tag,
   Paperclip,
+  ExternalLink,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -427,18 +428,34 @@ function TicketDetailContent() {
               <p className="text-gray-300 whitespace-pre-wrap text-sm leading-relaxed">
                 {ticket.description}
               </p>
-              {ticket.screenshotStorageId && (
+              {ticket.screenshotUrl && (
                 <div className="mt-4">
                   <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
                     <Paperclip className="w-3 h-3" aria-hidden="true" />
                     Attached Screenshot
                   </p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_CONVEX_URL}/api/storage/${ticket.screenshotStorageId}`}
-                    alt="Screenshot attached to ticket"
-                    className="max-w-full rounded-lg border border-gray-700"
-                  />
+                  <a
+                    href={ticket.screenshotUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block rounded-lg overflow-hidden border border-gray-700 hover:border-gray-600 transition-colors cursor-pointer"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ticket.screenshotUrl}
+                      alt="Screenshot attached to ticket"
+                      className="max-w-full max-h-64 rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                        if (fallback) (fallback as HTMLElement).style.display = "flex";
+                      }}
+                    />
+                    <div className="hidden items-center gap-2 p-4 text-gray-400">
+                      <ExternalLink className="w-4 h-4" aria-hidden="true" />
+                      <span className="text-sm">Click to view screenshot in new tab</span>
+                    </div>
+                  </a>
                 </div>
               )}
             </section>
@@ -502,14 +519,16 @@ function TicketDetailContent() {
                               <p className="text-sm text-gray-200 whitespace-pre-wrap">
                                 {msg.message}
                               </p>
-                              {msg.attachmentStorageId && (
+                              {msg.attachmentUrl && (
                                 <div className="mt-2 pt-2 border-t border-teal-600/20">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={`${process.env.NEXT_PUBLIC_CONVEX_URL}/api/storage/${msg.attachmentStorageId}`}
-                                    alt="Attachment"
-                                    className="max-w-full max-h-48 rounded border border-gray-700"
-                                  />
+                                  <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={msg.attachmentUrl}
+                                      alt="Attachment"
+                                      className="max-w-full max-h-48 rounded border border-gray-700 cursor-pointer hover:border-gray-600 transition-colors"
+                                    />
+                                  </a>
                                 </div>
                               )}
                             </div>
@@ -535,14 +554,16 @@ function TicketDetailContent() {
                             <p className="text-sm text-gray-200 whitespace-pre-wrap">
                               {msg.message}
                             </p>
-                            {msg.attachmentStorageId && (
+                            {msg.attachmentUrl && (
                               <div className="mt-2 pt-2 border-t border-gray-600">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={`${process.env.NEXT_PUBLIC_CONVEX_URL}/api/storage/${msg.attachmentStorageId}`}
-                                  alt="Attachment"
-                                  className="max-w-full max-h-48 rounded border border-gray-700"
-                                />
+                                <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={msg.attachmentUrl}
+                                    alt="Attachment"
+                                    className="max-w-full max-h-48 rounded border border-gray-700 cursor-pointer hover:border-gray-600 transition-colors"
+                                  />
+                                </a>
                               </div>
                             )}
                           </div>

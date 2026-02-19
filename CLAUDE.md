@@ -13,7 +13,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 - **AI**: Claude API (document analysis, policy summaries)
 - **Native Mobile**: Capacitor (iOS + Android) with home screen widgets
 
-## Current Version: v2.7.5 (Multi-Org Inbound Email)
+## Current Version: v2.8.0 (Inspection Workflow Overhaul)
 
 ### Key Features
 1. **Property Management** - Properties with multiple dwellings, owner details, bank info
@@ -21,7 +21,7 @@ A comprehensive management system for **Specialist Disability Accommodation (SDA
 3. **Maintenance** - Reactive and preventative maintenance with photos
 4. **Contractor Management** - Track contractors, send quote requests via email
 5. **Quote Request Workflow** - Email contractors, receive quotes via public link
-6. **Property Inspections** - Mobile-optimized checklists (BLS template)
+6. **Property Inspections** - Mobile-optimized checklists, auto-MR creation from failed items, auto-reschedule, property-centric views, specialist schedule tracking, per-dwelling template customization
 7. **Payments** - Track SDA payments, generate NDIS export files, MTA claims, plan-managed tax invoices
 8. **Documents** - Store documents with expiry tracking + AI analysis
 9. **Alerts** - Automated alerts for expiries, vacancies, maintenance
@@ -1069,11 +1069,27 @@ All 8 sprints of the SaaS transformation are complete.
     - AAH: `achieve-ability-housing-4r8104@inbound.mysdamanager.com`
     - Verified: 4 curl tests (AAH routing, BLS new address, BLS hash fallback, unknown org rejection)
 
+### Completed (v2.8.0 - Inspection Workflow Overhaul)
+91. Inspection Workflow Overhaul - ✅ Complete inspection system overhaul with 9 phases
+    - **Schema**: New `dwellingInspectionTemplates` table (diff model), extended `preventativeSchedule` (specialist fields), extended `inspections` (next/source IDs), extended `maintenanceRequests` (inspection link), 3 new alert types
+    - **Enhanced `completeInspection`**: Auto-creates MRs for failed items via `createFromInspection` internalMutation, auto-reschedules 3 months out with duplicate guard, dwellingId null guard, returns summary object
+    - **CATEGORY_MAP**: Maps 19 inspection categories to MR categories with "general" fallback
+    - **Dwelling Template Diff**: `mergeDwellingTemplate()` pure function merges base + diff (addedItems, removedItems, addedCategories). New compliance items in base auto-appear in all dwellings
+    - **In-inspection customization**: `addCustomItem`/`deleteCustomItem` also update dwelling diff. Common items dropdown from `getCommonItems`. "Save as Template" with name input
+    - **Specialist Schedules**: Extended `preventativeSchedule` with `isSpecialist`, `specialistCategory` (fire_safety, smoke_alarms, sprinklers, electrical_safety, pest_control). CRUD functions + alerts (14-day warning, overdue critical)
+    - **Template Rename**: "BLS Property Inspection" → "Standard SDA Inspection" + `renameBLSTemplates` migration
+    - **Permissions**: Added `inspections` resource to rolePermissions (admin/PM: full, staff: read/create/update)
+    - **Frontend - Inspection List**: 3-tab view (By Property, All Inspections, Specialist Schedules). Property-centric collapsible cards with green/yellow/red health indicators
+    - **Frontend - Completion Modal**: Failed items summary, MR creation checkbox, next inspection date picker, post-completion results banner with links
+    - **Frontend - In-Inspection UI**: Delete button per item, common items dropdown, save as template modal, dwelling template badge
+    - **Frontend - Property Detail**: Inspection History section with per-dwelling breakdown, specialist schedule items, stat pills
+    - **Build**: 120 pages, 0 errors. Convex deployed.
+
 ### Post-Launch Tasks
-91. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
-92. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-93. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-94. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+92. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+93. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+94. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+95. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -1139,4 +1155,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-18 (v2.7.5 - Multi-org inbound email: MX records for inbound.mysdamanager.com configured in Vercel DNS, Postmark inbound domain set. Auto-generate per-org email addresses on registration. Backfilled 29 orgs. Uniqueness check with retry. BLS hash fallback preserved. 4 curl tests verified. 120 pages, 0 errors.)
+**Last Updated**: 2026-02-19 (v2.8.0 - Inspection Workflow Overhaul: Auto-MR creation from failed items, auto-reschedule 3 months, property-centric views with health indicators, specialist schedule tracking, in-inspection template customization with dwelling diff model, per-dwelling template diffs, save-as-template, enhanced completion modal, property detail inspection history section. 120 pages, 0 errors.)

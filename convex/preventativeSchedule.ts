@@ -426,6 +426,195 @@ export const getOverdue = query({
   },
 });
 
+// ============================================
+// SPECIALIST SCHEDULE FUNCTIONS
+// ============================================
+
+// Create a new specialist schedule (fire safety, smoke alarms, sprinklers, etc.)
+export const createSpecialistSchedule = mutation({
+  args: {
+    userId: v.id("users"),
+    propertyId: v.id("properties"),
+    dwellingId: v.optional(v.id("dwellings")),
+    taskName: v.string(),
+    description: v.optional(v.string()),
+    category: v.union(
+      v.literal("plumbing"),
+      v.literal("electrical"),
+      v.literal("appliances"),
+      v.literal("building"),
+      v.literal("grounds"),
+      v.literal("safety"),
+      v.literal("general")
+    ),
+    specialistCategory: v.union(
+      v.literal("fire_safety"),
+      v.literal("smoke_alarms"),
+      v.literal("sprinklers"),
+      v.literal("electrical_safety"),
+      v.literal("pest_control"),
+      v.literal("other")
+    ),
+    frequencyType: v.union(
+      v.literal("weekly"),
+      v.literal("monthly"),
+      v.literal("quarterly"),
+      v.literal("biannually"),
+      v.literal("annually")
+    ),
+    frequencyInterval: v.number(),
+    nextDueDate: v.string(),
+    estimatedCost: v.optional(v.number()),
+    contractorName: v.optional(v.string()),
+    contractorContact: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const now = Date.now();
+    return await ctx.db.insert("preventativeSchedule", {
+      organizationId,
+      propertyId: args.propertyId,
+      dwellingId: args.dwellingId,
+      taskName: args.taskName,
+      description: args.description,
+      category: args.category,
+      frequencyType: args.frequencyType,
+      frequencyInterval: args.frequencyInterval,
+      nextDueDate: args.nextDueDate,
+      estimatedCost: args.estimatedCost,
+      contractorName: args.contractorName,
+      contractorContact: args.contractorContact,
+      isActive: true,
+      notes: args.notes,
+      isSpecialist: true,
+      specialistCategory: args.specialistCategory,
+      createdBy: args.userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+// Get all specialist schedules for the organization
+export const getSpecialistSchedules = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const schedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    const specialists = schedules.filter((s) => s.isSpecialist === true);
+
+    // Enrich with property and dwelling data
+    return await Promise.all(
+      specialists.map(async (s) => {
+        const property = await ctx.db.get(s.propertyId);
+        const dwelling = s.dwellingId ? await ctx.db.get(s.dwellingId) : null;
+        return {
+          ...s,
+          property: property
+            ? {
+                _id: property._id,
+                propertyName: property.propertyName,
+                addressLine1: property.addressLine1,
+                suburb: property.suburb,
+              }
+            : null,
+          dwelling: dwelling
+            ? { _id: dwelling._id, dwellingName: dwelling.dwellingName }
+            : null,
+        };
+      })
+    );
+  },
+});
+
+// Get specialist schedules for a specific property
+export const getSpecialistByProperty = query({
+  args: { userId: v.id("users"), propertyId: v.id("properties") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const schedules = await ctx.db
+      .query("preventativeSchedule")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
+      .collect();
+
+    const specialists = schedules.filter((s) => s.isSpecialist === true);
+
+    return await Promise.all(
+      specialists.map(async (s) => {
+        const dwelling = s.dwellingId ? await ctx.db.get(s.dwellingId) : null;
+        return {
+          ...s,
+          dwelling: dwelling
+            ? { _id: dwelling._id, dwellingName: dwelling.dwellingName }
+            : null,
+        };
+      })
+    );
+  },
+});
+
+// Mark specialist schedule as completed and advance to next due date
+export const completeSpecialistSchedule = mutation({
+  args: {
+    userId: v.id("users"),
+    scheduleId: v.id("preventativeSchedule"),
+    completedDate: v.string(),
+    actualCost: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    const schedule = await ctx.db.get(args.scheduleId);
+    if (!schedule) throw new Error("Schedule not found");
+    if (schedule.organizationId !== organizationId) {
+      throw new Error("Access denied: Schedule belongs to different organization");
+    }
+    if (!schedule.isSpecialist) {
+      throw new Error("This function is only for specialist schedules");
+    }
+
+    // Calculate next due date based on frequency (same pattern as existing complete mutation)
+    const completedDate = new Date(args.completedDate);
+    let nextDueDate = new Date(completedDate);
+
+    switch (schedule.frequencyType) {
+      case "weekly":
+        nextDueDate.setDate(completedDate.getDate() + 7 * schedule.frequencyInterval);
+        break;
+      case "monthly":
+        nextDueDate.setMonth(completedDate.getMonth() + schedule.frequencyInterval);
+        break;
+      case "quarterly":
+        nextDueDate.setMonth(completedDate.getMonth() + 3 * schedule.frequencyInterval);
+        break;
+      case "biannually":
+        nextDueDate.setMonth(completedDate.getMonth() + 6 * schedule.frequencyInterval);
+        break;
+      case "annually":
+        nextDueDate.setFullYear(completedDate.getFullYear() + schedule.frequencyInterval);
+        break;
+    }
+
+    const nextDueDateStr = nextDueDate.toISOString().split("T")[0];
+
+    await ctx.db.patch(args.scheduleId, {
+      lastCompletedDate: args.completedDate,
+      nextDueDate: nextDueDateStr,
+      notes: args.notes || schedule.notes,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, nextDueDate: nextDueDateStr };
+  },
+});
+
 // Get schedule statistics
 export const getStats = query({
   args: { userId: v.id("users") },

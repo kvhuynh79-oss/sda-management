@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
@@ -840,5 +840,85 @@ export const getAllPaginated = query({
       ...result,
       page: enrichedPage,
     };
+  },
+});
+
+// Create a maintenance request from a failed inspection item (server-to-server, no auth check)
+export const createFromInspection = internalMutation({
+  args: {
+    dwellingId: v.id("dwellings"),
+    organizationId: v.id("organizations"),
+    title: v.string(),
+    description: v.string(),
+    category: v.union(
+      v.literal("plumbing"),
+      v.literal("electrical"),
+      v.literal("appliances"),
+      v.literal("building"),
+      v.literal("grounds"),
+      v.literal("safety"),
+      v.literal("general")
+    ),
+    priority: v.union(
+      v.literal("urgent"),
+      v.literal("high"),
+      v.literal("medium"),
+      v.literal("low")
+    ),
+    inspectionId: v.id("inspections"),
+    inspectionItemId: v.id("inspectionItems"),
+    createdBy: v.id("users"),
+    reportedDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const requestId = await ctx.db.insert("maintenanceRequests", {
+      dwellingId: args.dwellingId,
+      organizationId: args.organizationId,
+      requestType: "reactive",
+      category: args.category,
+      priority: args.priority,
+      title: args.title,
+      description: args.description,
+      reportedBy: "Inspection System",
+      reportedDate: args.reportedDate,
+      status: "reported",
+      inspectionId: args.inspectionId,
+      inspectionItemId: args.inspectionItemId,
+      createdBy: args.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Audit log
+    const user = await ctx.db.get(args.createdBy);
+    if (user) {
+      await ctx.runMutation(internal.auditLog.log, {
+        userId: user._id,
+        userEmail: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        action: "create",
+        entityType: "maintenanceRequest",
+        entityId: requestId,
+        entityName: args.title,
+        metadata: JSON.stringify({
+          category: args.category,
+          priority: args.priority,
+          requestType: "reactive",
+          source: "inspection",
+          inspectionId: args.inspectionId,
+          inspectionItemId: args.inspectionItemId,
+        }),
+      });
+    }
+
+    // Trigger webhook
+    await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
+      organizationId: args.organizationId,
+      event: "maintenance.created",
+      payload: { requestId, title: args.title, priority: args.priority },
+    });
+
+    return requestId;
   },
 });

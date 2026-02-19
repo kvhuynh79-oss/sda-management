@@ -22,7 +22,10 @@ export type AlertType =
   | "new_website_complaint"
   | "consent_expiry"
   | "consent_missing"
-  | "profile_incomplete";
+  | "profile_incomplete"
+  | "specialist_schedule_due"
+  | "specialist_schedule_overdue"
+  | "inspection_upcoming";
 
 export type AlertSeverity = "critical" | "warning" | "info";
 
@@ -570,6 +573,181 @@ export async function generateConsentMissingAlerts(
   return alertsCreated;
 }
 
+// Specialist category labels for human-readable alert messages
+const SPECIALIST_CATEGORY_LABELS: Record<string, string> = {
+  fire_safety: "Fire Safety",
+  smoke_alarms: "Smoke Alarms",
+  sprinklers: "Sprinklers",
+  electrical_safety: "Electrical Safety",
+  pest_control: "Pest Control",
+  other: "Specialist",
+};
+
+// Generate alerts for specialist schedules (fire safety, smoke alarms, sprinklers, etc.)
+export async function generateSpecialistScheduleAlerts(
+  ctx: MutationCtx,
+  todayStr: string
+): Promise<number> {
+  const { today } = getDateStrings();
+  const fourteenDaysFromNow = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+  let alertsCreated = 0;
+
+  // Query all active specialist schedules
+  const allSchedules = await ctx.db
+    .query("preventativeSchedule")
+    .filter((q) => q.eq(q.field("isActive"), true))
+    .collect();
+
+  const specialistSchedules = allSchedules.filter((s) => s.isSpecialist === true);
+
+  // Get existing active specialist alerts to check for duplicates by title
+  const existingDueAlerts = await ctx.db
+    .query("alerts")
+    .withIndex("by_status_alertType", (q) =>
+      q.eq("status", "active").eq("alertType", "specialist_schedule_due")
+    )
+    .collect();
+  const existingOverdueAlerts = await ctx.db
+    .query("alerts")
+    .withIndex("by_status_alertType", (q) =>
+      q.eq("status", "active").eq("alertType", "specialist_schedule_overdue")
+    )
+    .collect();
+  const existingTitles = new Set([
+    ...existingDueAlerts.map((a) => a.title),
+    ...existingOverdueAlerts.map((a) => a.title),
+  ]);
+
+  for (const schedule of specialistSchedules) {
+    const dueDate = new Date(schedule.nextDueDate);
+    const property = await ctx.db.get(schedule.propertyId);
+    const dwelling = schedule.dwellingId ? await ctx.db.get(schedule.dwellingId) : null;
+    const categoryLabel =
+      SPECIALIST_CATEGORY_LABELS[schedule.specialistCategory || "other"] || "Specialist";
+    const locationStr = `${property?.addressLine1 || "Unknown"}${dwelling ? ` (${dwelling.dwellingName})` : ""}`;
+
+    // Overdue: past due date
+    if (dueDate < today) {
+      const daysOverdue = Math.ceil(
+        (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const title = `Overdue ${categoryLabel}: ${schedule.taskName}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "specialist_schedule_overdue",
+        severity: "critical",
+        title,
+        message: `${categoryLabel} task "${schedule.taskName}" at ${locationStr} is ${daysOverdue} day${daysOverdue !== 1 ? "s" : ""} overdue (was due ${schedule.nextDueDate}).${schedule.contractorName ? ` Contractor: ${schedule.contractorName}.` : ""}`,
+        organizationId: schedule.organizationId,
+        linkedPreventativeScheduleId: schedule._id,
+        linkedPropertyId: schedule.propertyId,
+        linkedDwellingId: schedule.dwellingId,
+        triggerDate: todayStr,
+        dueDate: schedule.nextDueDate,
+      });
+
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+
+    // Due within 14 days (but not overdue)
+    if (dueDate >= today && dueDate <= fourteenDaysFromNow) {
+      const days = daysUntil(dueDate, today);
+      const title = `${categoryLabel} Due: ${schedule.taskName}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "specialist_schedule_due",
+        severity: days <= 3 ? "critical" : "warning",
+        title,
+        message: `${categoryLabel} task "${schedule.taskName}" at ${locationStr} is due in ${days} day${days !== 1 ? "s" : ""} on ${schedule.nextDueDate}.${schedule.contractorName ? ` Contractor: ${schedule.contractorName}.` : ""}`,
+        organizationId: schedule.organizationId,
+        linkedPreventativeScheduleId: schedule._id,
+        linkedPropertyId: schedule.propertyId,
+        linkedDwellingId: schedule.dwellingId,
+        triggerDate: todayStr,
+        dueDate: schedule.nextDueDate,
+      });
+
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+  }
+
+  return alertsCreated;
+}
+
+// Generate alerts for upcoming scheduled inspections (within 7 days)
+export async function generateInspectionAlerts(
+  ctx: MutationCtx,
+  todayStr: string
+): Promise<number> {
+  const { today, sevenDaysFromNow } = getDateStrings();
+  let alertsCreated = 0;
+
+  // Query all scheduled inspections (not completed or cancelled)
+  const inspections = await ctx.db
+    .query("inspections")
+    .collect();
+
+  const scheduledInspections = inspections.filter(
+    (i) => i.status === "scheduled"
+  );
+
+  // Get existing active inspection_upcoming alerts to check for duplicates
+  const existingAlerts = await ctx.db
+    .query("alerts")
+    .withIndex("by_status_alertType", (q) =>
+      q.eq("status", "active").eq("alertType", "inspection_upcoming")
+    )
+    .collect();
+  const existingTitles = new Set(existingAlerts.map((a) => a.title));
+
+  for (const inspection of scheduledInspections) {
+    const scheduledDate = new Date(inspection.scheduledDate);
+
+    // Only alert for inspections within the next 7 days
+    if (scheduledDate >= today && scheduledDate <= sevenDaysFromNow) {
+      const days = daysUntil(scheduledDate, today);
+      const property = await ctx.db.get(inspection.propertyId);
+      const dwelling = inspection.dwellingId ? await ctx.db.get(inspection.dwellingId) : null;
+      const template = await ctx.db.get(inspection.templateId);
+      const inspector = await ctx.db.get(inspection.inspectorId);
+
+      const locationStr = `${property?.addressLine1 || "Unknown"}${dwelling ? ` (${dwelling.dwellingName})` : ""}`;
+      const templateName = template?.name || "Inspection";
+      const inspectorName = inspector ? `${inspector.firstName} ${inspector.lastName}` : "Unassigned";
+
+      const title = `Inspection Upcoming: ${templateName} at ${property?.addressLine1 || "Unknown"}`;
+      if (existingTitles.has(title)) continue;
+
+      const alertId = await createAlertIfNotExists(ctx, {
+        alertType: "inspection_upcoming",
+        severity: days <= 1 ? "warning" : "info",
+        title,
+        message: `${templateName} at ${locationStr} is scheduled for ${inspection.scheduledDate} (${days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`}). Inspector: ${inspectorName}.`,
+        organizationId: inspection.organizationId,
+        linkedPropertyId: inspection.propertyId,
+        linkedDwellingId: inspection.dwellingId,
+        triggerDate: todayStr,
+        dueDate: inspection.scheduledDate,
+      });
+
+      if (alertId) {
+        alertsCreated++;
+        existingTitles.add(title);
+      }
+    }
+  }
+
+  return alertsCreated;
+}
+
 // Run all alert generators
 export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success: boolean; alertsCreated: number }> {
   const { todayStr } = getDateStrings();
@@ -584,6 +762,8 @@ export async function runAllAlertGenerators(ctx: MutationCtx): Promise<{ success
   alertsCreated += await generateComplaintAcknowledgmentAlerts(ctx, todayStr);
   alertsCreated += await generateConsentExpiryAlerts(ctx, todayStr);
   alertsCreated += await generateConsentMissingAlerts(ctx, todayStr);
+  alertsCreated += await generateSpecialistScheduleAlerts(ctx, todayStr);
+  alertsCreated += await generateInspectionAlerts(ctx, todayStr);
 
   return { success: true, alertsCreated };
 }

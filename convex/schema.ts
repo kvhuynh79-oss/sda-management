@@ -608,6 +608,8 @@ export default defineSchema({
     notes: v.optional(v.string()),
     incidentId: v.optional(v.id("incidents")), // Link to incident if created from one
     incidentActionId: v.optional(v.id("incidentActions")), // Link to action if created from one
+    inspectionId: v.optional(v.id("inspections")), // Link to inspection if created from failed item
+    inspectionItemId: v.optional(v.id("inspectionItems")), // Link to specific failed inspection item
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -620,6 +622,7 @@ export default defineSchema({
     .index("by_contractor", ["assignedContractorId"])
     .index("by_dwelling_status", ["dwellingId", "status"])
     .index("by_status_priority", ["status", "priority"])
+    .index("by_inspection", ["inspectionId"])
     .index("by_organizationId", ["organizationId"]),
 
   // Maintenance Photos table - photos attached to maintenance requests
@@ -707,8 +710,20 @@ export default defineSchema({
     nextDueDate: v.string(),
     estimatedCost: v.optional(v.number()),
     contractorName: v.optional(v.string()),
+    contractorContact: v.optional(v.string()), // Phone or email for specialist contractor
     isActive: v.boolean(),
     notes: v.optional(v.string()),
+    // Specialist schedule fields (fire safety, smoke alarms, sprinklers, etc.)
+    isSpecialist: v.optional(v.boolean()),
+    specialistCategory: v.optional(v.union(
+      v.literal("fire_safety"),
+      v.literal("smoke_alarms"),
+      v.literal("sprinklers"),
+      v.literal("electrical_safety"),
+      v.literal("pest_control"),
+      v.literal("other")
+    )),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -716,6 +731,7 @@ export default defineSchema({
     .index("by_nextDueDate", ["nextDueDate"])
     .index("by_property_active", ["propertyId", "isActive"])
     .index("by_category", ["category"])
+    .index("by_isSpecialist", ["isSpecialist"])
     .index("by_organizationId", ["organizationId"]),
 
   // Documents table - file uploads
@@ -878,7 +894,11 @@ export default defineSchema({
       v.literal("consent_expiry"), // Participant consent expired or expiring
       v.literal("consent_missing"), // Active participant with no consent recorded
       // Incomplete profile alerts
-      v.literal("profile_incomplete") // Participant profile missing required fields
+      v.literal("profile_incomplete"), // Participant profile missing required fields
+      // Inspection & specialist schedule alerts
+      v.literal("specialist_schedule_due"), // Specialist item (fire safety, smoke alarms) coming due
+      v.literal("specialist_schedule_overdue"), // Specialist item past due date
+      v.literal("inspection_upcoming") // Scheduled inspection coming up within 7 days
     ),
     severity: v.union(
       v.literal("critical"),
@@ -1105,6 +1125,9 @@ export default defineSchema({
     completedItems: v.number(),
     passedItems: v.number(),
     failedItems: v.number(),
+    // Auto-scheduling links
+    nextInspectionId: v.optional(v.id("inspections")),    // Auto-scheduled follow-up
+    sourceInspectionId: v.optional(v.id("inspections")),  // Which inspection triggered this one
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -1114,6 +1137,7 @@ export default defineSchema({
     .index("by_inspector", ["inspectorId"])
     .index("by_status", ["status"])
     .index("by_scheduledDate", ["scheduledDate"])
+    .index("by_sourceInspection", ["sourceInspectionId"])
     .index("by_organizationId", ["organizationId"]),
 
   // Inspection Items table - each checked item in an inspection
@@ -2759,4 +2783,33 @@ export default defineSchema({
     lastNumber: v.number(),
     updatedAt: v.number(),
   }),
+
+  // ============================================
+  // INSPECTION CUSTOMIZATION TABLES
+  // ============================================
+
+  // Dwelling-specific inspection template overrides (DIFF model)
+  // Stores only differences from base template per dwelling
+  // At inspection creation, system merges base template + diff
+  dwellingInspectionTemplates: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    dwellingId: v.id("dwellings"),
+    baseTemplateId: v.id("inspectionTemplates"),
+    addedItems: v.array(v.object({
+      category: v.string(),
+      name: v.string(),
+      required: v.boolean(),
+    })),
+    removedItems: v.array(v.object({
+      category: v.string(),
+      name: v.string(),
+    })),
+    addedCategories: v.array(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_dwelling", ["dwellingId"])
+    .index("by_dwelling_template", ["dwellingId", "baseTemplateId"])
+    .index("by_organizationId", ["organizationId"]),
 });

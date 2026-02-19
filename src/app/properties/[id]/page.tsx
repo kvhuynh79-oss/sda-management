@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -61,6 +61,14 @@ export default function PropertyDetailPage() {
   const documents = useQuery(api.documents.getByProperty, userIdTyped ? { userId: userIdTyped, propertyId } : "skip");
   const propertyMedia = useQuery(api.propertyMedia.getByProperty, userIdTyped ? { userId: userIdTyped, propertyId } : "skip");
   const allSilProviders = useQuery(api.silProviders.getAll, userIdTyped ? { status: "active", userId: userIdTyped } : "skip");
+  const allPropertyInspections = useQuery(
+    api.inspections.getByPropertyGrouped,
+    userIdTyped ? { userId: userIdTyped } : "skip"
+  );
+  const specialistItems = useQuery(
+    api.preventativeSchedule.getSpecialistByProperty,
+    userIdTyped && propertyId ? { propertyId, userId: userIdTyped } : "skip"
+  );
   const removeDwelling = useMutation(api.dwellings.remove);
   const removeDocument = useMutation(api.documents.remove);
   const linkDwellingProvider = useMutation(api.silProviders.linkDwelling);
@@ -111,6 +119,11 @@ export default function PropertyDetailPage() {
   const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
   const currentOccupancy = dwellings.reduce((sum, d) => sum + d.currentOccupancy, 0);
   const vacancies = totalCapacity - currentOccupancy;
+
+  const propertyInspectionData = useMemo(
+    () => allPropertyInspections?.find((p: any) => p.propertyId === propertyId) ?? null,
+    [allPropertyInspections, propertyId]
+  );
 
   return (
     <RequireAuth>
@@ -326,6 +339,15 @@ export default function PropertyDetailPage() {
         {/* Communications History */}
         <div className="mt-6">
           <CommunicationsHistory propertyId={propertyId} />
+        </div>
+
+        {/* Inspection History */}
+        <div className="mt-6">
+          <InspectionHistorySection
+            propertyId={propertyId}
+            propertyData={propertyInspectionData}
+            specialistItems={specialistItems || []}
+          />
         </div>
 
         {/* Property Media Gallery */}
@@ -1313,6 +1335,319 @@ function MediaGallery({
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InspectionHistorySection({
+  propertyId,
+  propertyData,
+  specialistItems,
+}: {
+  propertyId: Id<"properties">;
+  propertyData: any | null;
+  specialistItems: any[];
+}) {
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return "N/A";
+    return new Date(dateStr).toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const totalOpenIssues = propertyData
+    ? propertyData.dwellings?.reduce(
+        (sum: number, d: any) => sum + (d.totalFailed || 0),
+        0
+      ) + (propertyData.unlinkedInspections?.reduce(
+        (sum: number, i: any) => sum + (i.failedItems || 0),
+        0
+      ) || 0)
+    : 0;
+
+  const getSpecialistStatus = (item: any) => {
+    if (!item.nextDueDate) return { label: "No date", color: "text-gray-400" };
+    const dueDate = new Date(item.nextDueDate);
+    const now = new Date();
+    const daysUntilDue = Math.ceil(
+      (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysUntilDue < 0) return { label: "Overdue", color: "text-red-400" };
+    if (daysUntilDue <= 14) return { label: "Due Soon", color: "text-yellow-400" };
+    return { label: "Current", color: "text-green-400" };
+  };
+
+  const getSpecialistIcon = (category: string | undefined) => {
+    switch (category) {
+      case "fire_safety":
+        return (
+          <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z" />
+          </svg>
+        );
+      case "smoke_alarms":
+        return (
+          <svg className="w-4 h-4 text-yellow-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+          </svg>
+        );
+      case "sprinklers":
+        return (
+          <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        );
+      default:
+        return (
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.384-3.07A2.625 2.625 0 017.17 8.26l5.25 3 5.25-3a2.625 2.625 0 011.134 3.84l-5.384 3.07z" />
+          </svg>
+        );
+    }
+  };
+
+  const getInspectionStatusDisplay = (inspection: any) => {
+    if (inspection.status === "completed") {
+      if (inspection.failedItems === 0) {
+        return {
+          label: `Passed (${inspection.passedItems}/${inspection.totalItems} items)`,
+          icon: (
+            <svg className="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ),
+          color: "text-green-400",
+        };
+      }
+      return {
+        label: `${inspection.failedItems} issue${inspection.failedItems !== 1 ? "s" : ""} found`,
+        icon: (
+          <svg className="w-4 h-4 text-yellow-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        ),
+        color: "text-yellow-400",
+      };
+    }
+    if (inspection.status === "in_progress") {
+      return {
+        label: `In progress (${inspection.completedItems}/${inspection.totalItems})`,
+        icon: (
+          <svg className="w-4 h-4 text-teal-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+          </svg>
+        ),
+        color: "text-teal-400",
+      };
+    }
+    if (inspection.status === "scheduled") {
+      const isOverdue = new Date(inspection.scheduledDate) < new Date();
+      return {
+        label: isOverdue ? "Overdue" : "Scheduled",
+        icon: (
+          <svg className={`w-4 h-4 shrink-0 ${isOverdue ? "text-red-400" : "text-gray-400"}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+          </svg>
+        ),
+        color: isOverdue ? "text-red-400" : "text-gray-400",
+      };
+    }
+    return { label: "Cancelled", icon: null, color: "text-gray-400" };
+  };
+
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-white">Inspection History</h2>
+        <Link
+          href={`/inspections/new?propertyId=${propertyId}`}
+          className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm transition-colors"
+        >
+          Schedule Inspection
+        </Link>
+      </div>
+
+      {/* Summary Stats Row */}
+      {propertyData && (
+        <div className="flex flex-wrap gap-3 mb-5">
+          <span className="text-xs bg-gray-700 text-gray-300 px-3 py-1 rounded-full">
+            Last: {formatDate(propertyData.lastInspectionDate)}
+          </span>
+          <span className="text-xs bg-gray-700 text-gray-300 px-3 py-1 rounded-full">
+            Next Due: {formatDate(propertyData.nextScheduledDate)}
+          </span>
+          <span className={`text-xs px-3 py-1 rounded-full ${
+            totalOpenIssues > 0
+              ? "bg-yellow-600/20 text-yellow-400"
+              : "bg-gray-700 text-gray-300"
+          }`}>
+            Open Issues: {totalOpenIssues}
+          </span>
+          <span className="text-xs bg-gray-700 text-gray-300 px-3 py-1 rounded-full">
+            Specialist Items: {specialistItems.length}
+          </span>
+        </div>
+      )}
+
+      {/* No inspections state */}
+      {(!propertyData || propertyData.totalInspections === 0) ? (
+        <div className="text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
+          <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+          </svg>
+          <p className="text-gray-400 mb-4">No inspections recorded for this property yet.</p>
+          <Link
+            href={`/inspections/new?propertyId=${propertyId}`}
+            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm transition-colors inline-block"
+          >
+            Schedule First Inspection
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {/* Per-dwelling breakdown */}
+          {propertyData.dwellings?.map((dwellingData: any) => (
+            <div key={dwellingData.dwellingId} className="border border-gray-700 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                </svg>
+                {dwellingData.dwellingName || "Unnamed Dwelling"}
+              </h3>
+
+              {dwellingData.inspections.length === 0 ? (
+                <p className="text-gray-400 text-sm italic">No inspections for this dwelling.</p>
+              ) : (
+                <div className="space-y-2">
+                  {dwellingData.inspections.slice(0, 5).map((inspection: any, idx: number) => {
+                    const statusDisplay = getInspectionStatusDisplay(inspection);
+                    const dateStr = inspection.completedDate || inspection.scheduledDate;
+                    const isLatest = idx === 0;
+
+                    return (
+                      <Link
+                        key={inspection._id}
+                        href={`/inspections/${inspection._id}`}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-gray-700/50 hover:bg-gray-700 transition-colors group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {statusDisplay.icon}
+                          <div className="min-w-0">
+                            <p className={`text-sm ${isLatest ? "font-medium text-white" : "text-gray-300"}`}>
+                              {isLatest ? "Latest: " : ""}{formatDate(dateStr)}
+                            </p>
+                            <p className={`text-xs ${statusDisplay.color}`}>
+                              {statusDisplay.label}
+                            </p>
+                          </div>
+                        </div>
+                        <svg className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </Link>
+                    );
+                  })}
+
+                  {/* Next Scheduled */}
+                  {dwellingData.nextScheduled && (
+                    <div className="flex items-center gap-2.5 px-2.5 pt-2 border-t border-gray-700/50">
+                      <svg className="w-4 h-4 text-teal-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                      </svg>
+                      <p className="text-xs text-teal-400">
+                        Next Scheduled: {formatDate(dwellingData.nextScheduled.scheduledDate)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Unlinked inspections (not tied to a specific dwelling) */}
+          {propertyData.unlinkedInspections && propertyData.unlinkedInspections.length > 0 && (
+            <div className="border border-gray-700 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                </svg>
+                Property-Level Inspections
+              </h3>
+              <div className="space-y-2">
+                {propertyData.unlinkedInspections.slice(0, 5).map((inspection: any) => {
+                  const statusDisplay = getInspectionStatusDisplay(inspection);
+                  const dateStr = inspection.completedDate || inspection.scheduledDate;
+
+                  return (
+                    <Link
+                      key={inspection._id}
+                      href={`/inspections/${inspection._id}`}
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-gray-700/50 hover:bg-gray-700 transition-colors group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {statusDisplay.icon}
+                        <div className="min-w-0">
+                          <p className="text-sm text-gray-300">{formatDate(dateStr)}</p>
+                          <p className={`text-xs ${statusDisplay.color}`}>{statusDisplay.label}</p>
+                        </div>
+                      </div>
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Specialist Maintenance Schedule */}
+      {specialistItems.length > 0 && (
+        <div className="mt-6 pt-6 border-t border-gray-700">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.384-3.07A2.625 2.625 0 017.17 8.26l5.25 3 5.25-3a2.625 2.625 0 011.134 3.84l-5.384 3.07z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+            </svg>
+            Specialist Maintenance
+          </h3>
+          <div className="space-y-2">
+            {specialistItems.map((item: any) => {
+              const status = getSpecialistStatus(item);
+              return (
+                <div
+                  key={item._id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-gray-700/50"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {getSpecialistIcon(item.specialistCategory)}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{item.taskName}</p>
+                      {item.dwelling && (
+                        <p className="text-xs text-gray-400">{item.dwelling.dwellingName}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className={`text-xs font-medium ${status.color}`}>
+                      {status.label === "Overdue"
+                        ? `OVERDUE: was due ${formatDate(item.nextDueDate)}`
+                        : `Due: ${formatDate(item.nextDueDate)}`}
+                    </p>
+                    <p className={`text-xs ${status.color}`}>{status.label}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

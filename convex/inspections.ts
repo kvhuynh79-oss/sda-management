@@ -4,6 +4,59 @@ import { internal } from "./_generated/api";
 import { requireAuth, requireTenant } from "./authHelpers";
 
 // ============================================
+// DWELLING TEMPLATE MERGE HELPER
+// ============================================
+
+// Merges a base template's categories with a dwelling-specific diff (added/removed items + categories).
+// Used at inspection creation time to produce the final item list for a dwelling.
+function mergeDwellingTemplate(
+  baseCategories: Array<{
+    name: string;
+    items: Array<{ name: string; required: boolean }>;
+  }>,
+  diff: {
+    addedItems: Array<{ category: string; name: string; required: boolean }>;
+    removedItems: Array<{ category: string; name: string }>;
+    addedCategories: string[];
+  }
+): Array<{ name: string; items: Array<{ name: string; required: boolean }> }> {
+  // Start with deep copy of base
+  const merged = baseCategories.map((cat) => ({
+    name: cat.name,
+    items: cat.items.map((item) => ({ ...item })),
+  }));
+
+  // Remove items
+  for (const removed of diff.removedItems) {
+    const cat = merged.find((c) => c.name === removed.category);
+    if (cat) {
+      cat.items = cat.items.filter((i) => i.name !== removed.name);
+    }
+  }
+
+  // Add new categories
+  for (const catName of diff.addedCategories) {
+    if (!merged.find((c) => c.name === catName)) {
+      merged.push({ name: catName, items: [] });
+    }
+  }
+
+  // Add items
+  for (const added of diff.addedItems) {
+    let cat = merged.find((c) => c.name === added.category);
+    if (!cat) {
+      cat = { name: added.category, items: [] };
+      merged.push(cat);
+    }
+    if (!cat.items.find((i) => i.name === added.name)) {
+      cat.items.push({ name: added.name, required: added.required });
+    }
+  }
+
+  return merged;
+}
+
+// ============================================
 // INSPECTION TEMPLATES
 // ============================================
 
@@ -303,9 +356,25 @@ export const createInspection = mutation({
 
     const now = Date.now();
 
+    // Check for dwelling-specific template override
+    let categories = template.categories;
+    if (args.dwellingId) {
+      const dwellingDiff = await ctx.db
+        .query("dwellingInspectionTemplates")
+        .withIndex("by_dwelling_template", (q) =>
+          q
+            .eq("dwellingId", args.dwellingId!)
+            .eq("baseTemplateId", args.templateId)
+        )
+        .first();
+      if (dwellingDiff) {
+        categories = mergeDwellingTemplate(template.categories, dwellingDiff);
+      }
+    }
+
     // Count total items
     let totalItems = 0;
-    template.categories.forEach((category) => {
+    categories.forEach((category) => {
       totalItems += category.items.length;
     });
 
@@ -329,9 +398,9 @@ export const createInspection = mutation({
       updatedAt: now,
     });
 
-    // Create inspection items from template
+    // Create inspection items from merged template
     let itemOrder = 0;
-    for (const category of template.categories) {
+    for (const category of categories) {
       for (const item of category.items) {
         await ctx.db.insert("inspectionItems", {
           organizationId,
@@ -410,12 +479,38 @@ export const startInspection = mutation({
   },
 });
 
-// Complete an inspection
+// Category-to-maintenance-category mapping for auto-creating MRs from failed inspection items
+const INSPECTION_CATEGORY_MAP: Record<string, string> = {
+  "Heating & Cooling": "appliances",
+  "Electrical": "electrical",
+  "Plumbing": "plumbing",
+  "Windows": "building",
+  "Doors": "building",
+  "Exterior / Porches / Decks": "building",
+  "Garage & Structures": "building",
+  "Kitchen": "appliances",
+  "Bathroom": "plumbing",
+  "Bedroom 1": "building",
+  "Bedroom 2": "building",
+  "Bedroom 3": "building",
+  "Carers Room": "building",
+  "Hallways": "building",
+  "Living Room": "building",
+  "Laundry": "plumbing",
+  "Ensuite": "plumbing",
+  "Safety & Miscellaneous": "safety",
+  "Accessibility Features": "building",
+};
+
+// Complete an inspection with auto-MR creation for failed items and auto-reschedule
 export const completeInspection = mutation({
   args: {
     userId: v.id("users"),
     inspectionId: v.id("inspections"),
     additionalComments: v.optional(v.string()),
+    createMaintenanceRequests: v.optional(v.boolean()), // default true
+    scheduleNext: v.optional(v.boolean()), // default true
+    nextScheduledDate: v.optional(v.string()), // override for next date (default: today + 3 months)
   },
   handler: async (ctx, args) => {
     const { organizationId } = await requireTenant(ctx, args.userId);
@@ -427,6 +522,14 @@ export const completeInspection = mutation({
 
     const today = new Date().toISOString().split("T")[0];
 
+    // 1. Mark inspection as completed
+    await ctx.db.patch(args.inspectionId, {
+      status: "completed",
+      completedDate: today,
+      additionalComments: args.additionalComments,
+      updatedAt: Date.now(),
+    });
+
     // Trigger webhook
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
@@ -434,12 +537,350 @@ export const completeInspection = mutation({
       payload: { inspectionId: args.inspectionId },
     });
 
-    return await ctx.db.patch(args.inspectionId, {
-      status: "completed",
-      completedDate: today,
-      additionalComments: args.additionalComments,
-      updatedAt: Date.now(),
-    });
+    // 2. Get all inspection items
+    const allItems = await ctx.db
+      .query("inspectionItems")
+      .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .collect();
+
+    // 3. Collect failed items
+    const failedItems = allItems.filter((item) => item.status === "fail");
+
+    // 4. Auto-create maintenance requests for failed items
+    let maintenanceRequestsCreated = 0;
+    const skippedNoDwelling = !inspection.dwellingId;
+    const shouldCreateMRs = args.createMaintenanceRequests !== false;
+
+    if (inspection.dwellingId && shouldCreateMRs && failedItems.length > 0) {
+      for (const item of failedItems) {
+        const mappedCategory = INSPECTION_CATEGORY_MAP[item.category] || "general";
+        const description = `Failed during inspection on ${today}. ${item.condition || ""} ${item.remarks || ""}`.trim();
+
+        await ctx.runMutation(internal.maintenanceRequests.createFromInspection, {
+          dwellingId: inspection.dwellingId,
+          organizationId,
+          title: `[Inspection] ${item.itemName}`,
+          description,
+          category: mappedCategory as "plumbing" | "electrical" | "appliances" | "building" | "grounds" | "safety" | "general",
+          priority: "medium",
+          inspectionId: args.inspectionId,
+          inspectionItemId: item._id,
+          createdBy: args.userId,
+          reportedDate: today,
+        });
+        maintenanceRequestsCreated++;
+      }
+    }
+
+    // 5. Auto-reschedule: check if a future scheduled inspection already exists
+    let nextInspectionId: string | null = null;
+    let nextInspectionDate: string | null = null;
+    let alreadyScheduled = false;
+    const shouldScheduleNext = args.scheduleNext !== false;
+
+    if (shouldScheduleNext) {
+      // Check for existing future scheduled inspection for same property+dwelling
+      const existingScheduled = await ctx.db
+        .query("inspections")
+        .withIndex("by_property", (q) => q.eq("propertyId", inspection.propertyId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("organizationId"), organizationId),
+            q.eq(q.field("status"), "scheduled"),
+            q.gt(q.field("scheduledDate"), today),
+            // Match dwelling: either both null or same dwelling
+            inspection.dwellingId
+              ? q.eq(q.field("dwellingId"), inspection.dwellingId)
+              : q.eq(q.field("dwellingId"), undefined)
+          )
+        )
+        .first();
+
+      if (existingScheduled) {
+        // Link to the existing scheduled inspection
+        alreadyScheduled = true;
+        nextInspectionId = existingScheduled._id;
+        nextInspectionDate = existingScheduled.scheduledDate;
+
+        // Set the link on the current inspection
+        await ctx.db.patch(args.inspectionId, {
+          nextInspectionId: existingScheduled._id,
+        });
+      } else {
+        // Create a new inspection 3 months out
+        const scheduledDate = args.nextScheduledDate || (() => {
+          const d = new Date();
+          d.setMonth(d.getMonth() + 3);
+          return d.toISOString().split("T")[0];
+        })();
+
+        // Check for dwelling-level template override
+        let templateCategories: Array<{ name: string; items: Array<{ name: string; required: boolean }> }> | null = null;
+
+        if (inspection.dwellingId) {
+          const dwellingOverride = await ctx.db
+            .query("dwellingInspectionTemplates")
+            .withIndex("by_dwelling_template", (q) =>
+              q.eq("dwellingId", inspection.dwellingId!).eq("baseTemplateId", inspection.templateId)
+            )
+            .first();
+
+          if (dwellingOverride) {
+            // Get base template and merge with override
+            const baseTemplate = await ctx.db.get(inspection.templateId);
+            if (baseTemplate) {
+              // Start with base categories
+              const mergedCategories = baseTemplate.categories.map((cat) => {
+                // Remove items that are in removedItems
+                const filteredItems = cat.items.filter(
+                  (item) =>
+                    !dwellingOverride.removedItems.some(
+                      (removed) => removed.category === cat.name && removed.name === item.name
+                    )
+                );
+                // Add items that are in addedItems for this category
+                const addedForCategory = dwellingOverride.addedItems.filter(
+                  (added) => added.category === cat.name
+                );
+                return {
+                  name: cat.name,
+                  items: [
+                    ...filteredItems,
+                    ...addedForCategory.map((a) => ({ name: a.name, required: a.required })),
+                  ],
+                };
+              });
+
+              // Add entirely new categories
+              for (const addedCatName of dwellingOverride.addedCategories) {
+                if (!mergedCategories.some((c) => c.name === addedCatName)) {
+                  const addedItemsForCat = dwellingOverride.addedItems.filter(
+                    (a) => a.category === addedCatName
+                  );
+                  if (addedItemsForCat.length > 0) {
+                    mergedCategories.push({
+                      name: addedCatName,
+                      items: addedItemsForCat.map((a) => ({ name: a.name, required: a.required })),
+                    });
+                  }
+                }
+              }
+
+              templateCategories = mergedCategories;
+            }
+          }
+        }
+
+        // If no override, load base template categories
+        if (!templateCategories) {
+          const baseTemplate = await ctx.db.get(inspection.templateId);
+          templateCategories = baseTemplate?.categories || [];
+        }
+
+        // Count total items
+        let totalItems = 0;
+        for (const cat of templateCategories) {
+          totalItems += cat.items.length;
+        }
+
+        const now = Date.now();
+
+        // Create the next inspection
+        const newInspectionId = await ctx.db.insert("inspections", {
+          organizationId,
+          templateId: inspection.templateId,
+          propertyId: inspection.propertyId,
+          dwellingId: inspection.dwellingId,
+          inspectorId: inspection.inspectorId,
+          scheduledDate,
+          status: "scheduled",
+          location: inspection.location,
+          preparedBy: inspection.preparedBy,
+          totalItems,
+          completedItems: 0,
+          passedItems: 0,
+          failedItems: 0,
+          sourceInspectionId: args.inspectionId,
+          createdBy: args.userId,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        // Create inspection items from template categories
+        let itemOrder = 0;
+        for (const category of templateCategories) {
+          for (const item of category.items) {
+            await ctx.db.insert("inspectionItems", {
+              organizationId,
+              inspectionId: newInspectionId,
+              category: category.name,
+              itemName: item.name,
+              itemOrder: itemOrder++,
+              status: "pending",
+              hasIssue: false,
+              updatedAt: now,
+            });
+          }
+        }
+
+        // Link current inspection to the new one
+        await ctx.db.patch(args.inspectionId, {
+          nextInspectionId: newInspectionId,
+        });
+
+        nextInspectionId = newInspectionId;
+        nextInspectionDate = scheduledDate;
+      }
+    }
+
+    return {
+      maintenanceRequestsCreated,
+      failedItems: failedItems.length,
+      skippedNoDwelling,
+      nextInspectionId,
+      nextInspectionDate,
+      alreadyScheduled,
+    };
+  },
+});
+
+// Get completion summary: failed items, created MRs, next inspection info
+export const getCompletionSummary = query({
+  args: {
+    userId: v.id("users"),
+    inspectionId: v.id("inspections"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) return null;
+    if (inspection.organizationId !== organizationId) {
+      throw new Error("Access denied: Inspection belongs to different organization");
+    }
+
+    // Get all items
+    const allItems = await ctx.db
+      .query("inspectionItems")
+      .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .collect();
+
+    const failedItems = allItems.filter((item) => item.status === "fail");
+    const passedItems = allItems.filter((item) => item.status === "pass");
+    const naItems = allItems.filter((item) => item.status === "na");
+
+    // Get maintenance requests created from this inspection
+    const createdMRs = await ctx.db
+      .query("maintenanceRequests")
+      .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .collect();
+
+    // Enrich MRs with dwelling info
+    const enrichedMRs = await Promise.all(
+      createdMRs.map(async (mr) => {
+        const dwelling = await ctx.db.get(mr.dwellingId);
+        return {
+          _id: mr._id,
+          title: mr.title,
+          category: mr.category,
+          priority: mr.priority,
+          status: mr.status,
+          reportedDate: mr.reportedDate,
+          dwellingName: dwelling?.dwellingName || null,
+        };
+      })
+    );
+
+    // Get next inspection info (post-completion: linked via nextInspectionId)
+    let nextInspection = null;
+    if (inspection.nextInspectionId) {
+      const next = await ctx.db.get(inspection.nextInspectionId);
+      if (next) {
+        const nextInspector = await ctx.db.get(next.inspectorId);
+        nextInspection = {
+          _id: next._id,
+          scheduledDate: next.scheduledDate,
+          status: next.status,
+          totalItems: next.totalItems,
+          inspector: nextInspector
+            ? { firstName: nextInspector.firstName, lastName: nextInspector.lastName }
+            : null,
+        };
+      }
+    }
+
+    // Check for existing future scheduled inspection (pre-completion preview)
+    let existingNextInspection: { _id: string; scheduledDate: string } | null = null;
+    if (!nextInspection && inspection.status !== "completed") {
+      const today = new Date().toISOString().split("T")[0];
+      const existingScheduled = await ctx.db
+        .query("inspections")
+        .withIndex("by_property", (q) => q.eq("propertyId", inspection.propertyId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("organizationId"), organizationId),
+            q.eq(q.field("status"), "scheduled"),
+            q.gt(q.field("scheduledDate"), today),
+            q.neq(q.field("_id"), args.inspectionId),
+            inspection.dwellingId
+              ? q.eq(q.field("dwellingId"), inspection.dwellingId)
+              : q.eq(q.field("dwellingId"), undefined)
+          )
+        )
+        .first();
+
+      if (existingScheduled) {
+        existingNextInspection = {
+          _id: existingScheduled._id,
+          scheduledDate: existingScheduled.scheduledDate,
+        };
+      }
+    }
+
+    // Get source inspection info (if this was auto-scheduled)
+    let sourceInspection = null;
+    if (inspection.sourceInspectionId) {
+      const source = await ctx.db.get(inspection.sourceInspectionId);
+      if (source) {
+        sourceInspection = {
+          _id: source._id,
+          completedDate: source.completedDate,
+          scheduledDate: source.scheduledDate,
+        };
+      }
+    }
+
+    // Enrich failed items with category and remarks
+    const enrichedFailedItems = failedItems.map((item) => ({
+      _id: item._id,
+      category: item.category,
+      itemName: item.itemName,
+      condition: item.condition || null,
+      remarks: item.remarks || null,
+    }));
+
+    const assessed = passedItems.length + failedItems.length;
+    const passRate = assessed > 0 ? Math.round((passedItems.length / assessed) * 100) : 0;
+
+    return {
+      inspectionId: args.inspectionId,
+      status: inspection.status,
+      completedDate: inspection.completedDate || null,
+      hasDwelling: !!inspection.dwellingId,
+      summary: {
+        totalItems: allItems.length,
+        passedItems: passedItems.length,
+        failedItems: failedItems.length,
+        naItems: naItems.length,
+        pendingItems: allItems.filter((i) => i.status === "pending").length,
+        passRate,
+      },
+      failedItemDetails: enrichedFailedItems,
+      maintenanceRequests: enrichedMRs,
+      maintenanceRequestsCreated: enrichedMRs.length,
+      nextInspection,
+      existingNextInspection,
+      sourceInspection,
+    };
   },
 });
 
@@ -851,6 +1292,55 @@ export const addCustomItem = mutation({
       updatedAt: now,
     });
 
+    // Auto-save to dwelling template diff
+    if (inspection.dwellingId) {
+      const template = await ctx.db.get(inspection.templateId);
+      const isNewCategory = !template?.categories.some(
+        (cat) => cat.name === args.category
+      );
+
+      const existingDiff = await ctx.db
+        .query("dwellingInspectionTemplates")
+        .withIndex("by_dwelling_template", (q) =>
+          q
+            .eq("dwellingId", inspection.dwellingId!)
+            .eq("baseTemplateId", inspection.templateId)
+        )
+        .first();
+
+      const newItem = {
+        category: args.category,
+        name: args.itemName,
+        required: false,
+      };
+
+      if (existingDiff) {
+        const addedItems = [...existingDiff.addedItems, newItem];
+        const addedCategories =
+          isNewCategory &&
+          !existingDiff.addedCategories.includes(args.category)
+            ? [...existingDiff.addedCategories, args.category]
+            : existingDiff.addedCategories;
+        await ctx.db.patch(existingDiff._id, {
+          addedItems,
+          addedCategories,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.insert("dwellingInspectionTemplates", {
+          organizationId: inspection.organizationId,
+          dwellingId: inspection.dwellingId!,
+          baseTemplateId: inspection.templateId,
+          addedItems: [newItem],
+          removedItems: [],
+          addedCategories: isNewCategory ? [args.category] : [],
+          createdBy: args.createdBy,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+
     return itemId;
   },
 });
@@ -897,6 +1387,60 @@ export const deleteCustomItem = mutation({
       }
 
       await ctx.db.patch(item.inspectionId, updates);
+    }
+
+    // Auto-save to dwelling template diff
+    if (inspection && inspection.dwellingId) {
+      const template = await ctx.db.get(inspection.templateId);
+      const existingDiff = await ctx.db
+        .query("dwellingInspectionTemplates")
+        .withIndex("by_dwelling_template", (q) =>
+          q
+            .eq("dwellingId", inspection.dwellingId!)
+            .eq("baseTemplateId", inspection.templateId)
+        )
+        .first();
+
+      // Check if item was from base template (needs removedItems) or custom-added (remove from addedItems)
+      const isBaseItem = template?.categories.some(
+        (cat) =>
+          cat.name === item.category &&
+          cat.items.some((i) => i.name === item.itemName)
+      );
+
+      if (existingDiff) {
+        if (isBaseItem) {
+          const removedItems = [
+            ...existingDiff.removedItems,
+            { category: item.category, name: item.itemName },
+          ];
+          await ctx.db.patch(existingDiff._id, {
+            removedItems,
+            updatedAt: Date.now(),
+          });
+        } else {
+          const addedItems = existingDiff.addedItems.filter(
+            (a) =>
+              !(a.category === item.category && a.name === item.itemName)
+          );
+          await ctx.db.patch(existingDiff._id, {
+            addedItems,
+            updatedAt: Date.now(),
+          });
+        }
+      } else if (isBaseItem) {
+        await ctx.db.insert("dwellingInspectionTemplates", {
+          organizationId: inspection.organizationId,
+          dwellingId: inspection.dwellingId!,
+          baseTemplateId: inspection.templateId,
+          addedItems: [],
+          removedItems: [{ category: item.category, name: item.itemName }],
+          addedCategories: [],
+          createdBy: args.userId,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
     }
 
     // Delete the item
@@ -1045,26 +1589,26 @@ export const seedBLSTemplate = mutation({
   args: { createdBy: v.id("users") },
   handler: async (ctx, args) => {
     const { organizationId } = await requireTenant(ctx, args.createdBy);
-    // Check if BLS template already exists for this organization
+    // Check if Standard SDA Inspection template already exists for this organization
     const existing = await ctx.db
       .query("inspectionTemplates")
       .filter((q) => q.and(
-        q.eq(q.field("name"), "BLS Property Inspection"),
+        q.eq(q.field("name"), "Standard SDA Inspection"),
         q.eq(q.field("organizationId"), organizationId)
       ))
       .first();
 
     if (existing) {
-      throw new Error("BLS Template already exists");
+      throw new Error("Standard SDA Inspection Template already exists");
     }
 
     const now = Date.now();
 
     const blsTemplate = {
       organizationId,
-      name: "BLS Property Inspection",
+      name: "Standard SDA Inspection",
       description:
-        "Better Living Solutions standard property inspection checklist for SDA properties",
+        "Standard property inspection checklist for SDA properties",
       categories: [
         {
           name: "Heating & Cooling",
@@ -1275,5 +1819,279 @@ export const seedBLSTemplate = mutation({
     };
 
     return await ctx.db.insert("inspectionTemplates", blsTemplate);
+  },
+});
+
+// ============================================
+// MIGRATION: Rename existing BLS templates
+// ============================================
+
+// Rename existing "BLS Property Inspection" templates to "Standard SDA Inspection"
+export const renameBLSTemplates = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const templates = await ctx.db
+      .query("inspectionTemplates")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("name"), "BLS Property Inspection"),
+          q.eq(q.field("organizationId"), organizationId)
+        )
+      )
+      .collect();
+
+    for (const t of templates) {
+      await ctx.db.patch(t._id, {
+        name: "Standard SDA Inspection",
+        description: "Standard property inspection checklist for SDA properties",
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { renamed: templates.length };
+  },
+});
+
+// ============================================
+// DWELLING TEMPLATE DIFF + MERGE
+// ============================================
+
+// Save current inspection items as a new reusable template
+export const saveAsTemplate = mutation({
+  args: {
+    userId: v.id("users"),
+    inspectionId: v.id("inspections"),
+    templateName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Check for duplicate name
+    const existing = await ctx.db
+      .query("inspectionTemplates")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("name"), args.templateName),
+          q.eq(q.field("organizationId"), organizationId)
+        )
+      )
+      .first();
+    if (existing) {
+      throw new Error("A template with this name already exists");
+    }
+
+    // Get all items from current inspection
+    const items = await ctx.db
+      .query("inspectionItems")
+      .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .collect();
+
+    // Group by category preserving item order
+    const categoryMap = new Map<string, Array<{ name: string; required: boolean }>>();
+    for (const item of items) {
+      if (!categoryMap.has(item.category)) {
+        categoryMap.set(item.category, []);
+      }
+      categoryMap.get(item.category)!.push({ name: item.itemName, required: false });
+    }
+
+    const categories = Array.from(categoryMap.entries()).map(([name, catItems]) => ({
+      name,
+      items: catItems,
+    }));
+
+    const now = Date.now();
+
+    return await ctx.db.insert("inspectionTemplates", {
+      organizationId,
+      name: args.templateName,
+      description: "Template saved from inspection",
+      categories,
+      isActive: true,
+      createdBy: args.userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+// Get common inspection items across all active templates for this org
+export const getCommonItems = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const templates = await ctx.db
+      .query("inspectionTemplates")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
+      .collect();
+
+    // Collect unique items across all templates, grouped by category
+    const itemMap = new Map<string, Set<string>>();
+    for (const template of templates) {
+      for (const cat of template.categories) {
+        if (!itemMap.has(cat.name)) {
+          itemMap.set(cat.name, new Set());
+        }
+        for (const item of cat.items) {
+          itemMap.get(cat.name)!.add(item.name);
+        }
+      }
+    }
+
+    return Array.from(itemMap.entries()).map(([category, items]) => ({
+      category,
+      items: Array.from(items).sort(),
+    }));
+  },
+});
+
+// Get inspections grouped by property with dwelling breakdown
+export const getByPropertyGrouped = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+
+    // Get all inspections for this org
+    const allInspections = await ctx.db
+      .query("inspections")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .collect();
+
+    // Get unique property IDs
+    const propertyIds = [...new Set(allInspections.map((i) => i.propertyId))];
+
+    // Build grouped result
+    const grouped = await Promise.all(
+      propertyIds.map(async (propertyId) => {
+        const property = await ctx.db.get(propertyId);
+        if (!property) return null;
+
+        const propertyInspections = allInspections.filter(
+          (i) => i.propertyId === propertyId
+        );
+
+        // Get dwellings for this property
+        const dwellings = await ctx.db
+          .query("dwellings")
+          .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
+          .collect();
+
+        const dwellingData = await Promise.all(
+          dwellings.map(async (dwelling) => {
+            const dwellingInspections = propertyInspections
+              .filter((i) => i.dwellingId === dwelling._id)
+              .sort(
+                (a, b) =>
+                  new Date(b.scheduledDate).getTime() -
+                  new Date(a.scheduledDate).getTime()
+              );
+
+            // Check for custom template override
+            const hasCustomTemplate = await ctx.db
+              .query("dwellingInspectionTemplates")
+              .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
+              .first();
+
+            const nextScheduled = dwellingInspections.find(
+              (i) => i.status === "scheduled"
+            );
+            const lastCompleted = dwellingInspections.find(
+              (i) => i.status === "completed"
+            );
+
+            return {
+              dwellingId: dwelling._id,
+              dwellingName: dwelling.dwellingName,
+              inspections: dwellingInspections,
+              nextScheduled: nextScheduled || null,
+              lastCompleted: lastCompleted || null,
+              hasCustomTemplate: !!hasCustomTemplate,
+              totalFailed: dwellingInspections.reduce(
+                (sum, i) => sum + i.failedItems,
+                0
+              ),
+            };
+          })
+        );
+
+        // Also get inspections not linked to a specific dwelling
+        const unlinkedInspections = propertyInspections
+          .filter((i) => !i.dwellingId)
+          .sort(
+            (a, b) =>
+              new Date(b.scheduledDate).getTime() -
+              new Date(a.scheduledDate).getTime()
+          );
+
+        const lastInspectionDate =
+          propertyInspections
+            .filter((i) => i.status === "completed")
+            .sort(
+              (a, b) =>
+                new Date(b.completedDate || b.scheduledDate).getTime() -
+                new Date(a.completedDate || a.scheduledDate).getTime()
+            )[0]?.completedDate || null;
+
+        const nextScheduledDate =
+          propertyInspections
+            .filter((i) => i.status === "scheduled")
+            .sort(
+              (a, b) =>
+                new Date(a.scheduledDate).getTime() -
+                new Date(b.scheduledDate).getTime()
+            )[0]?.scheduledDate || null;
+
+        return {
+          propertyId,
+          propertyName: property.propertyName,
+          addressLine1: property.addressLine1,
+          suburb: property.suburb,
+          dwellings: dwellingData,
+          unlinkedInspections,
+          lastInspectionDate,
+          nextScheduledDate,
+          totalInspections: propertyInspections.length,
+          totalIssues: propertyInspections.reduce(
+            (sum, i) => sum + i.failedItems,
+            0
+          ),
+          hasOverdue: propertyInspections.some(
+            (i) =>
+              i.status === "scheduled" &&
+              new Date(i.scheduledDate) < new Date()
+          ),
+        };
+      })
+    );
+
+    return grouped
+      .filter(Boolean)
+      .sort((a, b) => {
+        // Sort: overdue first, then by property name
+        if (a!.hasOverdue && !b!.hasOverdue) return -1;
+        if (!a!.hasOverdue && b!.hasOverdue) return 1;
+        return (a!.propertyName || "").localeCompare(b!.propertyName || "");
+      });
+  },
+});
+
+// Get dwelling template diff for a specific dwelling + base template combo
+export const getDwellingTemplateDiff = query({
+  args: {
+    userId: v.id("users"),
+    dwellingId: v.id("dwellings"),
+    baseTemplateId: v.id("inspectionTemplates"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    return await ctx.db
+      .query("dwellingInspectionTemplates")
+      .withIndex("by_dwelling_template", (q) =>
+        q.eq("dwellingId", args.dwellingId).eq("baseTemplateId", args.baseTemplateId)
+      )
+      .filter((q) => q.eq(q.field("organizationId"), organizationId))
+      .first();
   },
 });

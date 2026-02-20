@@ -890,6 +890,27 @@ export const createFromInspection = internalMutation({
       updatedAt: now,
     });
 
+    // Copy inspection item photos to maintenance request
+    const inspectionPhotos = await ctx.db
+      .query("inspectionPhotos")
+      .withIndex("by_item", (q) => q.eq("inspectionItemId", args.inspectionItemId))
+      .collect();
+
+    for (const photo of inspectionPhotos) {
+      await ctx.db.insert("maintenancePhotos", {
+        maintenanceRequestId: requestId,
+        organizationId: args.organizationId,
+        storageId: photo.storageId,
+        fileName: photo.fileName,
+        fileSize: photo.fileSize,
+        fileType: photo.fileType,
+        description: photo.description,
+        photoType: "issue",
+        uploadedBy: photo.uploadedBy,
+        createdAt: now,
+      });
+    }
+
     // Audit log
     const user = await ctx.db.get(args.createdBy);
     if (user) {

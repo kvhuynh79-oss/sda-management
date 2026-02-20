@@ -97,6 +97,7 @@ export default function InspectionDetailPage() {
   const saveGeneralPhoto = useMutation(api.inspections.saveGeneralPhoto);
   const addCustomItem = useMutation(api.inspections.addCustomItem);
   const deleteCustomItem = useMutation(api.inspections.deleteCustomItem);
+  const deleteCategoryItems = useMutation(api.inspections.deleteCategoryItems);
   const saveAsTemplateMutation = useMutation(api.inspections.saveAsTemplate);
   const { confirm: confirmDialog, alert: alertDialog } = useConfirmDialog();
 
@@ -360,6 +361,24 @@ export default function InspectionDetailPage() {
     }
   };
 
+  const handleDeleteCategory = async (category: string) => {
+    if (!user || !inspection) return;
+    const catItems = itemsByCategory[category];
+    const confirmed = await confirmDialog({
+      title: "Remove Category",
+      message: `Remove all ${catItems?.length || 0} items in "${category}"? This will also update the dwelling template.`,
+      confirmLabel: "Remove",
+      variant: "danger",
+    });
+    if (confirmed) {
+      await deleteCategoryItems({
+        userId: user.id as Id<"users">,
+        inspectionId,
+        category,
+      });
+    }
+  };
+
   const handleSaveAsTemplate = async () => {
     if (!user || !templateName.trim()) return;
     setSavingTemplate(true);
@@ -589,12 +608,23 @@ export default function InspectionDetailPage() {
                       </p>
                     </div>
                   </div>
-                  {/* Mini Progress */}
-                  <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${stats.failed > 0 ? "bg-yellow-600" : "bg-green-600"}`}
-                      style={{ width: `${(stats.completed / stats.total) * 100}%` }}
-                    />
+                  <div className="flex items-center gap-2">
+                    {inspection.status !== "completed" && stats.completed === 0 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteCategory(category); }}
+                        className="px-2 py-1 text-xs bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white rounded transition-colors"
+                        aria-label={`Remove ${category} category`}
+                      >
+                        Remove
+                      </button>
+                    )}
+                    {/* Mini Progress */}
+                    <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${stats.failed > 0 ? "bg-yellow-600" : "bg-green-600"}`}
+                        style={{ width: `${(stats.completed / stats.total) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </button>
 

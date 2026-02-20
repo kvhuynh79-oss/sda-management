@@ -1448,6 +1448,130 @@ export const deleteCustomItem = mutation({
   },
 });
 
+// Delete all items in a category from an inspection
+export const deleteCategoryItems = mutation({
+  args: {
+    userId: v.id("users"),
+    inspectionId: v.id("inspections"),
+    category: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId);
+
+    const inspection = await ctx.db.get(args.inspectionId);
+    if (!inspection) throw new Error("Inspection not found");
+    if (inspection.status === "completed") {
+      throw new Error("Cannot remove items from a completed inspection");
+    }
+
+    // Get all items in this category
+    const allItems = await ctx.db
+      .query("inspectionItems")
+      .withIndex("by_inspection", (q) => q.eq("inspectionId", args.inspectionId))
+      .collect();
+    const categoryItems = allItems.filter((i) => i.category === args.category);
+
+    if (categoryItems.length === 0) return;
+
+    // Delete photos and accumulate count deltas
+    let totalRemoved = 0;
+    let completedRemoved = 0;
+    let passedRemoved = 0;
+    let failedRemoved = 0;
+
+    for (const item of categoryItems) {
+      // Delete associated photos + storage
+      const photos = await ctx.db
+        .query("inspectionPhotos")
+        .withIndex("by_item", (q) => q.eq("inspectionItemId", item._id))
+        .collect();
+      for (const photo of photos) {
+        await ctx.storage.delete(photo.storageId);
+        await ctx.db.delete(photo._id);
+      }
+
+      totalRemoved++;
+      if (item.status !== "pending") {
+        completedRemoved++;
+        if (item.status === "pass") passedRemoved++;
+        else if (item.status === "fail") failedRemoved++;
+      }
+    }
+
+    // Update inspection counts in one patch
+    await ctx.db.patch(args.inspectionId, {
+      totalItems: Math.max(0, inspection.totalItems - totalRemoved),
+      completedItems: Math.max(0, inspection.completedItems - completedRemoved),
+      passedItems: Math.max(0, inspection.passedItems - passedRemoved),
+      failedItems: Math.max(0, inspection.failedItems - failedRemoved),
+      updatedAt: Date.now(),
+    });
+
+    // Update dwelling template diff (batch)
+    if (inspection.dwellingId) {
+      const template = await ctx.db.get(inspection.templateId);
+      const existingDiff = await ctx.db
+        .query("dwellingInspectionTemplates")
+        .withIndex("by_dwelling_template", (q) =>
+          q
+            .eq("dwellingId", inspection.dwellingId!)
+            .eq("baseTemplateId", inspection.templateId)
+        )
+        .first();
+
+      // Separate base template items from custom-added items
+      const newRemovedItems: Array<{ category: string; name: string }> = [];
+      const customItemNames: Array<{ category: string; name: string }> = [];
+
+      for (const item of categoryItems) {
+        const isBaseItem = template?.categories.some(
+          (cat) =>
+            cat.name === item.category &&
+            cat.items.some((i) => i.name === item.itemName)
+        );
+        if (isBaseItem) {
+          newRemovedItems.push({ category: item.category, name: item.itemName });
+        } else {
+          customItemNames.push({ category: item.category, name: item.itemName });
+        }
+      }
+
+      if (existingDiff) {
+        const removedItems = [...existingDiff.removedItems, ...newRemovedItems];
+        const addedItems = existingDiff.addedItems.filter(
+          (a) => !customItemNames.some((c) => c.category === a.category && c.name === a.name)
+        );
+        const addedCategories = existingDiff.addedCategories.filter(
+          (c) => c !== args.category
+        );
+        await ctx.db.patch(existingDiff._id, {
+          removedItems,
+          addedItems,
+          addedCategories,
+          updatedAt: Date.now(),
+        });
+      } else if (newRemovedItems.length > 0) {
+        await ctx.db.insert("dwellingInspectionTemplates", {
+          organizationId: inspection.organizationId,
+          dwellingId: inspection.dwellingId!,
+          baseTemplateId: inspection.templateId,
+          addedItems: [],
+          removedItems: newRemovedItems,
+          addedCategories: [],
+          createdBy: args.userId,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // Delete all items in the category
+    for (const item of categoryItems) {
+      await ctx.db.delete(item._id);
+    }
+  },
+});
+
 // ============================================
 // INSPECTION PDF REPORT
 // ============================================

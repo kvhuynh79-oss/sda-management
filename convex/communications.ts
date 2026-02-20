@@ -1897,6 +1897,7 @@ export const getTimelineView = query({
     dateFrom: v.optional(v.string()),
     dateTo: v.optional(v.string()),
     type: v.optional(v.string()),
+    contactName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requirePermission(ctx, args.userId, "communications", "view");
@@ -1923,6 +1924,12 @@ export const getTimelineView = query({
     // Type filtering
     if (args.type) {
       comms = comms.filter(c => c.communicationType === args.type);
+    }
+
+    // Contact name search (case-insensitive substring)
+    if (args.contactName) {
+      const search = args.contactName.toLowerCase();
+      comms = comms.filter(c => c.contactName?.toLowerCase().includes(search));
     }
 
     // Cursor-based pagination (cursor = createdAt timestamp as string)

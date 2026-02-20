@@ -79,6 +79,7 @@ function CommunicationsContent() {
     complianceCategory: searchParams.get("complianceCategory") || undefined,
     requiresFollowUp: searchParams.get("requiresFollowUp") === "true" || undefined,
     hasFlags: searchParams.get("hasFlags") === "true" || undefined,
+    contactName: searchParams.get("contactName") || undefined,
   }), [searchParams]);
 
   // Thread-specific filters
@@ -413,6 +414,7 @@ function CommunicationsContent() {
                 typeFilter={filters.type}
                 dateFrom={filters.dateFrom}
                 dateTo={filters.dateTo}
+                contactName={filters.contactName}
                 isSelecting={isSelecting}
                 selectedIds={bulkSelection.selectedIds}
                 onToggleSelect={bulkSelection.toggle}

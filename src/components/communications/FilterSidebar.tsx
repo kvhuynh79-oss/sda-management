@@ -13,6 +13,7 @@ export interface CommunicationFilters {
   complianceCategory?: string;
   requiresFollowUp?: boolean;
   hasFlags?: boolean;
+  contactName?: string;
 }
 
 interface FilterSidebarProps {

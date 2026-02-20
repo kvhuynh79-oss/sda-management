@@ -34,6 +34,7 @@ interface TimelineViewProps {
   typeFilter?: string;
   dateFrom?: string;
   dateTo?: string;
+  contactName?: string;
   onFilterChange?: (filters: { type?: string; dateFrom?: string; dateTo?: string }) => void;
   isSelecting?: boolean;
   selectedIds?: Set<string>;
@@ -108,6 +109,7 @@ export function TimelineView({
   typeFilter,
   dateFrom,
   dateTo,
+  contactName,
   onFilterChange,
   isSelecting,
   selectedIds,
@@ -117,6 +119,7 @@ export function TimelineView({
   const [localType, setLocalType] = useState(typeFilter || "");
   const [localDateFrom, setLocalDateFrom] = useState(dateFrom || "");
   const [localDateTo, setLocalDateTo] = useState(dateTo || "");
+  const [localContactName, setLocalContactName] = useState(contactName || "");
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [prevItems, setPrevItems] = useState<any[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -145,6 +148,7 @@ export function TimelineView({
     type: localType || undefined,
     dateFrom: localDateFrom || undefined,
     dateTo: localDateTo || undefined,
+    contactName: localContactName || undefined,
   });
 
   const communications = cursor ? [...prevItems, ...(data?.communications || [])] : (data?.communications || []);
@@ -190,6 +194,15 @@ export function TimelineView({
       onFilterChange?.({ type: localType || undefined, dateFrom: localDateFrom || undefined, dateTo: e.target.value || undefined });
     },
     [localType, localDateFrom, onFilterChange]
+  );
+
+  const handleContactNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLocalContactName(e.target.value);
+      setCursor(undefined);
+      setPrevItems([]);
+    },
+    []
   );
 
   const handleDelete = useCallback(
@@ -255,6 +268,15 @@ export function TimelineView({
             onChange={handleDateToChange}
           />
         </div>
+        <div className="w-48">
+          <FormInput
+            label="Contact"
+            type="text"
+            value={localContactName}
+            onChange={handleContactNameChange}
+            placeholder="Search by name..."
+          />
+        </div>
       </div>
 
       {/* Results count for screen readers */}
@@ -269,7 +291,7 @@ export function TimelineView({
         <EmptyState
           title="No communications found"
           description="Adjust your filters or add new communications."
-          isFiltered={!!(localType || localDateFrom || localDateTo)}
+          isFiltered={!!(localType || localDateFrom || localDateTo || localContactName)}
           icon={
             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

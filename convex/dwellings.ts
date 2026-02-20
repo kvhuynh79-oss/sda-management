@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth, getUserFullName, requireTenant } from "./authHelpers";
 import { formatChanges } from "./auditLog";
+import { decryptField } from "./lib/encryption";
 
 // Create a new dwelling
 export const create = mutation({
@@ -83,9 +84,17 @@ export const getByProperty = query({
           .filter((q) => q.eq(q.field("status"), "active"))
           .collect();
 
+        // Decrypt sensitive fields before returning to frontend
+        const decryptedParticipants = await Promise.all(
+          participants.map(async (p) => ({
+            ...p,
+            ndisNumber: await decryptField(p.ndisNumber) ?? p.ndisNumber,
+          }))
+        );
+
         return {
           ...dwelling,
-          participants,
+          participants: decryptedParticipants,
         };
       })
     );
@@ -114,10 +123,18 @@ export const getById = query({
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
+    // Decrypt sensitive fields before returning to frontend
+    const decryptedParticipants = await Promise.all(
+      participants.map(async (p) => ({
+        ...p,
+        ndisNumber: await decryptField(p.ndisNumber) ?? p.ndisNumber,
+      }))
+    );
+
     return {
       ...dwelling,
       property,
-      participants,
+      participants: decryptedParticipants,
     };
   },
 });

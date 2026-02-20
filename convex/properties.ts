@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
 import { paginationArgs, DEFAULT_PAGE_SIZE } from "./paginationHelpers";
+import { decryptField } from "./lib/encryption";
 
 // Create a new property
 export const create = mutation({
@@ -178,9 +179,14 @@ export const getById = query({
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
+    // Decrypt sensitive owner fields before returning to frontend
+    const decryptedOwner = owner
+      ? { ...owner, bankAccountNumber: await decryptField(owner.bankAccountNumber) ?? owner.bankAccountNumber }
+      : null;
+
     return {
       ...property,
-      owner,
+      owner: decryptedOwner,
       dwellings,
     };
   },

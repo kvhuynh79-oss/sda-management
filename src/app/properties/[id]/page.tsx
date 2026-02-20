@@ -80,8 +80,16 @@ export default function PropertyDetailPage() {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsed = JSON.parse(storedUser);
+    const userId = parsed._id || parsed.id;
+    if (userId) setUser({ id: userId, role: parsed.role });
   }, [router]);
+
+  // useMemo MUST be called before any early returns (Rules of Hooks)
+  const propertyInspectionData = useMemo(
+    () => allPropertyInspections?.find((p: any) => p.propertyId === propertyId) ?? null,
+    [allPropertyInspections, propertyId]
+  );
 
   if (!user) {
     return <LoadingScreen />;
@@ -119,11 +127,6 @@ export default function PropertyDetailPage() {
   const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
   const currentOccupancy = dwellings.reduce((sum, d) => sum + d.currentOccupancy, 0);
   const vacancies = totalCapacity - currentOccupancy;
-
-  const propertyInspectionData = useMemo(
-    () => allPropertyInspections?.find((p: any) => p.propertyId === propertyId) ?? null,
-    [allPropertyInspections, propertyId]
-  );
 
   return (
     <RequireAuth>

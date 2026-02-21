@@ -627,6 +627,20 @@ export default defineSchema({
     incidentActionId: v.optional(v.id("incidentActions")), // Link to action if created from one
     inspectionId: v.optional(v.id("inspections")), // Link to inspection if created from failed item
     inspectionItemId: v.optional(v.id("inspectionItems")), // Link to specific failed inspection item
+    // N5: Maintenance vs SDA Modification categorisation
+    maintenanceCategory: v.optional(v.union(
+      v.literal("routine_maintenance"),
+      v.literal("emergency_repair"),
+      v.literal("sda_modification"),
+      v.literal("cosmetic"),
+      v.literal("compliance_upgrade")
+    )),
+    // SDA Modification specific fields (only when maintenanceCategory === "sda_modification")
+    sdaImpactAssessment: v.optional(v.string()),
+    affectsDesignCategory: v.optional(v.boolean()),
+    requiresAssessorReview: v.optional(v.boolean()),
+    sdaModificationApprovedBy: v.optional(v.id("users")),
+    sdaModificationApprovedAt: v.optional(v.number()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -640,6 +654,7 @@ export default defineSchema({
     .index("by_dwelling_status", ["dwellingId", "status"])
     .index("by_status_priority", ["status", "priority"])
     .index("by_inspection", ["inspectionId"])
+    .index("by_maintenanceCategory", ["maintenanceCategory"])
     .index("by_organizationId", ["organizationId"]),
 
   // Maintenance Photos table - photos attached to maintenance requests
@@ -915,7 +930,16 @@ export default defineSchema({
       // Inspection & specialist schedule alerts
       v.literal("specialist_schedule_due"), // Specialist item (fire safety, smoke alarms) coming due
       v.literal("specialist_schedule_overdue"), // Specialist item past due date
-      v.literal("inspection_upcoming") // Scheduled inspection coming up within 7 days
+      v.literal("inspection_upcoming"), // Scheduled inspection coming up within 7 days
+      // Restrictive practices alerts (N1)
+      v.literal("rp_authorisation_expiring"), // Restrictive practice authorisation expiring within 14 days
+      v.literal("rp_review_overdue"), // Restrictive practice review overdue
+      v.literal("rp_unauthorised"), // Unauthorised restrictive practice recorded
+      v.literal("rp_ndis_report_overdue"), // NDIS reportable but not reported after 5 business days
+      // Staff training alerts (N4)
+      v.literal("training_expiring"), // Staff training certificate expiring within 30 days
+      v.literal("training_expired"), // Staff training certificate expired
+      v.literal("training_mandatory_missing") // Mandatory training not completed within 30 days of start
     ),
     severity: v.union(
       v.literal("critical"),
@@ -2993,4 +3017,174 @@ export default defineSchema({
     .index("by_organizationId", ["organizationId"])
     .index("by_retentionExpiry", ["retentionExpiresAt"])
     .index("by_originalParticipant", ["originalParticipantId"]),
+
+  // ============================================================================
+  // N1: Restrictive Practices Register (NDIS Practice Standards compliance)
+  // ============================================================================
+
+  restrictivePractices: defineTable({
+    organizationId: v.id("organizations"),
+    participantId: v.id("participants"),
+    propertyId: v.id("properties"),
+    practiceType: v.union(
+      v.literal("environmental"),
+      v.literal("chemical"),
+      v.literal("mechanical"),
+      v.literal("physical"),
+      v.literal("seclusion")
+    ),
+    description: v.string(),
+    authorisedBy: v.string(), // Name of behaviour support practitioner
+    authorisationDate: v.string(), // YYYY-MM-DD
+    authorisationExpiry: v.string(), // YYYY-MM-DD
+    behaviourSupportPlanId: v.optional(v.string()), // Reference to BSP document
+    implementedBy: v.optional(v.id("users")),
+    startDate: v.string(), // YYYY-MM-DD
+    endDate: v.optional(v.string()), // YYYY-MM-DD, null if ongoing
+    status: v.union(
+      v.literal("active"),
+      v.literal("under_review"),
+      v.literal("expired"),
+      v.literal("ceased")
+    ),
+    reviewFrequency: v.union(
+      v.literal("monthly"),
+      v.literal("quarterly"),
+      v.literal("6_monthly"),
+      v.literal("annually")
+    ),
+    lastReviewDate: v.optional(v.string()),
+    nextReviewDate: v.string(),
+    reviewNotes: v.optional(v.string()),
+    reductionStrategy: v.string(), // How the practice will be reduced/eliminated
+    ndisReportable: v.boolean(),
+    ndisReportedDate: v.optional(v.string()),
+    ndisReferenceNumber: v.optional(v.string()),
+    isAuthorised: v.boolean(), // Whether a valid authorisation exists
+    isDeleted: v.optional(v.boolean()), // Soft delete
+    deletedAt: v.optional(v.number()),
+    deletedBy: v.optional(v.id("users")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_participantId", ["participantId"])
+    .index("by_status", ["status"])
+    .index("by_nextReviewDate", ["nextReviewDate"])
+    .index("by_propertyId", ["propertyId"]),
+
+  restrictivePracticeIncidents: defineTable({
+    organizationId: v.id("organizations"),
+    restrictivePracticeId: v.id("restrictivePractices"),
+    participantId: v.id("participants"),
+    date: v.string(), // YYYY-MM-DD
+    time: v.string(), // HH:MM
+    duration: v.number(), // Duration in minutes
+    implementedBy: v.id("users"),
+    trigger: v.string(), // What triggered the use of the practice
+    participantResponse: v.string(), // How the participant responded
+    debrief: v.string(), // Post-incident debrief summary
+    injuries: v.boolean(),
+    injuryDetails: v.optional(v.string()),
+    witnessedBy: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_restrictivePracticeId", ["restrictivePracticeId"])
+    .index("by_participantId", ["participantId"]),
+
+  // ============================================================================
+  // N3: NDIS Price Guide (SDA rate lookups)
+  // ============================================================================
+
+  ndisPriceGuide: defineTable({
+    supportItemNumber: v.string(),
+    supportItemName: v.string(),
+    registrationGroup: v.string(),
+    supportCategory: v.string(),
+    unitOfMeasure: v.string(),
+    priceNSW: v.number(), // Price in cents
+    priceVIC: v.number(),
+    priceQLD: v.number(),
+    priceNational: v.number(),
+    effectiveFrom: v.string(), // YYYY-MM-DD
+    effectiveTo: v.optional(v.string()), // YYYY-MM-DD, null if current
+    sdaCategory: v.optional(v.string()), // SDA design category
+    sdaBuildingType: v.optional(v.string()), // new_build or existing
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_supportItemNumber", ["supportItemNumber"])
+    .index("by_sdaCategory", ["sdaCategory"])
+    .index("by_isActive", ["isActive"])
+    .index("by_registrationGroup", ["registrationGroup"]),
+
+  // ============================================================================
+  // N4: Staff Training & Competency Tracking
+  // ============================================================================
+
+  staffTraining: defineTable({
+    organizationId: v.id("organizations"),
+    staffId: v.id("users"),
+    trainingName: v.string(),
+    trainingType: v.union(
+      v.literal("mandatory"),
+      v.literal("recommended"),
+      v.literal("specialised")
+    ),
+    category: v.union(
+      v.literal("ndis_orientation"),
+      v.literal("first_aid"),
+      v.literal("manual_handling"),
+      v.literal("medication_management"),
+      v.literal("behaviour_support"),
+      v.literal("fire_safety"),
+      v.literal("infection_control"),
+      v.literal("restrictive_practices"),
+      v.literal("cultural_competency"),
+      v.literal("other")
+    ),
+    provider: v.optional(v.string()), // Training provider/organisation
+    completedDate: v.optional(v.string()), // YYYY-MM-DD
+    expiryDate: v.optional(v.string()), // YYYY-MM-DD
+    status: v.union(
+      v.literal("not_started"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("expired")
+    ),
+    certificateStorageId: v.optional(v.id("_storage")), // Uploaded certificate file
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_staffId", ["staffId"])
+    .index("by_status", ["status"])
+    .index("by_expiryDate", ["expiryDate"])
+    .index("by_category", ["category"]),
+
+  staffCompetencies: defineTable({
+    organizationId: v.id("organizations"),
+    staffId: v.id("users"),
+    competencyName: v.string(),
+    assessedBy: v.id("users"),
+    assessedDate: v.string(), // YYYY-MM-DD
+    rating: v.union(
+      v.literal("not_competent"),
+      v.literal("developing"),
+      v.literal("competent"),
+      v.literal("advanced")
+    ),
+    nextAssessmentDate: v.string(), // YYYY-MM-DD
+    evidence: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_staffId", ["staffId"])
+    .index("by_rating", ["rating"]),
 });

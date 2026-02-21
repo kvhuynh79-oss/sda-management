@@ -3,6 +3,7 @@ import { mutation, query, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
 import { encryptField, decryptField } from "./lib/encryption";
+import { assertValidEmail, assertValidPhone } from "./lib/validation";
 
 // Sensitive staff fields that must be encrypted at rest
 const ENCRYPTED_STAFF_FIELDS = [
@@ -154,6 +155,11 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Validate email and phone
+    assertValidEmail(args.email);
+    if (args.phone) assertValidPhone(args.phone, "Phone");
+    if (args.emergencyContactPhone) assertValidPhone(args.emergencyContactPhone, "Emergency contact phone");
+
     // Permission check and get organizationId
     const user = await requirePermission(ctx, args.userId, "staffMembers", "create");
     const { organizationId } = await requireTenant(ctx, args.userId);

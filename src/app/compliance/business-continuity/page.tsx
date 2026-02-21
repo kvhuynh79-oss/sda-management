@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -230,6 +230,21 @@ function BusinessContinuityContent() {
   const [successMsg, setSuccessMsg] = useState("");
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear success message timer on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  // Helper to set a temporary success message
+  const showSuccess = useCallback((msg: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    setSuccessMsg(msg);
+    successTimerRef.current = setTimeout(() => setSuccessMsg(""), 3000);
+  }, []);
 
   // Load existing plan data into form
   useEffect(() => {
@@ -331,8 +346,7 @@ function BusinessContinuityContent() {
       });
 
       // The useQuery for `get` will automatically refetch with the new plan
-      setSuccessMsg("Business Continuity Plan created successfully.");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      showSuccess("Business Continuity Plan created successfully.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to create plan";
       setError(message);
@@ -412,8 +426,7 @@ function BusinessContinuityContent() {
         })),
       });
 
-      setSuccessMsg("Plan saved successfully.");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      showSuccess("Plan saved successfully.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save plan";
       setError(message);
@@ -441,8 +454,7 @@ function BusinessContinuityContent() {
         status: newStatus,
       });
       setStatus(newStatus);
-      setSuccessMsg(`Status changed to ${STATUS_BADGE[newStatus]?.label || newStatus}.`);
-      setTimeout(() => setSuccessMsg(""), 3000);
+      showSuccess(`Status changed to ${STATUS_BADGE[newStatus]?.label || newStatus}.`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to update status";
       setError(message);
@@ -468,8 +480,7 @@ function BusinessContinuityContent() {
         id: planId,
       });
       setPlanId(null);
-      setSuccessMsg("Plan deleted.");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      showSuccess("Plan deleted.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to delete plan";
       setError(message);

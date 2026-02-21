@@ -129,9 +129,16 @@ export default function LoginPage() {
         return;
       }
 
-      // Store session tokens (new JWT-based auth)
+      // Store session tokens (S11: sets HttpOnly cookie + localStorage)
       if (result.token && result.refreshToken) {
-        storeTokens(result.token, result.refreshToken);
+        await storeTokens(result.token, result.refreshToken, result.user ? {
+          id: result.user._id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          role: result.user.role,
+          isSuperAdmin: result.user.isSuperAdmin ?? false,
+        } : undefined);
       }
 
       // BACKWARD COMPATIBILITY: Also store user data in old format
@@ -188,8 +195,15 @@ export default function LoginPage() {
         return;
       }
 
-      // Store session tokens
-      storeTokens(result.token, result.refreshToken || "");
+      // Store session tokens (S11: sets HttpOnly cookie + localStorage)
+      await storeTokens(result.token, result.refreshToken || "", {
+        id: result.user._id,
+        email: result.user.email,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
+        role: result.user.role,
+        isSuperAdmin: result.user.isSuperAdmin ?? false,
+      });
 
       // BACKWARD COMPATIBILITY: Also store user data in old format
       const mfaUserData: Record<string, unknown> = {

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
+import { assertValidEmail, assertValidPhone } from "./lib/validation";
 
 // Get all contractors
 export const getAll = query({
@@ -146,6 +147,10 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Validate email and phone
+    assertValidEmail(args.email);
+    if (args.phone) assertValidPhone(args.phone, "Phone");
+
     // Permission check and get organizationId
     const user = await requirePermission(ctx, args.userId, "contractors", "create");
     const { organizationId } = await requireTenant(ctx, args.userId);

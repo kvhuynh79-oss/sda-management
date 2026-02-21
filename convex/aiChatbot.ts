@@ -176,6 +176,8 @@ export const getParticipantPlanExpiry = internalQuery({
 });
 
 // Get vacancies
+// Optimised: batch-loads all dwellings + active participants in 3 queries
+// instead of N+1 per property per dwelling.
 export const getVacancies = internalQuery({
   args: {
     propertyName: v.optional(v.string()),
@@ -198,49 +200,62 @@ export const getVacancies = internalQuery({
       );
     }
 
-    const vacancies = await Promise.all(
-      properties.map(async (property) => {
-        const dwellings = await ctx.db
-          .query("dwellings")
-          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-          .collect();
+    // Batch-load all dwellings and active participants in two queries
+    const allDwellings = await ctx.db.query("dwellings").collect();
+    const allActiveParticipants = await ctx.db
+      .query("participants")
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
 
-        const dwellingsWithOccupancy = await Promise.all(
-          dwellings.map(async (dwelling) => {
-            const participants = await ctx.db
-              .query("participants")
-              .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
-              .filter((q) => q.eq(q.field("status"), "active"))
-              .collect();
+    // Build lookup maps
+    const dwellingsByProperty = new Map<string, typeof allDwellings>();
+    for (const d of allDwellings) {
+      const key = d.propertyId as string;
+      if (!dwellingsByProperty.has(key)) dwellingsByProperty.set(key, []);
+      dwellingsByProperty.get(key)!.push(d);
+    }
 
-            const vacantSpots = dwelling.maxParticipants - participants.length;
-            return {
-              dwelling,
-              occupants: participants.length,
-              capacity: dwelling.maxParticipants,
-              vacantSpots,
-            };
-          })
-        );
+    const participantsByDwelling = new Map<string, number>();
+    for (const p of allActiveParticipants) {
+      if (p.dwellingId) {
+        const key = p.dwellingId as string;
+        participantsByDwelling.set(key, (participantsByDwelling.get(key) || 0) + 1);
+      }
+    }
 
-        const totalVacant = dwellingsWithOccupancy.reduce(
-          (sum, d) => sum + d.vacantSpots,
-          0
-        );
+    const vacancies = properties.map((property) => {
+      const dwellings = dwellingsByProperty.get(property._id as string) || [];
 
+      const dwellingsWithOccupancy = dwellings.map((dwelling) => {
+        const occupants = participantsByDwelling.get(dwelling._id as string) || 0;
+        const vacantSpots = dwelling.maxParticipants - occupants;
         return {
-          property,
-          dwellings: dwellingsWithOccupancy.filter((d) => d.vacantSpots > 0),
-          totalVacant,
+          dwelling,
+          occupants,
+          capacity: dwelling.maxParticipants,
+          vacantSpots,
         };
-      })
-    );
+      });
+
+      const totalVacant = dwellingsWithOccupancy.reduce(
+        (sum, d) => sum + d.vacantSpots,
+        0
+      );
+
+      return {
+        property,
+        dwellings: dwellingsWithOccupancy.filter((d) => d.vacantSpots > 0),
+        totalVacant,
+      };
+    });
 
     return vacancies.filter((v) => v.totalVacant > 0);
   },
 });
 
 // Get overdue/outstanding maintenance
+// Optimised: pre-fetches all dwellings + properties in 2 queries,
+// then resolves via lookup maps (was: 2N queries in the loop).
 export const getOverdueMaintenance = internalQuery({
   args: {
     propertyName: v.optional(v.string()),
@@ -277,40 +292,43 @@ export const getOverdueMaintenance = internalQuery({
       );
     }
 
-    // Get property details for each request
-    const results = await Promise.all(
-      requests.map(async (request) => {
-        const dwelling = await ctx.db.get(request.dwellingId);
-        const property = dwelling
-          ? await ctx.db.get(dwelling.propertyId)
-          : null;
+    // Batch-load all dwellings and properties into lookup maps
+    const allDwellings = await ctx.db.query("dwellings").collect();
+    const dwellingMap = new Map(allDwellings.map((d) => [d._id as string, d]));
 
-        // Filter by property name if provided
-        if (args.propertyName && property) {
-          if (
-            !(property.propertyName && fuzzyMatch(args.propertyName, property.propertyName)) &&
-            !fuzzyMatch(args.propertyName, property.addressLine1)
-          ) {
-            return null;
-          }
+    const allProperties = await ctx.db.query("properties").collect();
+    const propertyMap = new Map(allProperties.map((p) => [p._id as string, p]));
+
+    // Resolve references from maps instead of per-request queries
+    const results = requests.map((request) => {
+      const dwelling = request.dwellingId ? dwellingMap.get(request.dwellingId as string) ?? null : null;
+      const property = dwelling ? propertyMap.get(dwelling.propertyId as string) ?? null : null;
+
+      // Filter by property name if provided
+      if (args.propertyName && property) {
+        if (
+          !(property.propertyName && fuzzyMatch(args.propertyName, property.propertyName)) &&
+          !fuzzyMatch(args.propertyName, property.addressLine1)
+        ) {
+          return null;
         }
+      }
 
-        // Calculate days overdue or outstanding
-        let daysOutstanding = 0;
-        if (request.scheduledDate && request.scheduledDate < today) {
-          daysOutstanding = -daysUntil(request.scheduledDate);
-        } else if (request.reportedDate) {
-          daysOutstanding = -daysUntil(request.reportedDate);
-        }
+      // Calculate days overdue or outstanding
+      let daysOutstanding = 0;
+      if (request.scheduledDate && request.scheduledDate < today) {
+        daysOutstanding = -daysUntil(request.scheduledDate);
+      } else if (request.reportedDate) {
+        daysOutstanding = -daysUntil(request.reportedDate);
+      }
 
-        return {
-          request,
-          dwelling,
-          property,
-          daysOverdue: daysOutstanding,
-        };
-      })
-    );
+      return {
+        request,
+        dwelling,
+        property,
+        daysOverdue: daysOutstanding,
+      };
+    });
 
     return results.filter((r) => r !== null);
   },
@@ -364,6 +382,8 @@ export const getPaymentStatus = internalQuery({
 });
 
 // Get expiring documents
+// Optimised: pre-fetches participants, properties, dwellings into maps
+// instead of per-document lookups (was: N queries for N expiring docs).
 export const getExpiringDocuments = internalQuery({
   args: { daysAhead: v.number() },
   handler: async (ctx, args) => {
@@ -383,31 +403,41 @@ export const getExpiringDocuments = internalQuery({
         doc.expiryDate <= futureStr
     );
 
-    // Get linked entity details
-    const results = await Promise.all(
-      expiring.map(async (doc) => {
-        let linkedEntity = null;
-        if (doc.linkedParticipantId) {
-          linkedEntity = await ctx.db.get(doc.linkedParticipantId);
-        } else if (doc.linkedPropertyId) {
-          linkedEntity = await ctx.db.get(doc.linkedPropertyId);
-        } else if (doc.linkedDwellingId) {
-          linkedEntity = await ctx.db.get(doc.linkedDwellingId);
-        }
+    // Batch-load all potential linked entities into maps
+    const [allParticipants, allProperties, allDwellings] = await Promise.all([
+      ctx.db.query("participants").collect(),
+      ctx.db.query("properties").collect(),
+      ctx.db.query("dwellings").collect(),
+    ]);
+    const participantMap = new Map(allParticipants.map((p) => [p._id as string, p]));
+    const propertyMap = new Map(allProperties.map((p) => [p._id as string, p]));
+    const dwellingMap = new Map(allDwellings.map((d) => [d._id as string, d]));
 
-        return {
-          document: doc,
-          linkedEntity,
-          daysUntilExpiry: daysUntil(doc.expiryDate!),
-        };
-      })
-    );
+    // Resolve linked entities from maps
+    const results = expiring.map((doc) => {
+      let linkedEntity = null;
+      if (doc.linkedParticipantId) {
+        linkedEntity = participantMap.get(doc.linkedParticipantId as string) ?? null;
+      } else if (doc.linkedPropertyId) {
+        linkedEntity = propertyMap.get(doc.linkedPropertyId as string) ?? null;
+      } else if (doc.linkedDwellingId) {
+        linkedEntity = dwellingMap.get(doc.linkedDwellingId as string) ?? null;
+      }
+
+      return {
+        document: doc,
+        linkedEntity,
+        daysUntilExpiry: daysUntil(doc.expiryDate!),
+      };
+    });
 
     return results.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
   },
 });
 
 // Get property summary
+// Optimised: batch-loads owners, dwellings, participants, and maintenance
+// in 4 queries total instead of N+1 per property per dwelling.
 export const getPropertySummary = internalQuery({
   args: { propertyName: v.string() },
   handler: async (ctx, args) => {
@@ -424,62 +454,72 @@ export const getPropertySummary = internalQuery({
       return { found: false, message: `No property found matching "${args.propertyName}"` };
     }
 
-    const results = await Promise.all(
-      matches.map(async (property) => {
-        const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
+    // Batch-load all related data in parallel
+    const [allOwners, allDwellings, allActiveParticipants, allMaintenance] = await Promise.all([
+      ctx.db.query("owners").collect(),
+      ctx.db.query("dwellings").collect(),
+      ctx.db.query("participants").filter((q) => q.eq(q.field("status"), "active")).collect(),
+      ctx.db.query("maintenanceRequests").collect(),
+    ]);
 
-        const dwellings = await ctx.db
-          .query("dwellings")
-          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-          .collect();
+    // Build lookup maps
+    const ownerMap = new Map(allOwners.map((o) => [o._id as string, o]));
 
-        const dwellingsWithParticipants = await Promise.all(
-          dwellings.map(async (dwelling) => {
-            const participants = await ctx.db
-              .query("participants")
-              .withIndex("by_dwelling", (q) => q.eq("dwellingId", dwelling._id))
-              .filter((q) => q.eq(q.field("status"), "active"))
-              .collect();
+    const dwellingsByProperty = new Map<string, typeof allDwellings>();
+    for (const d of allDwellings) {
+      const key = d.propertyId as string;
+      if (!dwellingsByProperty.has(key)) dwellingsByProperty.set(key, []);
+      dwellingsByProperty.get(key)!.push(d);
+    }
 
-            return {
-              dwelling,
-              participants,
-            };
-          })
-        );
+    const participantsByDwelling = new Map<string, typeof allActiveParticipants>();
+    for (const p of allActiveParticipants) {
+      if (p.dwellingId) {
+        const key = p.dwellingId as string;
+        if (!participantsByDwelling.has(key)) participantsByDwelling.set(key, []);
+        participantsByDwelling.get(key)!.push(p);
+      }
+    }
 
-        const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
-        const totalOccupants = dwellingsWithParticipants.reduce(
-          (sum, d) => sum + d.participants.length,
-          0
-        );
+    const results = matches.map((property) => {
+      const owner = property.ownerId ? ownerMap.get(property.ownerId as string) ?? null : null;
+      const dwellings = dwellingsByProperty.get(property._id as string) || [];
 
-        // Get recent maintenance
-        const allDwellingIds = dwellings.map((d) => d._id);
-        const maintenance = await ctx.db
-          .query("maintenanceRequests")
-          .collect();
-        const propertyMaintenance = maintenance
-          .filter((m) => allDwellingIds.includes(m.dwellingId))
-          .slice(0, 5);
+      const dwellingsWithParticipants = dwellings.map((dwelling) => ({
+        dwelling,
+        participants: participantsByDwelling.get(dwelling._id as string) || [],
+      }));
 
-        return {
-          property,
-          owner,
-          dwellings: dwellingsWithParticipants,
-          totalCapacity,
-          totalOccupants,
-          vacancies: totalCapacity - totalOccupants,
-          recentMaintenance: propertyMaintenance,
-        };
-      })
-    );
+      const totalCapacity = dwellings.reduce((sum, d) => sum + d.maxParticipants, 0);
+      const totalOccupants = dwellingsWithParticipants.reduce(
+        (sum, d) => sum + d.participants.length,
+        0
+      );
+
+      // Get recent maintenance from pre-loaded data
+      const dwellingIdSet = new Set(dwellings.map((d) => d._id as string));
+      const propertyMaintenance = allMaintenance
+        .filter((m) => dwellingIdSet.has(m.dwellingId as string))
+        .slice(0, 5);
+
+      return {
+        property,
+        owner,
+        dwellings: dwellingsWithParticipants,
+        totalCapacity,
+        totalOccupants,
+        vacancies: totalCapacity - totalOccupants,
+        recentMaintenance: propertyMaintenance,
+      };
+    });
 
     return { found: true, results };
   },
 });
 
 // Get participant info
+// Optimised: pre-fetches dwellings, properties, and plans in 3 queries
+// instead of 3 queries per matched participant.
 export const getParticipantInfo = internalQuery({
   args: { participantName: v.string() },
   handler: async (ctx, args) => {
@@ -493,29 +533,33 @@ export const getParticipantInfo = internalQuery({
       return { found: false, message: `No participant found matching "${args.participantName}"` };
     }
 
-    const results = await Promise.all(
-      matches.map(async (participant) => {
-        const dwelling = participant.dwellingId
-          ? await ctx.db.get(participant.dwellingId)
-          : null;
-        const property = dwelling
-          ? await ctx.db.get(dwelling.propertyId)
-          : null;
+    // Batch-load related data
+    const [allDwellings, allProperties, allPlans] = await Promise.all([
+      ctx.db.query("dwellings").collect(),
+      ctx.db.query("properties").collect(),
+      ctx.db.query("participantPlans").filter((q) => q.eq(q.field("planStatus"), "current")).collect(),
+    ]);
 
-        const plan = await ctx.db
-          .query("participantPlans")
-          .withIndex("by_participant", (q) => q.eq("participantId", participant._id))
-          .filter((q) => q.eq(q.field("planStatus"), "current"))
-          .first();
+    const dwellingMap = new Map(allDwellings.map((d) => [d._id as string, d]));
+    const propertyMap = new Map(allProperties.map((p) => [p._id as string, p]));
+    const planByParticipant = new Map(allPlans.map((p) => [p.participantId as string, p]));
 
-        return {
-          participant,
-          dwelling,
-          property,
-          plan,
-        };
-      })
-    );
+    const results = matches.map((participant) => {
+      const dwelling = participant.dwellingId
+        ? dwellingMap.get(participant.dwellingId as string) ?? null
+        : null;
+      const property = dwelling
+        ? propertyMap.get(dwelling.propertyId as string) ?? null
+        : null;
+      const plan = planByParticipant.get(participant._id as string) ?? null;
+
+      return {
+        participant,
+        dwelling,
+        property,
+        plan,
+      };
+    });
 
     return { found: true, results };
   },

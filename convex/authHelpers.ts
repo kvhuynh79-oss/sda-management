@@ -47,6 +47,9 @@ export const rolePermissions: Record<UserRole, {
   policies: { view: boolean; create: boolean; update: boolean; delete: boolean };
   calendar: { view: boolean; create: boolean; update: boolean; delete: boolean };
   inspections: { view: boolean; create: boolean; update: boolean; delete: boolean };
+  restrictivePractices: { view: boolean; create: boolean; update: boolean; delete: boolean };
+  ndisPriceGuide: { view: boolean; create: boolean; update: boolean; delete: boolean };
+  staffTraining: { view: boolean; create: boolean; update: boolean; delete: boolean };
 }> = {
   admin: {
     properties: { view: true, create: true, update: true, delete: true },
@@ -66,6 +69,9 @@ export const rolePermissions: Record<UserRole, {
     policies: { view: true, create: true, update: true, delete: true },
     calendar: { view: true, create: true, update: true, delete: true },
     inspections: { view: true, create: true, update: true, delete: true },
+    restrictivePractices: { view: true, create: true, update: true, delete: true },
+    ndisPriceGuide: { view: true, create: true, update: true, delete: true },
+    staffTraining: { view: true, create: true, update: true, delete: true },
   },
   property_manager: {
     properties: { view: true, create: true, update: true, delete: false },
@@ -85,6 +91,9 @@ export const rolePermissions: Record<UserRole, {
     policies: { view: true, create: true, update: true, delete: false },
     calendar: { view: true, create: true, update: true, delete: true },
     inspections: { view: true, create: true, update: true, delete: true },
+    restrictivePractices: { view: true, create: true, update: true, delete: false },
+    ndisPriceGuide: { view: true, create: false, update: false, delete: false },
+    staffTraining: { view: true, create: true, update: true, delete: false },
   },
   staff: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -104,6 +113,9 @@ export const rolePermissions: Record<UserRole, {
     policies: { view: true, create: false, update: false, delete: false },
     calendar: { view: true, create: true, update: true, delete: true },
     inspections: { view: true, create: true, update: true, delete: false },
+    restrictivePractices: { view: true, create: true, update: true, delete: false },
+    ndisPriceGuide: { view: true, create: false, update: false, delete: false },
+    staffTraining: { view: true, create: false, update: false, delete: false },
   },
   accountant: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -123,6 +135,9 @@ export const rolePermissions: Record<UserRole, {
     policies: { view: true, create: false, update: false, delete: false },
     calendar: { view: true, create: false, update: false, delete: false },
     inspections: { view: true, create: false, update: false, delete: false },
+    restrictivePractices: { view: false, create: false, update: false, delete: false },
+    ndisPriceGuide: { view: true, create: false, update: false, delete: false },
+    staffTraining: { view: false, create: false, update: false, delete: false },
   },
   sil_provider: {
     properties: { view: true, create: false, update: false, delete: false },
@@ -142,6 +157,9 @@ export const rolePermissions: Record<UserRole, {
     policies: { view: true, create: false, update: false, delete: false },
     calendar: { view: false, create: false, update: false, delete: false },
     inspections: { view: true, create: false, update: false, delete: false },
+    restrictivePractices: { view: false, create: false, update: false, delete: false },
+    ndisPriceGuide: { view: false, create: false, update: false, delete: false },
+    staffTraining: { view: false, create: false, update: false, delete: false },
   },
 };
 

@@ -5,6 +5,7 @@ import { Id } from "./_generated/dataModel";
 import bcrypt from "bcryptjs";
 import { enforcePlanLimit, requireActiveSubscription } from "./authHelpers";
 import { requirePasswordComplexity } from "./lib/passwordValidation";
+import { assertValidEmail, assertValidPhone } from "./lib/validation";
 
 // Secure password hashing using bcryptjs
 const SALT_ROUNDS = 12;
@@ -40,6 +41,10 @@ export const createUser = action({
     silProviderId: v.optional(v.id("silProviders")), // For SIL provider users
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
+    // Validate email and phone
+    assertValidEmail(args.email);
+    if (args.phone) assertValidPhone(args.phone, "Phone");
+
     // Check if any users exist (for initial setup)
     const hasUsers = await ctx.runMutation(internal.auth.checkUsersExist, {});
 

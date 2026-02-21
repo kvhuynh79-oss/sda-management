@@ -5,6 +5,16 @@
  * originate from allowed domains. This prevents cross-site request forgery
  * where a malicious site submits forms to our API.
  *
+ * CSRF PROTECTION LAYERS (S11 Cookie-Based Auth):
+ * 1. SameSite=Lax on all auth cookies — blocks cross-site POST requests
+ * 2. Origin header validation (this module) — validates request source
+ * 3. HttpOnly flag — prevents XSS from reading session tokens
+ * 4. Secure flag (production) — prevents transmission over HTTP
+ *
+ * Session cookie endpoints:
+ * - /api/auth/session POST   - Sets cookies, validated by Origin check in route
+ * - /api/auth/session DELETE - Clears cookies (no CSRF risk — only affects own session)
+ *
  * EXEMPT endpoints (use their own signature verification):
  * - /api/stripe/webhook  - Stripe signature (STRIPE_WEBHOOK_SECRET)
  * - /api/mail            - Postmark webhook secret (INBOUND_EMAIL_WEBHOOK_SECRET)
@@ -14,6 +24,7 @@
  *
  * PROTECTED endpoints (need Origin validation):
  * - /api/complaints/submit - Public complaint form submission
+ * - /api/auth/session      - Cookie management (has own Origin check)
  *
  * Usage:
  * ```ts

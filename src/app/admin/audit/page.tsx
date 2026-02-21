@@ -404,6 +404,7 @@ function AuditLogContent() {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
+                  aria-label="Go to previous page"
                   className="p-2 bg-gray-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -411,6 +412,7 @@ function AuditLogContent() {
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={!auditData.hasMore}
+                  aria-label="Go to next page"
                   className="p-2 bg-gray-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
                 >
                   <ChevronRight className="w-5 h-5" />

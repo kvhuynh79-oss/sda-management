@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import bcrypt from "bcryptjs";
 import { requirePasswordComplexity } from "./lib/passwordValidation";
+import { assertValidEmail, assertValidPhone } from "./lib/validation";
 
 /**
  * Registration Module - Sprint 3 SaaS Onboarding
@@ -326,12 +327,10 @@ export const registerOrganization = action({
       throw new Error("Slug must be between 3 and 63 characters");
     }
 
-    // Validate email format (basic check - full validation done by database unique constraint)
+    // Validate email and phone using shared validation utility
     const email = args.adminEmail.toLowerCase().trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error("Please enter a valid email address");
-    }
+    assertValidEmail(email);
+    if (args.adminPhone) assertValidPhone(args.adminPhone, "Phone");
 
     // SECURITY (S5): Validate password complexity (OWASP compliant)
     requirePasswordComplexity(args.adminPassword);

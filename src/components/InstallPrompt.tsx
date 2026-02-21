@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +12,7 @@ export default function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     // Check if already installed as standalone
@@ -34,18 +35,22 @@ export default function InstallPrompt() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       // Show prompt after a delay to not interrupt user immediately
-      setTimeout(() => setShowPrompt(true), 5000);
+      const timer = setTimeout(() => setShowPrompt(true), 5000);
+      timersRef.current.push(timer);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
     // For iOS, show custom prompt
     if (ios && !standalone) {
-      setTimeout(() => setShowPrompt(true), 5000);
+      const timer = setTimeout(() => setShowPrompt(true), 5000);
+      timersRef.current.push(timer);
     }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
     };
   }, []);
 

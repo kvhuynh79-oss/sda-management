@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -35,6 +35,8 @@ function SecuritySettingsContent() {
   const [isDisabling, setIsDisabling] = useState(false);
   const [error, setError] = useState("");
   const [copiedCodes, setCopiedCodes] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
   // Get MFA status
   const mfaStatus = useQuery(
@@ -176,7 +178,8 @@ function SecuritySettingsContent() {
     try {
       await navigator.clipboard.writeText(backupCodes.join("\n"));
       setCopiedCodes(true);
-      setTimeout(() => setCopiedCodes(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedCodes(false), 2000);
     } catch (err) {
     }
   };

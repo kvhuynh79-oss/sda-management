@@ -42,6 +42,7 @@ export default function MaintenancePage() {
   const [showHelp, setShowHelp] = useState(false);
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterMaintenanceCategory, setFilterMaintenanceCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   const allRequests = useQuery(api.maintenanceRequests.getAll, user ? { userId: user.id as Id<"users"> } : "skip");
@@ -66,6 +67,9 @@ export default function MaintenancePage() {
       // Category filter
       const matchesCategory = filterCategory === "all" || request.category === filterCategory;
 
+      // Maintenance classification filter (N5)
+      const matchesMaintCategory = filterMaintenanceCategory === "all" || (request as any).maintenanceCategory === filterMaintenanceCategory;
+
       // Search filter
       const matchesSearch =
         !searchTerm ||
@@ -74,11 +78,11 @@ export default function MaintenancePage() {
         request.property?.addressLine1.toLowerCase().includes(searchTerm.toLowerCase()) ||
         request.dwelling?.dwellingName.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesStatus && matchesPriority && matchesCategory && matchesSearch;
+      return matchesStatus && matchesPriority && matchesCategory && matchesMaintCategory && matchesSearch;
     });
-  }, [allRequests, filterStatus, filterPriority, filterCategory, searchTerm]);
+  }, [allRequests, filterStatus, filterPriority, filterCategory, filterMaintenanceCategory, searchTerm]);
 
-  const hasFilters = searchTerm !== "" || filterStatus !== "open" || filterPriority !== "all" || filterCategory !== "all";
+  const hasFilters = searchTerm !== "" || filterStatus !== "open" || filterPriority !== "all" || filterCategory !== "all" || filterMaintenanceCategory !== "all";
 
   return (
     <RequireAuth>
@@ -187,6 +191,23 @@ export default function MaintenancePage() {
                   <option value="grounds">Grounds</option>
                   <option value="safety">Safety</option>
                   <option value="general">General</option>
+                </select>
+              </div>
+              {/* N5: Maintenance Classification Filter */}
+              <div>
+                <label htmlFor="filter-maint-category" className="block text-xs text-gray-500 mb-1">Classification</label>
+                <select
+                  id="filter-maint-category"
+                  value={filterMaintenanceCategory}
+                  onChange={(e) => setFilterMaintenanceCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="all">All Classifications</option>
+                  <option value="routine_maintenance">Routine Maintenance</option>
+                  <option value="emergency_repair">Emergency Repair</option>
+                  <option value="sda_modification">SDA Modification</option>
+                  <option value="cosmetic">Cosmetic</option>
+                  <option value="compliance_upgrade">Compliance Upgrade</option>
                 </select>
               </div>
             </div>

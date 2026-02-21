@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
@@ -35,15 +35,26 @@ interface ToastProviderProps {
 
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Clean up all timers on unmount
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((timer) => clearTimeout(timer));
+      timersRef.current.clear();
+    };
+  }, []);
 
   const addToast = useCallback((message: string, type: ToastType) => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
 
-    // Auto dismiss after 5 seconds
-    setTimeout(() => {
+    // Auto dismiss after 5 seconds (with cleanup tracking)
+    const timer = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
+      timersRef.current.delete(id);
     }, 5000);
+    timersRef.current.set(id, timer);
   }, []);
 
   const success = useCallback((message: string) => addToast(message, "success"), [addToast]);
@@ -52,6 +63,12 @@ export function ToastProvider({ children }: ToastProviderProps) {
   const info = useCallback((message: string) => addToast(message, "info"), [addToast]);
 
   const dismiss = useCallback((id: string) => {
+    // Clear the auto-dismiss timer when manually dismissed
+    const timer = timersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timersRef.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 

@@ -7,14 +7,49 @@ const SESSION_STORAGE_KEY = "sda_session_token";
 const REFRESH_STORAGE_KEY = "sda_refresh_token";
 
 /**
- * Store tokens in localStorage
+ * Store tokens in localStorage AND set HttpOnly cookies via API route (S11).
+ *
+ * The HttpOnly cookie is the primary auth mechanism going forward.
+ * localStorage is maintained for backward compatibility with:
+ * - useSession hook (reads localStorage)
+ * - useAuth hook (reads sda_user)
+ * - Capacitor native widget (reads native storage)
+ *
+ * @param token - Session access token
+ * @param refreshToken - Refresh token for session renewal
+ * @param userData - Optional user metadata for the cookie (non-sensitive fields)
  */
-export function storeTokens(token: string, refreshToken: string) {
+export async function storeTokens(
+  token: string,
+  refreshToken: string,
+  userData?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    isSuperAdmin?: boolean;
+  }
+) {
+  // Store in localStorage for backward compatibility
   localStorage.setItem(SESSION_STORAGE_KEY, token);
   localStorage.setItem(REFRESH_STORAGE_KEY, refreshToken);
 
   // Also store in native secure storage for widget access (no-op in browser)
   storeTokenNative(token, refreshToken).catch(() => {});
+
+  // S11: Set HttpOnly cookie via API route (primary auth mechanism)
+  try {
+    await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ token, refreshToken, user: userData }),
+    });
+  } catch {
+    // Cookie set failed — localStorage fallback still works
+    console.warn("[AUTH] Failed to set HttpOnly session cookie");
+  }
 
   // NOTE: We no longer remove "sda_user" here because some pages still use useAuth hook
   // It will be removed during the logout process
@@ -60,11 +95,27 @@ export async function refreshAuthToken(): Promise<{
     });
 
     if (result.token && result.refreshToken) {
-      // Store new tokens
+      // Store new tokens (localStorage + HttpOnly cookie)
       localStorage.setItem(SESSION_STORAGE_KEY, result.token);
       localStorage.setItem(REFRESH_STORAGE_KEY, result.refreshToken);
       // Also store refreshed tokens in native storage for widget access (no-op in browser)
       storeTokenNative(result.token, result.refreshToken).catch(() => {});
+
+      // S11: Update HttpOnly cookie with refreshed token
+      try {
+        await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            token: result.token,
+            refreshToken: result.refreshToken,
+          }),
+        });
+      } catch {
+        // Cookie update failed — localStorage fallback still works
+        console.warn("[AUTH] Failed to update HttpOnly session cookie on refresh");
+      }
 
       return {
         success: true,
@@ -130,14 +181,28 @@ async function checkAndRefreshToken() {
 }
 
 /**
- * Logout user - clear tokens and redirect to login
+ * Logout user - clear tokens, cookies, and redirect to login
  */
-export function logout() {
+export async function logout() {
+  // Clear localStorage tokens
   localStorage.removeItem(SESSION_STORAGE_KEY);
   localStorage.removeItem(REFRESH_STORAGE_KEY);
   localStorage.removeItem("sda_user"); // Clean up old key
+
   // Clear native tokens too (no-op in browser)
   clearTokensNative().catch(() => {});
+
+  // S11: Clear HttpOnly cookies via API route
+  try {
+    await fetch("/api/auth/session", {
+      method: "DELETE",
+      credentials: "include",
+    });
+  } catch {
+    // Cookie clear failed — cookies will expire naturally
+    console.warn("[AUTH] Failed to clear HttpOnly session cookie");
+  }
+
   window.location.href = "/login";
 }
 

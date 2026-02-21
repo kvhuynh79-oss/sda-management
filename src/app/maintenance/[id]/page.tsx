@@ -7,6 +7,7 @@ import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -421,24 +422,11 @@ export default function MaintenanceRequestDetailPage() {
       <Header currentPage="maintenance" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <nav className="mb-6">
-          <ol className="flex items-center gap-2 text-sm">
-            <li>
-              <Link href="/dashboard" className="text-gray-400 hover:text-white">
-                Dashboard
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li>
-              <Link href="/maintenance" className="text-gray-400 hover:text-white">
-                Maintenance
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li className="text-white">{request.title}</li>
-          </ol>
-        </nav>
+        <Breadcrumbs items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Maintenance", href: "/maintenance" },
+          { label: request.title },
+        ]} />
 
         {error && (
           <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg text-red-200">

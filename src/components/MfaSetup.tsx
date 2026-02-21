@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FormInput } from "./forms/FormInput";
 import { Button } from "./forms/Button";
 
@@ -28,12 +28,15 @@ export function MfaSetup({
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
   const handleCopySecret = async () => {
     try {
       await navigator.clipboard.writeText(secret);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (err) {
     }
   };

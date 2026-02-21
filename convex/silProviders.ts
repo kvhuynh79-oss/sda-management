@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth, getUserFullName, requireTenant } from "./authHelpers";
+import { assertValidEmail, assertValidPhone } from "./lib/validation";
 
 // Predefined Sydney regions (same as support coordinators)
 export const SYDNEY_REGIONS = [
@@ -57,6 +58,10 @@ export const create = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Validate email and phone
+    assertValidEmail(args.email);
+    if (args.phone) assertValidPhone(args.phone, "Phone");
+
     // Permission check and get organizationId
     const { user, organizationId } = await requireTenant(ctx, args.userId);
     const now = Date.now();

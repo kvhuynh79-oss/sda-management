@@ -60,6 +60,16 @@ function NewMaintenanceRequestContent() {
     contractorContact: "",
     quotedAmount: "",
     notes: "",
+    // N5: Maintenance vs SDA Modification categorisation
+    maintenanceCategory: "routine_maintenance" as
+      | "routine_maintenance"
+      | "emergency_repair"
+      | "sda_modification"
+      | "cosmetic"
+      | "compliance_upgrade",
+    sdaImpactAssessment: "",
+    affectsDesignCategory: false,
+    requiresAssessorReview: false,
   });
 
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
@@ -212,6 +222,11 @@ function NewMaintenanceRequestContent() {
         notes: formData.notes || undefined,
         incidentId: searchParams.get("incidentId") ? searchParams.get("incidentId") as Id<"incidents"> : undefined,
         incidentActionId: incidentActionId ? incidentActionId as Id<"incidentActions"> : undefined,
+        // N5: Maintenance categorisation
+        maintenanceCategory: formData.maintenanceCategory,
+        sdaImpactAssessment: formData.maintenanceCategory === "sda_modification" ? (formData.sdaImpactAssessment || undefined) : undefined,
+        affectsDesignCategory: formData.maintenanceCategory === "sda_modification" ? formData.affectsDesignCategory : undefined,
+        requiresAssessorReview: formData.maintenanceCategory === "sda_modification" ? formData.requiresAssessorReview : undefined,
         createdBy: user.id as Id<"users">,
       });
 
@@ -407,6 +422,68 @@ function NewMaintenanceRequestContent() {
                 </select>
               </div>
             </div>
+
+            {/* N5: Maintenance Classification */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Maintenance Classification *
+                <span className="ml-1 text-gray-500 text-xs font-normal" title="Categorise whether this is routine maintenance, an SDA modification, or other type">(?)</span>
+              </label>
+              <select
+                required
+                value={formData.maintenanceCategory}
+                onChange={(e) => setFormData({ ...formData, maintenanceCategory: e.target.value as any })}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+              >
+                <option value="routine_maintenance">Routine Maintenance</option>
+                <option value="emergency_repair">Emergency Repair</option>
+                <option value="sda_modification">SDA Modification</option>
+                <option value="cosmetic">Cosmetic</option>
+                <option value="compliance_upgrade">Compliance Upgrade</option>
+              </select>
+            </div>
+
+            {/* SDA Modification conditional fields */}
+            {formData.maintenanceCategory === "sda_modification" && (
+              <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4 space-y-4">
+                <div className="flex items-start gap-2 mb-2">
+                  <svg className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+                  <p className="text-yellow-300/80 text-sm">
+                    SDA modifications may affect the property&apos;s design category and require assessor review before work can proceed. Admin approval is required.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Impact Assessment</label>
+                  <textarea
+                    value={formData.sdaImpactAssessment}
+                    onChange={(e) => setFormData({ ...formData, sdaImpactAssessment: e.target.value })}
+                    rows={3}
+                    placeholder="Describe how this modification impacts the SDA property..."
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.affectsDesignCategory}
+                      onChange={(e) => setFormData({ ...formData, affectsDesignCategory: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-600 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-sm text-gray-300">Affects SDA Design Category</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.requiresAssessorReview}
+                      onChange={(e) => setFormData({ ...formData, requiresAssessorReview: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-600 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-sm text-gray-300">Requires Assessor Review</span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Priority */}
             <div>

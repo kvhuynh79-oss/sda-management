@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface ShareButtonProps {
   slug: string;
@@ -9,6 +9,8 @@ interface ShareButtonProps {
 
 export function ShareButton({ slug, title }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
 
   async function handleCopyUrl() {
     const url = `https://mysdamanager.com/blog/${slug}`;
@@ -26,7 +28,8 @@ export function ShareButton({ slug, title }: ShareButtonProps) {
       // Fallback to clipboard copy
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2500);
     } catch {
       // Silently fail if clipboard/share not available
     }

@@ -266,9 +266,11 @@ export function LandingPage() {
             className="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-md"
             aria-label="MySDAManager home"
           >
-            <img
+            <Image
               src="/mysda-logo-dark.svg"
               alt="MySDAManager"
+              width={160}
+              height={32}
               className="h-8 w-auto"
             />
           </Link>

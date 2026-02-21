@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -33,6 +33,7 @@ function CommunicationsContent() {
   const [isSyncingEmail, setIsSyncingEmail] = useState(false);
   const [syncResult, setSyncResult] = useState<{ synced: number; existing: number; skipped: number; errors: number } | null>(null);
   const syncEmails = useAction(api.inboundEmail.syncInboundEmails);
+  const syncResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("sda_user");
@@ -47,20 +48,26 @@ function CommunicationsContent() {
         // Invalid data
       }
     }
+    // Clean up sync result timer on unmount
+    return () => {
+      if (syncResultTimerRef.current) clearTimeout(syncResultTimerRef.current);
+    };
   }, []);
 
   const handleSyncEmail = useCallback(async () => {
     if (!user || isSyncingEmail) return;
     setIsSyncingEmail(true);
     setSyncResult(null);
+    // Clear any existing timer before starting new one
+    if (syncResultTimerRef.current) clearTimeout(syncResultTimerRef.current);
     try {
       const result = await syncEmails({ userId: user.id as Id<"users"> });
       setSyncResult(result);
       // Auto-clear result after 5 seconds
-      setTimeout(() => setSyncResult(null), 5000);
+      syncResultTimerRef.current = setTimeout(() => setSyncResult(null), 5000);
     } catch (err) {
       setSyncResult({ synced: 0, existing: 0, skipped: 0, errors: 1 });
-      setTimeout(() => setSyncResult(null), 5000);
+      syncResultTimerRef.current = setTimeout(() => setSyncResult(null), 5000);
     } finally {
       setIsSyncingEmail(false);
     }

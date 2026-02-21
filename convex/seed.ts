@@ -1287,3 +1287,71 @@ export const backfillInspectionPhotos = mutation({
     return summary;
   },
 });
+
+/**
+ * Backfill organizationId on audit log entries (D12).
+ *
+ * For each audit log that has no organizationId:
+ *   - Look up the userId → get their organizationId → patch the audit log.
+ *   - If the userId is missing or the user has no organizationId, skip.
+ *
+ * Runs in a single pass (all records). Safe to re-run (idempotent).
+ */
+export const backfillAuditLogOrganizationIds = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const allLogs = await ctx.db.query("auditLogs").collect();
+    let backfilled = 0;
+    let skippedNoUser = 0;
+    let skippedNoOrg = 0;
+    let alreadySet = 0;
+
+    // Cache user lookups to avoid repeated DB reads
+    const userOrgCache = new Map<string, string | null>();
+
+    for (const log of allLogs) {
+      // Already has organizationId — skip
+      if (log.organizationId) {
+        alreadySet++;
+        continue;
+      }
+
+      // No userId on this audit log (system event) — skip
+      if (!log.userId) {
+        skippedNoUser++;
+        continue;
+      }
+
+      const userIdStr = log.userId as string;
+      let orgId: string | null;
+
+      if (userOrgCache.has(userIdStr)) {
+        orgId = userOrgCache.get(userIdStr)!;
+      } else {
+        const user = await ctx.db.get(log.userId);
+        orgId = user?.organizationId ?? null;
+        userOrgCache.set(userIdStr, orgId);
+      }
+
+      if (!orgId) {
+        skippedNoOrg++;
+        continue;
+      }
+
+      await ctx.db.patch(log._id, {
+        organizationId: orgId as any,
+      });
+      backfilled++;
+    }
+
+    const summary = {
+      total: allLogs.length,
+      backfilled,
+      alreadySet,
+      skippedNoUser,
+      skippedNoOrg,
+    };
+    console.log("Audit log org backfill complete:", JSON.stringify(summary));
+    return summary;
+  },
+});

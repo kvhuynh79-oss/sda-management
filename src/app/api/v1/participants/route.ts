@@ -145,6 +145,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate NDIS number format (9 digits starting with 4)
+    const ndisClean = String(body.ndisNumber).replace(/\s/g, "");
+    if (!/^4\d{8}$/.test(ndisClean)) {
+      return NextResponse.json(
+        {
+          error: "Invalid NDIS number format. Must be exactly 9 digits starting with 4 (e.g. 430000001)",
+        },
+        { status: 400, headers: API_CORS_HEADERS }
+      );
+    }
+
     // Validate status if provided
     const validStatuses = ["active", "pending_move_in"];
     if (body.status && !validStatuses.includes(body.status)) {

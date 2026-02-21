@@ -87,6 +87,11 @@ export type AuditEntityType =
   | "calendar_event"
   | "calendar_connection"
   | "support_ticket"
+  | "restrictive_practice"
+  | "restrictive_practice_incident"
+  | "ndis_price_guide"
+  | "staff_training"
+  | "staff_competency"
   | "system";
 
 // Internal mutation for logging - used by other mutations

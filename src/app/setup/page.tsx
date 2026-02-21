@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,9 @@ export default function SetupPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current); }, []);
+
   const createUser = useAction(api.auth.createUser);
   const router = useRouter();
 
@@ -62,7 +64,7 @@ export default function SetupPage() {
       });
       
       setSuccess(true);
-      setTimeout(() => router.push("/login"), 2000);
+      redirectTimerRef.current = setTimeout(() => router.push("/login"), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create user");
     } finally {

@@ -101,6 +101,8 @@ function OrganizationSettingsContent() {
   const [isTogglingEmail, setIsTogglingEmail] = useState(false);
   const [isAddingForwarder, setIsAddingForwarder] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
   const [postmarkHashInput, setPostmarkHashInput] = useState("");
   const [isSavingPostmarkHash, setIsSavingPostmarkHash] = useState(false);
   const [showPostmarkHash, setShowPostmarkHash] = useState(false);
@@ -110,7 +112,8 @@ function OrganizationSettingsContent() {
     try {
       await navigator.clipboard.writeText(organization.inboundEmailAddress);
       setCopiedAddress(true);
-      setTimeout(() => setCopiedAddress(false), 2000);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopiedAddress(false), 2000);
     } catch {
       await alertDialog({ title: "Copy Failed", message: "Could not copy to clipboard. Please select and copy manually." });
     }

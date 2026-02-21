@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -113,6 +113,8 @@ function CalendarContent() {
   const [propertyFilter, setPropertyFilter] = useState<string>("");
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); }, []);
 
   // ── Calendar sync ───────────────────────────────────────────
   const calendarConnections = useQuery(
@@ -133,7 +135,8 @@ function CalendarContent() {
       }
     } catch (err) {
     } finally {
-      setTimeout(() => setIsSyncing(false), 3000);
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = setTimeout(() => setIsSyncing(false), 3000);
     }
   }, [user, isSyncing, calendarConnections, triggerSyncMutation]);
 

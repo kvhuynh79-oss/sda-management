@@ -479,6 +479,26 @@ export default function NDISExportPage() {
           </div>
         </div>
 
+        {/* SDA Category vs Support Item Mismatch Warnings (N14) */}
+        {claimData && claimData.warnings && claimData.warnings.length > 0 && (
+          <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              <div>
+                <h4 className="text-yellow-400 font-medium text-sm mb-1">SDA Category / Support Item Mismatch</h4>
+                <ul className="text-yellow-300 text-sm space-y-1">
+                  {(claimData.warnings as Array<{ participantName: string; issue: string }>).map((w, i) => (
+                    <li key={i}><span className="font-medium">{w.participantName}:</span> {w.issue}</li>
+                  ))}
+                </ul>
+                <p className="text-yellow-400/70 text-xs mt-2">Please verify support item numbers match dwelling SDA design categories before submitting claims.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Preview */}
         {claimData && claimData.claims && claimData.claims.length > 0 && (
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
@@ -498,8 +518,15 @@ export default function NDISExportPage() {
                 </thead>
                 <tbody>
                   {claimData.claims.map((claim: Record<string, unknown>, index: number) => (
-                    <tr key={index} className="border-b border-gray-700/50">
-                      <td className="py-2 px-3 text-white">{claim._participantName as string}</td>
+                    <tr key={index} className={`border-b border-gray-700/50 ${claim._sdaCategoryMismatch as boolean ? "bg-yellow-900/20" : ""}`}>
+                      <td className="py-2 px-3 text-white">
+                        {claim._participantName as string}
+                        {(claim._sdaCategoryMismatch as boolean) && (
+                          <span className="ml-2 text-yellow-400 text-xs" title="SDA category may not match support item">
+                            &#9888;
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 px-3 text-gray-300">{claim.NDISNumber as string}</td>
                       <td className="py-2 px-3 text-gray-300 text-sm">
                         {claim.SupportsDeliveredFrom as string} to {claim.SupportsDeliveredTo as string}

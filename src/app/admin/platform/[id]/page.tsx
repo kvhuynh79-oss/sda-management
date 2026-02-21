@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -424,17 +424,50 @@ function ExtendTrialModal({
 // Impersonation Panel (read-only data snapshot)
 // ---------------------------------------------------------------------------
 
+// Maximum impersonation session duration: 1 hour (in milliseconds)
+const IMPERSONATION_MAX_DURATION_MS = 60 * 60 * 1000;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ImpersonationPanel({
   data,
   onClose,
+  startedAt,
 }: {
   data: any;
   onClose: () => void;
+  startedAt: number;
 }) {
   const org = data?.organization;
   const properties = data?.properties || [];
   const participants = data?.participants || [];
+
+  // Countdown timer state
+  const [remainingMs, setRemainingMs] = useState(() => {
+    const elapsed = Date.now() - startedAt;
+    return Math.max(0, IMPERSONATION_MAX_DURATION_MS - elapsed);
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, IMPERSONATION_MAX_DURATION_MS - elapsed);
+      setRemainingMs(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        onClose();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt, onClose]);
+
+  const formatCountdown = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const isWarning = remainingMs < 5 * 60 * 1000; // Less than 5 minutes
 
   return (
     <section
@@ -453,6 +486,14 @@ function ImpersonationPanel({
           <Badge variant="warning" size="xs">
             Read-Only
           </Badge>
+          <span
+            className={`text-xs font-mono px-2 py-0.5 rounded ${
+              isWarning ? "bg-red-900/50 text-red-400" : "bg-gray-700 text-gray-300"
+            }`}
+            aria-label={`Impersonation session time remaining: ${formatCountdown(remainingMs)}`}
+          >
+            {formatCountdown(remainingMs)} remaining
+          </span>
         </div>
         <button
           onClick={onClose}
@@ -617,11 +658,14 @@ function OrganizationDetailContent() {
   const [showExtendTrial, setShowExtendTrial] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [impersonationData, setImpersonationData] = useState<any>(null);
+  const [impersonationStartedAt, setImpersonationStartedAt] = useState<number>(0);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
+  const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (notesTimerRef.current) clearTimeout(notesTimerRef.current); }, []);
 
   // Unwrap the nested response
   const org = orgData?.organization;
@@ -726,6 +770,16 @@ function OrganizationDetailContent() {
 
   const handleImpersonate = useCallback(async () => {
     if (!userId || !org) return;
+
+    // Confirmation dialog before impersonation (S22)
+    const confirmed = await confirmDialog({
+      title: "Impersonate Organization",
+      message: `You are about to view "${org.name}" as a read-only snapshot. This session lasts up to 1 hour. All actions are logged to the audit trail. Continue?`,
+      confirmLabel: "View as this organization",
+      variant: "default",
+    });
+    if (!confirmed) return;
+
     try {
       setIsImpersonating(true);
       const data = await impersonateOrganization({
@@ -733,11 +787,12 @@ function OrganizationDetailContent() {
         organizationId: org._id,
       });
       setImpersonationData(data);
+      setImpersonationStartedAt(Date.now());
     } catch (err) {
     } finally {
       setIsImpersonating(false);
     }
-  }, [userId, org, impersonateOrganization]);
+  }, [userId, org, impersonateOrganization, confirmDialog]);
 
   const handleSaveNotes = useCallback(async () => {
     if (!userId || !orgId) return;
@@ -749,7 +804,8 @@ function OrganizationDetailContent() {
         notes: adminNotes,
       });
       setNotesSaved(true);
-      setTimeout(() => setNotesSaved(false), 2000);
+      if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
+      notesTimerRef.current = setTimeout(() => setNotesSaved(false), 2000);
     } catch (err) {
     } finally {
       setNotesSaving(false);
@@ -1459,7 +1515,11 @@ function OrganizationDetailContent() {
         {impersonationData && (
           <ImpersonationPanel
             data={impersonationData}
-            onClose={() => setImpersonationData(null)}
+            startedAt={impersonationStartedAt}
+            onClose={() => {
+              setImpersonationData(null);
+              setImpersonationStartedAt(0);
+            }}
           />
         )}
 

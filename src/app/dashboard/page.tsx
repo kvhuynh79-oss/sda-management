@@ -26,6 +26,8 @@ export default function DashboardPage() {
   const upcomingTasks = useQuery(api.tasks.getUpcoming, userId ? { userId, days: 30 } : "skip");
   const certStats = useQuery(api.complianceCertifications.getDashboardStats, userId ? { userId } : "skip");
   const consentStats = useQuery(api.participants.getConsentStats, userId ? { userId } : "skip");
+  const rpStats = useQuery(api.restrictivePractices.getDashboardStats, userId ? { userId } : "skip");
+  const trainingStats = useQuery(api.staffTraining.getDashboardStats, userId ? { userId } : "skip");
 
   const createTask = useMutation(api.tasks.create);
   const updateTaskStatus = useMutation(api.tasks.updateStatus);
@@ -668,6 +670,114 @@ export default function DashboardPage() {
                       {certStats.expiringSoon}
                     </p>
                     <p className="text-gray-300 text-sm">Expiring Soon</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Restrictive Practices Summary (N1) */}
+        {rpStats && rpStats.totalRecords > 0 && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-600">
+            <div
+              className="flex justify-between items-center cursor-pointer select-none"
+              onClick={() => toggleSection("rp")}
+              role="button"
+              aria-expanded={!collapsed["rp"]}
+            >
+              <h3 className="text-lg font-semibold text-white">Restrictive Practices</h3>
+              <div className="flex items-center gap-3">
+                <Link href="/restrictive-practices" className="text-teal-500 hover:text-teal-400 text-sm" onClick={(e) => e.stopPropagation()}>
+                  View Register →
+                </Link>
+                <span className="text-gray-400 text-sm">{collapsed["rp"] ? "▶" : "▼"}</span>
+              </div>
+            </div>
+            {!collapsed["rp"] && (
+              <div className="mt-4">
+                {(rpStats.unauthorised > 0 || rpStats.unreported > 0) && (
+                  <div className="flex items-center gap-2 p-3 bg-red-900/30 border border-red-600/50 rounded-lg mb-3">
+                    <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span className="text-red-400 text-sm font-medium">
+                      {rpStats.unauthorised > 0 && `${rpStats.unauthorised} unauthorised`}
+                      {rpStats.unauthorised > 0 && rpStats.unreported > 0 && ", "}
+                      {rpStats.unreported > 0 && `${rpStats.unreported} unreported to NDIS`}
+                    </span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className="text-2xl font-bold text-white">{rpStats.activeCount}</p>
+                    <p className="text-gray-300 text-sm">Active</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className={`text-2xl font-bold ${rpStats.reviewsOverdue > 0 ? "text-red-400" : "text-white"}`}>{rpStats.reviewsOverdue}</p>
+                    <p className="text-gray-300 text-sm">Reviews Overdue</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className={`text-2xl font-bold ${rpStats.authorisationsExpiring > 0 ? "text-yellow-400" : "text-white"}`}>{rpStats.authorisationsExpiring}</p>
+                    <p className="text-gray-300 text-sm">Auth. Expiring</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className="text-2xl font-bold text-white">{rpStats.totalRecords}</p>
+                    <p className="text-gray-300 text-sm">Total Records</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Staff Training Compliance (N4) */}
+        {trainingStats && trainingStats.staffCount > 0 && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-600">
+            <div
+              className="flex justify-between items-center cursor-pointer select-none"
+              onClick={() => toggleSection("training")}
+              role="button"
+              aria-expanded={!collapsed["training"]}
+            >
+              <h3 className="text-lg font-semibold text-white">Staff Training Compliance</h3>
+              <div className="flex items-center gap-3">
+                <Link href="/compliance/staff/training-matrix" className="text-teal-500 hover:text-teal-400 text-sm" onClick={(e) => e.stopPropagation()}>
+                  View Matrix →
+                </Link>
+                <span className="text-gray-400 text-sm">{collapsed["training"] ? "▶" : "▼"}</span>
+              </div>
+            </div>
+            {!collapsed["training"] && (
+              <div className="mt-4">
+                {trainingStats.expired > 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-red-900/30 border border-red-600/50 rounded-lg mb-3">
+                    <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span className="text-red-400 text-sm font-medium">
+                      {trainingStats.expired} training record{trainingStats.expired !== 1 ? "s" : ""} expired
+                    </span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className={`text-2xl font-bold ${trainingStats.compliancePercentage === 100 ? "text-green-400" : trainingStats.compliancePercentage >= 80 ? "text-yellow-400" : "text-red-400"}`}>
+                      {trainingStats.compliancePercentage}%
+                    </p>
+                    <p className="text-gray-300 text-sm">Compliance</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className="text-2xl font-bold text-white">{trainingStats.compliantStaff}/{trainingStats.staffCount}</p>
+                    <p className="text-gray-300 text-sm">Staff Compliant</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className={`text-2xl font-bold ${trainingStats.expiring > 0 ? "text-yellow-400" : "text-white"}`}>{trainingStats.expiring}</p>
+                    <p className="text-gray-300 text-sm">Expiring (30d)</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                    <p className="text-2xl font-bold text-white">{trainingStats.totalRecords}</p>
+                    <p className="text-gray-300 text-sm">Total Records</p>
                   </div>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -462,20 +463,13 @@ export default function InspectionDetailPage() {
       <Header currentPage="inspections" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {/* Breadcrumb - hidden on mobile for space */}
-        <nav className="mb-4 hidden sm:block">
-          <ol className="flex items-center gap-2 text-sm">
-            <li>
-              <Link href="/inspections" className="text-gray-400 hover:text-white">
-                Inspections
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li className="text-white truncate max-w-[200px]">
-              {inspection.property?.propertyName || inspection.property?.addressLine1}
-            </li>
-          </ol>
-        </nav>
+        <div className="hidden sm:block">
+          <Breadcrumbs items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Inspections", href: "/inspections" },
+            { label: inspection.property?.propertyName || inspection.property?.addressLine1 || "Inspection" },
+          ]} />
+        </div>
 
         {/* Header Card */}
         <div className="bg-gray-800 rounded-lg p-4 sm:p-6 mb-4">

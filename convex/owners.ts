@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
 import { encryptField, decryptField, isEncrypted } from "./lib/encryption";
+import { assertValidEmail, assertValidPhone } from "./lib/validation";
 
 // Decrypt sensitive owner fields (handles both encrypted and plaintext for migration)
 async function decryptOwnerFields<T extends Record<string, any>>(o: T): Promise<T> {
@@ -37,6 +38,10 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Validate email and phone
+    assertValidEmail(args.email);
+    if (args.phone) assertValidPhone(args.phone, "Phone");
+
     // Permission check - requires property create permission (admin/property_manager)
     const user = await requirePermission(ctx, args.userId, "properties", "create");
     const { organizationId } = await requireTenant(ctx, args.userId);

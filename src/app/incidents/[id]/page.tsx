@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import Header from "@/components/Header";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -368,24 +369,11 @@ export default function IncidentDetailPage() {
       <Header currentPage="incidents" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <nav className="mb-6">
-          <ol className="flex items-center gap-2 text-sm">
-            <li>
-              <Link href="/dashboard" className="text-gray-400 hover:text-white">
-                Dashboard
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li>
-              <Link href="/incidents" className="text-gray-400 hover:text-white">
-                Incidents
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li className="text-white">{incident.title}</li>
-          </ol>
-        </nav>
+        <Breadcrumbs items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Incidents", href: "/incidents" },
+          { label: incident.title },
+        ]} />
 
         {error && (
           <div className="mb-6 p-4 bg-red-900/50 border border-red-600 rounded-lg text-red-200">

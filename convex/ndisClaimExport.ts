@@ -106,11 +106,21 @@ export const generateClaimData = query({
       return "P2"; // Default to P2 (GST Free) for SDA
     };
 
+    // SDA design category → valid support item prefixes mapping
+    // NDIS SDA support items follow a pattern where the category is encoded in the item number
+    const SDA_CATEGORY_SUPPORT_ITEM_PREFIXES: Record<string, string[]> = {
+      high_physical_support: ["01_011_0107_5_1_4", "01_011_0107"],
+      fully_accessible: ["01_010_0107_5_1_4", "01_010_0107"],
+      robust: ["01_013_0107_5_1_4", "01_013_0107"],
+      improved_liveability: ["01_012_0107_5_1_4", "01_012_0107"],
+    };
+
     // Today's date for ClaimReference format: FirstName_DDMMYY
     const now = new Date();
     const todayDDMMYY = `${String(now.getDate()).padStart(2, "0")}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getFullYear()).slice(2)}`;
 
     const claims = [];
+    const warnings: Array<{ participantName: string; issue: string }> = [];
 
     for (const participant of participants) {
       if (!participant) continue;
@@ -124,6 +134,13 @@ export const generateClaimData = query({
 
       if (!plan) continue;
 
+      // Look up dwelling's SDA design category for cross-validation
+      let dwellingCategory: string | null = null;
+      if (participant.dwellingId) {
+        const dwelling = await ctx.db.get(participant.dwellingId);
+        dwellingCategory = dwelling?.sdaDesignCategory || null;
+      }
+
       // Use the monthly SDA amount directly (not calculated from daily rate)
       const unitPrice = plan.monthlySdaAmount || (plan.dailySdaRate ? plan.dailySdaRate * 30 : 0);
 
@@ -132,6 +149,21 @@ export const generateClaimData = query({
 
       // SupportNumber — must not be empty
       const supportNumber = plan.supportItemNumber || providerSettings.defaultSupportItemNumber || "";
+
+      // SDA category vs support item cross-validation (N14)
+      let sdaCategoryMismatch = false;
+      if (dwellingCategory && supportNumber && SDA_CATEGORY_SUPPORT_ITEM_PREFIXES[dwellingCategory]) {
+        const validPrefixes = SDA_CATEGORY_SUPPORT_ITEM_PREFIXES[dwellingCategory];
+        const matchesAny = validPrefixes.some(prefix => supportNumber.startsWith(prefix));
+        if (!matchesAny) {
+          sdaCategoryMismatch = true;
+          const categoryLabel = dwellingCategory.replace(/_/g, " ");
+          warnings.push({
+            participantName: `${participant.firstName} ${participant.lastName}`,
+            issue: `Dwelling SDA category "${categoryLabel}" may not match support item "${supportNumber}". Please verify.`,
+          });
+        }
+      }
 
       claims.push({
         // Strip spaces from RegistrationNumber (stored as "405 005 2336", must be "4050052336")
@@ -165,11 +197,13 @@ export const generateClaimData = query({
         _monthlyAmount: plan.monthlySdaAmount || 0,
         _annualBudget: plan.annualSdaBudget,
         _claimDay: plan.claimDay || null,
+        _sdaCategoryMismatch: sdaCategoryMismatch,
       });
     }
 
     return {
       claims,
+      warnings, // SDA category vs support item mismatch warnings (N14)
       providerSettings: {
         ...providerSettings,
         // Return sanitized values so client-side doesn't need to re-strip

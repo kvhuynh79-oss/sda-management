@@ -2,6 +2,7 @@ import { mutation, query, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requirePermission } from "./authHelpers";
+import { assertValidEmail, assertValidPhone } from "./lib/validation";
 
 /**
  * Submit a marketing lead from the landing page.
@@ -17,11 +18,8 @@ export const submitLead = mutation({
     source: v.string(),
   },
   handler: async (ctx, args) => {
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(args.email)) {
-      throw new Error("Invalid email address");
-    }
+    // Validate email using shared validation utility
+    assertValidEmail(args.email);
 
     if (!args.name.trim()) {
       throw new Error("Name is required");
@@ -66,10 +64,9 @@ export const submitDemoRequest = mutation({
     message: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(args.email)) {
-      throw new Error("Invalid email address");
-    }
+    // Validate email and phone using shared validation utility
+    assertValidEmail(args.email);
+    if (args.phone) assertValidPhone(args.phone, "Phone");
 
     if (!args.name.trim()) {
       throw new Error("Name is required");
@@ -131,10 +128,9 @@ export const submitInquiry = mutation({
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(args.email)) {
-      throw new Error("Invalid email address");
-    }
+    // Validate email and phone using shared validation utility
+    assertValidEmail(args.email);
+    if (args.phone) assertValidPhone(args.phone, "Phone");
 
     if (!args.name.trim()) {
       throw new Error("Name is required");

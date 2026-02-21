@@ -34,6 +34,17 @@ export const create = mutation({
     notes: v.optional(v.string()),
     incidentId: v.optional(v.id("incidents")),
     incidentActionId: v.optional(v.id("incidentActions")),
+    // N5: Maintenance vs SDA Modification categorisation
+    maintenanceCategory: v.optional(v.union(
+      v.literal("routine_maintenance"),
+      v.literal("emergency_repair"),
+      v.literal("sda_modification"),
+      v.literal("cosmetic"),
+      v.literal("compliance_upgrade")
+    )),
+    sdaImpactAssessment: v.optional(v.string()),
+    affectsDesignCategory: v.optional(v.boolean()),
+    requiresAssessorReview: v.optional(v.boolean()),
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
@@ -66,6 +77,7 @@ export const create = mutation({
         category: args.category,
         priority: args.priority,
         requestType: args.requestType,
+        maintenanceCategory: args.maintenanceCategory,
       }),
     });
 
@@ -232,6 +244,7 @@ export const update = mutation({
   args: {
     userId: v.id("users"),
     requestId: v.id("maintenanceRequests"),
+    expectedUpdatedAt: v.optional(v.number()), // Optimistic concurrency check
     status: v.optional(
       v.union(
         v.literal("reported"),
@@ -265,9 +278,20 @@ export const update = mutation({
     completionNotes: v.optional(v.string()),
     warrantyPeriodMonths: v.optional(v.number()),
     notes: v.optional(v.string()),
+    // N5: Maintenance vs SDA Modification categorisation
+    maintenanceCategory: v.optional(v.union(
+      v.literal("routine_maintenance"),
+      v.literal("emergency_repair"),
+      v.literal("sda_modification"),
+      v.literal("cosmetic"),
+      v.literal("compliance_upgrade")
+    )),
+    sdaImpactAssessment: v.optional(v.string()),
+    affectsDesignCategory: v.optional(v.boolean()),
+    requiresAssessorReview: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { requestId, userId, ...updates } = args;
+    const { requestId, userId, expectedUpdatedAt, ...updates } = args;
 
     // Verify user has permission to update maintenance requests and get organizationId
     await requirePermission(ctx, userId, "maintenance", "update");
@@ -278,6 +302,11 @@ export const update = mutation({
     if (!request) throw new Error("Maintenance request not found");
     if (request.organizationId !== organizationId) {
       throw new Error("Access denied: Record belongs to different organization");
+    }
+
+    // Optimistic concurrency check
+    if (expectedUpdatedAt !== undefined && request.updatedAt !== expectedUpdatedAt) {
+      throw new Error("CONFLICT: This record was modified by another user. Please refresh and try again.");
     }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };

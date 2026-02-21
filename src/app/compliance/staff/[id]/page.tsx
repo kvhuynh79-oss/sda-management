@@ -8,6 +8,7 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import Link from "next/link";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatDate } from "@/utils/format";
 
@@ -523,13 +524,11 @@ function StaffDetailContent() {
       <Header currentPage="compliance" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ── Breadcrumb + Header ──────────────────────────────────── */}
-        <Link
-          href="/compliance/staff"
-          className="text-teal-500 hover:text-teal-400 text-sm mb-2 block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
-        >
-          &larr; Back to Staff Files
-        </Link>
+        <Breadcrumbs items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Staff Files", href: "/compliance/staff" },
+          { label: `${staffMember.firstName} ${staffMember.lastName}` },
+        ]} />
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>

@@ -202,6 +202,7 @@ export const update = mutation({
   args: {
     userId: v.id("users"),
     propertyId: v.id("properties"),
+    expectedUpdatedAt: v.optional(v.number()), // Optimistic concurrency check
     propertyName: v.optional(v.string()),
     addressLine1: v.optional(v.string()),
     addressLine2: v.optional(v.string()),
@@ -253,7 +254,7 @@ export const update = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { propertyId, userId, ...updates } = args;
+    const { propertyId, userId, expectedUpdatedAt, ...updates } = args;
 
     // Get tenant context for multi-tenant isolation
     const { organizationId } = await requireTenant(ctx, userId);
@@ -269,6 +270,11 @@ export const update = mutation({
     // Verify record belongs to user's organization
     if (property.organizationId !== organizationId) {
       throw new Error("Access denied: Property belongs to different organization");
+    }
+
+    // Optimistic concurrency check
+    if (expectedUpdatedAt !== undefined && property.updatedAt !== expectedUpdatedAt) {
+      throw new Error("CONFLICT: This record was modified by another user. Please refresh and try again.");
     }
 
     const filteredUpdates: Record<string, unknown> = { updatedAt: Date.now() };

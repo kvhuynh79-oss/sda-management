@@ -522,11 +522,20 @@ function ParticipantDetailsStep({
           <input
             type="text"
             value={data.ndisNumber}
-            onChange={(e) => setData({ ...data, ndisNumber: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value.replace(/[^\d\s]/g, "");
+              setData({ ...data, ndisNumber: val });
+            }}
             placeholder="e.g., 431234567"
             required
+            maxLength={11}
+            pattern="^4\d{8}$"
+            title="NDIS number must be exactly 9 digits starting with 4"
             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
           />
+          {data.ndisNumber && !/^4\d{8}$/.test(data.ndisNumber.replace(/\s/g, "")) && (
+            <p className="text-red-400 text-xs mt-1">NDIS number must be exactly 9 digits starting with 4</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

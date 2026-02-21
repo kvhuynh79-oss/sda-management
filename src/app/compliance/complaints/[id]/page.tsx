@@ -11,6 +11,7 @@ import { LoadingScreen } from "../../../../components/ui/LoadingScreen";
 import Badge from "../../../../components/ui/Badge";
 import SOP001Overlay from "../../../../components/compliance/SOP001Overlay";
 import Link from "next/link";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 
 // ---------------------------------------------------------------------------
 // Constants & helpers
@@ -668,15 +669,15 @@ function ComplaintDetailContent() {
       <Header currentPage="compliance" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Breadcrumbs items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Complaints", href: "/compliance/complaints" },
+          { label: complaint.referenceNumber || "Complaint Details" },
+        ]} />
+
         {/* Header row */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
           <div>
-            <Link
-              href="/compliance/complaints"
-              className="text-teal-500 hover:text-teal-400 text-sm mb-2 inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded"
-            >
-              &larr; Back to Complaints
-            </Link>
             <h1 className="text-2xl font-bold text-white">
               {complaint.referenceNumber || "Complaint Details"}
             </h1>

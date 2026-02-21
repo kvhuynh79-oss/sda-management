@@ -447,6 +447,7 @@ export const update = mutation({
   args: {
     userId: v.id("users"), // Required for audit logging
     participantId: v.id("participants"),
+    expectedUpdatedAt: v.optional(v.number()), // Optimistic concurrency check
     ndisNumber: v.optional(v.string()),
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
@@ -469,13 +470,18 @@ export const update = mutation({
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "participants", "update");
 
-    const { participantId, userId, ...updates } = args;
+    const { participantId, userId, expectedUpdatedAt, ...updates } = args;
     const participant = await ctx.db.get(participantId);
     if (!participant) throw new Error("Participant not found");
 
     // Verify record belongs to user's organization
     if (participant.organizationId !== organizationId) {
       throw new Error("Access denied: Participant belongs to different organization");
+    }
+
+    // Optimistic concurrency check
+    if (expectedUpdatedAt !== undefined && participant.updatedAt !== expectedUpdatedAt) {
+      throw new Error("CONFLICT: This record was modified by another user. Please refresh and try again.");
     }
 
     const oldDwellingId = participant.dwellingId;
@@ -487,9 +493,9 @@ export const update = mutation({
       }
     }
 
-    // Encrypt sensitive fields if they are being updated
+    // Validate and encrypt sensitive fields if they are being updated
     if (filteredUpdates.ndisNumber !== undefined) {
-      const plainNdis = filteredUpdates.ndisNumber as string;
+      const plainNdis = validateNdisNumber(filteredUpdates.ndisNumber as string);
       const newBlindIndex = await createBlindIndex(plainNdis);
       filteredUpdates.ndisNumber = await encryptField(plainNdis) ?? plainNdis;
       filteredUpdates.ndisNumberIndex = newBlindIndex ?? undefined;

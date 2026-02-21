@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import CommunicationsHistory from "@/components/CommunicationsHistory";
 import GlobalUploadModal from "@/components/GlobalUploadModal";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Badge from "@/components/ui/Badge";
 import { useConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -134,24 +135,11 @@ export default function PropertyDetailPage() {
       <Header currentPage="properties" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <nav className="mb-6">
-          <ol className="flex items-center gap-2 text-sm">
-            <li>
-              <Link href="/dashboard" className="text-gray-400 hover:text-white">
-                Dashboard
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li>
-              <Link href="/properties" className="text-gray-400 hover:text-white">
-                Properties
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li className="text-white">{property.propertyName || property.addressLine1}</li>
-          </ol>
-        </nav>
+        <Breadcrumbs items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Properties", href: "/properties" },
+          { label: property.propertyName || property.addressLine1 },
+        ]} />
 
         {/* Property Header */}
         <div className="bg-gray-800 rounded-lg p-6 mb-6">

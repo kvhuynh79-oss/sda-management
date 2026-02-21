@@ -25,7 +25,14 @@ export type AlertType =
   | "profile_incomplete"
   | "specialist_schedule_due"
   | "specialist_schedule_overdue"
-  | "inspection_upcoming";
+  | "inspection_upcoming"
+  | "rp_authorisation_expiring"
+  | "rp_review_overdue"
+  | "rp_unauthorised"
+  | "rp_ndis_report_overdue"
+  | "training_expiring"
+  | "training_expired"
+  | "training_mandatory_missing";
 
 export type AlertSeverity = "critical" | "warning" | "info";
 

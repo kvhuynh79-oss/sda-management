@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import CommunicationsHistory from "@/components/CommunicationsHistory";
@@ -236,26 +237,11 @@ export default function ParticipantDetailPage() {
       <Header currentPage="participants" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <nav className="mb-6">
-          <ol className="flex items-center gap-2 text-sm">
-            <li>
-              <Link href="/dashboard" className="text-gray-400 hover:text-white">
-                Dashboard
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li>
-              <Link href="/participants" className="text-gray-400 hover:text-white">
-                Participants
-              </Link>
-            </li>
-            <li className="text-gray-400">/</li>
-            <li className="text-white">
-              {participant.firstName} {participant.lastName}
-            </li>
-          </ol>
-        </nav>
+        <Breadcrumbs items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Participants", href: "/participants" },
+          { label: `${participant.firstName} ${participant.lastName}` },
+        ]} />
 
         {/* Participant Header */}
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
@@ -554,6 +540,9 @@ export default function ParticipantDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Restrictive Practices */}
+        <RestrictivePracticesSection participantId={participantId} userId={userIdTyped} />
 
         {/* Communications History */}
         <div className="mt-6">
@@ -1140,6 +1129,93 @@ function PaymentCard({ payment }: { payment: any }) {
         <span className="capitalize">{payment.paymentSource.replace(/_/g, " ")}</span>
         {payment.paymentReference && <span>Ref: {payment.paymentReference}</span>}
       </div>
+    </div>
+  );
+}
+
+function RestrictivePracticesSection({ participantId, userId }: { participantId: Id<"participants">; userId?: Id<"users"> }) {
+  const practices = useQuery(api.restrictivePractices.getByParticipant, userId ? { participantId, userId } : "skip");
+
+  const PRACTICE_TYPE_LABELS: Record<string, string> = {
+    chemical_restraint: "Chemical Restraint",
+    mechanical_restraint: "Mechanical Restraint",
+    physical_restraint: "Physical Restraint",
+    seclusion: "Seclusion",
+    environmental_restraint: "Environmental Restraint",
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    active: "bg-red-500/20 text-red-400",
+    under_review: "bg-yellow-500/20 text-yellow-400",
+    ceased: "bg-gray-500/20 text-gray-400",
+  };
+
+  if (practices === undefined) return null;
+
+  return (
+    <div className="mt-6 bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold text-white">Restrictive Practices</h2>
+        <Link
+          href={`/restrictive-practices/new?participantId=${participantId}`}
+          className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors text-sm"
+        >
+          + Register Practice
+        </Link>
+      </div>
+
+      {practices.length === 0 ? (
+        <div className="text-center py-6 text-gray-400">
+          <p className="text-sm">No restrictive practices registered for this participant.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {practices.map((practice) => (
+            <Link
+              key={practice._id}
+              href={`/restrictive-practices/${practice._id}`}
+              className="block bg-gray-700/50 rounded-lg p-4 hover:bg-gray-700 transition-colors border border-gray-600"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_COLORS[practice.status] || "bg-gray-500/20 text-gray-400"}`}>
+                    {practice.status.replace(/_/g, " ").toUpperCase()}
+                  </span>
+                  <span className="text-white font-medium">
+                    {PRACTICE_TYPE_LABELS[practice.practiceType] || practice.practiceType}
+                  </span>
+                </div>
+                {!practice.isAuthorised ? (
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-500/20 text-red-400">
+                    UNAUTHORISED
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500/20 text-green-400">
+                    AUTHORISED
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-300 text-sm line-clamp-2">{practice.description}</p>
+              {practice.nextReviewDate && (
+                <p className="text-gray-400 text-xs mt-2">
+                  Next review: {practice.nextReviewDate}
+                  {practice.nextReviewDate < new Date().toISOString().split("T")[0] && (
+                    <span className="text-red-400 ml-2">(OVERDUE)</span>
+                  )}
+                </p>
+              )}
+            </Link>
+          ))}
+          {practices.length > 0 && (
+            <Link
+              href={`/restrictive-practices?participantId=${participantId}`}
+              className="text-teal-400 hover:text-teal-300 text-sm inline-block mt-2"
+            >
+              View all restrictive practices for this participant →
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }

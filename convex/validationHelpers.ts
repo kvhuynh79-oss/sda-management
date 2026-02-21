@@ -82,14 +82,32 @@ export function validateOptionalPhone(phone: unknown, fieldName: string = "phone
   return cleaned;
 }
 
-// Validate NDIS number (format: XXX XXX XXX or XXXXXXXXX)
+// Validate NDIS number (format: exactly 9 digits starting with 4, e.g. 430000001)
 export function validateNdisNumber(ndisNumber: string, fieldName: string = "NDIS number"): string {
   const validated = validateRequiredString(ndisNumber, fieldName);
   // Remove spaces
   const cleaned = validated.replace(/\s/g, "");
-  // Must be 9 digits
-  if (!/^\d{9}$/.test(cleaned)) {
-    throw new ValidationError(`${fieldName} must be 9 digits`, fieldName);
+  // Must be exactly 9 digits starting with 4
+  if (!/^4\d{8}$/.test(cleaned)) {
+    throw new ValidationError(
+      `${fieldName} must be exactly 9 digits starting with 4 (e.g. 430000001)`,
+      fieldName
+    );
+  }
+  return cleaned;
+}
+
+// Validate optional NDIS number (returns undefined if empty, validates format if provided)
+export function validateOptionalNdisNumber(ndisNumber: unknown, fieldName: string = "NDIS number"): string | undefined {
+  const validated = validateOptionalString(ndisNumber, fieldName);
+  if (!validated) return undefined;
+  const cleaned = validated.replace(/\s/g, "");
+  if (cleaned.length === 0) return undefined;
+  if (!/^4\d{8}$/.test(cleaned)) {
+    throw new ValidationError(
+      `${fieldName} must be exactly 9 digits starting with 4 (e.g. 430000001)`,
+      fieldName
+    );
   }
   return cleaned;
 }

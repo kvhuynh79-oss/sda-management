@@ -224,10 +224,24 @@ const NAV_CLUSTERS: NavCluster[] = [
         pageKeys: ["compliance"],
       },
       {
+        href: "/restrictive-practices",
+        label: "Restrictive Practices",
+        description: "Restrictive practices register and reviews",
+        icon: <ShieldCheck className="w-5 h-5 text-gray-400" aria-hidden="true" />,
+        pageKeys: ["compliance"],
+      },
+      {
         href: "/compliance/staff",
         label: "Staff Files",
         description: "Staff records and screening compliance",
         icon: <UserCheck className="w-5 h-5 text-gray-400" aria-hidden="true" />,
+        pageKeys: ["compliance"],
+      },
+      {
+        href: "/compliance/staff/training-matrix",
+        label: "Training Matrix",
+        description: "Staff training compliance overview",
+        icon: <ClipboardCheck className="w-5 h-5 text-gray-400" aria-hidden="true" />,
         pageKeys: ["compliance"],
       },
       {

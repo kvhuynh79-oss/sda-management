@@ -3,9 +3,12 @@ import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
 /**
- * Session-Token Authentication Middleware for Widget API
+ * Session-Token Authentication Middleware for Widget API (S11 Updated)
  *
- * Validates session tokens from the Authorization header (Bearer token).
+ * Validates session tokens from EITHER:
+ * 1. HttpOnly cookie "sda_session" (preferred, S11 secure method)
+ * 2. Authorization header Bearer token (legacy fallback, deprecated)
+ *
  * Unlike the API key auth (auth.ts), this authenticates end users via their
  * session tokens (stored as sda_session_token on the client).
  *
@@ -20,6 +23,8 @@ import { Id } from "../../../../../convex/_generated/dataModel";
  * // auth.userId, auth.organizationId now available
  * ```
  */
+
+const SESSION_COOKIE_NAME = "sda_session";
 
 // Lazy-initialize ConvexHttpClient to avoid build-time errors
 // when environment variables are not yet set.
@@ -53,10 +58,52 @@ export interface SessionAuthError {
 }
 
 /**
- * Authenticate an incoming request using a session Bearer token.
+ * Extract session token from request.
  *
- * Extracts the session token from the Authorization header, validates it
- * against Convex, and returns the user and organization context on success.
+ * Priority:
+ * 1. HttpOnly cookie "sda_session" (S11 - preferred)
+ * 2. Authorization: Bearer <token> header (legacy, with deprecation warning)
+ *
+ * @returns The token string, or null if not found
+ */
+function extractSessionToken(request: Request): { token: string; source: "cookie" | "header" } | null {
+  // 1. Check HttpOnly cookie first (S11)
+  const cookieHeader = request.headers.get("cookie");
+  if (cookieHeader) {
+    const cookies = cookieHeader.split(";").map(c => c.trim());
+    for (const cookie of cookies) {
+      if (cookie.startsWith(`${SESSION_COOKIE_NAME}=`)) {
+        const token = cookie.slice(SESSION_COOKIE_NAME.length + 1).trim();
+        if (token) {
+          return { token, source: "cookie" };
+        }
+      }
+    }
+  }
+
+  // 2. Fall back to Authorization header (legacy)
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7).trim();
+    if (token) {
+      console.warn(
+        "[SESSION-AUTH] DEPRECATION WARNING: Using Authorization header for session auth. " +
+        "Migrate to HttpOnly cookie-based auth (S11). Header-based session auth will be " +
+        "removed in a future release."
+      );
+      return { token, source: "header" };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Authenticate an incoming request using a session token.
+ *
+ * Extracts the session token from cookies (preferred) or Authorization header
+ * (legacy fallback), validates it against Convex, and returns the user and
+ * organization context on success.
  *
  * @param request - The incoming Next.js request
  * @returns Either a SessionAuthSuccess or SessionAuthError
@@ -64,23 +111,16 @@ export interface SessionAuthError {
 export async function authenticateSessionRequest(
   request: Request
 ): Promise<SessionAuthSuccess | SessionAuthError> {
-  const authHeader = request.headers.get("Authorization");
+  const extracted = extractSessionToken(request);
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!extracted) {
     return {
-      error: "Missing or invalid Authorization header. Expected: Bearer <session_token>",
+      error: "Missing session token. Provide via HttpOnly cookie or Authorization: Bearer <session_token> header.",
       status: 401,
     };
   }
 
-  const token = authHeader.slice(7).trim();
-
-  if (!token) {
-    return {
-      error: "Session token is empty",
-      status: 401,
-    };
-  }
+  const { token } = extracted;
 
   try {
     const convex = getConvex();

@@ -495,12 +495,19 @@ export default function EditParticipantPage() {
                   <input
                     type="text"
                     value={participantData.ndisNumber}
-                    onChange={(e) =>
-                      setParticipantData({ ...participantData, ndisNumber: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^\d\s]/g, "");
+                      setParticipantData({ ...participantData, ndisNumber: val });
+                    }}
                     placeholder="e.g. 431234567"
+                    maxLength={11}
+                    pattern="^4\d{8}$"
+                    title="NDIS number must be exactly 9 digits starting with 4"
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                   />
+                  {participantData.ndisNumber && !/^4\d{8}$/.test(participantData.ndisNumber.replace(/\s/g, "")) && (
+                    <p className="text-red-400 text-xs mt-1">NDIS number must be exactly 9 digits starting with 4</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-gray-300 text-sm mb-1">Date of Birth</label>

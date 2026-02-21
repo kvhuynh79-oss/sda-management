@@ -95,13 +95,21 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:text-black focus:p-2 focus:rounded focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         <ConvexClientProvider>
           <OrganizationProvider>
             <ThemeProvider>
               <ToastProvider>
                 <ConfirmDialogProvider>
                   <CommandPalette />
-                  {children}
+                  <div id="main-content">
+                    {children}
+                  </div>
                   <SupportButton />
                 </ConfirmDialogProvider>
               </ToastProvider>

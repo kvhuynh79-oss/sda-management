@@ -9,6 +9,7 @@ import Header from "../../../components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import CommunicationsHistory from "../../../components/CommunicationsHistory";
 import Link from "next/link";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 
 const SPECIALTY_LABELS: Record<string, string> = {
   plumbing: "Plumbing",
@@ -118,15 +119,11 @@ export default function ContractorDetailPage() {
       <Header currentPage="contractors" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <div className="mb-6">
-          <Link
-            href="/contractors"
-            className="text-teal-500 hover:text-teal-400"
-          >
-            &larr; Back to Contractors
-          </Link>
-        </div>
+        <Breadcrumbs items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Contractors", href: "/contractors" },
+          { label: contractor.companyName },
+        ]} />
 
         {/* Contractor Header */}
         <div className="bg-gray-800 rounded-lg p-6 mb-6">

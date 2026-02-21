@@ -110,7 +110,6 @@ export default function ParticipantDetailPage() {
       await moveInMutation({ userId: user.id as Id<"users">, participantId, moveInDate });
       setShowMoveInModal(false);
     } catch (error) {
-      console.error("Error moving in participant:", error);
       await alertDialog("Failed to move in participant. Please try again.");
     } finally {
       setIsMovingIn(false);
@@ -124,7 +123,6 @@ export default function ParticipantDetailPage() {
       await revertToPendingMutation({ userId: user.id as Id<"users">, participantId });
       setShowRevertModal(false);
     } catch (error) {
-      console.error("Error reverting participant:", error);
       await alertDialog("Failed to revert participant status. Please try again.");
     } finally {
       setIsReverting(false);
@@ -180,7 +178,6 @@ export default function ParticipantDetailPage() {
       setShowConsentForm(false);
       setConsentNotes("");
     } catch (error) {
-      console.error("Error recording consent:", error);
       await alertDialog("Failed to record consent. Please try again.");
     } finally {
       setIsRecordingConsent(false);
@@ -200,7 +197,6 @@ export default function ParticipantDetailPage() {
       setShowConsentForm(false);
       setConsentNotes("");
     } catch (error) {
-      console.error("Error renewing consent:", error);
       await alertDialog("Failed to renew consent. Please try again.");
     } finally {
       setIsRecordingConsent(false);
@@ -228,7 +224,6 @@ export default function ParticipantDetailPage() {
         reason: "Consent withdrawn at participant request",
       });
     } catch (error) {
-      console.error("Error withdrawing consent:", error);
       await alertDialog("Failed to withdraw consent. Please try again.");
     } finally {
       setIsWithdrawingConsent(false);
@@ -846,7 +841,6 @@ function RelatedDocuments({
     try {
       await onDelete(docId);
     } catch (error) {
-      console.error("Error deleting document:", error);
     } finally {
       setDeletingId(null);
     }
@@ -1020,7 +1014,7 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
 
   return (
     <div className={compact ? "space-y-2" : "space-y-4"}>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <p className="text-gray-400 text-xs">Plan Period</p>
           <p className="text-white text-sm">
@@ -1067,7 +1061,7 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
             <div>
               <p className="text-gray-400 text-xs">Design Category</p>
               <p className="text-white text-sm">{formatCategory(plan.sdaDesignCategory)}</p>
@@ -1080,7 +1074,7 @@ function PlanCard({ plan, compact = false }: { plan: any; compact?: boolean }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
             <div>
               <p className="text-gray-400 text-xs">Funding Management</p>
               <p className="text-white text-sm capitalize">

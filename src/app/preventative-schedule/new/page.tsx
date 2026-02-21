@@ -86,7 +86,6 @@ export default function NewPreventativeSchedulePage() {
 
       router.push("/preventative-schedule");
     } catch (err) {
-      console.error("Failed to create preventative schedule:", err);
       await alertDialog("Failed to create preventative schedule. Please try again.");
     }
   };

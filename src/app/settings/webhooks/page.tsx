@@ -242,7 +242,6 @@ function WebhooksContent() {
       setFormEvents([]);
       setView("list");
     } catch (error) {
-      console.error("Error creating webhook:", error);
       setCreateError(
         error instanceof Error ? error.message : "Failed to create webhook."
       );
@@ -275,7 +274,6 @@ function WebhooksContent() {
         isActive: !webhook.isActive,
       });
     } catch (error) {
-      console.error("Error toggling webhook:", error);
       await alertDialog({
         title: "Error",
         message: "Failed to update webhook. Please try again.",
@@ -305,7 +303,6 @@ function WebhooksContent() {
         setView("list");
       }
     } catch (error) {
-      console.error("Error deleting webhook:", error);
       await alertDialog({
         title: "Error",
         message: "Failed to delete webhook. Please try again.",
@@ -326,7 +323,6 @@ function WebhooksContent() {
       });
       setTestResult(result);
     } catch (error) {
-      console.error("Error testing webhook:", error);
       setTestResult({
         success: false,
         error: error instanceof Error ? error.message : "Test failed.",

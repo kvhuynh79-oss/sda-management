@@ -162,7 +162,7 @@ export default function OwnerDistributionsPage() {
                   </h4>
 
                   {/* Participants Table */}
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto"><table className="w-full text-sm">
                     <thead>
                       <tr className="text-gray-400 border-b border-gray-600">
                         <th className="text-left py-2">Participant</th>
@@ -225,7 +225,7 @@ export default function OwnerDistributionsPage() {
                         </td>
                       </tr>
                     </tfoot>
-                  </table>
+                  </table></div>
                 </div>
               </div>
             ))}

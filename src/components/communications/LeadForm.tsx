@@ -659,7 +659,6 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
                   uploadedBy: userId as Id<"users">,
                 });
               } catch (err) {
-                console.error("Failed to link document:", pf.file.name, err);
               }
             }
           }
@@ -673,7 +672,6 @@ export function LeadForm({ userId, isOpen, onClose, editLead, onSubmit }: LeadFo
         setPendingFiles([]);
         setUploadError(null);
       } catch (error) {
-        console.error("Failed to save lead:", error);
       } finally {
         setIsSubmitting(false);
       }

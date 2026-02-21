@@ -106,6 +106,14 @@ crons.daily(
 // BILLING & SUBSCRIPTION CRON JOBS (B3 + B5 FIX)
 // ============================================
 
+// B4 FIX: Check and escalate grace periods for past_due subscriptions
+// Days 1-7: full access, Days 8-14: read-only, Days 15+: suspended
+crons.daily(
+  "check-grace-periods",
+  { hourUTC: 3, minuteUTC: 30 },
+  internal.stripe.checkGracePeriods
+);
+
 // Clean up old Stripe webhook event records (older than 30 days)
 // Prevents the idempotency table from growing indefinitely
 crons.daily(
@@ -140,6 +148,25 @@ crons.interval(
   "sync-outlook-calendars",
   { minutes: 15 },
   internal.outlookCalendar.syncAllOutlookConnections
+);
+
+// ============================================
+// DATA RETENTION CRON JOBS
+// ============================================
+
+// Cleanup expired participant archives (past 7-year NDIS retention period)
+// Two-phase: first marks as "expired", next cycle permanently deletes
+crons.daily(
+  "cleanup-expired-participant-archives",
+  { hourUTC: 5, minuteUTC: 0 },
+  internal.participants.cleanupExpiredArchives
+);
+
+// Check for overdue NDIS incident notifications hourly
+crons.interval(
+  "check-overdue-ndis-notifications",
+  { hours: 1 },
+  internal.incidents.checkOverdueNdisNotificationsInternal
 );
 
 export default crons;

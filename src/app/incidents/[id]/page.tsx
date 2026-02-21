@@ -393,6 +393,53 @@ export default function IncidentDetailPage() {
           </div>
         )}
 
+        {/* NDIS Notification Enforcement Banner (N9) - top-of-page warning */}
+        {incident && (incident as any).ndisNotificationStatus === "required_pending" && (
+          <div className="mb-6 p-4 bg-yellow-900/50 border-2 border-yellow-600 rounded-lg">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                <div>
+                  <p className="text-yellow-200 font-semibold">NDIS notification required by {(incident as any).ndisNotificationDueDate || "N/A"}</p>
+                  <p className="text-yellow-300 text-sm">
+                    {(incident as any).ndisNotificationTimeframe === "24_hours" ? "24-hour" : "5-business-day"} notification deadline.
+                    Report to the NDIS Commission portal, then mark as submitted below.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowNdisNotifyModal(true)}
+                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                Mark as Submitted
+              </button>
+            </div>
+          </div>
+        )}
+
+        {incident && (incident as any).ndisNotificationStatus === "overdue" && (
+          <div className="mb-6 p-4 bg-red-900/50 border-2 border-red-600 rounded-lg ring-2 ring-red-500/40">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                <div>
+                  <p className="text-red-200 font-semibold">NDIS notification OVERDUE -- was due {(incident as any).ndisNotificationDueDate || "N/A"}</p>
+                  <p className="text-red-300 text-sm">
+                    This {(incident as any).ndisNotificationTimeframe === "24_hours" ? "24-hour" : "5-business-day"} notification has passed its deadline.
+                    Submit to the NDIS Commission immediately and mark as submitted.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowNdisNotifyModal(true)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                Mark as Submitted
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-gray-800 rounded-lg p-4 sm:p-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
@@ -471,7 +518,7 @@ export default function IncidentDetailPage() {
 
           {/* Location */}
           <div className="mb-6 p-4 bg-gray-700/50 rounded-lg">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-gray-400 text-sm">Property</p>
                 <p className="text-white">
@@ -497,7 +544,7 @@ export default function IncidentDetailPage() {
 
           {/* Status & Severity (Edit Mode) */}
           {isEditing && (
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
                 <select
@@ -616,7 +663,7 @@ export default function IncidentDetailPage() {
           {/* Follow-up */}
           <div className="border-t border-gray-700 pt-6 mb-6">
             <h3 className="text-lg font-semibold text-white mb-4">Follow-up</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-gray-400 text-sm">Follow-up Required</p>
                 {isEditing ? (
@@ -1130,7 +1177,7 @@ export default function IncidentDetailPage() {
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm text-gray-300 mb-1">Category *</label>
                     <select

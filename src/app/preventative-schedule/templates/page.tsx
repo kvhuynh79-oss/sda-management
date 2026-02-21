@@ -204,7 +204,6 @@ export default function ScheduleTemplatesPage() {
       );
       router.push("/preventative-schedule");
     } catch (err) {
-      console.error("Failed to apply templates:", err);
       await alertDialog("Failed to apply templates. Please try again.");
     }
   };

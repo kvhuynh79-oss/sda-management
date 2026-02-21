@@ -41,6 +41,10 @@ export default defineSchema({
     mfaBackupCodes: v.optional(v.array(v.string())), // Hashed backup codes
     mfaFailedAttempts: v.optional(v.number()), // Rate limiting: failed TOTP attempts
     mfaLockedUntil: v.optional(v.string()), // Rate limiting: lockout expiry ISO date
+    // S13: Backup code specific rate limiting
+    mfaBackupCodeAttempts: v.optional(v.number()), // Failed backup code attempts
+    mfaBackupCodeLockedUntil: v.optional(v.number()), // Backup code lockout expiry (ms)
+    lastMfaBackupCodeAttempt: v.optional(v.number()), // Timestamp of last backup attempt
     // Login rate limiting fields
     loginFailedAttempts: v.optional(v.number()), // Failed password attempts
     loginLockedUntil: v.optional(v.number()), // Lockout expiry timestamp (ms)
@@ -101,6 +105,11 @@ export default defineSchema({
       complianceRegion: v.optional(v.string()), // "AU-NSW", "AU-VIC", etc.
       onboardingComplete: v.optional(v.string()), // "true" when onboarding wizard finished
     })),
+    // Grace period tracking (B4 FIX)
+    pastDueSince: v.optional(v.string()), // ISO timestamp when subscription became past_due
+    accessLevel: v.optional(v.union(v.literal("full"), v.literal("read_only"), v.literal("suspended"))), // Current access level based on grace period
+    // Over plan limits flag (B9 FIX)
+    overPlanLimits: v.optional(v.boolean()), // True if org exceeds current plan limits after downgrade
     createdAt: v.number(),
     isActive: v.boolean(),       // Organization active status
     trialEndsAt: v.optional(v.number()), // Trial expiry timestamp (ms) - set by super-admin
@@ -446,6 +455,7 @@ export default defineSchema({
     paymentReference: v.optional(v.string()),
     notes: v.optional(v.string()),
     createdBy: v.id("users"),
+    idempotencyKey: v.optional(v.string()), // Dedup key: orgId_participantId_type_date_amount
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -453,6 +463,7 @@ export default defineSchema({
     .index("by_plan", ["planId"])
     .index("by_date", ["paymentDate"])
     .index("by_participant_date", ["participantId", "paymentDate"])
+    .index("by_idempotencyKey", ["idempotencyKey"])
     .index("by_organizationId", ["organizationId"]),
 
   // Claims table - SDA funding claims tracking
@@ -545,12 +556,14 @@ export default defineSchema({
     notes: v.optional(v.string()),
 
     createdBy: v.optional(v.id("users")),
+    idempotencyKey: v.optional(v.string()), // Dedup key: orgId_participantId_periodStart_periodEnd_amount
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_participant", ["participantId"])
     .index("by_status", ["status"])
     .index("by_invoiceNumber", ["invoiceNumber"])
+    .index("by_idempotencyKey", ["idempotencyKey"])
     .index("by_organizationId", ["organizationId"])
     .index("by_participant_agreement", ["participantId", "mtaAgreementStart"]),
 
@@ -986,6 +999,14 @@ export default defineSchema({
     ndisCommissionReferenceNumber: v.optional(v.string()), // Commission reference number
     ndisNotificationDueDate: v.optional(v.string()), // When notification is due
     ndisNotificationOverdue: v.optional(v.boolean()), // Is notification overdue?
+    // NDIS notification enforcement fields (N9)
+    ndisNotificationStatus: v.optional(v.union(
+      v.literal("not_required"),
+      v.literal("required_pending"),
+      v.literal("submitted"),
+      v.literal("overdue")
+    )),
+    ndisNotificationSubmittedAt: v.optional(v.string()), // ISO timestamp of actual submission
     title: v.string(),
     description: v.string(),
     incidentDate: v.string(),
@@ -1015,6 +1036,7 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_severity", ["severity"])
     .index("by_isNdisReportable", ["isNdisReportable"])
+    .index("by_ndisNotificationStatus", ["ndisNotificationStatus"])
     .index("by_property_status", ["propertyId", "status"])
     .index("by_property_severity", ["propertyId", "severity"])
     .index("by_organizationId", ["organizationId"]),
@@ -2044,10 +2066,19 @@ export default defineSchema({
     advocacyOffered: v.optional(v.boolean()),
     advocacyAccepted: v.optional(v.boolean()),
     advocacyProvider: v.optional(v.string()), // e.g., "Disability Advocacy NSW"
-    // Escalation
+    // Escalation tracking (N10 - NDIS compliance)
     escalatedToNdisCommission: v.optional(v.boolean()),
+    escalatedToNDIS: v.optional(v.boolean()), // Alias for explicit tracking
+    ndisEscalationDate: v.optional(v.string()),
+    ndisReferenceNumber: v.optional(v.string()), // NDIS Commission reference number
     escalationDate: v.optional(v.string()),
     escalationReason: v.optional(v.string()),
+    escalationStatus: v.optional(v.union(
+      v.literal("not_escalated"),
+      v.literal("pending_escalation"),
+      v.literal("escalated"),
+      v.literal("resolved_by_ndis")
+    )),
     // Status
     status: v.union(
       v.literal("received"),
@@ -2947,4 +2978,19 @@ export default defineSchema({
     .index("by_channel", ["acquisitionChannel"])
     .index("by_plan", ["currentPlan"])
     .index("by_organizationId", ["organizationId"]),
+
+  // Participant Archives table - stores pseudonymised personal data after consent withdrawal (APP-3 compliance)
+  participantArchives: defineTable({
+    organizationId: v.id("organizations"),
+    originalParticipantId: v.id("participants"),
+    encryptedData: v.string(), // JSON string of all encrypted personal data
+    archivedAt: v.string(), // ISO timestamp
+    archivedBy: v.id("users"),
+    withdrawalReason: v.optional(v.string()),
+    retentionExpiresAt: v.string(), // 7 years from archive date (NDIS record-keeping)
+    status: v.union(v.literal("archived"), v.literal("expired"), v.literal("deleted")),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_retentionExpiry", ["retentionExpiresAt"])
+    .index("by_originalParticipant", ["originalParticipantId"]),
 });

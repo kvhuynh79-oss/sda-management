@@ -255,7 +255,6 @@ export default function MaintenanceRequestDetailPage() {
               uploadedBy: user.id as Id<"users">,
             });
           } catch (mediaErr) {
-            console.error("Failed to upload media:", mediaErr);
           }
         }
         setPendingMedia([]);

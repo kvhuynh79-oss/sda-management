@@ -610,7 +610,6 @@ function ClaimsTab({ userId }: { userId: string }) {
       setShowMarkSubmittedModal(false);
       setSelectedClaim(null);
     } catch (error) {
-      console.error("Error marking submitted:", error);
       await alertDialog("Failed to mark claim as submitted");
     }
   };
@@ -623,7 +622,6 @@ function ClaimsTab({ userId }: { userId: string }) {
       setShowMarkPaidModal(false);
       setSelectedClaim(null);
     } catch (error) {
-      console.error("Error marking paid:", error);
       await alertDialog("Failed to mark claim as paid");
     }
   };
@@ -635,7 +633,6 @@ function ClaimsTab({ userId }: { userId: string }) {
       setShowRejectModal(false);
       setSelectedClaim(null);
     } catch (error) {
-      console.error("Error rejecting claim:", error);
       await alertDialog("Failed to reject claim");
     }
   };
@@ -645,7 +642,6 @@ function ClaimsTab({ userId }: { userId: string }) {
     try {
       await revertToPending({ claimId, userId: userId as Id<"users"> });
     } catch (error) {
-      console.error("Error reverting claim:", error);
       await alertDialog("Failed to revert claim to pending");
     }
   };
@@ -665,7 +661,6 @@ function ClaimsTab({ userId }: { userId: string }) {
       });
       await alertDialog("Claim created and marked as submitted!");
     } catch (error) {
-      console.error("Error creating claim:", error);
       await alertDialog("Failed to create claim");
     }
   };
@@ -743,7 +738,6 @@ function ClaimsTab({ userId }: { userId: string }) {
         amountDue: claim.expectedAmount,
       });
     } catch (error) {
-      console.error("Error generating SDA invoice:", error);
       await alertDialog(`Failed to generate invoice: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
@@ -757,7 +751,6 @@ function ClaimsTab({ userId }: { userId: string }) {
       }
       await alertDialog(`Generated ${generated} invoice(s)`);
     } catch (error) {
-      console.error("Error generating bulk invoices:", error);
       await alertDialog(`Failed to generate invoices: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
@@ -1290,7 +1283,7 @@ function PaymentsTab({ userId }: { userId: string }) {
           <p className="text-gray-400">No payments found</p>
         </div>
       ) : (
-        <div className="bg-gray-800 rounded-lg overflow-hidden">
+        <div className="bg-gray-800 rounded-lg overflow-hidden overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-700">
               <tr>
@@ -1770,7 +1763,6 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
       const fileName = `SDA_Rental_Statement_-_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toLocaleDateString("en-AU").replace(/\//g, "-")}.pdf`;
       doc.save(fileName);
     } catch (error) {
-      console.error("Error generating statement:", error);
       await alertDialog(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
@@ -2057,7 +2049,6 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
       const fileName = `SDA_Rental_Statement_-_${propertyName.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toLocaleDateString("en-AU").replace(/\//g, "-")}.pdf`;
       doc.save(fileName);
     } catch (error) {
-      console.error("Error generating statement:", error);
       await alertDialog(`Failed to generate statement: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
@@ -2216,7 +2207,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
                   </div>
                 </div>
                 {isExpanded && (
-                  <table className="w-full">
+                  <div className="overflow-x-auto"><table className="w-full">
                     <thead className="bg-gray-700">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
@@ -2237,7 +2228,7 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 )}
               </div>
             );
@@ -2338,7 +2329,6 @@ function OwnerPaymentsTab({ userId }: { userId: string }) {
               });
               setShowAddPaymentModal(false);
             } catch (error) {
-              console.error("Error creating payment:", error);
               await alertDialog("Failed to create payment");
             }
           }}
@@ -2624,7 +2614,6 @@ function MtaClaimsTab({ userId }: { userId: string }) {
       setShowMarkSubmittedModal(false);
       setSelectedMtaClaim(null);
     } catch (error) {
-      console.error("Error marking MTA submitted:", error);
       await alertDialog("Failed to mark claim as submitted");
     }
   };
@@ -2635,7 +2624,6 @@ function MtaClaimsTab({ userId }: { userId: string }) {
       setShowMarkPaidModal(false);
       setSelectedMtaClaim(null);
     } catch (error) {
-      console.error("Error marking MTA paid:", error);
       await alertDialog("Failed to mark claim as paid");
     }
   };
@@ -2646,7 +2634,6 @@ function MtaClaimsTab({ userId }: { userId: string }) {
       setShowRejectModal(false);
       setSelectedMtaClaim(null);
     } catch (error) {
-      console.error("Error rejecting MTA claim:", error);
       await alertDialog("Failed to reject claim");
     }
   };
@@ -2655,7 +2642,6 @@ function MtaClaimsTab({ userId }: { userId: string }) {
     try {
       await mtaRevertToPending({ userId: userId as Id<"users">, claimId });
     } catch (error) {
-      console.error("Error reverting MTA claim:", error);
       await alertDialog("Failed to revert claim to pending");
     }
   };
@@ -2671,7 +2657,6 @@ function MtaClaimsTab({ userId }: { userId: string }) {
       try {
         await removeMtaClaim({ userId: userId as Id<"users">, claimId });
       } catch (error) {
-        console.error("Error deleting MTA claim:", error);
         await alertDialog("Failed to delete MTA claim");
       }
     }
@@ -2743,7 +2728,6 @@ function MtaClaimsTab({ userId }: { userId: string }) {
         amountDue: claim.claimAmount,
       });
     } catch (error) {
-      console.error("Error generating MTA invoice:", error);
       await alertDialog(`Failed to generate invoice: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
@@ -3211,7 +3195,6 @@ function CreateMtaClaimModal({
       });
       onCreated(1);
     } catch (error) {
-      console.error("Error creating MTA claim:", error);
       await alertDialog(`Failed to create claim: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
@@ -3240,7 +3223,6 @@ function CreateMtaClaimModal({
       }
       onCreated(result.created);
     } catch (error) {
-      console.error("Error bulk creating MTA claims:", error);
       await alertDialog(`Failed to generate claims: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsSubmitting(false);

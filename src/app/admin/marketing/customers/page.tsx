@@ -293,7 +293,6 @@ function CustomersContent() {
       setShowForm(false);
       resetForm();
     } catch (err) {
-      console.error("Failed to save customer:", err);
     } finally {
       setSaving(false);
     }
@@ -306,7 +305,6 @@ function CustomersContent() {
     try {
       await deleteCustomer({ userId, customerId });
     } catch (err) {
-      console.error("Failed to delete customer:", err);
     }
   }
 

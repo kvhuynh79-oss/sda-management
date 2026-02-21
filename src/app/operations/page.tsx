@@ -447,7 +447,6 @@ function InspectionsTab({ userId }: { userId: string }) {
       await seedBLSTemplate({ createdBy: userId as Id<"users"> });
       await alertDialog({ title: "Notice", message: "BLS Template created successfully!" });
     } catch (error) {
-      console.error("Error seeding template:", error);
       await alertDialog({ title: "Error", message: "Error creating template. It may already exist." });
     }
   };
@@ -459,7 +458,6 @@ function InspectionsTab({ userId }: { userId: string }) {
       await deleteInspection({ userId: userId as Id<"users">, inspectionId: deleteConfirm.id });
       setDeleteConfirm(null);
     } catch (error) {
-      console.error("Error deleting inspection:", error);
       await alertDialog({ title: "Error", message: "Error deleting inspection." });
     } finally {
       setIsDeleting(false);
@@ -642,7 +640,6 @@ function ScheduleTab({ userId }: { userId: string }) {
         createMaintenanceRecord: true,
       });
     } catch (err) {
-      console.error("Failed to complete schedule:", err);
       await alertDialog({ title: "Error", message: "Failed to mark schedule as completed." });
     }
   };
@@ -653,7 +650,6 @@ function ScheduleTab({ userId }: { userId: string }) {
     try {
       await removeSchedule({ userId: userId as Id<"users">, scheduleId });
     } catch (err) {
-      console.error("Failed to delete schedule:", err);
       await alertDialog({ title: "Error", message: "Failed to delete schedule." });
     }
   };

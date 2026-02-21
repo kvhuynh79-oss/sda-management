@@ -147,7 +147,6 @@ function ApiKeysContent() {
       setSelectedPermissions([]);
       setRateLimit(100);
     } catch (error) {
-      console.error("Error creating API key:", error);
       setCreateError(
         error instanceof Error ? error.message : "Failed to create API key."
       );
@@ -174,7 +173,6 @@ function ApiKeysContent() {
         keyId,
       });
     } catch (error) {
-      console.error("Error revoking API key:", error);
       await alertDialog({
         title: "Error",
         message: "Failed to revoke API key. Please try again.",

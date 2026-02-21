@@ -680,7 +680,6 @@ function OrganizationDetailContent() {
         isActive: !org.isActive,
       });
     } catch (err) {
-      console.error("Failed to toggle org status:", err);
     } finally {
       setActionLoading(null);
     }
@@ -699,7 +698,6 @@ function OrganizationDetailContent() {
         });
         setShowAdjustLimits(false);
       } catch (err) {
-        console.error("Failed to adjust limits:", err);
       } finally {
         setActionLoading(null);
       }
@@ -719,7 +717,6 @@ function OrganizationDetailContent() {
         });
         setShowExtendTrial(false);
       } catch (err) {
-        console.error("Failed to extend trial:", err);
       } finally {
         setActionLoading(null);
       }
@@ -737,7 +734,6 @@ function OrganizationDetailContent() {
       });
       setImpersonationData(data);
     } catch (err) {
-      console.error("Failed to impersonate:", err);
     } finally {
       setIsImpersonating(false);
     }
@@ -755,7 +751,6 @@ function OrganizationDetailContent() {
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2000);
     } catch (err) {
-      console.error("Failed to save notes:", err);
     } finally {
       setNotesSaving(false);
     }

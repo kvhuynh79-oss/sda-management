@@ -52,7 +52,6 @@ export default function PreventativeSchedulePage() {
         createMaintenanceRecord: true,
       });
     } catch (err) {
-      console.error("Failed to complete schedule:", err);
       await alertDialog("Failed to mark schedule as completed");
     }
   };
@@ -68,7 +67,6 @@ export default function PreventativeSchedulePage() {
     try {
       await removeSchedule({ userId: user!.id as Id<"users">, scheduleId });
     } catch (err) {
-      console.error("Failed to delete schedule:", err);
       await alertDialog("Failed to delete schedule");
     }
   };
@@ -389,7 +387,7 @@ function ScheduleCard({
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
         <div>
           <p className="text-gray-400 text-xs">Next Due</p>
           <p className="text-white">{schedule.nextDueDate}</p>

@@ -60,7 +60,6 @@ export default function AlertsPage() {
     try {
       await acknowledgeAlert({ alertId, userId: user.id as Id<"users"> });
     } catch (err) {
-      console.error("Failed to acknowledge alert:", err);
     }
   };
 
@@ -69,7 +68,6 @@ export default function AlertsPage() {
     try {
       await resolveAlert({ alertId, userId: user.id as Id<"users"> });
     } catch (err) {
-      console.error("Failed to resolve alert:", err);
     }
   };
 
@@ -78,7 +76,6 @@ export default function AlertsPage() {
     try {
       await dismissAlert({ alertId, userId: user.id as Id<"users"> });
     } catch (err) {
-      console.error("Failed to dismiss alert:", err);
     }
   };
 
@@ -87,7 +84,6 @@ export default function AlertsPage() {
     try {
       await generateAlerts({ userId: user.id as Id<"users"> });
     } catch (err) {
-      console.error("Failed to generate alerts:", err);
     }
   };
 
@@ -348,7 +344,7 @@ function AlertCard({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
         <div>
           <p className="text-gray-400 text-xs">Trigger Date</p>
           <p className="text-white">{alert.triggerDate}</p>

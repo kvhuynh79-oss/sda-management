@@ -300,7 +300,7 @@ function RequestCard({ request }: { request: any }) {
         </div>
 
         {(request.contractorName || request.quotedAmount || request.actualCost) && (
-          <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-700 text-sm">
             {request.contractorName && (
               <div>
                 <p className="text-gray-400 text-xs">Contractor</p>

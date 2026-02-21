@@ -66,7 +66,20 @@ export const create = mutation({
       throw new Error(`Payment validation failed: ${errorMessages}`);
     }
 
-    // VALIDATION 2: Duplicate payment check (participant + date)
+    // VALIDATION 2: Idempotency key check (prevents duplicate payments)
+    const idempotencyKey = `${organizationId}_${args.participantId}_${args.paymentSource}_${args.paymentDate}_${args.actualAmount}`;
+    const existingByKey = await ctx.db
+      .query("payments")
+      .withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
+      .first();
+
+    if (existingByKey) {
+      // Duplicate prevented - return existing record instead of creating new one
+      console.warn(`Idempotency: Duplicate payment prevented for key ${idempotencyKey}, returning existing ID ${existingByKey._id}`);
+      return existingByKey._id;
+    }
+
+    // VALIDATION 2b: Legacy duplicate check (participant + date)
     const existingPayment = await ctx.db
       .query("payments")
       .withIndex("by_participant", (q) => q.eq("participantId", args.participantId))
@@ -98,11 +111,12 @@ export const create = mutation({
     const variance = args.actualAmount - args.expectedAmount;
     const now = Date.now();
 
-    // Insert payment
+    // Insert payment with idempotency key
     const paymentId = await ctx.db.insert("payments", {
       organizationId, // Multi-tenant: Associate with organization
       ...args,
       variance,
+      idempotencyKey,
       createdAt: now,
       updatedAt: now,
     });
@@ -145,7 +159,7 @@ export const create = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "payment.created",
-      payload: { paymentId, participantId: args.participantId, amount: args.actualAmount, paymentDate: args.paymentDate },
+      payload: JSON.stringify({ paymentId, participantId: args.participantId, amount: args.actualAmount, paymentDate: args.paymentDate }),
     });
 
     return paymentId;

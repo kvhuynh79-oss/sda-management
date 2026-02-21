@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireTenant } from "./authHelpers";
+import { validateFileUpload, sanitizeFileName } from "./lib/fileValidation";
 
 // Generate upload URL for file storage
 export const generateUploadUrl = mutation(async (ctx) => {
@@ -35,10 +36,19 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const { organizationId } = await requireTenant(ctx, args.uploadedBy);
+
+    // S6: Server-side file upload validation
+    const validation = validateFileUpload(args.fileName, args.fileType, args.fileSize, "any");
+    if (!validation.valid) {
+      throw new Error(validation.error || "File validation failed");
+    }
+    const safeName = sanitizeFileName(args.fileName);
+
     const now = Date.now();
 
     const documentId = await ctx.db.insert("documents", {
       ...args,
+      fileName: safeName,
       organizationId,
       documentType: args.documentType as any,
       documentCategory: args.documentCategory as any,
@@ -73,7 +83,7 @@ export const create = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "document.uploaded",
-      payload: { documentId, fileName: args.fileName, documentType: args.documentType },
+      payload: JSON.stringify({ documentId, fileName: args.fileName, documentType: args.documentType }),
     });
 
     return documentId;

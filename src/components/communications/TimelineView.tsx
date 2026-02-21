@@ -215,7 +215,6 @@ export function TimelineView({
           userId: userId as Id<"users">,
         });
       } catch (error) {
-        console.error("Failed to delete:", error);
         await alertDialog("Failed to delete communication.");
       } finally {
         setDeletingId(null);
@@ -478,7 +477,6 @@ export function TimelineView({
             });
             setLinkToThreadComm(null);
           } catch (error) {
-            console.error("Failed to move communication to thread:", error);
             await alertDialog("Failed to move communication to thread. " + (error instanceof Error ? error.message : "Please try again."));
           }
         }}

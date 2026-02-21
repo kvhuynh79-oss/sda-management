@@ -25,7 +25,6 @@ export function TermsAcceptanceModal({ userId, onAccepted }: TermsAcceptanceModa
       await acceptTerms({ userId, version: "2026-02-12" });
       onAccepted();
     } catch (error) {
-      console.error("Failed to accept terms:", error);
       setIsSubmitting(false);
     }
   };

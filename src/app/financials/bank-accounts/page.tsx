@@ -60,7 +60,6 @@ export default function BankAccountsPage() {
     try {
       await removeAccount({ id: accountId, userId: user.id as Id<"users"> });
     } catch (err) {
-      console.error("Failed to delete account:", err);
       await alertDialog("Failed to delete account. It may have associated transactions.");
     }
   };
@@ -232,7 +231,7 @@ function AccountCard({
       <h3 className="text-lg font-semibold text-white mb-1">{account.accountName}</h3>
       <p className="text-gray-400 text-sm mb-4">{getAccountTypeLabel(account.accountType)}</p>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
           <p className="text-gray-400 text-xs">BSB</p>
           <p className="text-white font-mono">{account.bsb}</p>
@@ -243,7 +242,7 @@ function AccountCard({
         </div>
       </div>
 
-      <div className="border-t border-gray-700 pt-4 grid grid-cols-3 gap-4">
+      <div className="border-t border-gray-700 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <p className="text-gray-400 text-xs">Transactions</p>
           <p className="text-white font-semibold">{transactionCount}</p>
@@ -350,7 +349,6 @@ function AccountModal({
       }
       onClose();
     } catch (err) {
-      console.error("Failed to save account:", err);
       await alertDialog("Failed to save account. Please check your inputs.");
     } finally {
       setSaving(false);
@@ -406,7 +404,7 @@ function AccountModal({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 BSB

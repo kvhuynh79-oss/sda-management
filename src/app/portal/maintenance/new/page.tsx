@@ -108,7 +108,6 @@ export default function NewMaintenancePage() {
 
       router.push("/portal/maintenance");
     } catch (error) {
-      console.error("Failed to create maintenance request:", error);
       await alertDialog("Failed to create maintenance request. Please try again.");
     } finally {
       setIsSubmitting(false);

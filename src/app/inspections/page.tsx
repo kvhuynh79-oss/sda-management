@@ -95,7 +95,6 @@ function InspectionsContent() {
       await seedBLSTemplate({ createdBy: user.id as Id<"users"> });
       await alertDialog("Standard SDA Inspection template created successfully!");
     } catch (error) {
-      console.error("Error seeding template:", error);
       await alertDialog("Error creating template. It may already exist.");
     }
   };
@@ -116,7 +115,6 @@ function InspectionsContent() {
       await deleteInspection({ userId: user.id as Id<"users">, inspectionId: deleteConfirm.id });
       setDeleteConfirm(null);
     } catch (error) {
-      console.error("Error deleting inspection:", error);
       await alertDialog("Error deleting inspection. Please try again.");
     } finally {
       setIsDeleting(false);
@@ -135,7 +133,6 @@ function InspectionsContent() {
       });
       await generateInspectionPDF(reportData, organization?.name);
     } catch (error) {
-      console.error("Error generating PDF:", error);
       await alertDialog("Error generating PDF. Please try again.");
     } finally {
       setGeneratingPdfId(null);
@@ -165,7 +162,6 @@ function InspectionsContent() {
         completedDate: today,
       });
     } catch (error) {
-      console.error("Error completing specialist schedule:", error);
       await alertDialog("Error marking item as complete. Please try again.");
     } finally {
       setCompletingScheduleId(null);

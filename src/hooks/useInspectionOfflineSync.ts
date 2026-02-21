@@ -66,7 +66,6 @@ export function useInspectionOfflineSync() {
       const count = await getPendingInspectionCount();
       setStatus((prev) => ({ ...prev, pendingCount: count }));
     } catch (err) {
-      console.error("Failed to get pending inspection change count:", err);
     }
   }, []);
 
@@ -143,7 +142,6 @@ export function useInspectionOfflineSync() {
         }
 
         default:
-          console.warn(`Unknown inspection change type: ${changeType}`);
       }
     },
     [updateItemStatus, generateUploadUrl, saveInspectionPhoto]
@@ -155,7 +153,6 @@ export function useInspectionOfflineSync() {
 
   const syncPendingChanges = useCallback(async () => {
     if (!navigator.onLine) {
-      console.log("Cannot sync inspection changes: offline");
       return { success: false, synced: 0, failed: 0 };
     }
 
@@ -173,7 +170,6 @@ export function useInspectionOfflineSync() {
         return { success: true, synced: 0, failed: 0 };
       }
 
-      console.log(`Syncing ${pending.length} pending inspection changes...`);
 
       let syncedCount = 0;
       let failedCount = 0;
@@ -188,18 +184,11 @@ export function useInspectionOfflineSync() {
           await removeChange(change.id);
 
           syncedCount++;
-          console.log(
-            `Synced inspection change ${change.id} [${change.changeType}] (${syncedCount}/${pending.length})`
-          );
         } catch (err) {
           failedCount++;
           const errorMessage =
             err instanceof Error ? err.message : "Unknown error";
 
-          console.error(
-            `Failed to sync inspection change ${change.id}:`,
-            errorMessage
-          );
 
           await markChangeSyncFailed(change.id, errorMessage);
         }
@@ -232,7 +221,6 @@ export function useInspectionOfflineSync() {
         error: errorMessage,
       }));
 
-      console.error("Inspection sync error:", err);
       return { success: false, synced: 0, failed: 0 };
     }
   }, [syncSingleChange, updatePendingCount]);
@@ -253,7 +241,6 @@ export function useInspectionOfflineSync() {
       try {
         await cacheInspectionData(inspectionId, inspectionData, items);
       } catch (err) {
-        console.error("Failed to cache inspection:", err);
       }
     },
     []
@@ -265,9 +252,6 @@ export function useInspectionOfflineSync() {
 
   useEffect(() => {
     const handleOnline = async () => {
-      console.log(
-        "Connection restored - syncing pending inspection changes..."
-      );
       setStatus((prev) => ({ ...prev, isOnline: true }));
 
       // Wait 1 second for connection to stabilise
@@ -277,9 +261,6 @@ export function useInspectionOfflineSync() {
     };
 
     const handleOffline = () => {
-      console.log(
-        "Connection lost - inspection changes will be saved locally"
-      );
       setStatus((prev) => ({ ...prev, isOnline: false }));
     };
 

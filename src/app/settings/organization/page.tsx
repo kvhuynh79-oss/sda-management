@@ -123,7 +123,6 @@ function OrganizationSettingsContent() {
       await generateAddress({ userId: user.id as Id<"users">, organizationId: orgId });
       await alertDialog({ title: "Address Generated", message: "Your forwarding address has been created. Enable email forwarding to start receiving emails." });
     } catch (error) {
-      console.error("Error generating address:", error);
       await alertDialog({ title: "Error", message: "Failed to generate forwarding address." });
     } finally {
       setIsGeneratingAddress(false);
@@ -137,7 +136,6 @@ function OrganizationSettingsContent() {
       const newState = !organization?.inboundEmailEnabled;
       await updateEmailSettings({ userId: user.id as Id<"users">, organizationId: orgId, enabled: newState });
     } catch (error) {
-      console.error("Error toggling email forwarding:", error);
       await alertDialog({ title: "Error", message: "Failed to update email forwarding settings." });
     } finally {
       setIsTogglingEmail(false);
@@ -156,7 +154,6 @@ function OrganizationSettingsContent() {
       await addForwarder({ userId: user.id as Id<"users">, organizationId: orgId, email });
       setNewForwarderEmail("");
     } catch (error) {
-      console.error("Error adding forwarder:", error);
       await alertDialog({ title: "Error", message: "Failed to register email. It may already be registered." });
     } finally {
       setIsAddingForwarder(false);
@@ -168,7 +165,6 @@ function OrganizationSettingsContent() {
     try {
       await removeForwarder({ userId: user.id as Id<"users">, forwarderId });
     } catch (error) {
-      console.error("Error removing forwarder:", error);
       await alertDialog({ title: "Error", message: "Failed to remove forwarder." });
     }
   };
@@ -181,7 +177,6 @@ function OrganizationSettingsContent() {
       setPostmarkHashInput("");
       await alertDialog({ title: "Saved", message: "Postmark address saved. Emails sent to this address will now be routed to your organization." });
     } catch (error) {
-      console.error("Error saving Postmark hash:", error);
       await alertDialog({ title: "Error", message: "Failed to save Postmark address." });
     } finally {
       setIsSavingPostmarkHash(false);
@@ -265,7 +260,6 @@ function OrganizationSettingsContent() {
         });
       }
     } catch (error) {
-      console.error("Error uploading logo:", error);
       await alertDialog({
         title: "Upload Failed",
         message: "Failed to upload logo. Please try again.",
@@ -313,7 +307,6 @@ function OrganizationSettingsContent() {
         message: "Organization settings saved successfully.",
       });
     } catch (error) {
-      console.error("Error saving organization:", error);
       await alertDialog({
         title: "Error",
         message: "Failed to save organization settings. Please try again.",
@@ -348,7 +341,6 @@ function OrganizationSettingsContent() {
       });
       await alertDialog({ title: "Success", message: "Provider details saved successfully." });
     } catch (error) {
-      console.error("Error saving provider details:", error);
       await alertDialog({ title: "Error", message: "Failed to save provider details." });
     } finally {
       setIsSavingProvider(false);

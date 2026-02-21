@@ -41,7 +41,6 @@ export async function storeTokenNative(
       await Preferences.set({ key: USER_KEY, value: JSON.stringify(userData) });
     }
   } catch (err) {
-    console.warn('[CapacitorBridge] Failed to store tokens natively:', err);
   }
 }
 
@@ -58,6 +57,5 @@ export async function clearTokensNative(): Promise<void> {
     await Preferences.remove({ key: REFRESH_KEY });
     await Preferences.remove({ key: USER_KEY });
   } catch (err) {
-    console.warn('[CapacitorBridge] Failed to clear native tokens:', err);
   }
 }

@@ -534,7 +534,7 @@ export const completeInspection = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "inspection.completed",
-      payload: { inspectionId: args.inspectionId },
+      payload: JSON.stringify({ inspectionId: args.inspectionId }),
     });
 
     // 2. Get all inspection items

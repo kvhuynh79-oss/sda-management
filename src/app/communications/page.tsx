@@ -59,7 +59,6 @@ function CommunicationsContent() {
       // Auto-clear result after 5 seconds
       setTimeout(() => setSyncResult(null), 5000);
     } catch (err) {
-      console.error("Email sync failed:", err);
       setSyncResult({ synced: 0, existing: 0, skipped: 0, errors: 1 });
       setTimeout(() => setSyncResult(null), 5000);
     } finally {
@@ -203,7 +202,6 @@ function CommunicationsContent() {
           userId: user.id as Id<"users">,
         });
       } catch (error) {
-        console.error("Failed to update task status:", error);
       }
     },
     [user, updateTaskStatus]
@@ -218,7 +216,6 @@ function CommunicationsContent() {
           userId: user.id as Id<"users">,
         });
       } catch (error) {
-        console.error("Failed to restore communication:", error);
       }
     },
     [user, restoreCommunication]

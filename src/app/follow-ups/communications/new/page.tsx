@@ -449,7 +449,6 @@ export default function NewCommunicationPage() {
       // Navigate to communications page (thread view) so user can see the result
       router.push(existingThreadId ? "/communications?view=thread" : "/follow-ups");
     } catch (err) {
-      console.error("Failed to create communication:", err);
       setError("Failed to create communication. Please try again.");
     } finally {
       setIsSubmitting(false);

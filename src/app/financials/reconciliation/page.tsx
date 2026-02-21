@@ -91,7 +91,6 @@ function ReconciliationContent() {
       const result = await runAutoMatch({ userId: user!.id as Id<"users">, bankAccountId: selectedAccountId as Id<"bankAccounts"> });
       await alertDialog(`Auto-matched ${result.matched} transactions`);
     } catch (err) {
-      console.error("Auto-match failed:", err);
       await alertDialog("Auto-match failed. Please try again.");
     }
   };
@@ -112,7 +111,6 @@ function ReconciliationContent() {
         message: `Synced ${result.imported} new transactions (${result.skipped} already existed)`,
       });
     } catch (err) {
-      console.error("Xero sync failed:", err);
       setSyncResult({
         success: false,
         message: `Sync failed: ${err}`,
@@ -134,7 +132,6 @@ function ReconciliationContent() {
       });
       setSelectedTransactions(new Set());
     } catch (err) {
-      console.error("Bulk categorize failed:", err);
     }
   };
 
@@ -747,7 +744,6 @@ function ImportModal({
 
       setResult({ imported: importResult.imported, duplicates: importResult.duplicates });
     } catch (err) {
-      console.error("Import failed:", err);
       await alertDialog("Import failed. Please check the CSV format and try again.");
     } finally {
       setImporting(false);
@@ -788,7 +784,7 @@ function ImportModal({
         ) : (
           <>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Bank Account</label>
                   <select

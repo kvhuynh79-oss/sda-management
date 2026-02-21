@@ -9,6 +9,9 @@ import { requirePasswordComplexity } from "./lib/passwordValidation";
 // Secure password hashing using bcryptjs
 const SALT_ROUNDS = 12;
 
+// S14: Dummy hash for timing-safe login (prevents user enumeration)
+const DUMMY_BCRYPT_HASH = "$2b$12$LJ3m4ys3Sg8L7uXfPp0dReKMSHNQMqHzJDFGHNjI8vOaXfJ5WXkWe";
+
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
@@ -262,11 +265,14 @@ export const login = action({
     });
 
     if (!userData) {
+      // S14: Timing-safe rejection - do a dummy bcrypt compare
+      await verifyPassword(args.password, DUMMY_BCRYPT_HASH);
       throw new Error("Invalid email or password");
     }
 
     if (!userData.isActive) {
-      throw new Error("Account is disabled. Contact your administrator.");
+      await verifyPassword(args.password, DUMMY_BCRYPT_HASH);
+      throw new Error("Invalid email or password");
     }
 
     // Check login rate limiting
@@ -714,6 +720,13 @@ export const resetPasswordInternal = internalMutation({
       changes: JSON.stringify({ passwordReset: true }),
       metadata: JSON.stringify({ action: "password_reset" }),
     });
+
+    // S20: Send password change notification email
+    await ctx.scheduler.runAfter(0, internal.notifications.sendPasswordChangeNotification, {
+      userEmail: targetUser.email,
+      userName: targetUser.firstName,
+      changedBy: args.actingUserName,
+    });
   },
 });
 
@@ -734,10 +747,20 @@ export const updatePasswordHash = internalMutation({
     passwordHash: v.string(),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
     await ctx.db.patch(args.userId, {
       passwordHash: args.passwordHash,
       updatedAt: Date.now(),
     });
+
+    // S20: Send password change notification email
+    if (user) {
+      await ctx.scheduler.runAfter(0, internal.notifications.sendPasswordChangeNotification, {
+        userEmail: user.email,
+        userName: user.firstName,
+        changedBy: "self",
+      });
+    }
   },
 });
 
@@ -853,11 +876,14 @@ export const loginWithSession = action({
     });
 
     if (!userData) {
+      // S14: Timing-safe rejection
+      await verifyPassword(args.password, DUMMY_BCRYPT_HASH);
       throw new Error("Invalid email or password");
     }
 
     if (!userData.isActive) {
-      throw new Error("Account is disabled. Contact your administrator.");
+      await verifyPassword(args.password, DUMMY_BCRYPT_HASH);
+      throw new Error("Invalid email or password");
     }
 
     // Check login rate limiting

@@ -448,6 +448,19 @@ export const create = mutation({
     }
     const claimAmount = numberOfDays * dailyRate;
 
+    // Idempotency check: prevent duplicate MTA claims for same period + participant + amount
+    const idempotencyKey = `${organizationId}_${args.participantId}_${args.claimPeriodStart}_${args.claimPeriodEnd}_${claimAmount}`;
+    const existingByKey = await ctx.db
+      .query("mtaClaims")
+      .withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
+      .first();
+
+    if (existingByKey) {
+      // Duplicate prevented - return existing record instead of creating new one
+      console.warn(`Idempotency: Duplicate MTA claim prevented for key ${idempotencyKey}, returning existing ID ${existingByKey._id}`);
+      return existingByKey._id;
+    }
+
     // Auto-generate invoice number
     const invoiceNumber = await generateInvoiceNumber(ctx, organizationId);
 
@@ -476,6 +489,7 @@ export const create = mutation({
       status: "pending",
       notes: args.notes,
       createdBy: args.userId,
+      idempotencyKey,
       createdAt: now,
       updatedAt: now,
     });

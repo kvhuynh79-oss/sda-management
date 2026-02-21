@@ -277,7 +277,6 @@ export default function SupportButton() {
         setError("Screenshot captured but failed to convert. Try again.");
       }
     } catch (err) {
-      console.error("Screenshot capture failed:", err);
       restoreVisibility();
       const msg = err instanceof Error ? err.message : String(err);
       setError(`Screenshot failed: ${msg}. You can still submit the ticket without one.`);

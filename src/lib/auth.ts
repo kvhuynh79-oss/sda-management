@@ -78,7 +78,6 @@ export async function refreshAuthToken(): Promise<{
       };
     }
   } catch (error) {
-    console.error("Token refresh error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Token refresh failed",
@@ -117,19 +116,16 @@ async function checkAndRefreshToken() {
     const result = await refreshAuthToken();
 
     if (result.success) {
-      console.log("Token refreshed successfully");
     } else if (result.error === "No refresh token available") {
       // No refresh token - user is using legacy auth, skip
       return;
     } else {
-      console.warn("Token refresh failed:", result.error);
       // Clear tokens and force re-login
       localStorage.removeItem(SESSION_STORAGE_KEY);
       localStorage.removeItem(REFRESH_STORAGE_KEY);
       window.location.href = "/login";
     }
   } catch (error) {
-    console.error("Error checking token:", error);
   }
 }
 

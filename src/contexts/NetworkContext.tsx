@@ -24,7 +24,6 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
       const count = await getPendingCount();
       setPendingCount(count);
     } catch (error) {
-      console.error("Failed to get pending count:", error);
     }
   }, []);
 

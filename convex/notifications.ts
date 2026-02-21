@@ -717,6 +717,50 @@ export const sendTestSMS = internalAction({
   },
 });
 
+
+// S20: Send password change notification email
+export const sendPasswordChangeNotification = internalAction({
+  args: {
+    userEmail: v.string(),
+    userName: v.string(),
+    changedBy: v.string(), // "self" or admin name
+  },
+  handler: async (ctx, args): Promise<NotificationResult> => {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn("RESEND_API_KEY not configured. Password change notification skipped.");
+      return { success: false, skipped: true, reason: "RESEND_API_KEY not configured" };
+    }
+
+    const timestamp = new Date().toLocaleString("en-AU", { timeZone: "Australia/Sydney" });
+    const changedByText = args.changedBy === "self"
+      ? "you changed your password"
+      : "your password was reset by an administrator (" + args.changedBy + ")";
+
+    const htmlContent = [
+      '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>',
+      '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">',
+      '<div style="background:#1f2937;color:white;padding:20px;border-radius:8px 8px 0 0">',
+      '<h1 style="margin:0;font-size:20px">Password Changed</h1></div>',
+      '<div style="background:#f9fafb;padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">',
+      '<p>Hi ' + args.userName + ',</p>',
+      '<p>This is to confirm that ' + changedByText + '.</p>',
+      '<p><strong>Time:</strong> ' + timestamp + ' (AEST)</p>',
+      '<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:16px;margin:16px 0;border-radius:4px">',
+      '<p style="margin:0;color:#991b1b"><strong>Did not make this change?</strong></p>',
+      '<p style="margin:8px 0 0 0;color:#991b1b">Contact support immediately at support@mysdamanager.com</p></div>',
+      '<p style="color:#6b7280;font-size:12px;margin-top:20px">This is an automated security notification from MySDAManager.</p>',
+      '</div></div></body></html>',
+    ].join("");
+
+    return await sendEmailWithRetry(
+      process.env.RESEND_API_KEY,
+      process.env.RESEND_FROM_EMAIL || "noreply@mysdamanager.com",
+      args.userEmail,
+      "Your MySDAManager password was changed",
+      htmlContent
+    );
+  },
+});
 // Test notification function for verifying setup
 export const sendTestNotification = action({
   args: {

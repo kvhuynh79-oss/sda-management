@@ -450,7 +450,7 @@ export default function DashboardPage() {
           </div>
           {!collapsed["quickActions"] && (
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-600">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <Link href="/participants/new">
                   <QuickActionButton label="Add Participant" />
                 </Link>
@@ -584,7 +584,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 )}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-gray-700/50 rounded-lg">
                     <p className="text-2xl font-bold text-green-400">{consentStats.active}</p>
                     <p className="text-gray-300 text-sm">Active</p>
@@ -652,7 +652,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-gray-700/50 rounded-lg">
                     <p className="text-2xl font-bold text-white">{certStats.total}</p>
                     <p className="text-gray-300 text-sm">Total Certs</p>

@@ -255,7 +255,7 @@ export default function NewCertificationPage() {
           {selectedGuidance && (
             <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-4">
               <p className="text-gray-300 text-sm">{selectedGuidance.description}</p>
-              <div className="grid grid-cols-2 gap-4 mt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
                 <div>
                   <p className="text-gray-400 text-xs">Typical Certifier</p>
                   <p className="text-gray-300 text-sm">{selectedGuidance.typicalCertifier}</p>

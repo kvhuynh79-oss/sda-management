@@ -224,7 +224,6 @@ function NewMaintenanceRequestContent() {
             maintenanceRequestId: requestId,
           });
         } catch (linkErr) {
-          console.error("Failed to link action to maintenance request:", linkErr);
         }
       }
 
@@ -252,7 +251,6 @@ function NewMaintenanceRequestContent() {
               uploadedBy: user.id as Id<"users">,
             });
           } catch (photoErr) {
-            console.error("Failed to upload photo:", photoErr);
           }
         }
         setUploadingPhotos(false);

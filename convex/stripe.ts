@@ -109,12 +109,20 @@ function getPriceIdForPlan(plan: PlanTier): string {
 export const getOrgByStripeCustomerId = internalQuery({
   args: { stripeCustomerId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    // B8 FIX: Use .collect() with collision detection instead of .first()
+    const orgs = await ctx.db
       .query("organizations")
       .withIndex("by_stripeCustomerId", (q) =>
         q.eq("stripeCustomerId", args.stripeCustomerId)
       )
-      .first();
+      .collect();
+    if (orgs.length === 0) return null;
+    if (orgs.length > 1) {
+      console.error(
+        `[Stripe] CRITICAL: ${orgs.length} orgs share Stripe customer ID ${args.stripeCustomerId}: ${orgs.map(o => o._id).join(", ")}`
+      );
+    }
+    return orgs[0];
   },
 });
 
@@ -267,21 +275,27 @@ export const syncSubscription = mutation({
     verifyWebhookSecret(args.webhookSecret);
 
     // Find organization by Stripe customer ID
-    // B1 FIX: This lookup is safe because it uses the verified Stripe customer ID
-    // from the event object (not client-supplied metadata) to find the org.
-    const org = await ctx.db
+    // B1 FIX: Verified Stripe customer ID from event object (not client-supplied)
+    // B8 FIX: Use .collect() with collision detection
+    const matchingOrgs = await ctx.db
       .query("organizations")
       .withIndex("by_stripeCustomerId", (q) =>
         q.eq("stripeCustomerId", args.stripeCustomerId)
       )
-      .first();
+      .collect();
 
-    if (!org) {
+    if (matchingOrgs.length === 0) {
       console.error(
         `[Stripe] No organization found for Stripe customer: ${args.stripeCustomerId}`
       );
       return { success: false };
     }
+    if (matchingOrgs.length > 1) {
+      console.error(
+        `[Stripe] CRITICAL: ${matchingOrgs.length} orgs share Stripe customer ID ${args.stripeCustomerId}`
+      );
+    }
+    const org = matchingOrgs[0];
 
     // Map Stripe status to internal status
     let subscriptionStatus: "active" | "trialing" | "past_due" | "canceled" | "trial_expired";
@@ -327,6 +341,22 @@ export const syncSubscription = mutation({
       updates.maxUsers = limits.maxUsers;
     }
 
+    // B4 FIX: Grace period management for past_due subscriptions
+    if (subscriptionStatus === "past_due" && org.subscriptionStatus !== "past_due") {
+      // Transitioning TO past_due — start grace period
+      updates.pastDueSince = new Date().toISOString();
+      updates.accessLevel = "full"; // Days 1-7: full access
+    } else if (subscriptionStatus === "active") {
+      // Recovered from past_due — clear grace period
+      updates.pastDueSince = undefined;
+      updates.accessLevel = "full";
+      updates.overPlanLimits = undefined;
+    } else if (subscriptionStatus === "canceled") {
+      // Canceled — suspend access
+      updates.accessLevel = "suspended";
+      updates.pastDueSince = undefined;
+    }
+
     // Deactivate org if subscription is fully canceled
     if (subscriptionStatus === "canceled" && !args.cancelAtPeriodEnd) {
       updates.isActive = false;
@@ -335,6 +365,24 @@ export const syncSubscription = mutation({
     // Reactivate org if subscription becomes active again
     if (subscriptionStatus === "active" && !org.isActive) {
       updates.isActive = true;
+    }
+
+    // B9 FIX: Detect downgrades and check plan limits
+    if (plan && org.plan && plan !== org.plan) {
+      const newLimits = PLAN_LIMITS[plan];
+      const propertyCount = (await ctx.db
+        .query("properties")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", org._id))
+        .collect()).length;
+      const userCount = (await ctx.db
+        .query("users")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", org._id))
+        .collect()).length;
+      if (propertyCount > newLimits.maxProperties || userCount > newLimits.maxUsers) {
+        updates.overPlanLimits = true;
+      } else {
+        updates.overPlanLimits = false;
+      }
     }
 
     await ctx.db.patch(org._id, updates);
@@ -430,24 +478,37 @@ export const handlePaymentFailed = mutation({
   handler: async (ctx, args) => {
     verifyWebhookSecret(args.webhookSecret);
 
-    const org = await ctx.db
+    // B8 FIX: Use .collect() with collision detection
+    const matchingOrgs = await ctx.db
       .query("organizations")
       .withIndex("by_stripeCustomerId", (q) =>
         q.eq("stripeCustomerId", args.stripeCustomerId)
       )
-      .first();
+      .collect();
 
-    if (!org) {
+    if (matchingOrgs.length === 0) {
       console.error(
         `[Stripe] Payment failed for unknown customer: ${args.stripeCustomerId}`
       );
       return;
     }
+    if (matchingOrgs.length > 1) {
+      console.error(
+        `[Stripe] CRITICAL: ${matchingOrgs.length} orgs share Stripe customer ID ${args.stripeCustomerId}`
+      );
+    }
+    const org = matchingOrgs[0];
 
     // Update subscription status to past_due
-    await ctx.db.patch(org._id, {
+    // B4 FIX: Set pastDueSince for grace period tracking
+    const updates: Record<string, unknown> = {
       subscriptionStatus: "past_due",
-    });
+    };
+    if (!org.pastDueSince) {
+      updates.pastDueSince = new Date().toISOString();
+      updates.accessLevel = "full";
+    }
+    await ctx.db.patch(org._id, updates);
 
     // Create an alert for the organization admins
     await ctx.db.insert("alerts", {
@@ -898,5 +959,112 @@ export const checkExpiredTrials = internalMutation({
     }
 
     return { expiredCount: expiredOrgs.length };
+  },
+});
+
+// ============================================================================
+// GRACE PERIOD ENFORCEMENT (B4 FIX)
+// ============================================================================
+
+/**
+ * Check and escalate grace periods for past_due subscriptions.
+ * Called by daily cron job at 4:00 AM UTC.
+ *
+ * Grace period phases:
+ * - Days 1-7: full access (warning banner shown)
+ * - Days 8-14: read_only (can view but not create/edit)
+ * - Days 15+: suspended (redirected to billing page)
+ */
+export const checkGracePeriods = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<{ updated: number }> => {
+    const now = new Date();
+    let updated = 0;
+
+    // Find all orgs with pastDueSince set
+    const allOrgs = await ctx.db
+      .query("organizations")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .collect();
+
+    const pastDueOrgs = allOrgs.filter((org) => org.pastDueSince);
+
+    for (const org of pastDueOrgs) {
+      const pastDueDate = new Date(org.pastDueSince!);
+      const daysPastDue = Math.floor((now.getTime() - pastDueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      let newAccessLevel: "full" | "read_only" | "suspended";
+      if (daysPastDue >= 15) {
+        newAccessLevel = "suspended";
+      } else if (daysPastDue >= 8) {
+        newAccessLevel = "read_only";
+      } else {
+        newAccessLevel = "full";
+      }
+
+      if (org.accessLevel !== newAccessLevel) {
+        await ctx.db.patch(org._id, { accessLevel: newAccessLevel });
+        updated++;
+
+        if (newAccessLevel === "read_only") {
+          await ctx.db.insert("alerts", {
+            organizationId: org._id,
+            alertType: "subscription_payment_failed",
+            severity: "critical",
+            title: "Account Restricted — Read-Only Mode",
+            message: "Your subscription payment is overdue. Your account has been restricted to read-only mode. Update your payment method to restore full access.",
+            triggerDate: now.toISOString().split("T")[0],
+            status: "active",
+            createdAt: now.getTime(),
+          });
+        } else if (newAccessLevel === "suspended") {
+          await ctx.db.insert("alerts", {
+            organizationId: org._id,
+            alertType: "subscription_payment_failed",
+            severity: "critical",
+            title: "Account Suspended",
+            message: "Your subscription has been suspended due to unpaid invoices. Update your payment method immediately to restore access.",
+            triggerDate: now.toISOString().split("T")[0],
+            status: "active",
+            createdAt: now.getTime(),
+          });
+        }
+      }
+    }
+
+    return { updated };
+  },
+});
+
+// ============================================================================
+// DATA INTEGRITY CHECKS (B8 FIX)
+// ============================================================================
+
+/**
+ * Check for duplicate Stripe customer IDs across organizations.
+ * Returns any collisions found. Run this once to audit data integrity.
+ */
+export const checkStripeCustomerIdUniqueness = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<{ duplicates: Array<{ stripeCustomerId: string; orgIds: string[] }> }> => {
+    const allOrgs = await ctx.db.query("organizations").collect();
+    const customerIdMap = new Map<string, string[]>();
+
+    for (const org of allOrgs) {
+      if (org.stripeCustomerId) {
+        const existing = customerIdMap.get(org.stripeCustomerId) || [];
+        existing.push(org._id);
+        customerIdMap.set(org.stripeCustomerId, existing);
+      }
+    }
+
+    const duplicates: Array<{ stripeCustomerId: string; orgIds: string[] }> = [];
+    for (const [customerId, orgIds] of customerIdMap) {
+      if (orgIds.length > 1) {
+        duplicates.push({ stripeCustomerId: customerId, orgIds });
+      }
+    }
+
+    return { duplicates };
   },
 });

@@ -1173,7 +1173,39 @@ export const executeAction = action({
   args: {
     conversationId: v.optional(v.id("aiConversations")),
     actionType: v.string(),
-    params: v.any(),
+    params: v.object({
+      // move_participant
+      participantName: v.optional(v.string()),
+      participant_name: v.optional(v.string()),
+      targetDwellingName: v.optional(v.string()),
+      target_dwelling: v.optional(v.string()),
+      targetPropertyName: v.optional(v.string()),
+      target_property: v.optional(v.string()),
+      // create_maintenance / update_maintenance_status
+      dwellingName: v.optional(v.string()),
+      dwelling_name: v.optional(v.string()),
+      propertyName: v.optional(v.string()),
+      property_name: v.optional(v.string()),
+      title: v.optional(v.string()),
+      description: v.optional(v.string()),
+      category: v.optional(v.string()),
+      priority: v.optional(v.string()),
+      maintenanceTitle: v.optional(v.string()),
+      maintenance_title: v.optional(v.string()),
+      newStatus: v.optional(v.string()),
+      new_status: v.optional(v.string()),
+      // record_payment
+      amount: v.optional(v.number()),
+      paymentDate: v.optional(v.string()),
+      payment_date: v.optional(v.string()),
+      periodStart: v.optional(v.string()),
+      periodEnd: v.optional(v.string()),
+      // schedule_inspection
+      scheduledDate: v.optional(v.string()),
+      scheduled_date: v.optional(v.string()),
+      templateName: v.optional(v.string()),
+      template_name: v.optional(v.string()),
+    }),
     userId: v.id("users"),
   },
   handler: async (ctx, args): Promise<{ success: boolean; response: string; conversationId: string }> => {
@@ -1183,37 +1215,37 @@ export const executeAction = action({
       switch (args.actionType) {
         case "move_participant":
           result = await ctx.runMutation(internal.aiChatbot.moveParticipant, {
-            participantName: args.params.participantName,
-            targetDwellingName: args.params.targetDwellingName,
-            targetPropertyName: args.params.targetPropertyName,
+            participantName: args.params.participantName!,
+            targetDwellingName: args.params.targetDwellingName!,
+            targetPropertyName: args.params.targetPropertyName!,
           }) as { success: boolean; message?: string; error?: string };
           break;
 
         case "create_maintenance":
           result = await ctx.runMutation(internal.aiChatbot.createMaintenanceRequest, {
-            dwellingName: args.params.dwellingName,
-            propertyName: args.params.propertyName,
-            title: args.params.title,
-            description: args.params.description,
-            category: args.params.category,
-            priority: args.params.priority,
+            dwellingName: args.params.dwellingName!,
+            propertyName: args.params.propertyName!,
+            title: args.params.title!,
+            description: args.params.description!,
+            category: args.params.category!,
+            priority: args.params.priority!,
             userId: args.userId,
           }) as { success: boolean; message?: string; error?: string };
           break;
 
         case "update_maintenance_status":
           result = await ctx.runMutation(internal.aiChatbot.updateMaintenanceStatus, {
-            maintenanceTitle: args.params.maintenanceTitle,
-            dwellingName: args.params.dwellingName,
-            newStatus: args.params.newStatus,
+            maintenanceTitle: args.params.maintenanceTitle!,
+            dwellingName: args.params.dwellingName!,
+            newStatus: args.params.newStatus!,
           }) as { success: boolean; message?: string; error?: string };
           break;
 
         case "record_payment":
           result = await ctx.runMutation(internal.aiChatbot.recordPayment, {
-            participantName: args.params.participantName,
-            amount: args.params.amount,
-            paymentDate: args.params.paymentDate,
+            participantName: args.params.participantName!,
+            amount: args.params.amount!,
+            paymentDate: args.params.paymentDate!,
             periodStart: args.params.periodStart,
             periodEnd: args.params.periodEnd,
             userId: args.userId,
@@ -1222,8 +1254,8 @@ export const executeAction = action({
 
         case "update_participant_status":
           result = await ctx.runMutation(internal.aiChatbot.updateParticipantStatus, {
-            participantName: args.params.participantName,
-            newStatus: args.params.newStatus,
+            participantName: args.params.participantName!,
+            newStatus: args.params.newStatus!,
           }) as { success: boolean; message?: string; error?: string };
           break;
 
@@ -3252,7 +3284,39 @@ export const executeActionV2 = action({
   args: {
     conversationId: v.optional(v.id("aiConversations")),
     actionType: v.string(),
-    params: v.any(),
+    params: v.object({
+      // move_participant
+      participantName: v.optional(v.string()),
+      participant_name: v.optional(v.string()),
+      targetDwellingName: v.optional(v.string()),
+      target_dwelling: v.optional(v.string()),
+      targetPropertyName: v.optional(v.string()),
+      target_property: v.optional(v.string()),
+      // create_maintenance / update_maintenance_status
+      dwellingName: v.optional(v.string()),
+      dwelling_name: v.optional(v.string()),
+      propertyName: v.optional(v.string()),
+      property_name: v.optional(v.string()),
+      title: v.optional(v.string()),
+      description: v.optional(v.string()),
+      category: v.optional(v.string()),
+      priority: v.optional(v.string()),
+      maintenanceTitle: v.optional(v.string()),
+      maintenance_title: v.optional(v.string()),
+      newStatus: v.optional(v.string()),
+      new_status: v.optional(v.string()),
+      // record_payment
+      amount: v.optional(v.number()),
+      paymentDate: v.optional(v.string()),
+      payment_date: v.optional(v.string()),
+      periodStart: v.optional(v.string()),
+      periodEnd: v.optional(v.string()),
+      // schedule_inspection
+      scheduledDate: v.optional(v.string()),
+      scheduled_date: v.optional(v.string()),
+      templateName: v.optional(v.string()),
+      template_name: v.optional(v.string()),
+    }),
     userId: v.id("users"),
   },
   handler: async (ctx, args): Promise<{ success: boolean; response: string; conversationId: string }> => {
@@ -3262,18 +3326,18 @@ export const executeActionV2 = action({
       switch (args.actionType) {
         case "move_participant":
           result = await ctx.runMutation(internal.aiChatbot.moveParticipant, {
-            participantName: args.params.participant_name || args.params.participantName,
-            targetDwellingName: args.params.target_dwelling || args.params.targetDwellingName,
-            targetPropertyName: args.params.target_property || args.params.targetPropertyName,
+            participantName: (args.params.participant_name || args.params.participantName)!,
+            targetDwellingName: (args.params.target_dwelling || args.params.targetDwellingName)!,
+            targetPropertyName: (args.params.target_property || args.params.targetPropertyName)!,
           }) as { success: boolean; message?: string; error?: string };
           break;
 
         case "create_maintenance_request":
           result = await ctx.runMutation(internal.aiChatbot.createMaintenanceRequest, {
-            dwellingName: args.params.dwelling_name || args.params.dwellingName,
-            propertyName: args.params.property_name || args.params.propertyName,
-            title: args.params.title,
-            description: args.params.description,
+            dwellingName: (args.params.dwelling_name || args.params.dwellingName)!,
+            propertyName: (args.params.property_name || args.params.propertyName)!,
+            title: args.params.title!,
+            description: args.params.description!,
             category: args.params.category || "general",
             priority: args.params.priority || "medium",
             userId: args.userId,
@@ -3282,17 +3346,17 @@ export const executeActionV2 = action({
 
         case "update_maintenance_status":
           result = await ctx.runMutation(internal.aiChatbot.updateMaintenanceStatus, {
-            maintenanceTitle: args.params.maintenance_title || args.params.maintenanceTitle,
-            dwellingName: args.params.dwelling_name || args.params.dwellingName,
-            newStatus: args.params.new_status || args.params.newStatus,
+            maintenanceTitle: (args.params.maintenance_title || args.params.maintenanceTitle)!,
+            dwellingName: (args.params.dwelling_name || args.params.dwellingName)!,
+            newStatus: (args.params.new_status || args.params.newStatus)!,
           }) as { success: boolean; message?: string; error?: string };
           break;
 
         case "record_payment":
           result = await ctx.runMutation(internal.aiChatbot.recordPayment, {
-            participantName: args.params.participant_name || args.params.participantName,
-            amount: args.params.amount,
-            paymentDate: args.params.payment_date || args.params.paymentDate,
+            participantName: (args.params.participant_name || args.params.participantName)!,
+            amount: args.params.amount!,
+            paymentDate: (args.params.payment_date || args.params.paymentDate)!,
             periodStart: args.params.periodStart,
             periodEnd: args.params.periodEnd,
             userId: args.userId,
@@ -3301,17 +3365,17 @@ export const executeActionV2 = action({
 
         case "update_participant_status":
           result = await ctx.runMutation(internal.aiChatbot.updateParticipantStatus, {
-            participantName: args.params.participant_name || args.params.participantName,
-            newStatus: args.params.new_status || args.params.newStatus,
+            participantName: (args.params.participant_name || args.params.participantName)!,
+            newStatus: (args.params.new_status || args.params.newStatus)!,
           }) as { success: boolean; message?: string; error?: string };
           break;
 
         case "schedule_inspection":
           result = await ctx.runMutation(internal.aiChatbot.scheduleInspection, {
-            propertyName: args.params.property_name || args.params.propertyName,
-            dwellingName: args.params.dwelling_name || args.params.dwellingName,
-            scheduledDate: args.params.scheduled_date || args.params.scheduledDate,
-            templateName: args.params.template_name || args.params.templateName,
+            propertyName: (args.params.property_name || args.params.propertyName)!,
+            dwellingName: (args.params.dwelling_name || args.params.dwellingName)!,
+            scheduledDate: (args.params.scheduled_date || args.params.scheduledDate)!,
+            templateName: (args.params.template_name || args.params.templateName)!,
             userId: args.userId,
           }) as { success: boolean; message?: string; error?: string };
           break;

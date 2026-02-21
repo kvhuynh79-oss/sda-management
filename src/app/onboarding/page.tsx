@@ -154,7 +154,6 @@ export default function OnboardingPage() {
       });
       setShowRrcSettings(false);
     } catch (err) {
-      console.error("Failed to save RRC settings:", err);
     }
   };
 
@@ -167,7 +166,6 @@ export default function OnboardingPage() {
       });
       setShowMtaSettings(false);
     } catch (err) {
-      console.error("Failed to save MTA settings:", err);
     }
   };
 
@@ -232,7 +230,6 @@ export default function OnboardingPage() {
         const h = logo.height * ratio;
         doc.addImage(logo.data, "JPEG", margin, y, w, h);
       } catch {
-        console.log("Logo could not be loaded");
       }
 
       // Title on right - LETTER OF OFFER – SDA QUOTATION
@@ -402,7 +399,6 @@ export default function OnboardingPage() {
       const fileName = `SDA_Quotation_${selectedParticipant.firstName}_${selectedParticipant.lastName}_${new Date().toISOString().split("T")[0]}.pdf`;
       doc.save(fileName);
     } catch (err) {
-      console.error("Failed to generate PDF:", err);
     } finally {
       setIsGenerating(false);
     }
@@ -464,7 +460,6 @@ export default function OnboardingPage() {
         const h = logo.height * ratio;
         doc.addImage(logo.data, "JPEG", pageWidth / 2 - w / 2, 30, w, h);
       } catch {
-        console.log("Logo could not be loaded");
       }
 
       y = 80;
@@ -1265,7 +1260,6 @@ export default function OnboardingPage() {
       const fileName = `Accommodation_Agreement_${selectedParticipant.firstName}_${selectedParticipant.lastName}_${new Date().toISOString().split("T")[0]}.pdf`;
       doc.save(fileName);
     } catch (err) {
-      console.error("Failed to generate PDF:", err);
     } finally {
       setIsGenerating(false);
     }
@@ -1639,7 +1633,6 @@ export default function OnboardingPage() {
       // Save PDF
       doc.save(`Schedule_of_Supports_MTA_${selectedParticipant.firstName}_${selectedParticipant.lastName}_${new Date().toISOString().split("T")[0]}.pdf`);
     } catch (err) {
-      console.error("MTA Schedule generation error:", err);
       await alertDialog("Failed to generate MTA Schedule of Supports. Please try again.");
     } finally {
       setIsGenerating(false);

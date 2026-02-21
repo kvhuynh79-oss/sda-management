@@ -114,7 +114,6 @@ export default function SettingsPage() {
       });
       await alertDialog({ title: "Success", message: "Notification settings saved successfully!" });
     } catch (error) {
-      console.error("Error saving preferences:", error);
       await alertDialog({ title: "Error", message: "Failed to save settings. Please try again." });
     } finally {
       setIsSaving(false);
@@ -141,7 +140,6 @@ export default function SettingsPage() {
         setTestResult(`Error: ${result.error || "Unknown error"}`);
       }
     } catch (error) {
-      console.error("Error testing notification:", error);
       setTestResult(`Failed to send test notification: ${error}`);
     } finally {
       setIsTesting(false);
@@ -207,7 +205,6 @@ export default function SettingsPage() {
       setUserFormData(emptyUserForm);
       setEditingUserId(null);
     } catch (error) {
-      console.error("Error saving user:", error);
       setUserError(error instanceof Error ? error.message : "Failed to save user");
     } finally {
       setIsSubmittingUser(false);
@@ -224,7 +221,6 @@ export default function SettingsPage() {
         isActive: !currentlyActive,
       });
     } catch (error) {
-      console.error("Error toggling user status:", error);
       await alertDialog({ title: "Error", message: "Failed to update user status" });
     }
   };
@@ -246,7 +242,6 @@ export default function SettingsPage() {
       setNewPassword("");
       await alertDialog({ title: "Success", message: "Password reset successfully" });
     } catch (error) {
-      console.error("Error resetting password:", error);
       await alertDialog({ title: "Error", message: "Failed to reset password" });
     }
   };
@@ -796,7 +791,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">First Name</label>
                   <input

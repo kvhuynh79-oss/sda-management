@@ -88,7 +88,6 @@ export default function NewTaskPage() {
 
       router.push("/follow-ups");
     } catch (err) {
-      console.error("Failed to create task:", err);
       setError("Failed to create task. Please try again.");
     } finally {
       setIsSubmitting(false);

@@ -1,4 +1,4 @@
-import { mutation, query, internalQuery } from "./_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth, requireTenant, requireActiveSubscription } from "./authHelpers";
@@ -154,9 +154,13 @@ export const create = mutation({
           ndisNotificationDueDate: calculateDueDate(args.incidentDate, timeframe),
           ndisCommissionNotified: false,
           ndisNotificationOverdue: false,
+          ndisNotificationStatus: "required_pending",
         });
       } else {
-        incidentId = await ctx.db.insert("incidents", baseData);
+        incidentId = await ctx.db.insert("incidents", {
+          ...baseData,
+          ndisNotificationStatus: "not_required",
+        });
       }
 
       // Audit log
@@ -196,7 +200,7 @@ export const create = mutation({
       await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
         organizationId,
         event: "incident.created",
-        payload: { incidentId, title: args.title, incidentType: args.incidentType, severity: args.severity },
+        payload: JSON.stringify({ incidentId, title: args.title, incidentType: args.incidentType, severity: args.severity }),
       });
 
       return incidentId;
@@ -529,6 +533,8 @@ export const markNdisNotified = mutation({
       ndisCommissionNotificationDate: args.notificationDate,
       ndisCommissionReferenceNumber: args.referenceNumber,
       ndisNotificationOverdue: false,
+      ndisNotificationStatus: "submitted",
+      ndisNotificationSubmittedAt: new Date().toISOString(),
       // Also update legacy fields for backward compatibility
       reportedToNdis: true,
       ndisReportDate: args.notificationDate,
@@ -561,6 +567,91 @@ export const markNdisNotified = mutation({
         ndisNotificationTimeframe: incident.ndisNotificationTimeframe,
         ndisNotificationDueDate: incident.ndisNotificationDueDate,
         wasOverdue: incident.ndisNotificationOverdue,
+      }),
+    });
+
+    return { success: true };
+  },
+});
+
+
+
+// Explicitly mark NDIS notification as submitted (N9 enforcement)
+// This is an alias/wrapper that provides a cleaner API for the frontend
+export const markNdisNotificationSubmitted = mutation({
+  args: {
+    userId: v.id("users"),
+    incidentId: v.id("incidents"),
+    submittedDate: v.string(),
+    ndisReferenceNumber: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requirePermission(ctx, args.userId, "incidents", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const incident = await ctx.db.get(args.incidentId);
+    if (!incident) throw new Error("Incident not found");
+    if (incident.organizationId !== organizationId) {
+      throw new Error("Access denied: Record belongs to different organization");
+    }
+
+    if (incident.ndisNotificationStatus === "not_required") {
+      throw new Error("This incident does not require NDIS notification");
+    }
+
+    const submittedAt = new Date().toISOString();
+
+    await ctx.db.patch(args.incidentId, {
+      ndisCommissionNotified: true,
+      ndisCommissionNotificationDate: args.submittedDate,
+      ndisCommissionReferenceNumber: args.ndisReferenceNumber,
+      ndisNotificationOverdue: false,
+      ndisNotificationStatus: "submitted",
+      ndisNotificationSubmittedAt: submittedAt,
+      reportedToNdis: true,
+      ndisReportDate: args.submittedDate,
+      updatedAt: Date.now(),
+    });
+
+    // Resolve any active overdue alerts for this incident
+    const activeAlerts = await ctx.db
+      .query("alerts")
+      .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("alertType"), "ndis_notification_overdue"),
+          q.eq(q.field("status"), "active")
+        )
+      )
+      .collect();
+
+    for (const alert of activeAlerts) {
+      if (alert.title.includes(args.incidentId)) {
+        await ctx.db.patch(alert._id, {
+          status: "resolved",
+          resolvedBy: args.userId,
+          resolvedAt: Date.now(),
+        });
+      }
+    }
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      action: "update",
+      entityType: "incident",
+      entityId: args.incidentId,
+      entityName: "NDIS_NOTIFICATION_SUBMITTED",
+      changes: JSON.stringify({
+        ndisNotificationStatus: "submitted",
+        ndisNotificationSubmittedAt: submittedAt,
+        ndisCommissionReferenceNumber: args.ndisReferenceNumber,
+      }),
+      metadata: JSON.stringify({
+        incidentTitle: incident.title,
+        incidentType: incident.incidentType,
+        wasOverdue: incident.ndisNotificationStatus === "overdue",
       }),
     });
 
@@ -609,7 +700,7 @@ export const getNdisReportable = query({
   },
 });
 
-// Check for overdue NDIS notifications (run via cron)
+// Check for overdue NDIS notifications (run via cron - legacy public mutation)
 export const checkOverdueNotifications = mutation({
   args: {},
   handler: async (ctx) => {
@@ -630,6 +721,7 @@ export const checkOverdueNotifications = mutation({
         if (today > dueDate) {
           await ctx.db.patch(incident._id, {
             ndisNotificationOverdue: true,
+            ndisNotificationStatus: "overdue",
             updatedAt: Date.now(),
           });
           updated++;
@@ -638,6 +730,83 @@ export const checkOverdueNotifications = mutation({
     }
 
     return { updated };
+  },
+});
+
+// Internal mutation for cron: check overdue NDIS notifications and create CRITICAL alerts
+export const checkOverdueNdisNotificationsInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Find all incidents with required_pending status
+    const incidents = await ctx.db
+      .query("incidents")
+      .withIndex("by_isNdisReportable", (q) => q.eq("isNdisReportable", true))
+      .collect();
+
+    const today = new Date();
+    let updated = 0;
+    let alertsCreated = 0;
+
+    for (const incident of incidents) {
+      // Skip if already notified, already marked overdue, or not required
+      if (incident.ndisCommissionNotified) continue;
+      if (incident.ndisNotificationStatus === "overdue") continue;
+      if (incident.ndisNotificationStatus === "submitted") continue;
+      if (incident.ndisNotificationStatus === "not_required") continue;
+
+      if (incident.ndisNotificationDueDate) {
+        const dueDate = new Date(incident.ndisNotificationDueDate);
+        if (today > dueDate) {
+          // Mark as overdue
+          await ctx.db.patch(incident._id, {
+            ndisNotificationOverdue: true,
+            ndisNotificationStatus: "overdue",
+            updatedAt: Date.now(),
+          });
+          updated++;
+
+          // Create a CRITICAL alert via the alert system
+          if (incident.organizationId) {
+            // Check if alert already exists for this incident
+            const existingAlert = await ctx.db
+              .query("alerts")
+              .withIndex("by_organizationId", (q) => q.eq("organizationId", incident.organizationId))
+              .filter((q) =>
+                q.and(
+                  q.eq(q.field("alertType"), "ndis_notification_overdue"),
+                  q.eq(q.field("status"), "active")
+                )
+              )
+              .collect();
+
+            const alreadyHasAlert = existingAlert.some(
+              (a) => a.title.includes(incident._id)
+            );
+
+            if (!alreadyHasAlert) {
+              const timeframeLabel = incident.ndisNotificationTimeframe === "24_hours"
+                ? "24-hour" : "5-business-day";
+              await ctx.db.insert("alerts", {
+                organizationId: incident.organizationId,
+                alertType: "ndis_notification_overdue",
+                severity: "critical",
+                title: `NDIS notification OVERDUE for incident ${incident._id}`,
+                message: `${timeframeLabel} NDIS Commission notification is overdue for incident "${incident.title}". Deadline was ${incident.ndisNotificationDueDate}. Immediate action required.`,
+                linkedPropertyId: incident.propertyId,
+                linkedParticipantId: incident.participantId,
+                triggerDate: today.toISOString().split("T")[0],
+                dueDate: incident.ndisNotificationDueDate,
+                status: "active",
+                createdAt: Date.now(),
+              });
+              alertsCreated++;
+            }
+          }
+        }
+      }
+    }
+
+    return { updated, alertsCreated };
   },
 });
 
@@ -747,7 +916,7 @@ export const resolve = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "incident.resolved",
-      payload: { incidentId: args.incidentId },
+      payload: JSON.stringify({ incidentId: args.incidentId }),
     });
 
     return { success: true };

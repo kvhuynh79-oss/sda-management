@@ -158,7 +158,6 @@ export default function OutlookTaskPane() {
       });
     } catch (err) {
       setOfficeError("Failed to read email data");
-      console.error(err);
     }
   }, []);
 

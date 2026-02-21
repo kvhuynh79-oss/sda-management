@@ -27,6 +27,26 @@ const RATE_LIMIT = {
   LOCKOUT_MS: 15 * 60 * 1000, // 15 minutes lockout
 };
 
+// S13: Backup code specific rate limiting
+const BACKUP_CODE_RATE_LIMIT = {
+  MAX_ATTEMPTS: 5,        // Maximum failed backup code attempts
+  WINDOW_MS: 15 * 60 * 1000, // 15-minute sliding window
+  LOCKOUT_MS: 30 * 60 * 1000, // 30-minute lockout after exceeding
+};
+
+/**
+ * S13: Check if user is locked out from backup code attempts
+ */
+function checkBackupCodeLockout(user: { mfaBackupCodeLockedUntil?: number }): string | null {
+  if (!user.mfaBackupCodeLockedUntil) return null;
+  const now = Date.now();
+  if (user.mfaBackupCodeLockedUntil > now) {
+    const remainingMin = Math.ceil((user.mfaBackupCodeLockedUntil - now) / 60000);
+    return 'Backup codes locked. Try again in ' + remainingMin + ' minute' + (remainingMin !== 1 ? 's' : '') + '.';
+  }
+  return null;
+}
+
 /**
  * Check if user is locked out from MFA attempts
  * @returns null if not locked, or remaining lockout message
@@ -288,6 +308,10 @@ export const verifyMfaLogin = internalMutation({
     }
 
     // If TOTP failed, try backup code
+    // S13: Check backup code lockout
+    const bkLockout = checkBackupCodeLockout(user);
+    if (bkLockout) { throw new Error(bkLockout); }
+
     if (user.mfaBackupCodes && user.mfaBackupCodes.length > 0) {
       const hashedCode = await hashString(args.code);
 
@@ -303,6 +327,9 @@ export const verifyMfaLogin = internalMutation({
           mfaBackupCodes: updatedBackupCodes,
           mfaFailedAttempts: 0,
           mfaLockedUntil: undefined,
+          mfaBackupCodeAttempts: 0,
+          mfaBackupCodeLockedUntil: undefined,
+          lastMfaBackupCodeAttempt: undefined,
           updatedAt: Date.now(),
         });
 
@@ -328,13 +355,24 @@ export const verifyMfaLogin = internalMutation({
 
     // Both TOTP and backup code failed - track failed attempt
     const attempts = (user.mfaFailedAttempts || 0) + 1;
+    const failNow = Date.now();
     const patchData: Record<string, any> = {
       mfaFailedAttempts: attempts,
-      updatedAt: Date.now(),
+      updatedAt: failNow,
     };
 
+    // S13: Track backup code specific attempts (backup codes are 8+ chars)
+    if (args.code.length >= 8) {
+      const bkAttempts = (user.mfaBackupCodeAttempts || 0) + 1;
+      patchData.mfaBackupCodeAttempts = bkAttempts;
+      patchData.lastMfaBackupCodeAttempt = failNow;
+      if (bkAttempts >= BACKUP_CODE_RATE_LIMIT.MAX_ATTEMPTS) {
+        patchData.mfaBackupCodeLockedUntil = failNow + BACKUP_CODE_RATE_LIMIT.LOCKOUT_MS;
+      }
+    }
+
     if (attempts >= RATE_LIMIT.MAX_ATTEMPTS) {
-      patchData.mfaLockedUntil = new Date(Date.now() + RATE_LIMIT.LOCKOUT_MS).toISOString();
+      patchData.mfaLockedUntil = new Date(failNow + RATE_LIMIT.LOCKOUT_MS).toISOString();
 
       // Audit: lockout
       await ctx.runMutation(internal.auditLog.log, {

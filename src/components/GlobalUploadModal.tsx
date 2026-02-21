@@ -360,7 +360,6 @@ export default function GlobalUploadModal({
       setError(`✓ AI analyzed document! ${fieldsCount} field${fieldsCount > 1 ? 's' : ''} auto-filled. Please review and edit if needed.`);
 
     } catch (err) {
-      console.error("AI analysis error:", err);
       const errorMessage = err instanceof Error ? err.message : "AI analysis failed. Please try again or fill in the fields manually.";
       setError(errorMessage);
     } finally {
@@ -454,7 +453,6 @@ export default function GlobalUploadModal({
       onSuccess?.();
       onClose();
     } catch (err) {
-      console.error("Upload error:", err);
       // Show the actual error message from Convex
       const errorMessage = err instanceof Error ? err.message : "Failed to upload document. Please try again.";
       setError(errorMessage);

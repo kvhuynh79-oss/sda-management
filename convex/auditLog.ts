@@ -1,4 +1,5 @@
 import { mutation, query, internalMutation, internalAction } from "./_generated/server";
+import { redactEncryptedFields } from "./lib/redact";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -151,6 +152,14 @@ export const log = internalMutation({
 
     // Create the entry data (without hash yet)
     const timestamp = Date.now();
+    // Redact encrypted fields before storing in audit log
+    const redactedChanges = args.changes
+      ? redactEncryptedFields(args.changes) as string
+      : undefined;
+    const redactedPreviousValues = args.previousValues
+      ? redactEncryptedFields(args.previousValues) as string
+      : undefined;
+
     const entryData = {
       organizationId: args.organizationId,
       userId: args.userId,
@@ -160,8 +169,8 @@ export const log = internalMutation({
       entityType: args.entityType,
       entityId: args.entityId,
       entityName: args.entityName,
-      changes: args.changes,
-      previousValues: args.previousValues,
+      changes: redactedChanges,
+      previousValues: redactedPreviousValues,
       metadata: args.metadata,
       timestamp,
       previousHash,
@@ -279,6 +288,11 @@ export const createLog = mutation({
 
     // Create the entry data (without hash yet)
     const timestamp = Date.now();
+    // Redact encrypted fields before storing in audit log
+    const redactedChanges = args.changes
+      ? redactEncryptedFields(args.changes) as string
+      : undefined;
+
     const entryData = {
       organizationId,
       userId: args.userId,
@@ -288,7 +302,7 @@ export const createLog = mutation({
       entityType: args.entityType,
       entityId: args.entityId,
       entityName: args.entityName,
-      changes: args.changes,
+      changes: redactedChanges,
       metadata: args.metadata,
       timestamp,
       previousHash,
@@ -530,8 +544,8 @@ export function formatChanges(
   }
 
   return {
-    changes: JSON.stringify(changedFields),
-    previousValues: JSON.stringify(previousFields),
+    changes: redactEncryptedFields(JSON.stringify(changedFields)) as string,
+    previousValues: redactEncryptedFields(JSON.stringify(previousFields)) as string,
   };
 }
 

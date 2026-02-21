@@ -48,7 +48,6 @@ export function useOfflineSync() {
       const count = await getPendingCount();
       setStatus((prev) => ({ ...prev, pendingCount: count }));
     } catch (error) {
-      console.error("Failed to get pending count:", error);
     }
   }, []);
 
@@ -57,7 +56,6 @@ export function useOfflineSync() {
    */
   const syncPendingIncidents = useCallback(async () => {
     if (!navigator.onLine) {
-      console.log("Cannot sync: offline");
       return { success: false, synced: 0, failed: 0 };
     }
 
@@ -75,7 +73,6 @@ export function useOfflineSync() {
         return { success: true, synced: 0, failed: 0 };
       }
 
-      console.log(`Syncing ${pending.length} pending incidents...`);
 
       let syncedCount = 0;
       let failedCount = 0;
@@ -121,7 +118,6 @@ export function useOfflineSync() {
                   uploadedBy: incidentData.reportedBy as Id<"users">,
                 });
               } catch (photoError) {
-                console.error("Failed to upload photo:", photoError);
                 // Continue with other photos even if one fails
               }
             }
@@ -132,18 +128,11 @@ export function useOfflineSync() {
           await removeFromQueue(queuedIncident.id);
 
           syncedCount++;
-          console.log(
-            `✓ Synced incident ${queuedIncident.id} (${syncedCount}/${pending.length})`
-          );
         } catch (error) {
           failedCount++;
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
 
-          console.error(
-            `✗ Failed to sync incident ${queuedIncident.id}:`,
-            errorMessage
-          );
 
           // Mark sync as failed (increases retry count)
           await markSyncFailed(queuedIncident.id, errorMessage);
@@ -174,7 +163,6 @@ export function useOfflineSync() {
         error: errorMessage,
       }));
 
-      console.error("Sync error:", error);
       return { success: false, synced: 0, failed: 0 };
     }
   }, [createIncident, addPhoto, generateUploadUrl, updatePendingCount]);
@@ -184,7 +172,6 @@ export function useOfflineSync() {
    */
   useEffect(() => {
     const handleOnline = async () => {
-      console.log("Connection restored - syncing pending incidents...");
       setStatus((prev) => ({ ...prev, isOnline: true }));
 
       // Wait a moment for connection to stabilize
@@ -195,7 +182,6 @@ export function useOfflineSync() {
     };
 
     const handleOffline = () => {
-      console.log("Connection lost - incidents will be saved locally");
       setStatus((prev) => ({ ...prev, isOnline: false }));
     };
 

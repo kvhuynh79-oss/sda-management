@@ -132,7 +132,6 @@ function CalendarContent() {
         });
       }
     } catch (err) {
-      console.error("Calendar sync failed:", err);
     } finally {
       setTimeout(() => setIsSyncing(false), 3000);
     }

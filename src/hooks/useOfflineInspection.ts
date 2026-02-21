@@ -61,7 +61,6 @@ export function useOfflineInspection() {
           uploadedBy,
         });
       } catch (error) {
-        console.error("Failed to upload photo, saving offline:", error);
         // Fall through to offline storage
       }
     }

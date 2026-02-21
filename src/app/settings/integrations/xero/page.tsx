@@ -104,7 +104,6 @@ export default function XeroSettingsPage() {
       await disconnectXero({ connectionId: connection._id });
       setMessage({ type: "success", text: "Successfully disconnected from Xero" });
     } catch (error) {
-      console.error("Error disconnecting:", error);
       setMessage({ type: "error", text: "Failed to disconnect from Xero" });
     } finally {
       setIsDisconnecting(false);
@@ -121,7 +120,6 @@ export default function XeroSettingsPage() {
         text: `Found ${accounts.length} bank account(s) in Xero`,
       });
     } catch (error) {
-      console.error("Error fetching Xero accounts:", error);
       setMessage({
         type: "error",
         text: `Failed to fetch Xero bank accounts: ${error}`,
@@ -148,7 +146,6 @@ export default function XeroSettingsPage() {
         text: `${accountName}: Synced ${result.imported} new transactions (${result.skipped} already existed)`,
       });
     } catch (error) {
-      console.error("Error syncing transactions:", error);
       setMessage({
         type: "error",
         text: `${accountName}: Failed to sync - ${error}`,
@@ -175,7 +172,6 @@ export default function XeroSettingsPage() {
         text: enabled ? "Auto-sync enabled" : "Auto-sync disabled",
       });
     } catch (error) {
-      console.error("Error updating sync settings:", error);
       setMessage({ type: "error", text: "Failed to update sync settings" });
     }
   };

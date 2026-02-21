@@ -574,16 +574,18 @@ export const resolve = mutation({
   },
 });
 
-// Escalate to NDIS Commission
+// Escalate to NDIS Commission (N10 - enhanced with tracking fields + audit log)
 export const escalate = mutation({
   args: {
     userId: v.id("users"),
     complaintId: v.id("complaints"),
     escalationDate: v.string(),
     escalationReason: v.string(),
+    ndisReferenceNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Permission check
+    // Permission check - admin or property_manager required
+    const user = await requirePermission(ctx, args.userId, "incidents", "update");
     const { organizationId } = await requireTenant(ctx, args.userId);
     const complaint = await ctx.db.get(args.complaintId);
     if (!complaint) throw new Error("Complaint not found");
@@ -593,10 +595,101 @@ export const escalate = mutation({
 
     await ctx.db.patch(args.complaintId, {
       escalatedToNdisCommission: true,
+      escalatedToNDIS: true,
+      ndisEscalationDate: args.escalationDate,
+      ndisReferenceNumber: args.ndisReferenceNumber,
       escalationDate: args.escalationDate,
       escalationReason: args.escalationReason,
+      escalationStatus: "escalated",
       status: "escalated",
       updatedAt: Date.now(),
+    });
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "update",
+      entityType: "complaint",
+      entityId: args.complaintId,
+      entityName: complaint.referenceNumber || `Complaint`,
+      changes: JSON.stringify({
+        escalationStatus: "escalated",
+        escalationDate: args.escalationDate,
+        escalationReason: args.escalationReason,
+        ndisReferenceNumber: args.ndisReferenceNumber,
+      }),
+      metadata: JSON.stringify({
+        action: "ndis_escalation",
+        complaintCategory: complaint.category,
+        complaintSeverity: complaint.severity,
+      }),
+    });
+
+    return { success: true };
+  },
+});
+
+// Update escalation status after escalation (e.g., when NDIS resolves)
+export const updateEscalationStatus = mutation({
+  args: {
+    userId: v.id("users"),
+    complaintId: v.id("complaints"),
+    escalationStatus: v.union(
+      v.literal("not_escalated"),
+      v.literal("pending_escalation"),
+      v.literal("escalated"),
+      v.literal("resolved_by_ndis")
+    ),
+    ndisReferenceNumber: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requirePermission(ctx, args.userId, "incidents", "update");
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const complaint = await ctx.db.get(args.complaintId);
+    if (!complaint) throw new Error("Complaint not found");
+    if (complaint.organizationId !== organizationId) {
+      throw new Error("Access denied: Complaint belongs to different organization");
+    }
+
+    const updates: Record<string, unknown> = {
+      escalationStatus: args.escalationStatus,
+      updatedAt: Date.now(),
+    };
+
+    if (args.ndisReferenceNumber) {
+      updates.ndisReferenceNumber = args.ndisReferenceNumber;
+    }
+
+    // If resolved by NDIS, we can close the complaint
+    if (args.escalationStatus === "resolved_by_ndis") {
+      updates.status = "closed";
+    }
+
+    await ctx.db.patch(args.complaintId, updates);
+
+    // Audit log
+    await ctx.runMutation(internal.auditLog.log, {
+      userId: user._id,
+      userEmail: user.email,
+      userName: getUserFullName(user),
+      action: "update",
+      entityType: "complaint",
+      entityId: args.complaintId,
+      entityName: complaint.referenceNumber || `Complaint`,
+      changes: JSON.stringify({
+        escalationStatus: args.escalationStatus,
+        ndisReferenceNumber: args.ndisReferenceNumber,
+      }),
+      previousValues: JSON.stringify({
+        escalationStatus: complaint.escalationStatus,
+      }),
+      metadata: JSON.stringify({
+        action: "escalation_status_update",
+        notes: args.notes,
+      }),
     });
 
     return { success: true };

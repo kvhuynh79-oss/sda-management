@@ -107,7 +107,6 @@ export default function FollowUpsPage() {
         userId: user.id as Id<"users">,
       });
     } catch (error) {
-      console.error("Failed to update task status:", error);
     }
   };
 

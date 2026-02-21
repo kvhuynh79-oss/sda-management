@@ -40,7 +40,6 @@ export function useOfflineMaintenance() {
           description,
         });
       } catch (error) {
-        console.error("Failed to upload maintenance photo, saving offline:", error);
         // Fall through to offline storage
       }
     }

@@ -14,7 +14,7 @@ import {
  *
  * Security posture:
  * - Authentication: Bearer API key (msd_live_*) validated via Convex
- * - Rate limiting: NOT NEEDED - API key auth + Convex rate limits provide protection
+ * - Rate limiting: YES - S16 in-memory per-API-key rate limiting (100 req/min)
  * - CSRF/Origin: EXEMPT - API key authentication replaces Origin checks
  * - Input validation: YES - type enum, search, limit parameters validated
  * - Tenant isolation: Automatic via organizationId from API key
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   if ("error" in auth) {
     return NextResponse.json(
       { error: auth.error },
-      { status: auth.status, headers: API_CORS_HEADERS }
+      { status: auth.status, headers: { ...API_CORS_HEADERS, ...("retryAfter" in auth && auth.retryAfter ? { "Retry-After": String(auth.retryAfter) } : {}) } }
     );
   }
 

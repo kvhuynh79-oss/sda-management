@@ -103,7 +103,6 @@ export default function TaskDetailPage() {
       });
       setIsEditing(false);
     } catch (error) {
-      console.error("Failed to save task:", error);
     } finally {
       setIsSaving(false);
     }
@@ -124,7 +123,6 @@ export default function TaskDetailPage() {
         userId: user.id as Id<"users">,
       });
     } catch (error) {
-      console.error("Failed to update status:", error);
     }
   };
 
@@ -140,7 +138,6 @@ export default function TaskDetailPage() {
       setShowCompleteModal(false);
       setCompletionNotes("");
     } catch (error) {
-      console.error("Failed to complete task:", error);
     }
   };
 
@@ -155,7 +152,6 @@ export default function TaskDetailPage() {
       });
       router.push("/follow-ups");
     } catch (error) {
-      console.error("Failed to delete task:", error);
     }
   };
 
@@ -352,7 +348,7 @@ export default function TaskDetailPage() {
                   />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Due Date</span>
                     <p className={`text-white ${task.isOverdue ? "text-red-400 font-medium" : ""}`}>
@@ -403,7 +399,7 @@ export default function TaskDetailPage() {
             {task.status === "completed" && (
               <div className="bg-green-900/20 border border-green-600 rounded-lg p-6">
                 <h2 className="text-lg font-semibold text-green-400 mb-4">Completion Details</h2>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Completed On</span>
                     <p className="text-white">{task.completedDate}</p>

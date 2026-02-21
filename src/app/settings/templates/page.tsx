@@ -147,7 +147,6 @@ function TemplateSettingsContent() {
         message: "Your Easy Read template has been uploaded. You can now configure field positions below.",
       });
     } catch (error) {
-      console.error("Error uploading template:", error);
       await alertDialog({
         title: "Upload Failed",
         message: "Failed to upload the template PDF. Please try again.",
@@ -181,7 +180,6 @@ function TemplateSettingsContent() {
         message: "The template has been removed. The system will now use the built-in Easy Read generator.",
       });
     } catch (error) {
-      console.error("Error removing template:", error);
       await alertDialog({
         title: "Error",
         message: "Failed to remove the template. Please try again.",
@@ -207,7 +205,6 @@ function TemplateSettingsContent() {
         message: "Field positions have been saved. They will be used when generating Easy Read PDFs from the template.",
       });
     } catch (error) {
-      console.error("Error saving field map:", error);
       await alertDialog({
         title: "Error",
         message: "Failed to save field positions. Please try again.",

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { redactPII } from "./lib/redact";
 import { mutation, query, action, internalMutation, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireTenant, requireAdmin } from "./authHelpers";
@@ -470,7 +471,7 @@ export const triggerWebhook = internalAction({
   args: {
     organizationId: v.id("organizations"),
     event: v.string(),
-    payload: v.any(),
+    payload: v.string(),
   },
   handler: async (ctx, args): Promise<void> => {
     // Get all active webhooks for this org + event
@@ -486,10 +487,11 @@ export const triggerWebhook = internalAction({
 
     // Build the payload JSON
     const timestamp = Math.floor(Date.now() / 1000).toString();
+    const parsedPayload = JSON.parse(args.payload);
     const payloadBody = JSON.stringify({
       event: args.event,
       timestamp,
-      data: args.payload,
+      data: parsedPayload,
     });
 
     // Deliver to each webhook
@@ -553,12 +555,13 @@ export const triggerWebhook = internalAction({
         }
       }
 
-      // Record the delivery
+      // Record the delivery (redact PII from stored payload and response)
+      const redactedPayload = redactPII(payloadBody) as string;
       await ctx.runMutation(internal.webhooks.recordDelivery, {
         webhookId: webhook._id,
         organizationId: webhook.organizationId,
         event: args.event,
-        payload: payloadBody,
+        payload: redactedPayload,
         statusCode: lastStatusCode,
         response: lastResponse,
         success,

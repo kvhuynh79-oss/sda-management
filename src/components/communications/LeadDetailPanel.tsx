@@ -141,7 +141,6 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
           status: newStatus,
         });
       } catch (error) {
-        console.error("Failed to update lead status:", error);
       } finally {
         setIsUpdatingStatus(false);
       }
@@ -159,7 +158,6 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
       });
       onClose();
     } catch (error) {
-      console.error("Failed to delete lead:", error);
     } finally {
       setIsDeleting(false);
     }
@@ -169,7 +167,6 @@ export function LeadDetailPanel({ lead, userId, userRole, onClose }: LeadDetailP
 
   const handleMatchToProperty = useCallback(() => {
     // Property matching will be implemented when the property search/selection UI is built
-    console.log("Match to property for lead:", lead._id);
   }, [lead._id]);
 
   return (

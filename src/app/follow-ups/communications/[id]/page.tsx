@@ -150,7 +150,6 @@ export default function CommunicationDetailPage() {
       });
       setIsEditing(false);
     } catch (error) {
-      console.error("Failed to save communication:", error);
     } finally {
       setIsSaving(false);
     }
@@ -170,7 +169,6 @@ export default function CommunicationDetailPage() {
       });
       router.push("/communications");
     } catch (error) {
-      console.error("Failed to delete communication:", error);
     }
   };
 
@@ -182,7 +180,6 @@ export default function CommunicationDetailPage() {
         userId: user.id as Id<"users">,
       });
     } catch (error) {
-      console.error("Failed to restore:", error);
     }
   };
 
@@ -610,7 +607,7 @@ export default function CommunicationDetailPage() {
                   />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Date</span>
                     <p className="text-white">
@@ -773,7 +770,6 @@ export default function CommunicationDetailPage() {
               });
               setShowThreadPicker(false);
             } catch (error) {
-              console.error("Failed to move communication:", error);
               await alertDialog("Failed to move communication to thread. " + (error instanceof Error ? error.message : "Please try again."));
             }
           }}

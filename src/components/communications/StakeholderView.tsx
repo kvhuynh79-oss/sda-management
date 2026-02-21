@@ -138,7 +138,6 @@ export function StakeholderView({
         setCursor(undefined);
         setPrevItems([]);
       } catch (error) {
-        console.error("Failed to delete:", error);
         await alertDialog("Failed to delete communications.");
       } finally {
         setDeletingContact(null);

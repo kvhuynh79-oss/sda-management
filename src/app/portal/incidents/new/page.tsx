@@ -150,7 +150,6 @@ export default function NewIncidentPage() {
 
       router.push("/portal/incidents");
     } catch (error) {
-      console.error("Failed to create incident:", error);
       await alertDialog("Failed to create incident. Please try again.");
     } finally {
       setIsSubmitting(false);

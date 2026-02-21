@@ -240,7 +240,6 @@ function OnboardingSetupContent() {
       });
       setSetupRequested(true);
     } catch (error) {
-      console.error("Failed to request setup:", error);
       setSetupRequested(true);
     }
   }, [user, submitLead]);

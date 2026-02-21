@@ -62,7 +62,6 @@ export default function InspectionTemplatesPage() {
       await seedBLSTemplate({ createdBy: user.id as Id<"users"> });
       await alertDialog("BLS Template created successfully!");
     } catch (error: any) {
-      console.error("Error seeding template:", error);
       const errorMessage = error?.message || "Unknown error";
       if (errorMessage.includes("already exists")) {
         await alertDialog("BLS Template already exists! Refresh the page to see it.");

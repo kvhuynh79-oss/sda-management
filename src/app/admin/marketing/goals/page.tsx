@@ -154,7 +154,6 @@ function GoalsContent() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      console.error("Failed to save goals:", err);
     } finally {
       setSaving(false);
     }

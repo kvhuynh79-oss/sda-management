@@ -368,7 +368,6 @@ export default function CalendarIntegrationsPage() {
         const label = provider === "google" ? "Google Calendar" : "Outlook Calendar";
         setMessage({ type: "success", text: `${label} disconnected.` });
       } catch (error) {
-        console.error("Error disconnecting:", error);
         setMessage({
           type: "error",
           text: `Failed to disconnect. Please try again.`,
@@ -392,7 +391,6 @@ export default function CalendarIntegrationsPage() {
           text: `Auto-sync ${enabled ? "enabled" : "disabled"}.`,
         });
       } catch (error) {
-        console.error("Error toggling sync:", error);
         setMessage({
           type: "error",
           text: "Failed to update sync settings.",
@@ -415,7 +413,6 @@ export default function CalendarIntegrationsPage() {
           text: "Sync triggered. Events will update shortly.",
         });
       } catch (error) {
-        console.error("Error triggering sync:", error);
         setMessage({
           type: "error",
           text: "Failed to trigger sync. Please try again.",

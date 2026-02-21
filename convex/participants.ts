@@ -1,4 +1,4 @@
-import { mutation, query, internalQuery } from "./_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requirePermission, requireAuth, requireTenant, requireActiveSubscription } from "./authHelpers";
@@ -151,7 +151,7 @@ export const create = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "participant.created",
-      payload: { participantId, firstName: args.firstName, lastName: args.lastName },
+      payload: JSON.stringify({ participantId, firstName: args.firstName, lastName: args.lastName }),
     });
 
     return participantId;
@@ -570,7 +570,7 @@ export const update = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "participant.updated",
-      payload: { participantId: args.participantId },
+      payload: JSON.stringify({ participantId: args.participantId }),
     });
 
     return { success: true };
@@ -888,7 +888,8 @@ export const recordConsent = mutation({
   },
 });
 
-// Withdraw consent for a participant (archives sensitive data)
+// Withdraw consent for a participant (archives sensitive data per APP-3)
+// Enhanced: copies ALL personal/encrypted fields to participantArchives before clearing
 export const withdrawConsent = mutation({
   args: {
     userId: v.id("users"),
@@ -905,16 +906,70 @@ export const withdrawConsent = mutation({
       throw new Error("Access denied: Participant belongs to different organization");
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+
+    // Step 1: Archive ALL personal/sensitive data before clearing
+    const personalData = {
+      ndisNumber: participant.ndisNumber,
+      ndisNumberIndex: participant.ndisNumberIndex,
+      dateOfBirth: participant.dateOfBirth,
+      email: participant.email,
+      phone: participant.phone,
+      emergencyContactName: participant.emergencyContactName,
+      emergencyContactPhone: participant.emergencyContactPhone,
+      emergencyContactRelation: participant.emergencyContactRelation,
+      notes: participant.notes,
+      supportCoordinatorName: participant.supportCoordinatorName,
+      supportCoordinatorEmail: participant.supportCoordinatorEmail,
+      supportCoordinatorPhone: participant.supportCoordinatorPhone,
+      silProviderName: participant.silProviderName,
+      firstName: participant.firstName,
+      lastName: participant.lastName,
+      consentDate: participant.consentDate,
+      consentExpiryDate: participant.consentExpiryDate,
+      consentNotes: participant.consentNotes,
+    };
+
+    // Encrypt the entire archive blob for at-rest protection
+    const archiveJson = JSON.stringify(personalData);
+    const encryptedArchive = await encryptField(archiveJson);
+
+    // Calculate 7-year retention expiry (NDIS record-keeping requirement)
+    const retentionExpiry = new Date(now);
+    retentionExpiry.setFullYear(retentionExpiry.getFullYear() + 7);
+    const retentionExpiresAt = retentionExpiry.toISOString().split("T")[0];
+
+    // Insert into participantArchives
+    await ctx.db.insert("participantArchives", {
+      organizationId,
+      originalParticipantId: args.participantId,
+      encryptedData: encryptedArchive ?? archiveJson,
+      archivedAt: now.toISOString(),
+      archivedBy: args.userId,
+      withdrawalReason: args.reason,
+      retentionExpiresAt,
+      status: "archived",
+    });
+
+    // Step 2: Pseudonymise the active participant record
     const updateFields: Record<string, unknown> = {
-      ndisNumber: undefined,
+      firstName: "[Consent Withdrawn]",
+      lastName: "[Consent Withdrawn]",
+      ndisNumber: "[Consent Withdrawn]",
       ndisNumberIndex: undefined,
       dateOfBirth: undefined,
+      email: undefined,
+      phone: undefined,
       emergencyContactName: undefined,
       emergencyContactPhone: undefined,
       emergencyContactRelation: undefined,
       notes: undefined,
-      consentStatus: "withdrawn",
+      supportCoordinatorName: undefined,
+      supportCoordinatorEmail: undefined,
+      supportCoordinatorPhone: undefined,
+      silProviderName: undefined,
+      consentStatus: "withdrawn" as const,
       consentWithdrawnDate: today,
       consentWithdrawnBy: args.userId,
       consentNotes: args.reason || "Consent withdrawn by participant",
@@ -932,6 +987,7 @@ export const withdrawConsent = mutation({
       await updateDwellingOccupancy(ctx, participant.dwellingId);
     }
 
+    // Step 3: Audit log with consent_withdrawal details
     await ctx.runMutation(internal.auditLog.log, {
       userId: user._id,
       userEmail: user.email,
@@ -940,7 +996,13 @@ export const withdrawConsent = mutation({
       entityType: "participant",
       entityId: args.participantId,
       entityName: `${participant.firstName} ${participant.lastName}`,
-      metadata: JSON.stringify({ consentAction: "withdrawn", reason: args.reason, sensitiveDataArchived: true }),
+      metadata: JSON.stringify({
+        consentAction: "consent_withdrawal",
+        reason: args.reason,
+        sensitiveDataArchived: true,
+        archiveRetentionExpiry: retentionExpiresAt,
+        fieldsArchived: Object.keys(personalData),
+      }),
     });
 
     return { success: true };
@@ -1064,5 +1126,81 @@ export const getAllRaw = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("participants").collect();
+  },
+});
+
+// Get archived participant data (super-admin only - for compliance/legal purposes)
+export const getArchivedParticipant = query({
+  args: {
+    userId: v.id("users"),
+    participantId: v.id("participants"),
+  },
+  handler: async (ctx, args) => {
+    const { organizationId } = await requireTenant(ctx, args.userId);
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // Only super-admins or org admins can access archived data
+    if (!user.isSuperAdmin && user.role !== "admin") {
+      throw new Error("Access denied: Only admins can access archived participant data");
+    }
+
+    const archives = await ctx.db
+      .query("participantArchives")
+      .withIndex("by_originalParticipant", (q) => q.eq("originalParticipantId", args.participantId))
+      .collect();
+
+    // Filter to this organization
+    const orgArchives = archives.filter(a => a.organizationId === organizationId);
+    if (orgArchives.length === 0) return null;
+
+    // Return the most recent archive
+    const latest = orgArchives.sort((a, b) => b.archivedAt.localeCompare(a.archivedAt))[0];
+
+    // Decrypt the archived data blob
+    const decryptedData = await decryptField(latest.encryptedData);
+    let parsedData = null;
+    try {
+      parsedData = JSON.parse(decryptedData ?? latest.encryptedData);
+    } catch {
+      // If decryption or parsing fails, return as-is
+      parsedData = { raw: latest.encryptedData };
+    }
+
+    return {
+      ...latest,
+      decryptedData: parsedData,
+    };
+  },
+});
+
+// Cleanup expired archives past 7-year retention period (NDIS compliance)
+// Run daily via cron to permanently delete archives that have exceeded retention
+export const cleanupExpiredArchives = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const today = new Date().toISOString().split("T")[0];
+
+    const allArchives = await ctx.db
+      .query("participantArchives")
+      .withIndex("by_retentionExpiry")
+      .collect();
+
+    let deleted = 0;
+    for (const archive of allArchives) {
+      if (archive.status === "archived" && archive.retentionExpiresAt <= today) {
+        // Mark as expired first, then delete on next cycle (safety net)
+        if (archive.status === "archived") {
+          await ctx.db.patch(archive._id, { status: "expired" });
+          deleted++;
+        }
+      } else if (archive.status === "expired") {
+        // Archives marked expired in previous cycle - now permanently delete
+        await ctx.db.delete(archive._id);
+        deleted++;
+      }
+    }
+
+    return { processed: deleted };
   },
 });

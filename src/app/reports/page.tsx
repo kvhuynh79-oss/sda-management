@@ -327,7 +327,6 @@ export default function ReportsPage() {
       const dateStr = new Date().toISOString().split("T")[0];
       pdf.save(`Audit_Compliance_Pack_${dateStr}.pdf`);
     } catch (error) {
-      console.error("Failed to generate audit pack:", error);
       await alertDialog("Failed to generate audit compliance pack. Please try again.");
     } finally {
       setIsGeneratingAuditPack(false);
@@ -439,7 +438,7 @@ export default function ReportsPage() {
             <ReportSection title="Outstanding Payments">
               {outstandingPayments ? (
                 <>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <StatCard label="Total Outstanding" value={`$${outstandingPayments.totalOutstanding.toLocaleString()}`} color="red" />
                     <StatCard label="Outstanding Claims" value={outstandingPayments.count.toString()} color="yellow" />
                   </div>
@@ -589,7 +588,7 @@ export default function ReportsPage() {
             <ReportSection title="Document Expiry (Next 90 Days)">
               {documentExpiry ? (
                 <>
-                  <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                     <StatCard label="Expired" value={documentExpiry.summary.expired.toString()} color="red" />
                     <StatCard label="Expiring Soon (30d)" value={documentExpiry.summary.expiringSoon.toString()} color="yellow" />
                     <StatCard label="Expiring Later" value={documentExpiry.summary.expiringLater.toString()} color="green" />
@@ -754,7 +753,7 @@ export default function ReportsPage() {
                     <StatCard label="Overdue" value={maintenanceOverview.summary.overdue.toString()} color="red" />
                     <StatCard label="Total Cost" value={`$${maintenanceOverview.summary.totalCost.toLocaleString()}`} color="blue" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-gray-700 p-4 rounded-lg">
                       <h4 className="text-white font-medium mb-3">By Category</h4>
                       <div className="space-y-2 text-sm">
@@ -804,7 +803,7 @@ export default function ReportsPage() {
                     <StatCard label="Resolved" value={incidentSummary.summary.resolved.toString()} color="green" />
                     <StatCard label="Reported to NDIS" value={incidentSummary.summary.reportedToNdis.toString()} color="blue" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-gray-700 p-4 rounded-lg">
                       <h4 className="text-white font-medium mb-3">By Type</h4>
                       <div className="space-y-2 text-sm">
@@ -1011,7 +1010,7 @@ function StatCard({
 function LoadingPlaceholder() {
   return (
     <div className="animate-pulse">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="bg-gray-700 rounded-lg p-4 h-20"></div>
         ))}

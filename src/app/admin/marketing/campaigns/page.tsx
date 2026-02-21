@@ -306,7 +306,6 @@ function CampaignsContent() {
       setShowForm(false);
       resetForm();
     } catch (err) {
-      console.error("Failed to save campaign:", err);
     } finally {
       setSaving(false);
     }
@@ -318,7 +317,6 @@ function CampaignsContent() {
     try {
       await deleteCampaign({ userId, campaignId });
     } catch (err) {
-      console.error("Failed to delete campaign:", err);
     }
   }
 

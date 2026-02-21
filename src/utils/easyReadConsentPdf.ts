@@ -78,7 +78,6 @@ export async function generateEasyReadFromTemplate(
         return true;
       }
     } catch (error) {
-      console.error("Error generating from custom template:", error);
       // Fall through to local template
     }
   }
@@ -118,7 +117,6 @@ export async function generateEasyReadFromTemplate(
       return true;
     }
   } catch (error) {
-    console.error("Error generating from local template:", error);
   }
 
   // Strategy 3: Return false - caller should use jsPDF fallback
@@ -133,13 +131,11 @@ async function fetchTemplateBytes(url: string): Promise<Uint8Array | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      console.warn(`Template not available at ${url} (${response.status})`);
       return null;
     }
     const arrayBuffer = await response.arrayBuffer();
     return new Uint8Array(arrayBuffer);
   } catch (error) {
-    console.warn(`Failed to fetch template from ${url}:`, error);
     return null;
   }
 }
@@ -157,7 +153,6 @@ function parseFieldMap(fieldMapJson?: string | null): FieldMapping[] {
       return parsed as FieldMapping[];
     }
   } catch {
-    console.warn("Invalid field map JSON, using defaults");
   }
 
   return DEFAULT_EASY_READ_FIELD_MAP;

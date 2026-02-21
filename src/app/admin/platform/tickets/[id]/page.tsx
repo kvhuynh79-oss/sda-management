@@ -289,7 +289,6 @@ function TicketDetailContent() {
       });
       setReplyMessage("");
     } catch (err) {
-      console.error("Failed to send reply:", err);
     } finally {
       setIsSending(false);
     }
@@ -311,7 +310,6 @@ function TicketDetailContent() {
           | "closed",
       });
     } catch (err) {
-      console.error("Failed to update status:", err);
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -328,7 +326,6 @@ function TicketDetailContent() {
         assignedTo: `${user.firstName} ${user.lastName}`,
       });
     } catch (err) {
-      console.error("Failed to assign ticket:", err);
     } finally {
       setIsAssigning(false);
     }

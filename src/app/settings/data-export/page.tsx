@@ -106,7 +106,6 @@ export default function DataExportPage() {
       setFileSizeDisplay(formatBytes(blob.size));
       setExportComplete(true);
     } catch (error) {
-      console.error("Export failed:", error);
       const message =
         error instanceof Error ? error.message : "An unexpected error occurred.";
       setExportError(message);

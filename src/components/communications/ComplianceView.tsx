@@ -149,7 +149,6 @@ export function ComplianceView({
           userId: userId as Id<"users">,
         });
       } catch (error) {
-        console.error("Failed to delete:", error);
         await alertDialog("Failed to delete communication.");
       } finally {
         setDeletingId(null);

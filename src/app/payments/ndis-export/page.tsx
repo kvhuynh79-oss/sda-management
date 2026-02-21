@@ -115,7 +115,6 @@ export default function NDISExportPage() {
       setShowSettings(false);
       await alertDialog("Provider settings saved successfully");
     } catch (err) {
-      console.error("Failed to save settings:", err);
       await alertDialog("Failed to save settings. Please try again.");
     }
   };

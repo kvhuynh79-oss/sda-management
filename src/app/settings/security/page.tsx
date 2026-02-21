@@ -70,7 +70,6 @@ function SecuritySettingsContent() {
       setBackupCodes(result.backupCodes); // Store backup codes from setup
       setShowMfaSetup(true);
     } catch (err) {
-      console.error("Error setting up MFA:", err);
       setError("Failed to generate MFA setup. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -97,7 +96,6 @@ function SecuritySettingsContent() {
         setError("Invalid verification code. Please try again.");
       }
     } catch (err) {
-      console.error("Error verifying MFA:", err);
       setError("Failed to verify code. Please try again.");
     } finally {
       setIsVerifying(false);
@@ -132,7 +130,6 @@ function SecuritySettingsContent() {
       });
       await alertDialog({ title: "Success", message: "Two-factor authentication has been disabled." });
     } catch (err) {
-      console.error("Error disabling MFA:", err);
       setError("Failed to disable MFA. Please try again.");
     } finally {
       setIsDisabling(false);
@@ -169,7 +166,6 @@ function SecuritySettingsContent() {
         setShowBackupCodes(true);
       }
     } catch (err) {
-      console.error("Error regenerating backup codes:", err);
       setError("Failed to regenerate backup codes. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -182,7 +178,6 @@ function SecuritySettingsContent() {
       setCopiedCodes(true);
       setTimeout(() => setCopiedCodes(false), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err);
     }
   };
 
@@ -427,7 +422,7 @@ function SecuritySettingsContent() {
 
             {/* Backup Codes */}
             <div className="bg-gray-900 rounded-lg p-6 mb-6">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {backupCodes.map((code, index) => (
                   <code key={index} className="px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white font-mono text-sm text-center">
                     {code}

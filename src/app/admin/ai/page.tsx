@@ -150,7 +150,6 @@ function AIAssistantContent() {
           setPendingFiling(null);
         }
       } catch (error) {
-        console.error("Error filing document:", error);
         const errorMessage: Message = {
           role: "assistant",
           content: "Sorry, I encountered an error filing the document. Please try again.",
@@ -200,7 +199,6 @@ function AIAssistantContent() {
         setActiveConversationId(result.conversationId as Id<"aiConversations">);
       }
     } catch (error) {
-      console.error("Error processing query:", error);
       const errorMessage: Message = {
         role: "assistant",
         content:
@@ -239,7 +237,6 @@ function AIAssistantContent() {
         setActiveConversationId(result.conversationId as Id<"aiConversations">);
       }
     } catch (error) {
-      console.error("Error executing action:", error);
       const errorMessage: Message = {
         role: "assistant",
         content: "Sorry, I couldn't complete that action. Please try again.",
@@ -306,7 +303,6 @@ function AIAssistantContent() {
         setPendingFiling(null);
       }
     } catch (error) {
-      console.error("Error filing document:", error);
       const errorMessage: Message = {
         role: "assistant",
         content: "Sorry, I encountered an error filing the document. Please try again.",
@@ -520,7 +516,6 @@ function AIAssistantContent() {
         setActiveConversationId(newConversationId as Id<"aiConversations">);
       }
     } catch (error) {
-      console.error("Error analyzing document:", error);
       const errorMessage: Message = {
         role: "assistant",
         content:

@@ -241,7 +241,6 @@ function ComplaintsRegisterContent() {
 
       generateComplaintsRegisterPdf(pdfData, complaintsStats, undefined, organization?.name);
     } catch (error) {
-      console.error("Error generating PDF:", error);
     } finally {
       setIsExporting(false);
     }

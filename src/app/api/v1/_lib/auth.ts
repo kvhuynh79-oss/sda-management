@@ -1,4 +1,5 @@
 import { ConvexHttpClient } from "convex/browser";
+import { checkRateLimit, rateLimitHeaders, type RateLimitResult } from "./rateLimit";
 import { api } from "../../../../../convex/_generated/api";
 
 /**
@@ -58,6 +59,7 @@ export interface ApiAuthSuccess {
 export interface ApiAuthError {
   error: string;
   status: number;
+  retryAfter?: number; // S16: seconds until rate limit resets
 }
 
 /**
@@ -111,12 +113,44 @@ export async function authenticateApiRequest(
       };
     }
 
-    return {
+    const authResult: ApiAuthSuccess = {
       organizationId: result.organizationId,
       permissions: result.permissions,
       keyId: result.keyId,
       createdBy: result.createdBy,
     };
+
+    // S16: Automatic rate limiting on successful auth (100 req/min per API key)
+    const rlResult = checkRateLimit(authResult.keyId, 100, 60000);
+    if (!rlResult.allowed) {
+      return {
+        error: "Rate limit exceeded. Please retry later.",
+        status: 429,
+        retryAfter: rlResult.retryAfter,
+      } as ApiAuthError;
+    }
+
+    // B7 FIX: Check subscription status — block suspended/cancelled orgs from API access
+    if (result.subscriptionStatus) {
+      const accessLevel = result.accessLevel ?? "full";
+      const method = request.method?.toUpperCase() ?? "GET";
+      const isReadOnly = method === "GET" || method === "HEAD" || method === "OPTIONS";
+
+      if (accessLevel === "suspended" || result.subscriptionStatus === "canceled") {
+        return {
+          error: "Subscription inactive. Please visit your billing dashboard to reactivate.",
+          status: 403,
+        };
+      }
+      if (accessLevel === "read_only" && !isReadOnly) {
+        return {
+          error: "Account is in read-only mode due to overdue payment. Only GET requests are allowed.",
+          status: 403,
+        };
+      }
+    }
+
+    return authResult;
   } catch (err) {
     console.error("[REST API] Authentication error:", err);
     return {
@@ -150,3 +184,27 @@ export const API_CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age": "86400",
 } as const;
+
+/**
+ * S16: Check rate limit for an authenticated API request.
+ * Call this after authenticateApiRequest succeeds.
+ *
+ * @param auth - Successful auth result (uses keyId as rate limit key)
+ * @param maxRequests - Max requests per window (default 100)
+ * @param windowMs - Window in ms (default 60s)
+ * @returns null if allowed, or { headers, status } for 429 response
+ */
+export function checkApiRateLimit(
+  auth: ApiAuthSuccess,
+  maxRequests = 100,
+  windowMs = 60000
+): { headers: Record<string, string>; status: 429 } | null {
+  const result = checkRateLimit(auth.keyId, maxRequests, windowMs);
+  if (!result.allowed) {
+    return {
+      headers: { ...API_CORS_HEADERS, ...rateLimitHeaders(result, maxRequests) },
+      status: 429,
+    };
+  }
+  return null;
+}

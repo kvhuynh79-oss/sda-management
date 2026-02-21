@@ -73,7 +73,7 @@ export const create = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "maintenance.created",
-      payload: { requestId, title: args.title, priority: args.priority },
+      payload: JSON.stringify({ requestId, title: args.title, priority: args.priority }),
     });
 
     return requestId;
@@ -342,7 +342,7 @@ export const update = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "maintenance.updated",
-      payload: { requestId: args.requestId },
+      payload: JSON.stringify({ requestId: args.requestId }),
     });
 
     return { success: true };
@@ -394,7 +394,7 @@ export const completeRequest = mutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId,
       event: "maintenance.completed",
-      payload: { requestId: args.requestId },
+      payload: JSON.stringify({ requestId: args.requestId }),
     });
 
     return { success: true };
@@ -940,7 +940,7 @@ export const createFromInspection = internalMutation({
     await ctx.scheduler.runAfter(0, internal.webhooks.triggerWebhook, {
       organizationId: args.organizationId,
       event: "maintenance.created",
-      payload: { requestId, title: args.title, priority: args.priority },
+      payload: JSON.stringify({ requestId, title: args.title, priority: args.priority }),
     });
 
     return requestId;

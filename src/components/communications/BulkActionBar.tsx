@@ -110,7 +110,6 @@ export function BulkActionBar({
       showToast(`Marked ${result.updatedCount} as read`);
       onActionComplete();
     } catch (error) {
-      console.error("Bulk mark read failed:", error);
       showToast("Failed to mark as read");
     } finally {
       setIsLoading(false);
@@ -130,7 +129,6 @@ export function BulkActionBar({
         showToast(`Categorized ${result.updatedCount} items`);
         onActionComplete();
       } catch (error) {
-        console.error("Bulk categorize failed:", error);
         showToast("Failed to categorize");
       } finally {
         setIsLoading(false);
@@ -152,7 +150,6 @@ export function BulkActionBar({
         showToast(`Flagged ${result.updatedCount} items`);
         onActionComplete();
       } catch (error) {
-        console.error("Bulk flag failed:", error);
         showToast("Failed to add flag");
       } finally {
         setIsLoading(false);

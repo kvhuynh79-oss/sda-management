@@ -204,7 +204,6 @@ export default function InspectionDetailPage() {
       });
       setCompletionResult(result);
     } catch (error) {
-      console.error("Error completing inspection:", error);
       await alertDialog({ title: "Error", message: "Failed to complete inspection. Please try again." });
       setIsCompleting(false);
     }
@@ -228,7 +227,6 @@ export default function InspectionDetailPage() {
       });
       setCompletionResult(result);
     } catch (error) {
-      console.error("Error completing inspection:", error);
       await alertDialog({ title: "Error", message: "Failed to complete inspection. Please try again." });
       setIsCompleting(false);
     }
@@ -259,7 +257,6 @@ export default function InspectionDetailPage() {
         uploadedBy: user.id as Id<"users">,
       });
     } catch (error) {
-      console.error("Error uploading photo:", error);
       await alertDialog({ title: "Error", message: "Error uploading photo. Please try again." });
     } finally {
       setUploadingFor(null);
@@ -306,7 +303,6 @@ export default function InspectionDetailPage() {
         uploadedBy: user.id as Id<"users">,
       });
     } catch (error) {
-      console.error("Error uploading general photo:", error);
       await alertDialog({ title: "Error", message: "Error uploading photo. Please try again." });
     } finally {
       setUploadingGeneral(false);
@@ -342,7 +338,6 @@ export default function InspectionDetailPage() {
       // Expand the category to show the new item
       setExpandedCategory(category);
     } catch (error) {
-      console.error("Error adding custom item:", error);
       await alertDialog({ title: "Error", message: "Error adding item. Please try again." });
     }
   };
@@ -1008,7 +1003,7 @@ export default function InspectionDetailPage() {
                       {/* Section 1: Inspection Summary */}
                       <div className="mb-4">
                         <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-2">Summary</h3>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="bg-green-900/20 border border-green-800 rounded-lg p-3 text-center">
                             <div className="text-2xl font-bold text-green-400">{completionSummary.summary.passedItems}</div>
                             <div className="text-xs text-gray-400 mt-0.5">

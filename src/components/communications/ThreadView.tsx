@@ -176,7 +176,6 @@ function ThreadMessages({ threadId, userId, userRole }: { threadId: string; user
           userId: userId as Id<"users">,
         });
       } catch (error) {
-        console.error("Failed to delete communication:", error);
       }
     },
     [deleteCommunication, userId, confirmDialog]
@@ -355,7 +354,6 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
           status,
         });
       } catch (error) {
-        console.error("Failed to update thread status:", error);
       }
     },
     [updateThreadStatus, userId]
@@ -411,7 +409,6 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
 
         await exportThreadToPdf(exportData);
       } catch (error) {
-        console.error("Failed to export thread PDF:", error);
       } finally {
         setExportingThreadId(null);
       }
@@ -714,7 +711,6 @@ export function ThreadView({ userId, filterUnread, filterRequiresAction, statusF
             });
             setLinkToThreadComm(null);
           } catch (error) {
-            console.error("Failed to move communication:", error);
             await alertDialog("Failed to move communication to thread. " + (error instanceof Error ? error.message : "Please try again."));
           }
         }}

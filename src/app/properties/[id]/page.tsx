@@ -428,7 +428,6 @@ function RelatedDocuments({
     try {
       await onDelete(docId);
     } catch (error) {
-      console.error("Error deleting document:", error);
     } finally {
       setDeletingId(null);
     }
@@ -659,7 +658,6 @@ function DwellingCard({
       setAccessLevel("full");
       setProviderNotes("");
     } catch (error) {
-      console.error("Error allocating SIL provider:", error);
       await alertDialog("Failed to allocate SIL provider");
     } finally {
       setIsSubmitting(false);
@@ -671,7 +669,6 @@ function DwellingCard({
       await onUnlinkProvider(linkId);
       setShowRemoveConfirm(null);
     } catch (error) {
-      console.error("Error removing allocation:", error);
       await alertDialog("Failed to remove allocation");
     }
   };
@@ -1052,7 +1049,6 @@ function MediaGallery({
           uploadedBy: userId,
         });
       } catch (error) {
-        console.error(`Error uploading ${file.name}:`, error);
         await alertDialog(`Failed to upload ${file.name}`);
       }
     }
@@ -1110,7 +1106,6 @@ function MediaGallery({
       await deleteMedia({ userId, mediaId: mediaId as Id<"propertyMedia"> });
       setShowDeleteConfirm(null);
     } catch (error) {
-      console.error("Error deleting media:", error);
       await alertDialog("Failed to delete media");
     }
   };
@@ -1119,7 +1114,6 @@ function MediaGallery({
     try {
       await setFeatured({ userId, mediaId: mediaId as Id<"propertyMedia">, isFeatured });
     } catch (error) {
-      console.error("Error setting featured:", error);
       await alertDialog("Failed to update featured status");
     }
   };

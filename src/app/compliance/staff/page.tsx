@@ -200,7 +200,7 @@ function StaffCard({ member }: { member: StaffMember }) {
         <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">
           Screening Status
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <ScreeningDot
             label="Police"
             status={getScreeningStatus(member.policeCheckExpiry)}

@@ -226,6 +226,8 @@ export const validateApiKey = mutation({
         permissions: string[];
         keyId: string;
         createdBy: string;
+        subscriptionStatus: string;
+        accessLevel: string;
       }
     | { valid: false }
   > => {
@@ -257,12 +259,19 @@ export const validateApiKey = mutation({
       lastUsedAt: Date.now(),
     });
 
+    // B7 FIX: Include subscription status for API access level checks
+    const org = await ctx.db.get(apiKey.organizationId);
+    const subscriptionStatus = org?.subscriptionStatus ?? "active";
+    const accessLevel = org?.accessLevel ?? "full";
+
     return {
       valid: true,
       organizationId: apiKey.organizationId as string,
       permissions: apiKey.permissions,
       keyId: apiKey._id as string,
       createdBy: apiKey.createdBy as string,
+      subscriptionStatus,
+      accessLevel,
     };
   },
 });

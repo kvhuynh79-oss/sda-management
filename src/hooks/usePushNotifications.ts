@@ -118,7 +118,6 @@ export function usePushNotifications(
           setIsSubscribed(false);
         }
       } catch (err) {
-        console.error("[usePushNotifications] Error checking subscription:", err);
         setIsSubscribed(false);
       }
     };
@@ -169,7 +168,6 @@ export function usePushNotifications(
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) {
-      console.error("[usePushNotifications] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set");
       return {
         success: false,
         error: "Push notification configuration is missing. Contact your administrator.",
@@ -226,7 +224,6 @@ export function usePushNotifications(
       setIsSubscribed(true);
       setError(null);
 
-      console.log("[usePushNotifications] Successfully subscribed for push notifications");
       return { success: true };
     } catch (err) {
       const errorMessage =
@@ -242,7 +239,6 @@ export function usePushNotifications(
           "Push subscription was blocked. This may be a browser or network issue.";
       }
 
-      console.error("[usePushNotifications] Subscribe error:", err);
       setError(friendlyMessage);
       return { success: false, error: friendlyMessage };
     } finally {
@@ -297,13 +293,11 @@ export function usePushNotifications(
       setIsSubscribed(false);
       setError(null);
 
-      console.log("[usePushNotifications] Successfully unsubscribed from push notifications");
       return { success: true };
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to unsubscribe from push notifications.";
 
-      console.error("[usePushNotifications] Unsubscribe error:", err);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {

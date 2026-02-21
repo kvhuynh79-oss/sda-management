@@ -5,6 +5,7 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 import {
   authenticateApiRequest,
   hasPermission,
+  checkApiRateLimit,
   API_CORS_HEADERS,
 } from "../_lib/auth";
 
@@ -16,7 +17,7 @@ import {
  *
  * Security posture:
  * - Authentication: Bearer API key (msd_live_*) validated via Convex
- * - Rate limiting: NOT NEEDED - API key auth + Convex rate limits provide protection
+ * - Rate limiting: YES - S16 automatic via auth middleware (100 req/min per key)
  * - CSRF/Origin: EXEMPT - API key authentication replaces Origin checks;
  *   API keys are not browser-accessible credentials
  * - Input validation: YES - required fields, enum validation, max lengths
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
   if ("error" in auth) {
     return NextResponse.json(
       { error: auth.error },
-      { status: auth.status, headers: API_CORS_HEADERS }
+      { status: auth.status, headers: { ...API_CORS_HEADERS, ...("retryAfter" in auth && auth.retryAfter ? { "Retry-After": String(auth.retryAfter) } : {}) } }
     );
   }
 
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
   if ("error" in auth) {
     return NextResponse.json(
       { error: auth.error },
-      { status: auth.status, headers: API_CORS_HEADERS }
+      { status: auth.status, headers: { ...API_CORS_HEADERS, ...("retryAfter" in auth && auth.retryAfter ? { "Retry-After": String(auth.retryAfter) } : {}) } }
     );
   }
 

@@ -171,7 +171,6 @@ export default function ClaimsPage() {
       });
       ndisNumber = participant?.ndisNumber || "";
     } catch (err) {
-      console.error("Failed to fetch participant for NDIS number:", err);
     }
 
     // Safety check: NEVER put encrypted values into CSV
@@ -297,7 +296,6 @@ export default function ClaimsPage() {
       });
       await alertDialog(`Created ${result.created} claims, skipped ${result.skipped}`);
     } catch (err) {
-      console.error("Failed to initialize claims:", err);
       await alertDialog("Failed to initialize claims");
     }
   };
@@ -335,7 +333,6 @@ export default function ClaimsPage() {
         notes: "",
       });
     } catch (err) {
-      console.error("Failed to mark submitted:", err);
       await alertDialog("Failed to mark as submitted");
     }
   };
@@ -361,7 +358,6 @@ export default function ClaimsPage() {
         notes: "",
       });
     } catch (err) {
-      console.error("Failed to mark paid:", err);
       await alertDialog("Failed to mark as paid");
     }
   };

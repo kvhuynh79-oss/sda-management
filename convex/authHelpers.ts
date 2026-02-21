@@ -447,13 +447,24 @@ export async function requireActiveSubscription(
       return;
     }
 
-    case "past_due":
-      // Allow some grace for past_due - Stripe is retrying payment.
-      // But warn in console.
-      console.warn(
-        `[Subscription] Org ${organizationId} has past_due subscription. Allowing write for now.`
-      );
+    case "past_due": {
+      // B4 FIX: Enforce grace period access levels
+      const accessLevel = org.accessLevel ?? "full";
+      if (accessLevel === "suspended") {
+        await logBlockedAccess("grace_period_suspended");
+        throw new Error(
+          "Your account has been suspended due to unpaid subscription. Please update your payment method to restore access."
+        );
+      }
+      if (accessLevel === "read_only") {
+        await logBlockedAccess("grace_period_read_only");
+        throw new Error(
+          "Your account is in read-only mode due to an overdue payment. Please update your payment method to restore full access."
+        );
+      }
+      // accessLevel === "full" — within first 7 days of grace period, allow writes
       return;
+    }
 
     case "canceled":
       await logBlockedAccess("subscription_canceled");

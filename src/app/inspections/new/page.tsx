@@ -94,7 +94,6 @@ export default function NewInspectionPage() {
       });
       router.push(`/inspections/${inspectionId}`);
     } catch (error) {
-      console.error("Error creating inspection:", error);
       await alertDialog("Error creating inspection. Please try again.");
     } finally {
       setIsSubmitting(false);

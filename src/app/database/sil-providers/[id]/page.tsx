@@ -70,7 +70,6 @@ export default function SILProviderDetailPage() {
       setShowLinkUserModal(false);
       setSelectedUserId("");
     } catch (error) {
-      console.error("Error linking user:", error);
       await alertDialog("Failed to link user to provider");
     } finally {
       setIsSubmitting(false);
@@ -86,7 +85,6 @@ export default function SILProviderDetailPage() {
         adminUserId: userId,
       });
     } catch (error) {
-      console.error("Error unlinking user:", error);
       await alertDialog("Failed to remove user access");
     }
   };

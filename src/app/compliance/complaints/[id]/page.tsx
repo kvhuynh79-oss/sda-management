@@ -352,6 +352,7 @@ function ComplaintDetailContent() {
   const resolveMutation = useMutation(api.complaints.resolve);
   const closeMutation = useMutation(api.complaints.close);
   const escalateMutation = useMutation(api.complaints.escalate);
+  const updateEscalationStatusMutation = useMutation(api.complaints.updateEscalationStatus);
   const logViewMutation = useMutation(api.complaints.logView);
   const logPdfMutation = useMutation(api.complaints.logProcedurePdfOpened);
   const updateChecklistStepMutation = useMutation(api.complaints.updateChecklistStep);
@@ -413,7 +414,13 @@ function ComplaintDetailContent() {
   const [showEscalateModal, setShowEscalateModal] = useState(false);
   const [escalateDate, setEscalateDate] = useState(new Date().toISOString().split("T")[0]);
   const [escalateReason, setEscalateReason] = useState("");
+  const [escalateNdisRef, setEscalateNdisRef] = useState("");
   const [escalateLoading, setEscalateLoading] = useState(false);
+  const [showEscalationStatusModal, setShowEscalationStatusModal] = useState(false);
+  const [newEscalationStatus, setNewEscalationStatus] = useState<"escalated" | "resolved_by_ndis">("escalated");
+  const [escalationStatusNdisRef, setEscalationStatusNdisRef] = useState("");
+  const [escalationStatusNotes, setEscalationStatusNotes] = useState("");
+  const [escalationStatusLoading, setEscalationStatusLoading] = useState(false);
 
   const [investigationNotes, setInvestigationNotes] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
@@ -552,8 +559,10 @@ function ComplaintDetailContent() {
         complaintId: id,
         escalationDate: escalateDate,
         escalationReason: escalateReason,
+        ndisReferenceNumber: escalateNdisRef || undefined,
       });
       setShowEscalateModal(false);
+      setEscalateNdisRef("");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to escalate complaint");
     } finally {
@@ -1307,12 +1316,47 @@ function ComplaintDetailContent() {
                     </span>
                   </div>
                   {complaint.escalatedToNdisCommission && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Escalated</span>
-                      <span className="text-sm text-red-400 font-medium">
-                        {formatDate(complaint.escalationDate)}
-                      </span>
-                    </div>
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-400">Escalated</span>
+                        <span className="text-sm text-red-400 font-medium">
+                          {formatDate(complaint.escalationDate)}
+                        </span>
+                      </div>
+                      {(complaint as any).ndisReferenceNumber && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-400">NDIS Ref</span>
+                          <span className="text-sm text-white font-mono">
+                            {(complaint as any).ndisReferenceNumber}
+                          </span>
+                        </div>
+                      )}
+                      {(complaint as any).escalationStatus && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-400">Escalation Status</span>
+                          <span className={`text-sm font-medium ${
+                            (complaint as any).escalationStatus === "resolved_by_ndis"
+                              ? "text-green-400"
+                              : (complaint as any).escalationStatus === "escalated"
+                                ? "text-red-400"
+                                : "text-yellow-400"
+                          }`}>
+                            {(complaint as any).escalationStatus === "resolved_by_ndis" ? "Resolved by NDIS"
+                              : (complaint as any).escalationStatus === "escalated" ? "Escalated"
+                              : (complaint as any).escalationStatus === "pending_escalation" ? "Pending"
+                              : "Not Escalated"}
+                          </span>
+                        </div>
+                      )}
+                      {(complaint as any).escalationStatus === "escalated" && (
+                        <button
+                          onClick={() => setShowEscalationStatusModal(true)}
+                          className="w-full mt-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-sm text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                        >
+                          Update Escalation Status
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -1560,6 +1604,19 @@ function ComplaintDetailContent() {
                   required
                 />
               </div>
+              <div>
+                <label htmlFor="escalate-ndis-ref" className="block text-sm text-gray-300 mb-1">
+                  NDIS Commission Reference Number <span className="text-gray-400 text-xs">(optional - can add later)</span>
+                </label>
+                <input
+                  id="escalate-ndis-ref"
+                  type="text"
+                  value={escalateNdisRef}
+                  onChange={(e) => setEscalateNdisRef(e.target.value)}
+                  placeholder="e.g. NDIS-2026-XXXXX"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-3 mt-6">
@@ -1572,6 +1629,99 @@ function ComplaintDetailContent() {
               </button>
               <button
                 onClick={() => setShowEscalateModal(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === ESCALATION STATUS UPDATE MODAL === */}
+      {showEscalationStatusModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Update escalation status"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowEscalationStatusModal(false); }}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowEscalationStatusModal(false); }}
+        >
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-semibold text-white mb-4">Update Escalation Status</h2>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="esc-status" className="block text-sm text-gray-300 mb-1">
+                  New Status
+                </label>
+                <select
+                  id="esc-status"
+                  value={newEscalationStatus}
+                  onChange={(e) => setNewEscalationStatus(e.target.value as typeof newEscalationStatus)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
+                >
+                  <option value="escalated">Escalated (in progress)</option>
+                  <option value="resolved_by_ndis">Resolved by NDIS</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="esc-ndis-ref" className="block text-sm text-gray-300 mb-1">
+                  NDIS Reference Number
+                </label>
+                <input
+                  id="esc-ndis-ref"
+                  type="text"
+                  value={escalationStatusNdisRef}
+                  onChange={(e) => setEscalationStatusNdisRef(e.target.value)}
+                  placeholder="e.g. NDIS-2026-XXXXX"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
+                />
+              </div>
+              <div>
+                <label htmlFor="esc-notes" className="block text-sm text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  id="esc-notes"
+                  value={escalationStatusNotes}
+                  onChange={(e) => setEscalationStatusNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Any additional notes about the escalation update..."
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-6">
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  setEscalationStatusLoading(true);
+                  setError("");
+                  try {
+                    await updateEscalationStatusMutation({
+                      userId: user.id as Id<"users">,
+                      complaintId: id,
+                      escalationStatus: newEscalationStatus,
+                      ndisReferenceNumber: escalationStatusNdisRef || undefined,
+                      notes: escalationStatusNotes || undefined,
+                    });
+                    setShowEscalationStatusModal(false);
+                    setEscalationStatusNdisRef("");
+                    setEscalationStatusNotes("");
+                  } catch (err: unknown) {
+                    setError(err instanceof Error ? err.message : "Failed to update escalation status");
+                  } finally {
+                    setEscalationStatusLoading(false);
+                  }
+                }}
+                disabled={escalationStatusLoading}
+                className="px-6 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+              >
+                {escalationStatusLoading ? "Updating..." : "Update Status"}
+              </button>
+              <button
+                onClick={() => setShowEscalationStatusModal(false)}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
               >
                 Cancel

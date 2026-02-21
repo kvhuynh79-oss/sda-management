@@ -37,9 +37,10 @@ export const create = mutation({
     const user = await requirePermission(ctx, args.userId, "properties", "create");
     const { organizationId } = await requireTenant(ctx, args.userId);
     // B2 FIX: Enforce plan limits on dwelling creation
-    await enforcePlanLimit(ctx, organizationId, "dwellings");
+    const auditUser = { userId: user._id, userEmail: user.email, userName: `${user.firstName} ${user.lastName}` };
+    await enforcePlanLimit(ctx, organizationId, "dwellings", auditUser);
     // B5 FIX: Require active subscription for write operations
-    await requireActiveSubscription(ctx, organizationId);
+    await requireActiveSubscription(ctx, organizationId, auditUser);
     const { userId, ...dwellingData } = args;
     const now = Date.now();
     const dwellingId = await ctx.db.insert("dwellings", {

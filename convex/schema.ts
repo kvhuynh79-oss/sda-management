@@ -123,7 +123,7 @@ export default defineSchema({
   // Audit Logs table - track all user actions for security and compliance
   auditLogs: defineTable({
     organizationId: v.optional(v.id("organizations")), // Multi-tenant: Organization this audit log belongs to
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for system-level events (webhooks, crons)
     userEmail: v.string(),
     userName: v.string(),
     action: v.union(
@@ -150,7 +150,10 @@ export default defineSchema({
       v.literal("mfa_lockout"),
       v.literal("data_encrypted"),
       v.literal("restore"),
-      v.literal("thread_status_change")
+      v.literal("thread_status_change"),
+      v.literal("plan_limit_exceeded"),
+      v.literal("webhook_duplicate_skipped"),
+      v.literal("trial_expired_access_blocked")
     ),
     entityType: v.string(), // "property", "participant", "payment", etc.
     entityId: v.optional(v.string()),
@@ -2827,5 +2830,121 @@ export default defineSchema({
   })
     .index("by_dwelling", ["dwellingId"])
     .index("by_dwelling_template", ["dwellingId", "baseTemplateId"])
+    .index("by_organizationId", ["organizationId"]),
+
+  // ============================================
+  // MARKETING ANALYTICS TABLES (Super-Admin Only)
+  // ============================================
+
+  // Daily metrics per advertising channel
+  marketingMetrics: defineTable({
+    date: v.string(), // YYYY-MM-DD
+    channel: v.union(
+      v.literal("google_ads"),
+      v.literal("linkedin_ads"),
+      v.literal("meta_ads"),
+      v.literal("other")
+    ),
+    impressions: v.number(),
+    clicks: v.number(),
+    spend: v.number(), // AUD cents
+    conversions: v.number(),
+    conversionBreakdown: v.object({
+      signups: v.number(),
+      demoBookings: v.number(),
+      trialStarts: v.number(),
+    }),
+    cpc: v.number(), // cents (spend / clicks)
+    ctr: v.number(), // percentage (clicks / impressions * 100)
+    conversionRate: v.number(), // percentage (conversions / clicks * 100)
+    notes: v.optional(v.string()),
+    entryMethod: v.union(
+      v.literal("manual"),
+      v.literal("csv_upload"),
+      v.literal("api_sync")
+    ),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_date", ["date"])
+    .index("by_channel", ["channel"])
+    .index("by_date_channel", ["date", "channel"]),
+
+  // Campaign-level tracking
+  marketingCampaigns: defineTable({
+    name: v.string(),
+    channel: v.union(
+      v.literal("google_ads"),
+      v.literal("linkedin_ads"),
+      v.literal("meta_ads"),
+      v.literal("other")
+    ),
+    type: v.union(
+      v.literal("search"),
+      v.literal("display"),
+      v.literal("sponsored_content"),
+      v.literal("message_ads"),
+      v.literal("retargeting"),
+      v.literal("other")
+    ),
+    status: v.union(
+      v.literal("active"),
+      v.literal("paused"),
+      v.literal("ended")
+    ),
+    startDate: v.string(), // YYYY-MM-DD
+    endDate: v.optional(v.string()), // YYYY-MM-DD
+    dailyBudget: v.number(), // cents
+    totalBudget: v.optional(v.number()), // cents
+    targetCPA: v.optional(v.number()), // cents
+    targetAudience: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_channel", ["channel"])
+    .index("by_status", ["status"]),
+
+  // Monthly targets for comparison
+  marketingGoals: defineTable({
+    month: v.string(), // YYYY-MM
+    targetSpend: v.number(), // cents
+    targetLeads: v.number(),
+    targetCAC: v.number(), // cents
+    targetTrials: v.number(),
+    targetDemos: v.number(),
+    targetPaidConversions: v.number(),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_month", ["month"]),
+
+  // Customer acquisition tracking (links marketing to revenue)
+  marketingCustomers: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    acquisitionChannel: v.union(
+      v.literal("google_ads"),
+      v.literal("linkedin_ads"),
+      v.literal("meta_ads"),
+      v.literal("organic"),
+      v.literal("referral"),
+      v.literal("direct"),
+      v.literal("other")
+    ),
+    acquisitionDate: v.string(), // YYYY-MM-DD
+    acquisitionCost: v.optional(v.number()), // cents
+    currentPlan: v.union(
+      v.literal("trial"),
+      v.literal("starter"),
+      v.literal("professional"),
+      v.literal("enterprise"),
+      v.literal("churned")
+    ),
+    monthlyRevenue: v.number(), // cents
+    lifetimeRevenue: v.number(), // cents
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_channel", ["acquisitionChannel"])
+    .index("by_plan", ["currentPlan"])
     .index("by_organizationId", ["organizationId"]),
 });

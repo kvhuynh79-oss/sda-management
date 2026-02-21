@@ -61,7 +61,8 @@ export const create = mutation({
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "participants", "create");
     // B5 FIX: Require active subscription for write operations
-    await requireActiveSubscription(ctx, organizationId);
+    const auditUser = { userId: user._id, userEmail: user.email, userName: `${user.firstName} ${user.lastName}` };
+    await requireActiveSubscription(ctx, organizationId, auditUser);
 
     // Validate inputs
     const validatedNdis = validateNdisNumber(args.ndisNumber);

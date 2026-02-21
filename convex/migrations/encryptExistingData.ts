@@ -1,10 +1,23 @@
 /**
- * ENC-6: Data Migration Action
- * Encrypts existing plaintext data in participants, incidents, and owners tables.
+ * Field-Level Encryption Migration
+ *
+ * Encrypts plaintext sensitive data across multiple tables using AES-256-GCM.
  * Idempotent: checks isEncrypted() before encrypting each field.
  * Batched: processes 50 records per internal mutation call.
  *
- * CRITICAL: Run on DEV deployment first! npx convex dev (NOT npx convex deploy)
+ * Two phases:
+ *   Phase 1 (encryptSensitiveFields): participants, incidents, owners
+ *   Phase 2 (encryptSensitiveFieldsPhase2): staff, providerSettings, OAuth tokens, MFA secrets
+ *
+ * Running the migration:
+ *   DEV:  npx convex dev --once   (then run via Convex dashboard or seed page)
+ *   PROD: npx convex deploy       (then run via Convex dashboard or seed page)
+ *
+ * Requires ENCRYPTION_KEY and HMAC_KEY environment variables set in Convex.
+ *
+ * Backup & rollback:
+ *   Before running, export a backup:  npx convex export --path backup_pre_migration.zip
+ *   To restore from backup:           npx convex import backup_pre_migration.zip
  */
 import { action, internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";

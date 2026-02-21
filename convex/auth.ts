@@ -191,9 +191,12 @@ export const createUserInternal = internalMutation({
 
     // B2 FIX: Enforce plan limits on user creation
     if (organizationId) {
-      await enforcePlanLimit(ctx, organizationId, "users");
+      const auditUser = args.actingUserId && args.actingUserEmail && args.actingUserName
+        ? { userId: args.actingUserId, userEmail: args.actingUserEmail, userName: args.actingUserName }
+        : undefined;
+      await enforcePlanLimit(ctx, organizationId, "users", auditUser);
       // B5 FIX: Require active subscription for write operations
-      await requireActiveSubscription(ctx, organizationId);
+      await requireActiveSubscription(ctx, organizationId, auditUser);
     }
 
     const now = Date.now();

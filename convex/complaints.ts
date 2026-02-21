@@ -920,10 +920,13 @@ export const getChainOfCustody = query({
     // Enrich with user names
     const enriched = await Promise.all(
       logs.map(async (log) => {
-        const user = await ctx.db.get(log.userId);
+        const user = log.userId ? await ctx.db.get(log.userId) : null;
+        const userName = user && "firstName" in user
+          ? `${user.firstName} ${user.lastName}`
+          : "System";
         return {
           ...log,
-          userName: user ? `${user.firstName} ${user.lastName}` : "System",
+          userName,
         };
       })
     );

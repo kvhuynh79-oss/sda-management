@@ -1,5 +1,19 @@
 import { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
+
+// Audit context for logging security events from helper functions.
+// Pass this from mutation handlers to enable audit trail logging.
+interface AuditUserContext {
+  userId: Id<"users">;
+  userEmail: string;
+  userName: string;
+}
+
+// Type guard: MutationCtx has scheduler, QueryCtx does not.
+function isMutationCtx(ctx: QueryCtx | MutationCtx): ctx is MutationCtx {
+  return "scheduler" in ctx;
+}
 
 // User roles
 export type UserRole = "admin" | "property_manager" | "staff" | "accountant" | "sil_provider";
@@ -262,17 +276,19 @@ type PlanResource = "properties" | "users" | "dwellings";
  * Enforce plan limits on resource creation (B2 FIX).
  * Checks the organization's plan tier and counts existing resources.
  * Throws a clear, actionable error if the limit would be exceeded.
+ * When auditUser is provided, logs plan_limit_exceeded to the audit trail.
  *
  * Usage:
  * ```
- * await enforcePlanLimit(ctx, organizationId, "properties");
+ * await enforcePlanLimit(ctx, organizationId, "properties", { userId: user._id, userEmail: user.email, userName: `${user.firstName} ${user.lastName}` });
  * // ... then proceed with insert
  * ```
  */
 export async function enforcePlanLimit(
   ctx: QueryCtx | MutationCtx,
   organizationId: Id<"organizations">,
-  resource: PlanResource
+  resource: PlanResource,
+  auditUser?: AuditUserContext
 ): Promise<void> {
   // Defense-in-depth: requireTenant() now throws on missing orgId (B6 fix),
   // but guard here too in case this helper is called from a context that
@@ -333,6 +349,24 @@ export async function enforcePlanLimit(
   }
 
   if (currentCount >= limit) {
+    // Audit log: plan limit exceeded (before throwing)
+    if (auditUser && isMutationCtx(ctx)) {
+      await ctx.scheduler.runAfter(0, internal.auditLog.log, {
+        organizationId,
+        userId: auditUser.userId,
+        userEmail: auditUser.userEmail,
+        userName: auditUser.userName,
+        action: "plan_limit_exceeded" as const,
+        entityType: "system",
+        metadata: JSON.stringify({
+          resourceType: resource,
+          currentCount,
+          limit,
+          plan,
+        }),
+      });
+    }
+
     throw new Error(
       `Plan limit reached: Your ${plan} plan allows ${limit} ${resourceLabel}. ` +
       `You currently have ${currentCount}. Please upgrade your plan to add more.`
@@ -348,12 +382,14 @@ export async function enforcePlanLimit(
  * Check that an organization has an active subscription (or valid trial).
  * Call this from write mutations to block data modification when subscription is inactive.
  * Read queries should NOT call this (let users view their data even if expired).
+ * When auditUser is provided, logs trial_expired_access_blocked to the audit trail.
  *
  * B5 FIX: Enforces trial expiry, canceled, and inactive org status.
  */
 export async function requireActiveSubscription(
   ctx: QueryCtx | MutationCtx,
-  organizationId: Id<"organizations">
+  organizationId: Id<"organizations">,
+  auditUser?: AuditUserContext
 ): Promise<void> {
   // Defense-in-depth: requireTenant() now throws on missing orgId (B6 fix),
   // but guard here too in case this helper is called from internal mutations
@@ -374,6 +410,25 @@ export async function requireActiveSubscription(
     );
   }
 
+  // Helper to log blocked access attempts to audit trail
+  const logBlockedAccess = async (reason: string) => {
+    if (auditUser && isMutationCtx(ctx)) {
+      await ctx.scheduler.runAfter(0, internal.auditLog.log, {
+        organizationId,
+        userId: auditUser.userId,
+        userEmail: auditUser.userEmail,
+        userName: auditUser.userName,
+        action: "trial_expired_access_blocked" as const,
+        entityType: "system",
+        metadata: JSON.stringify({
+          reason,
+          subscriptionStatus: org.subscriptionStatus,
+          trialEndsAt: org.trialEndsAt ?? null,
+        }),
+      });
+    }
+  };
+
   // Check subscription status
   switch (org.subscriptionStatus) {
     case "active":
@@ -383,6 +438,7 @@ export async function requireActiveSubscription(
     case "trialing": {
       // Check if trial has expired
       if (org.trialEndsAt && org.trialEndsAt < Date.now()) {
+        await logBlockedAccess("trial_expired");
         throw new Error(
           "Your free trial has ended. Please subscribe to a plan to continue using MySDAManager."
         );
@@ -400,11 +456,13 @@ export async function requireActiveSubscription(
       return;
 
     case "canceled":
+      await logBlockedAccess("subscription_canceled");
       throw new Error(
         "Your subscription has been cancelled. Please resubscribe to continue making changes."
       );
 
     case "trial_expired":
+      await logBlockedAccess("trial_expired");
       throw new Error(
         "Your free trial has ended. Please subscribe to a plan to continue using MySDAManager."
       );

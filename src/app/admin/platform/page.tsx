@@ -553,6 +553,18 @@ function PlatformDashboardContent() {
               </div>
             )}
 
+            {/* Quick Links */}
+            <div className="flex flex-wrap gap-3 mb-8">
+              <Link
+                href="/admin/marketing"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700/80 transition-colors text-sm font-medium text-gray-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+              >
+                <BarChart3 className="w-4 h-4 text-teal-400" aria-hidden="true" />
+                Marketing Analytics
+                <ArrowRight className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
+              </Link>
+            </div>
+
             {/* Plan Distribution */}
             {organizations && (
               <section

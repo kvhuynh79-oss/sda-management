@@ -375,6 +375,16 @@ const PAGE_COMMANDS: CommandItem[] = [
     superAdminOnly: true,
   },
   {
+    id: "admin-marketing",
+    label: "Marketing Analytics",
+    href: "/admin/marketing",
+    group: "Pages",
+    category: "Admin",
+    icon: <BarChart3 className="w-4 h-4" aria-hidden="true" />,
+    keywords: ["marketing", "analytics", "ads", "google", "linkedin", "campaigns", "cpc", "ctr", "acquisition"],
+    superAdminOnly: true,
+  },
+  {
     id: "admin-audit",
     label: "Audit Log",
     href: "/admin/audit",

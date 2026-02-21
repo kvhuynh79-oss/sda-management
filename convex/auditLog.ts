@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
 // Type for audit log actions
-export type AuditAction = "create" | "update" | "delete" | "view" | "login" | "logout" | "export" | "import" | "thread_merge" | "thread_split" | "thread_move" | "consultation_gate" | "bulk_mark_read" | "bulk_categorize" | "bulk_thread" | "bulk_flag" | "mfa_enabled" | "mfa_disabled" | "mfa_backup_used" | "mfa_backup_regenerated" | "mfa_lockout" | "data_encrypted" | "restore" | "thread_status_change";
+export type AuditAction = "create" | "update" | "delete" | "view" | "login" | "logout" | "export" | "import" | "thread_merge" | "thread_split" | "thread_move" | "consultation_gate" | "bulk_mark_read" | "bulk_categorize" | "bulk_thread" | "bulk_flag" | "mfa_enabled" | "mfa_disabled" | "mfa_backup_used" | "mfa_backup_regenerated" | "mfa_lockout" | "data_encrypted" | "restore" | "thread_status_change" | "plan_limit_exceeded" | "webhook_duplicate_skipped" | "trial_expired_access_blocked";
 
 /**
  * Calculate SHA-256 hash of audit log entry for hash chain
@@ -121,7 +121,10 @@ export const log = internalMutation({
       v.literal("mfa_lockout"),
       v.literal("data_encrypted"),
       v.literal("restore"),
-      v.literal("thread_status_change")
+      v.literal("thread_status_change"),
+      v.literal("plan_limit_exceeded"),
+      v.literal("webhook_duplicate_skipped"),
+      v.literal("trial_expired_access_blocked")
     ),
     entityType: v.string(),
     entityId: v.optional(v.string()),
@@ -177,6 +180,37 @@ export const log = internalMutation({
   },
 });
 
+// Internal mutation for system-level events (no user context required).
+// Used for webhook idempotency, cron jobs, and other automated processes.
+export const logSystemEvent = internalMutation({
+  args: {
+    organizationId: v.optional(v.id("organizations")),
+    action: v.union(
+      v.literal("webhook_duplicate_skipped"),
+      v.literal("trial_expired_access_blocked"),
+      v.literal("plan_limit_exceeded")
+    ),
+    entityType: v.string(),
+    entityName: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // System events have no userId — inserted directly without hash chain
+    await ctx.db.insert("auditLogs", {
+      organizationId: args.organizationId,
+      userEmail: "system@mysdamanager.com",
+      userName: "System",
+      action: args.action,
+      entityType: args.entityType,
+      entityName: args.entityName,
+      metadata: args.metadata,
+      timestamp: Date.now(),
+      currentHash: "",
+      isIntegrityVerified: true, // System events are inherently trusted
+    });
+  },
+});
+
 // Public mutation for logging (used from client-side when needed)
 // Implements hash chain for immutability (NDIS 7-year retention compliance)
 // NOTE: Gets organizationId from user
@@ -207,7 +241,10 @@ export const createLog = mutation({
       v.literal("mfa_lockout"),
       v.literal("data_encrypted"),
       v.literal("restore"),
-      v.literal("thread_status_change")
+      v.literal("thread_status_change"),
+      v.literal("plan_limit_exceeded"),
+      v.literal("webhook_duplicate_skipped"),
+      v.literal("trial_expired_access_blocked")
     ),
     entityType: v.string(),
     entityId: v.optional(v.string()),
@@ -586,7 +623,7 @@ export const verifyHashChainIntegrity = internalMutation({
 
       // Check 3: Verify currentHash is correct by recalculating
       const calculatedHash = await hashLogEntry({
-        userId: log.userId,
+        userId: log.userId ?? "",
         userEmail: log.userEmail,
         userName: log.userName,
         action: log.action,

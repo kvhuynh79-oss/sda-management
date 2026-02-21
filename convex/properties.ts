@@ -65,9 +65,10 @@ export const create = mutation({
     // Verify user has permission to create properties
     const user = await requirePermission(ctx, args.userId, "properties", "create");
     // B2 FIX: Enforce plan limits on property creation
-    await enforcePlanLimit(ctx, organizationId, "properties");
+    const auditUser = { userId: user._id, userEmail: user.email, userName: `${user.firstName} ${user.lastName}` };
+    await enforcePlanLimit(ctx, organizationId, "properties", auditUser);
     // B5 FIX: Require active subscription for write operations
-    await requireActiveSubscription(ctx, organizationId);
+    await requireActiveSubscription(ctx, organizationId, auditUser);
 
     const { userId, ...propertyData } = args;
     const now = Date.now();

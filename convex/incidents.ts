@@ -113,7 +113,8 @@ export const create = mutation({
       const user = await requirePermission(ctx, args.reportedBy, "incidents", "create");
       const { organizationId } = await requireTenant(ctx, args.reportedBy);
       // B5 FIX: Require active subscription for write operations
-      await requireActiveSubscription(ctx, organizationId);
+      const auditUser = { userId: user._id, userEmail: user.email, userName: `${user.firstName} ${user.lastName}` };
+      await requireActiveSubscription(ctx, organizationId, auditUser);
 
       const now = Date.now();
 

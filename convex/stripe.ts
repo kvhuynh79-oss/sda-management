@@ -154,6 +154,17 @@ export const checkWebhookEventProcessed = mutation({
       console.log(
         `[Stripe] Idempotency: Skipping already-processed event ${args.stripeEventId} (${args.eventType})`
       );
+      // Audit log: webhook duplicate detected
+      await ctx.scheduler.runAfter(0, internal.auditLog.logSystemEvent, {
+        action: "webhook_duplicate_skipped" as const,
+        entityType: "system",
+        entityName: args.stripeEventId,
+        metadata: JSON.stringify({
+          eventId: args.stripeEventId,
+          eventType: args.eventType,
+          originalProcessedAt: existing.processedAt,
+        }),
+      });
       return { alreadyProcessed: true };
     }
 

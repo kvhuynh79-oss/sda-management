@@ -25,6 +25,8 @@ import {
   LayoutDashboard,
   DollarSign,
   TrendingUp,
+  TrendingDown,
+  Minus,
   BarChart3,
   Ticket,
   AlertTriangle,
@@ -37,15 +39,101 @@ import {
   Timer,
   CheckCircle2,
 } from "lucide-react";
+import {
+  formatCentsCurrency,
+  formatPercentage,
+  formatNumber,
+  getMetricColor,
+  getSpendColor,
+  getCACColor,
+  getProgressColor,
+  channelDisplayName,
+  trendArrow,
+  trendColor,
+} from "../../../utils/marketingUtils";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  BarChart,
+} from "recharts";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type TabKey = "overview" | "revenue" | "tickets";
+type TabKey = "overview" | "revenue" | "tickets" | "marketing";
 type StatusFilter = "all" | "active" | "trialing" | "suspended";
 type SortKey = "name" | "lastActive" | "plan" | "users" | "properties";
 type ViewMode = "table" | "card";
+type MarketingPeriod = "7d" | "30d" | "90d";
+
+interface MktChannelStat {
+  channel: string;
+  spend: number;
+  clicks: number;
+  impressions: number;
+  conversions: number;
+  cpc: number;
+  ctr: number;
+  conversionRate: number;
+  spendPct: number;
+  spendTrend: number | null;
+  conversionsTrend: number | null;
+}
+
+interface MktFunnelStage {
+  name: string;
+  count: number;
+  dropOff: number;
+}
+
+interface MktTimeSeriesPoint {
+  date: string;
+  spend: number;
+  clicks: number;
+  impressions: number;
+  conversions: number;
+  signups: number;
+  demoBookings: number;
+  trialStarts: number;
+  cpc: number;
+  ctr: number;
+  conversionRate: number;
+}
+
+interface MktOverviewData {
+  totalSpend: number;
+  targetSpend: number;
+  weeklySpend: number;
+  totalConversions: number;
+  targetLeads: number;
+  cpc: number;
+  ctr: number;
+  conversionRate: number;
+  cac: number;
+  targetCAC: number;
+  avgLTV: number;
+  ltvCacRatio: number;
+  signups: number;
+  demoBookings: number;
+  trialStarts: number;
+  targetTrials: number;
+  targetDemos: number;
+  targetPaidConversions: number;
+  adMRR: number;
+  spendChange: number | null;
+  conversionsChange: number | null;
+  channelStats: MktChannelStat[];
+  totalCustomers: number;
+  totalAdCustomers: number;
+}
 
 // ---------------------------------------------------------------------------
 // Helper: format relative time
@@ -233,6 +321,179 @@ function TableSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
+// Marketing helper components
+// ---------------------------------------------------------------------------
+
+function MktMetricCard({
+  label,
+  value,
+  subtitle,
+  colorClass,
+}: {
+  label: string;
+  value: string;
+  subtitle?: string;
+  colorClass: string;
+}) {
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
+      <p className="text-sm text-gray-400 mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${colorClass}`}>{value}</p>
+      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+function MktTrendIndicator({
+  change,
+  invertedBetter = false,
+  label,
+}: {
+  change: number | null;
+  invertedBetter?: boolean;
+  label: string;
+}) {
+  const arrow = trendArrow(change);
+  const color = trendColor(change, invertedBetter);
+  const Icon =
+    change === null
+      ? Minus
+      : change > 0
+        ? TrendingUp
+        : change < 0
+          ? TrendingDown
+          : Minus;
+
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs ${color}`} aria-label={`${label}: ${arrow}`}>
+      <Icon className="w-3 h-3" aria-hidden="true" />
+      {arrow}
+    </span>
+  );
+}
+
+function MktPeriodToggle({
+  period,
+  onChange,
+}: {
+  period: MarketingPeriod;
+  onChange: (p: MarketingPeriod) => void;
+}) {
+  return (
+    <div className="flex bg-gray-700 rounded-lg overflow-hidden" role="group" aria-label="Select time period">
+      {(["7d", "30d", "90d"] as MarketingPeriod[]).map((p) => (
+        <button
+          key={p}
+          onClick={() => onChange(p)}
+          className={`px-3 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+            period === p
+              ? "bg-teal-600 text-white"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          {p}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MktCustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-xl">
+      <p className="text-xs text-gray-400 mb-1">{label}</p>
+      {payload.map((entry, idx) => (
+        <p key={idx} className="text-sm" style={{ color: entry.color }}>
+          {entry.name}: {entry.name.toLowerCase().includes("spend")
+            ? formatCentsCurrency(entry.value)
+            : formatNumber(entry.value)}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function MktProgressBar({
+  label,
+  current,
+  target,
+  formatFn,
+}: {
+  label: string;
+  current: number;
+  target: number;
+  formatFn: (n: number) => string;
+}) {
+  const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+  const colorClass = getProgressColor(current, target);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm text-gray-300">{label}</span>
+        <span className="text-sm text-gray-400">
+          {formatFn(current)} / {formatFn(target)}
+        </span>
+      </div>
+      <div className="w-full h-2.5 bg-gray-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${colorClass}`}
+          style={{ width: `${pct}%` }}
+          role="progressbar"
+          aria-valuenow={Math.round(pct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${label}: ${Math.round(pct)}%`}
+        />
+      </div>
+      <p className="text-xs text-gray-400 mt-0.5">{Math.round(pct)}% of target</p>
+    </div>
+  );
+}
+
+function MktStatsSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-gray-800 rounded-lg p-6 animate-pulse"
+          aria-hidden="true"
+        >
+          <div className="h-3 w-20 bg-gray-700 rounded mb-3" />
+          <div className="h-8 w-16 bg-gray-700 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MktFunnelSkeleton() {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-8">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <div className="bg-gray-800 rounded-lg p-4 animate-pulse w-32 h-20" aria-hidden="true">
+            <div className="h-3 w-16 bg-gray-700 rounded mb-2" />
+            <div className="h-6 w-12 bg-gray-700 rounded" />
+          </div>
+          {i < 5 && <ChevronRight className="w-4 h-4 text-gray-600" aria-hidden="true" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
@@ -242,6 +503,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: "overview", label: "Overview", icon: <LayoutDashboard className="w-4 h-4" aria-hidden="true" /> },
   { key: "revenue", label: "Revenue", icon: <DollarSign className="w-4 h-4" aria-hidden="true" /> },
   { key: "tickets", label: "Tickets", icon: <Ticket className="w-4 h-4" aria-hidden="true" /> },
+  { key: "marketing", label: "Marketing", icon: <BarChart3 className="w-4 h-4" aria-hidden="true" /> },
 ];
 
 // ---------------------------------------------------------------------------
@@ -313,6 +575,29 @@ function PlatformDashboardContent() {
   // Tickets tab state
   const [ticketStatusFilter, setTicketStatusFilter] = useState<"all" | "open" | "in_progress" | "resolved" | "closed">("all");
   const [ticketSeverityFilter, setTicketSeverityFilter] = useState<"all" | "critical" | "high" | "normal" | "low">("all");
+
+  // Marketing tab state
+  const [mktPeriod, setMktPeriod] = useState<MarketingPeriod>("30d");
+
+  // Marketing queries (must be after activeTab state declaration)
+  const mktOverview = useQuery(
+    api.marketingAnalytics.getMarketingOverview,
+    userId && isSuperAdmin && activeTab === "marketing" ? { userId } : "skip"
+  ) as MktOverviewData | undefined;
+
+  const mktTimeSeries = useQuery(
+    api.marketingAnalytics.getMarketingTimeSeries,
+    userId && isSuperAdmin && activeTab === "marketing"
+      ? { userId, period: mktPeriod }
+      : "skip"
+  ) as MktTimeSeriesPoint[] | undefined;
+
+  const mktFunnel = useQuery(
+    api.marketingAnalytics.getMarketingFunnel,
+    userId && isSuperAdmin && activeTab === "marketing"
+      ? { userId }
+      : "skip"
+  ) as MktFunnelStage[] | undefined;
 
   // Filtered & sorted orgs
   const filteredOrgs = useMemo(() => {
@@ -429,6 +714,26 @@ function PlatformDashboardContent() {
     if (!financialMetrics) return 0;
     return financialMetrics.revenueTable.reduce((sum, r) => sum + r.monthlyAmount, 0);
   }, [financialMetrics]);
+
+  // Marketing chart data
+  const mktChartData = useMemo(() => {
+    if (!mktTimeSeries) return [];
+    return mktTimeSeries.map((d) => ({
+      ...d,
+      spendDollars: d.spend / 100,
+      dateLabel: d.date.slice(5),
+    }));
+  }, [mktTimeSeries]);
+
+  const mktChannelChartData = useMemo(() => {
+    if (!mktOverview) return [];
+    return mktOverview.channelStats.map((ch) => ({
+      channel: channelDisplayName(ch.channel),
+      CPC: ch.cpc / 100,
+      CTR: ch.ctr,
+      "Conv. Rate": ch.conversionRate,
+    }));
+  }, [mktOverview]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -552,18 +857,6 @@ function PlatformDashboardContent() {
                 />
               </div>
             )}
-
-            {/* Quick Links */}
-            <div className="flex flex-wrap gap-3 mb-8">
-              <Link
-                href="/admin/marketing"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700/80 transition-colors text-sm font-medium text-gray-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-              >
-                <BarChart3 className="w-4 h-4 text-teal-400" aria-hidden="true" />
-                Marketing Analytics
-                <ArrowRight className="w-3.5 h-3.5 text-gray-500" aria-hidden="true" />
-              </Link>
-            </div>
 
             {/* Plan Distribution */}
             {organizations && (
@@ -1434,6 +1727,386 @@ function PlatformDashboardContent() {
               <p className="mt-4 text-sm text-gray-400">
                 Showing {filteredTickets.length} of {allTickets.length} ticket{allTickets.length !== 1 ? "s" : ""}
               </p>
+            )}
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* MARKETING TAB                                                        */}
+        {/* ==================================================================== */}
+        {activeTab === "marketing" && (
+          <div id="tabpanel-marketing" role="tabpanel" aria-labelledby="tab-marketing">
+            {/* Sub-navigation links to detail pages */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[
+                { label: "Data Entry", href: "/admin/marketing/entry" },
+                { label: "Campaigns", href: "/admin/marketing/campaigns" },
+                { label: "Customers", href: "/admin/marketing/customers" },
+                { label: "Goals", href: "/admin/marketing/goals" },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                >
+                  {link.label}
+                  <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+
+            {/* Key Metric Cards */}
+            {!mktOverview ? (
+              <MktStatsSkeleton count={6} />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+                <MktMetricCard
+                  label="Total Ad Spend"
+                  value={formatCentsCurrency(mktOverview.totalSpend)}
+                  subtitle={`vs ${formatCentsCurrency(mktOverview.targetSpend)} target`}
+                  colorClass={getSpendColor(mktOverview.totalSpend, mktOverview.targetSpend)}
+                />
+                <MktMetricCard
+                  label="CPC"
+                  value={formatCentsCurrency(mktOverview.cpc)}
+                  subtitle="avg across channels"
+                  colorClass={getMetricColor("cpc", mktOverview.cpc)}
+                />
+                <MktMetricCard
+                  label="CTR"
+                  value={formatPercentage(mktOverview.ctr)}
+                  subtitle="avg across channels"
+                  colorClass={getMetricColor("ctr", mktOverview.ctr)}
+                />
+                <MktMetricCard
+                  label="Conversion Rate"
+                  value={formatPercentage(mktOverview.conversionRate)}
+                  colorClass={getMetricColor("conversionRate", mktOverview.conversionRate)}
+                />
+                <MktMetricCard
+                  label="CAC"
+                  value={formatCentsCurrency(mktOverview.cac)}
+                  subtitle={`vs ${formatCentsCurrency(mktOverview.targetCAC)} target`}
+                  colorClass={getCACColor(mktOverview.cac, mktOverview.targetCAC)}
+                />
+                <MktMetricCard
+                  label="LTV:CAC"
+                  value={`${mktOverview.ltvCacRatio}:1`}
+                  colorClass={getMetricColor("ltvCac", mktOverview.ltvCacRatio)}
+                />
+              </div>
+            )}
+
+            {/* Channel Comparison Cards */}
+            {!mktOverview ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-5 animate-pulse">
+                    <div className="h-4 w-40 bg-gray-700 rounded mb-4" />
+                    <div className="h-64 bg-gray-700/50 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : mktOverview.channelStats.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                {mktOverview.channelStats.map((ch) => (
+                  <div
+                    key={ch.channel}
+                    className="bg-gray-800 border border-gray-700 rounded-lg p-5"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white">
+                        {channelDisplayName(ch.channel)}
+                      </h3>
+                      <span className="text-xs font-medium text-teal-400 bg-teal-600/20 px-2 py-1 rounded-full">
+                        {ch.spendPct}% of total
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-400">Spend</p>
+                        <p className="text-sm font-semibold text-white">
+                          {formatCentsCurrency(ch.spend)}
+                        </p>
+                        <MktTrendIndicator
+                          change={ch.spendTrend}
+                          invertedBetter
+                          label="Spend trend"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">CPC</p>
+                        <p className={`text-sm font-semibold ${getMetricColor("cpc", ch.cpc)}`}>
+                          {formatCentsCurrency(ch.cpc)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">CTR</p>
+                        <p className={`text-sm font-semibold ${getMetricColor("ctr", ch.ctr)}`}>
+                          {formatPercentage(ch.ctr)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Conversions</p>
+                        <p className="text-sm font-semibold text-white">
+                          {formatNumber(ch.conversions)}
+                        </p>
+                        <MktTrendIndicator
+                          change={ch.conversionsTrend}
+                          label="Conversions trend"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-400">Conv. Rate</p>
+                        <p className={`text-sm font-semibold ${getMetricColor("conversionRate", ch.conversionRate)}`}>
+                          {formatPercentage(ch.conversionRate)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center mb-8">
+                <p className="text-gray-400">No channel data for this month yet.</p>
+                <Link
+                  href="/admin/marketing/entry"
+                  className="text-sm text-teal-400 hover:text-teal-300 mt-2 inline-block"
+                >
+                  Add your first data entry
+                </Link>
+              </div>
+            )}
+
+            {/* Charts: Spend & Conversions + Channel Performance */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                    Spend &amp; Conversions Over Time
+                  </h3>
+                  <MktPeriodToggle period={mktPeriod} onChange={setMktPeriod} />
+                </div>
+                {!mktTimeSeries ? (
+                  <div className="h-64 bg-gray-700/30 rounded animate-pulse" aria-hidden="true" />
+                ) : mktChartData.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-gray-400 text-sm">No data for this period.</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <ComposedChart data={mktChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis
+                        dataKey="dateLabel"
+                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#4B5563" }}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#4B5563" }}
+                        tickFormatter={(v: number) => `$${v}`}
+                        label={{
+                          value: "Spend ($)",
+                          angle: -90,
+                          position: "insideLeft",
+                          style: { fill: "#9CA3AF", fontSize: 11 },
+                        }}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#4B5563" }}
+                        label={{
+                          value: "Conversions",
+                          angle: 90,
+                          position: "insideRight",
+                          style: { fill: "#9CA3AF", fontSize: 11 },
+                        }}
+                      />
+                      <Tooltip content={<MktCustomTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: "#9CA3AF" }} />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="spendDollars"
+                        name="Spend ($)"
+                        fill="#0d9488"
+                        opacity={0.7}
+                        radius={[2, 2, 0, 0]}
+                      />
+                      <Line
+                        yAxisId="right"
+                        dataKey="conversions"
+                        name="Conversions"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        dot={{ fill: "#f59e0b", r: 3 }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-5">
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
+                  Channel Performance
+                </h3>
+                {!mktOverview ? (
+                  <div className="h-64 bg-gray-700/30 rounded animate-pulse" aria-hidden="true" />
+                ) : mktChannelChartData.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-gray-400 text-sm">No channel data available.</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={mktChannelChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis
+                        dataKey="channel"
+                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#4B5563" }}
+                      />
+                      <YAxis
+                        tick={{ fill: "#9CA3AF", fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#4B5563" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#111827",
+                          border: "1px solid #374151",
+                          borderRadius: 8,
+                          fontSize: 12,
+                        }}
+                        labelStyle={{ color: "#9CA3AF" }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, color: "#9CA3AF" }} />
+                      <Bar dataKey="CPC" fill="#0d9488" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="CTR" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="Conv. Rate" fill="#f59e0b" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Conversion Funnel */}
+            <section className="mb-8" aria-labelledby="mkt-funnel-heading">
+              <h2
+                id="mkt-funnel-heading"
+                className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4"
+              >
+                Conversion Funnel (This Month)
+              </h2>
+              {!mktFunnel ? (
+                <MktFunnelSkeleton />
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  {mktFunnel.map((stage, idx) => (
+                    <div key={stage.name} className="flex items-center gap-2">
+                      <div
+                        className={`rounded-lg p-4 border ${
+                          stage.dropOff > 80 && idx > 0
+                            ? "bg-red-900/30 border-red-700/50"
+                            : "bg-gray-800 border-gray-700"
+                        }`}
+                      >
+                        <p className="text-xs text-gray-400 mb-1">{stage.name}</p>
+                        <p className="text-lg font-bold text-white">
+                          {formatNumber(stage.count)}
+                        </p>
+                        {idx > 0 && (
+                          <p
+                            className={`text-xs mt-1 ${
+                              stage.dropOff > 80
+                                ? "text-red-400"
+                                : stage.dropOff > 60
+                                  ? "text-yellow-400"
+                                  : "text-gray-400"
+                            }`}
+                          >
+                            {stage.dropOff}% drop-off
+                          </p>
+                        )}
+                      </div>
+                      {idx < mktFunnel.length - 1 && (
+                        <ChevronRight
+                          className="w-5 h-5 text-gray-600 flex-shrink-0"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Monthly Progress vs Goals */}
+            {!mktOverview ? (
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-8 animate-pulse">
+                <div className="h-4 w-40 bg-gray-700 rounded mb-4" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="mb-3">
+                    <div className="h-3 w-24 bg-gray-700 rounded mb-2" />
+                    <div className="h-4 bg-gray-700/50 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <section
+                className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-8"
+                aria-labelledby="mkt-monthly-progress-heading"
+              >
+                <h2
+                  id="mkt-monthly-progress-heading"
+                  className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4"
+                >
+                  Monthly Progress vs Goals
+                </h2>
+                <div className="space-y-4">
+                  <MktProgressBar
+                    label="Ad Spend"
+                    current={mktOverview.totalSpend}
+                    target={mktOverview.targetSpend}
+                    formatFn={formatCentsCurrency}
+                  />
+                  <MktProgressBar
+                    label="Leads (Sign-ups)"
+                    current={mktOverview.signups}
+                    target={mktOverview.targetLeads}
+                    formatFn={formatNumber}
+                  />
+                  <MktProgressBar
+                    label="Demo Bookings"
+                    current={mktOverview.demoBookings}
+                    target={mktOverview.targetDemos}
+                    formatFn={formatNumber}
+                  />
+                  <MktProgressBar
+                    label="Trial Starts"
+                    current={mktOverview.trialStarts}
+                    target={mktOverview.targetTrials}
+                    formatFn={formatNumber}
+                  />
+                  <MktProgressBar
+                    label="Ad MRR"
+                    current={mktOverview.adMRR}
+                    target={
+                      mktOverview.targetPaidConversions > 0
+                        ? mktOverview.targetPaidConversions * 49900
+                        : 0
+                    }
+                    formatFn={formatCentsCurrency}
+                  />
+                </div>
+              </section>
             )}
           </div>
         )}

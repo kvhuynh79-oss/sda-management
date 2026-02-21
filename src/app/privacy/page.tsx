@@ -593,6 +593,14 @@ export default function PrivacyPolicyPage() {
                       <td className="px-4 py-3 text-white font-medium">Billing and transaction records</td>
                       <td className="px-4 py-3">Retained for 7 years (Australian tax law requirement)</td>
                     </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Compliance documentation</td>
+                      <td className="px-4 py-3">Retained for 7 years (NDIS record-keeping requirement)</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Error monitoring logs (Sentry)</td>
+                      <td className="px-4 py-3">Retained for 90 days, then automatically deleted</td>
+                    </tr>
                     <tr>
                       <td className="px-4 py-3 text-white font-medium">Backup data</td>
                       <td className="px-4 py-3">Retained for 30 days on a rolling basis</td>

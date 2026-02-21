@@ -805,11 +805,11 @@ export default function RegisterPage() {
         {/* Terms */}
         <p className="text-center text-xs text-gray-400 mt-6">
           By creating an account, you agree to our{" "}
-          <Link href="#" className="text-teal-400 hover:text-teal-300 underline">
+          <Link href="/terms" className="text-teal-400 hover:text-teal-300 underline" target="_blank" rel="noopener noreferrer">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="#" className="text-teal-400 hover:text-teal-300 underline">
+          <Link href="/privacy" className="text-teal-400 hover:text-teal-300 underline" target="_blank" rel="noopener noreferrer">
             Privacy Policy
           </Link>
           .

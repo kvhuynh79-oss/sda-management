@@ -41,8 +41,8 @@ interface Invoice {
 const PLANS: Record<PlanTier, PlanInfo> = {
   starter: {
     name: "Starter",
-    monthlyPrice: 250,
-    annualPrice: 2500,
+    monthlyPrice: 499,
+    annualPrice: 4990,
     maxProperties: 10,
     maxUsers: 5,
     features: [
@@ -54,8 +54,8 @@ const PLANS: Record<PlanTier, PlanInfo> = {
   },
   professional: {
     name: "Professional",
-    monthlyPrice: 450,
-    annualPrice: 4170,
+    monthlyPrice: 899,
+    annualPrice: 8990,
     maxProperties: 25,
     maxUsers: 15,
     features: [
@@ -67,13 +67,13 @@ const PLANS: Record<PlanTier, PlanInfo> = {
   },
   enterprise: {
     name: "Enterprise",
-    monthlyPrice: 600,
-    annualPrice: 6000,
+    monthlyPrice: 1499,
+    annualPrice: 14990,
     maxProperties: 50,
-    maxUsers: 50,
+    maxUsers: 999999,
     features: [
       "Up to 50 properties",
-      "Up to 50 users",
+      "Unlimited users",
       "API access & Xero",
       "Dedicated support",
     ],

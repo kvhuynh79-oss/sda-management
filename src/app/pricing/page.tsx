@@ -34,8 +34,8 @@ const PLANS: PricingPlan[] = [
   {
     id: "starter",
     name: "Starter",
-    monthlyPrice: 250,
-    annualPrice: 2500,
+    monthlyPrice: 499,
+    annualPrice: 4990,
     description: "Perfect for small SDA providers getting started.",
     propertyLimit: "Up to 10 properties",
     userLimit: "Up to 5 users",
@@ -56,8 +56,8 @@ const PLANS: PricingPlan[] = [
   {
     id: "professional",
     name: "Professional",
-    monthlyPrice: 450,
-    annualPrice: 4170,
+    monthlyPrice: 899,
+    annualPrice: 8990,
     description: "For growing providers who need more power.",
     propertyLimit: "Up to 25 properties",
     userLimit: "Up to 15 users",
@@ -78,11 +78,11 @@ const PLANS: PricingPlan[] = [
   {
     id: "enterprise",
     name: "Enterprise",
-    monthlyPrice: 600,
-    annualPrice: 6000,
+    monthlyPrice: 1499,
+    annualPrice: 14990,
     description: "Full-featured solution for established providers.",
     propertyLimit: "Up to 50 properties",
-    userLimit: "Up to 50 users",
+    userLimit: "Unlimited users",
     highlighted: true,
     badge: "Most Popular",
     features: [
@@ -141,7 +141,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: "Do you offer discounts for annual billing?",
     answer:
-      "Yes, save 17% when you choose annual billing. Toggle the billing switch above to see annual pricing.",
+      "Yes, save two months (17%) when you choose annual billing. Toggle the billing switch above to see annual pricing.",
   },
   {
     question: "Do you offer a not-for-profit discount?",
@@ -150,32 +150,31 @@ const FAQ_ITEMS: FaqItem[] = [
   },
 ];
 
-// Testimonial placeholders
-interface Testimonial {
-  quote: string;
-  provider: string;
-  location: string;
-  properties: string;
+// Real operational metrics
+interface MetricCard {
+  headline: string;
+  description: string;
+  icon: "clock" | "fileCheck" | "grid";
 }
 
-const TESTIMONIALS: Testimonial[] = [
+const METRICS: MetricCard[] = [
   {
-    quote: "Testimonial coming soon",
-    provider: "Provider Name",
-    location: "Sydney, NSW",
-    properties: "12 properties managed",
+    headline: "30 min → 5 seconds",
+    description:
+      "SDA quotations reduced from 30–60 minutes of manual work to seconds with automated calculations.",
+    icon: "clock",
   },
   {
-    quote: "Testimonial coming soon",
-    provider: "Provider Name",
-    location: "Melbourne, VIC",
-    properties: "8 properties managed",
+    headline: "Claims in seconds",
+    description:
+      "NDIS CSV claims processing cut from 15–30 minutes of spreadsheet wrangling to a single click.",
+    icon: "fileCheck",
   },
   {
-    quote: "Testimonial coming soon",
-    provider: "Provider Name",
-    location: "Brisbane, QLD",
-    properties: "20 properties managed",
+    headline: "60+ features",
+    description:
+      "Across 12 SDA-specific workflows — property, participant, compliance, maintenance, inspections, and more.",
+    icon: "grid",
   },
 ];
 
@@ -185,7 +184,7 @@ const COMPARISON_CATEGORIES = [
     name: "Core Features",
     features: [
       { name: "Properties", starter: "10", professional: "25", enterprise: "50" },
-      { name: "Users", starter: "5", professional: "15", enterprise: "50" },
+      { name: "Users", starter: "5", professional: "15", enterprise: "Unlimited" },
       { name: "Participant management", starter: true, professional: true, enterprise: true },
       { name: "Maintenance tracking", starter: true, professional: true, enterprise: true },
       { name: "Incident reporting", starter: true, professional: true, enterprise: true },
@@ -257,6 +256,37 @@ function CreditCardIcon() {
     </svg>
   );
 }
+
+function MetricClockIcon() {
+  return (
+    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function FileCheckIcon() {
+  return (
+    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9.375-9z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 15l2.25 2.25L15.75 12" />
+    </svg>
+  );
+}
+
+function LayoutGridIcon() {
+  return (
+    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  );
+}
+
+const METRIC_ICONS = {
+  clock: MetricClockIcon,
+  fileCheck: FileCheckIcon,
+  grid: LayoutGridIcon,
+};
 
 // ---------------------------------------------------------------------------
 // FAQ Accordion
@@ -643,11 +673,11 @@ export default function PricingPage() {
                 MySDAManager Professional
               </span>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-gray-300 text-sm">$450/month</span>
+                <span className="text-gray-300 text-sm">$899/month</span>
                 <span className="text-gray-400" aria-hidden="true">x</span>
                 <span className="text-gray-300 text-sm">12 months</span>
                 <span className="text-gray-400" aria-hidden="true">=</span>
-                <span className="text-xl font-bold text-teal-400">$5,400/year</span>
+                <span className="text-xl font-bold text-teal-400">$10,788/year</span>
               </div>
             </div>
 
@@ -656,7 +686,7 @@ export default function PricingPage() {
               <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
                 Your annual savings
               </span>
-              <span className="block text-5xl sm:text-6xl font-bold text-teal-400">$10,200</span>
+              <span className="block text-5xl sm:text-6xl font-bold text-teal-400">$4,812</span>
               <span className="block text-sm text-gray-400 mt-2">per year</span>
             </div>
           </div>
@@ -664,44 +694,37 @@ export default function PricingPage() {
       </section>
 
       {/* ----------------------------------------------------------------- */}
-      {/* Testimonial Placeholders                                           */}
+      {/* Operational Metrics                                                */}
       {/* ----------------------------------------------------------------- */}
       <section className="pb-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-white text-center mb-10">
-            Trusted by SDA providers across Australia
+          <h2 className="text-2xl font-bold text-white text-center mb-3">
+            Built for real SDA operations
           </h2>
+          <p className="text-gray-400 text-center mb-10 max-w-2xl mx-auto">
+            Measurable time savings from day one — not promises, just results.
+          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((testimonial) => (
-              <div
-                key={testimonial.location}
-                className="bg-gray-800 rounded-xl border border-gray-700 p-6 flex flex-col"
-              >
-                <svg
-                  className="h-8 w-8 text-gray-600 mb-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
+            {METRICS.map((metric) => {
+              const IconComponent = METRIC_ICONS[metric.icon];
+              return (
+                <div
+                  key={metric.icon}
+                  className="bg-gray-800 rounded-xl border border-gray-700 p-6 flex flex-col items-start"
                 >
-                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11h4v10H0z" />
-                </svg>
-                <p className="text-sm text-gray-400 italic flex-grow mb-4">
-                  &ldquo;{testimonial.quote}&rdquo;
-                </p>
-                <div className="pt-4 border-t border-gray-700">
-                  <p className="text-sm font-medium text-white">
-                    {testimonial.provider}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {testimonial.location}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {testimonial.properties}
+                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-teal-600/15 text-teal-400 mb-4">
+                    <IconComponent />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    {metric.headline}
+                  </h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">
+                    {metric.description}
                   </p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

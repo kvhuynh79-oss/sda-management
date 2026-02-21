@@ -391,8 +391,8 @@ export function LandingPage() {
                 AES-256 Encrypted
               </span>
               <span className="flex items-center gap-2 text-sm text-gray-400">
-                <IconGlobe className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                Australian Hosted
+                <IconShield className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                NDIS-Compliant Data Protection
               </span>
               <span className="flex items-center gap-2 text-sm text-gray-400">
                 <IconShield className="w-4 h-4 text-teal-400 flex-shrink-0" />
@@ -1062,8 +1062,8 @@ export function LandingPage() {
                 Audit Pack Generator
               </span>
               <span className="flex items-center gap-2 text-sm text-gray-400">
-                <IconGlobe className="w-5 h-5 text-teal-400 flex-shrink-0" />
-                Australian Hosted
+                <IconShield className="w-5 h-5 text-teal-400 flex-shrink-0" />
+                NDIS-Compliant Data Protection
               </span>
               <span className="flex items-center gap-2 text-sm text-gray-400">
                 <svg className="w-5 h-5 text-teal-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

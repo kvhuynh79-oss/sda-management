@@ -78,9 +78,9 @@ export default defineSchema({
     logoUrl: v.optional(v.string()), // Organization logo for white-label branding
     primaryColor: v.optional(v.string()), // Hex color code for branding (e.g., "#0d9488")
     plan: v.union(
-      v.literal("starter"),       // $250/mo - 50 properties, 5 users
-      v.literal("professional"),  // $450/mo - 200 properties, 20 users
-      v.literal("enterprise")     // $600/mo - unlimited properties, unlimited users
+      v.literal("starter"),       // $499/mo - 10 properties, 5 users
+      v.literal("professional"),  // $899/mo - 25 properties, 15 users
+      v.literal("enterprise")     // $1,499/mo - 50 properties, unlimited users
     ),
     stripeCustomerId: v.optional(v.string()), // Stripe customer ID for billing
     stripeSubscriptionId: v.optional(v.string()), // Stripe subscription ID

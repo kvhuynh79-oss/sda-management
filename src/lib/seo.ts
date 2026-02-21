@@ -75,18 +75,18 @@ export function generateSoftwareApplicationSchema() {
     offers: {
       "@type": "AggregateOffer",
       priceCurrency: "AUD",
-      lowPrice: "250",
-      highPrice: "600",
+      lowPrice: "499",
+      highPrice: "1499",
       offerCount: "3",
       offers: [
         {
           "@type": "Offer",
           name: "Starter",
-          price: "250",
+          price: "499",
           priceCurrency: "AUD",
           priceSpecification: {
             "@type": "UnitPriceSpecification",
-            price: "250",
+            price: "499",
             priceCurrency: "AUD",
             billingDuration: "P1M",
           },
@@ -96,30 +96,30 @@ export function generateSoftwareApplicationSchema() {
         {
           "@type": "Offer",
           name: "Professional",
-          price: "450",
+          price: "899",
           priceCurrency: "AUD",
           priceSpecification: {
             "@type": "UnitPriceSpecification",
-            price: "450",
+            price: "899",
             priceCurrency: "AUD",
             billingDuration: "P1M",
           },
           description:
-            "For growing providers managing up to 50 properties with advanced compliance features.",
+            "For growing providers managing up to 25 properties with advanced compliance features.",
         },
         {
           "@type": "Offer",
           name: "Enterprise",
-          price: "600",
+          price: "1499",
           priceCurrency: "AUD",
           priceSpecification: {
             "@type": "UnitPriceSpecification",
-            price: "600",
+            price: "1499",
             priceCurrency: "AUD",
             billingDuration: "P1M",
           },
           description:
-            "For large providers with unlimited properties, API access, and white-label branding.",
+            "For large providers with up to 50 properties, unlimited users, API access, and white-label branding.",
         },
       ],
     },

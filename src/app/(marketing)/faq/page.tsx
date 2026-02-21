@@ -73,7 +73,7 @@ const FAQ_SECTIONS = [
       {
         question: "How much does MySDAManager cost?",
         answer:
-          "Plans start at $250/month (Starter, up to 10 properties). Professional is $450/month (up to 25 properties). Enterprise is $600/month (up to 50 properties). All plans include a 14-day free trial.",
+          "Plans start at $499/month (Starter, up to 10 properties). Professional is $899/month (up to 25 properties). Enterprise is $1,499/month (up to 50 properties). All plans include a 14-day free trial.",
       },
       {
         question: "Is there a free trial?",
@@ -111,9 +111,9 @@ const FAQ_SECTIONS = [
           "Yes. We use AES-256-GCM field-level encryption for sensitive data (NDIS numbers, dates of birth, emergency contacts, bank details). HMAC-SHA256 blind indexes enable search without decryption.",
       },
       {
-        question: "Where is my data hosted?",
+        question: "How is my data protected?",
         answer:
-          "All data is hosted in Australia, compliant with Australian Privacy Principles.",
+          "All sensitive data is encrypted at rest with AES-256-GCM. We comply with Australian Privacy Principles (APPs) and NDIS Practice Standards, with immutable audit logging, role-based access control, and 72-hour Notifiable Data Breach response.",
       },
       {
         question: "Do you support multi-factor authentication?",

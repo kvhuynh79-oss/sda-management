@@ -1056,7 +1056,7 @@ function PlatformDashboardContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {(["starter", "professional", "enterprise"] as const).map((plan) => {
                       const amount = financialMetrics.mrrByPlan[plan];
-                      const price = plan === "starter" ? 250 : plan === "professional" ? 450 : 600;
+                      const price = plan === "starter" ? 499 : plan === "professional" ? 899 : 1499;
                       const orgCount = amount / price;
                       return (
                         <div

@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Security — Enterprise-Grade Data Protection",
   description:
-    "AES-256 field-level encryption, MFA, immutable audit trail, RBAC, and Australian data hosting. Your participant data is protected by enterprise-grade security.",
+    "AES-256 field-level encryption, MFA, immutable audit trail, RBAC, and NDIS-compliant data protection. Your participant data is protected by enterprise-grade security.",
   keywords: [
     "NDIS data security",
     "SDA software encryption",
@@ -178,9 +178,9 @@ const PILLARS = [
   },
   {
     icon: <GlobeAltIcon className="h-8 w-8 text-teal-400" />,
-    title: "Australian Data Hosting",
+    title: "NDIS-Compliant Data Protection",
     description:
-      "All data hosted in Australia. Compliant with Australian Privacy Principles (APPs) and NDIS Practice Standards. 72-hour Notifiable Data Breach response.",
+      "AES-256 encrypted at rest. Compliant with Australian Privacy Principles (APPs) and NDIS Practice Standards. 72-hour Notifiable Data Breach response.",
   },
   {
     icon: <ServerStackIcon className="h-8 w-8 text-teal-400" />,

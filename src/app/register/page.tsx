@@ -34,9 +34,9 @@ const PLAN_NAMES: Record<PlanId, string> = {
 };
 
 const PLAN_PRICES: Record<PlanId, string> = {
-  starter: "$250/mo",
-  professional: "$450/mo",
-  enterprise: "$600/mo",
+  starter: "$499/mo",
+  professional: "$899/mo",
+  enterprise: "$1,499/mo",
 };
 
 // ---------------------------------------------------------------------------

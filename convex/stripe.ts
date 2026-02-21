@@ -24,9 +24,9 @@ import Stripe from "stripe";
  * - STRIPE_SECRET_KEY: Stripe API secret key
  * - STRIPE_WEBHOOK_SECRET: Webhook endpoint signing secret (used in Next.js route)
  * - CONVEX_WEBHOOK_SECRET: Shared secret between Next.js webhook route and Convex mutations
- * - STRIPE_PRICE_STARTER_MONTHLY: Price ID for Starter plan ($250/mo)
- * - STRIPE_PRICE_PROFESSIONAL_MONTHLY: Price ID for Professional plan ($450/mo)
- * - STRIPE_PRICE_ENTERPRISE_MONTHLY: Price ID for Enterprise plan ($600/mo)
+ * - STRIPE_PRICE_STARTER_MONTHLY: Price ID for Starter plan ($499/mo)
+ * - STRIPE_PRICE_PROFESSIONAL_MONTHLY: Price ID for Professional plan ($899/mo)
+ * - STRIPE_PRICE_ENTERPRISE_MONTHLY: Price ID for Enterprise plan ($1,499/mo)
  * - NEXT_PUBLIC_APP_URL: Application base URL for redirects
  */
 
@@ -44,9 +44,9 @@ interface PlanConfig {
 }
 
 const PLAN_LIMITS: Record<PlanTier, PlanConfig> = {
-  starter: { maxProperties: 10, maxUsers: 5, maxDwellings: 20, priceMonthly: 250 },
-  professional: { maxProperties: 25, maxUsers: 15, maxDwellings: 75, priceMonthly: 450 },
-  enterprise: { maxProperties: 50, maxUsers: 50, maxDwellings: 200, priceMonthly: 600 },
+  starter: { maxProperties: 10, maxUsers: 5, maxDwellings: 20, priceMonthly: 499 },
+  professional: { maxProperties: 25, maxUsers: 15, maxDwellings: 75, priceMonthly: 899 },
+  enterprise: { maxProperties: 50, maxUsers: 50, maxDwellings: 200, priceMonthly: 1499 },
 };
 
 /**

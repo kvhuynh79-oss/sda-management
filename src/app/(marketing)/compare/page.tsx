@@ -413,7 +413,7 @@ export default function ComparePage() {
                 MySDAManager Professional
               </span>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-gray-300 text-sm">$450/month</span>
+                <span className="text-gray-300 text-sm">$899/month</span>
                 <span className="text-gray-400" aria-hidden="true">
                   x
                 </span>
@@ -422,7 +422,7 @@ export default function ComparePage() {
                   =
                 </span>
                 <span className="text-xl font-bold text-teal-400">
-                  $5,400/year
+                  $10,788/year
                 </span>
               </div>
             </div>
@@ -433,7 +433,7 @@ export default function ComparePage() {
                 Your annual savings
               </span>
               <span className="block text-5xl sm:text-6xl font-bold text-teal-400">
-                $10,200
+                $4,812
               </span>
               <span className="block text-sm text-gray-400 mt-2">per year</span>
             </div>

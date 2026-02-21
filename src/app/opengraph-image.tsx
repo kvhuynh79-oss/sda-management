@@ -155,7 +155,7 @@ export default async function Image() {
         >
           <span>mysdamanager.com</span>
           <span>|</span>
-          <span>Australian Hosted</span>
+          <span>NDIS-Compliant Data Protection</span>
           <span>|</span>
           <span>AES-256 Encrypted</span>
         </div>

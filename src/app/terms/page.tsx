@@ -235,9 +235,9 @@ export default function TermsOfServicePage() {
                 under three subscription plans:
               </p>
               <ul className="list-disc pl-6 space-y-1">
-                <li><strong className="text-white">Starter</strong> -- A$250 per month (up to 10 properties, 5 users)</li>
-                <li><strong className="text-white">Professional</strong> -- A$450 per month (up to 25 properties, 15 users)</li>
-                <li><strong className="text-white">Enterprise</strong> -- A$600 per month (up to 50 properties, 50 users)</li>
+                <li><strong className="text-white">Starter</strong> -- A$499 per month (up to 10 properties, 5 users)</li>
+                <li><strong className="text-white">Professional</strong> -- A$899 per month (up to 25 properties, 15 users)</li>
+                <li><strong className="text-white">Enterprise</strong> -- A$1,499 per month (up to 50 properties, unlimited users)</li>
               </ul>
               <p>
                 Annual billing is available at a discounted rate. All prices are in

@@ -172,7 +172,7 @@ const CORE_VALUES = [
   {
     title: "Built for Australia",
     description:
-      "Australian-hosted, Australian English, Australian Privacy Principles. Not a US tool with an AU flag.",
+      "Australian English, Australian Privacy Principles, NDIS Practice Standards. Purpose-built for Australian SDA providers.",
     icon: IconGlobe,
   },
   {
@@ -190,8 +190,8 @@ const CORE_VALUES = [
 ];
 
 const TRUST_BADGES = [
-  { label: "Australian Hosted", icon: IconGlobe },
   { label: "AES-256 Encrypted", icon: IconLock },
+  { label: "NDIS-Compliant Data Protection", icon: IconShield },
   { label: "NDIS Aligned", icon: IconShield },
   { label: "SOC 2 Ready", icon: IconCheck },
 ];

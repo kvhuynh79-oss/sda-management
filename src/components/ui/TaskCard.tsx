@@ -31,7 +31,7 @@ export default function TaskCard({ task, onStatusChange, showQuickActions = true
 
   return (
     <article
-      className={`bg-gray-800 rounded-lg p-4 sm:p-6 hover:bg-gray-700 transition-colors border-l-4 ${
+      className={`bg-gray-800 rounded-lg p-3 sm:p-4 hover:bg-gray-700 transition-colors border-l-4 ${
         task.isOverdue
           ? "border-red-500"
           : task.priority === "urgent"
@@ -42,26 +42,37 @@ export default function TaskCard({ task, onStatusChange, showQuickActions = true
       }`}
       role="listitem"
     >
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
         <div className="flex-1 min-w-0">
-          {/* Badges */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
+          {/* Title + Badges row */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+            <h3 className="text-base font-semibold text-white truncate mr-1">{task.title}</h3>
             <TaskStatusBadge status={task.status} />
             <PriorityBadge priority={task.priority} />
-            <TaskCategoryBadge category={task.category} />
             {task.isOverdue && (
-              <span className="px-2 py-0.5 rounded text-xs bg-red-600 text-white animate-pulse">
+              <span className="px-2 py-0.5 rounded text-xs bg-red-600 text-white font-semibold ring-2 ring-red-500/40 ring-offset-1 ring-offset-gray-800">
                 OVERDUE
               </span>
             )}
           </div>
 
-          {/* Title */}
-          <h3 className="text-lg font-semibold text-white truncate">{task.title}</h3>
+          {/* Meta info inline */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-400">
+            <TaskCategoryBadge category={task.category} />
+            <span className={task.isOverdue ? "text-red-400 font-medium" : ""}>
+              Due: {task.dueDate}
+            </span>
+            {task.participant && (
+              <span>{task.participant.firstName} {task.participant.lastName}</span>
+            )}
+            {task.assignedToUser && (
+              <span>Assigned: {task.assignedToUser.firstName} {task.assignedToUser.lastName}</span>
+            )}
+          </div>
 
-          {/* Description */}
+          {/* Description - single line */}
           {task.description && (
-            <p className="text-gray-400 text-sm mt-1 line-clamp-2">{task.description}</p>
+            <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">{task.description}</p>
           )}
         </div>
 
@@ -96,28 +107,6 @@ export default function TaskCard({ task, onStatusChange, showQuickActions = true
             View
           </Link>
         </div>
-      </div>
-
-      {/* Meta info */}
-      <div className="flex flex-wrap gap-4 sm:gap-6 text-sm text-gray-400 mt-3 pt-3 border-t border-gray-700">
-        <div>
-          <span className="text-gray-400">Due:</span>{" "}
-          <span className={task.isOverdue ? "text-red-400 font-medium" : ""}>
-            {task.dueDate}
-          </span>
-        </div>
-        {task.participant && (
-          <div>
-            <span className="text-gray-400">Participant:</span>{" "}
-            {task.participant.firstName} {task.participant.lastName}
-          </div>
-        )}
-        {task.assignedToUser && (
-          <div>
-            <span className="text-gray-400">Assigned to:</span>{" "}
-            {task.assignedToUser.firstName} {task.assignedToUser.lastName}
-          </div>
-        )}
       </div>
     </article>
   );

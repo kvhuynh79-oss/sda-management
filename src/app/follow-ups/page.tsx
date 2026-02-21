@@ -276,7 +276,7 @@ export default function FollowUpsPage() {
               isFiltered={hasFilters}
             />
           ) : (
-            <div className="space-y-4" role="list" aria-label="Tasks list">
+            <div className="space-y-2" role="list" aria-label="Tasks list">
               {sortedTasks.map((task) => (
                 <TaskCard
                   key={task._id}

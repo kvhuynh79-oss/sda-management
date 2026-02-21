@@ -51,6 +51,8 @@ export default function DashboardPage() {
     });
   }, []);
 
+  const tasksExpanded = collapsed["tasksExpanded"] ?? false;
+
   const handleQuickAdd = async () => {
     if (!quickTaskTitle.trim() || !user) return;
     const today = new Date().toISOString().split("T")[0];
@@ -354,8 +356,8 @@ export default function DashboardPage() {
 
               {/* Task List */}
               {upcomingTasks && upcomingTasks.length > 0 ? (
-                <div className="space-y-2">
-                  {upcomingTasks.slice(0, 10).map((task) => (
+                <div className={`space-y-2 ${tasksExpanded ? "max-h-[400px] overflow-y-auto pr-1" : ""}`}>
+                  {upcomingTasks.slice(0, tasksExpanded ? 15 : 5).map((task) => (
                     <div
                       key={task._id}
                       className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 transition-colors group"
@@ -398,6 +400,26 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <p className="text-gray-400 text-sm text-center py-4">No upcoming tasks</p>
+              )}
+
+              {/* Expand/Collapse Toggle */}
+              {upcomingTasks && upcomingTasks.length > 5 && (
+                <button
+                  onClick={() => toggleSection("tasksExpanded")}
+                  className="w-full mt-2 py-1.5 text-sm text-gray-400 hover:text-teal-400 transition-colors flex items-center justify-center gap-1"
+                >
+                  {tasksExpanded ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      Show more ({upcomingTasks.length - 5} more)
+                    </>
+                  )}
+                </button>
               )}
 
               {/* Footer */}

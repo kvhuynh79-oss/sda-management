@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { makeFunctionReference } from "convex/server";
+import { api } from "../../../../convex/_generated/api";
 import Header from "@/components/Header";
 import { RequireAuth } from "@/components/RequireAuth";
 import Link from "next/link";
@@ -22,6 +23,10 @@ function SeedPageContent() {
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const seedAnneMarie = useMutation(seedAnneMarieMutation);
+
+  const [backfillResult, setBackfillResult] = useState<string | null>(null);
+  const [backfillLoading, setBackfillLoading] = useState(false);
+  const backfillInspectionPhotos = useMutation(api.seed.backfillInspectionPhotos);
 
   const handleSeed = async () => {
     setLoading(true);
@@ -72,10 +77,50 @@ function SeedPageContent() {
         </div>
 
         {result && (
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold mb-2">Result:</h3>
             <pre className="bg-gray-900 p-4 rounded text-sm overflow-x-auto">
               {result}
+            </pre>
+          </div>
+        )}
+
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Backfill Inspection Photos to MRs</h2>
+          <p className="text-gray-400 mb-4">
+            Copies inspection photos to maintenance requests that were auto-created from
+            failed inspection items before the photo-copy code was deployed.
+          </p>
+          <ul className="list-disc list-inside text-gray-400 mb-4 space-y-1">
+            <li>Finds all MRs linked to an inspectionItemId</li>
+            <li>Copies inspection photos to maintenancePhotos (as &quot;issue&quot; type)</li>
+            <li>Deduplicates by storageId (safe to run multiple times)</li>
+          </ul>
+
+          <button
+            onClick={async () => {
+              setBackfillLoading(true);
+              try {
+                const response = await backfillInspectionPhotos({});
+                setBackfillResult(JSON.stringify(response, null, 2));
+              } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : "Unknown error";
+                setBackfillResult(`Error: ${errorMessage}`);
+              }
+              setBackfillLoading(false);
+            }}
+            disabled={backfillLoading}
+            className="bg-yellow-700 hover:bg-yellow-800 disabled:bg-gray-600 text-white px-6 py-2 rounded font-medium"
+          >
+            {backfillLoading ? "Running..." : "Run Backfill"}
+          </button>
+        </div>
+
+        {backfillResult && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-2">Backfill Result:</h3>
+            <pre className="bg-gray-900 p-4 rounded text-sm overflow-x-auto">
+              {backfillResult}
             </pre>
           </div>
         )}

@@ -1201,3 +1201,89 @@ export const backfillInboundEmailAddresses = mutation({
     return { updated, skipped, total: orgs.length };
   },
 });
+
+/**
+ * One-time backfill: Copy inspection photos to maintenance requests.
+ *
+ * The createFromInspection mutation was updated to copy inspectionPhotos to
+ * maintenancePhotos, but MRs created BEFORE that deploy are missing photos.
+ * This finds all MRs linked to an inspectionItemId and copies any missing photos.
+ *
+ * IDEMPOTENT: Deduplicates by storageId to prevent double-copying.
+ */
+export const backfillInspectionPhotos = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allMRs = await ctx.db.query("maintenanceRequests").collect();
+    const inspectionMRs = allMRs.filter(
+      (mr) => mr.inspectionItemId !== undefined
+    );
+
+    console.log(
+      `Found ${inspectionMRs.length} maintenance requests linked to inspection items`
+    );
+
+    let photosCopied = 0;
+    let photosSkipped = 0;
+    let mrsProcessed = 0;
+    let mrsSkippedNoPhotos = 0;
+
+    for (const mr of inspectionMRs) {
+      const inspectionPhotos = await ctx.db
+        .query("inspectionPhotos")
+        .withIndex("by_item", (q) =>
+          q.eq("inspectionItemId", mr.inspectionItemId!)
+        )
+        .collect();
+
+      if (inspectionPhotos.length === 0) {
+        mrsSkippedNoPhotos++;
+        continue;
+      }
+
+      const existingPhotos = await ctx.db
+        .query("maintenancePhotos")
+        .withIndex("by_maintenance_request", (q) =>
+          q.eq("maintenanceRequestId", mr._id)
+        )
+        .collect();
+
+      const existingStorageIds = new Set(
+        existingPhotos.map((p) => p.storageId)
+      );
+
+      const now = Date.now();
+      for (const photo of inspectionPhotos) {
+        if (existingStorageIds.has(photo.storageId)) {
+          photosSkipped++;
+          continue;
+        }
+
+        await ctx.db.insert("maintenancePhotos", {
+          maintenanceRequestId: mr._id,
+          organizationId: mr.organizationId,
+          storageId: photo.storageId,
+          fileName: photo.fileName,
+          fileSize: photo.fileSize,
+          fileType: photo.fileType,
+          description: photo.description,
+          photoType: "issue",
+          uploadedBy: photo.uploadedBy,
+          createdAt: now,
+        });
+        photosCopied++;
+      }
+      mrsProcessed++;
+    }
+
+    const summary = {
+      totalInspectionMRs: inspectionMRs.length,
+      mrsProcessed,
+      mrsSkippedNoPhotos,
+      photosCopied,
+      photosSkipped,
+    };
+    console.log("Backfill complete:", JSON.stringify(summary));
+    return summary;
+  },
+});

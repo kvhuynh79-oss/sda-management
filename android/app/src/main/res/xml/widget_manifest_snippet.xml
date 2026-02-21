@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    MANIFEST SNIPPET - Add this to your AndroidManifest.xml
+    inside the <application> tag.
+
+    This registers the widget provider, deep link intent filter,
+    and required permissions.
+-->
+
+<!--
+    Add these permissions at the top level of AndroidManifest.xml:
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+-->
+
+<!--
+    Add this receiver inside <application>:
+
+    <receiver
+        android:name=".widget.MyTasksWidgetProvider"
+        android:exported="true"
+        android:label="@string/widget_name">
+        <intent-filter>
+            <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent-filter>
+        <intent-filter>
+            <action android:name="com.mysdamanager.app.widget.ACTION_COMPLETE_TASK" />
+        </intent-filter>
+        <intent-filter>
+            <action android:name="com.mysdamanager.app.widget.ACTION_REFRESH" />
+        </intent-filter>
+        <meta-data
+            android:name="android.appwidget.provider"
+            android:resource="@xml/my_tasks_widget_info" />
+    </receiver>
+-->
+
+<!--
+    Add this deep link intent filter inside the main <activity>:
+
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="mysdamanager" />
+    </intent-filter>
+-->
+
+<!--
+    Dependencies to add in app/build.gradle:
+
+    dependencies {
+        implementation "androidx.security:security-crypto:1.1.0-alpha06"
+        implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+    }
+-->
+
+<!-- This file is for reference only. It is not processed by the build system. -->
+<resources />

@@ -1085,11 +1085,34 @@ All 8 sprints of the SaaS transformation are complete.
     - **Frontend - Property Detail**: Inspection History section with per-dwelling breakdown, specialist schedule items, stat pills
     - **Build**: 120 pages, 0 errors. Convex deployed.
 
+### Completed (v2.8.1 - Fixes + CI/CD)
+92. React Hooks Fix - ✅ Fixed `useMemo` before early returns in property detail page (commit `87e73b8`)
+93. Field Decryption Fix - ✅ Added `decryptField()` to `convex/dwellings.ts` (getByProperty, getById) and `convex/properties.ts` (getById) for participant NDIS numbers + owner bank account numbers
+94. GitHub Actions Convex Auto-Deploy - ✅ Added `convex-deploy` job to `.github/workflows/ci.yml`. Runs after build passes on push to main. Uses `CONVEX_DEPLOY_KEY` secret. No more manual `npx convex deploy`.
+
+### Completed (v2.9.0 - Pre-Launch Marketing & Compliance Sprint)
+95. Remove False Australian Hosting Claims - ✅ Replaced "Australian Hosted" badge with "NDIS-Compliant Data Protection" across 7 files (landing page, footer, about, security, FAQ, OG image)
+96. Placeholder Testimonials Removed - ✅ Replaced fake testimonials on pricing page with 3 real operational metric stat cards
+97. Pricing Tier Update - ✅ Updated to Starter $499/mo, Professional $899/mo, Enterprise $1,499/mo across 10+ files (pricing, register, billing, terms, FAQ, compare, SEO, admin dashboard, Convex stripe.ts)
+98. Pricing Psychology — Cost Anchoring - ✅ Added "Real Cost Without Software" section ($15,600 admin, $12-20K consulting, $50-200K audit risk) with interactive ROI calculator, founding member banner, annual savings badges
+99. Book a Demo Page - ✅ New `/book-demo` page with form (name, email, phone, properties, preferred date). Saves to `marketingLeads` via `submitDemoRequest` mutation. "Book a Demo" secondary CTA added to 8 marketing pages + header + footer nav
+100. Who Is MySDAmanager For — Personas - ✅ 3 persona cards on landing page (SDA Investors, Registered Providers, Property Managers) with feature callouts
+101. Privacy Policy Rewrite - ✅ Full rewrite with US data hosting transparency, 10-service third-party table (Convex, Stripe, Resend, Postmark, Twilio, Sentry, Anthropic, Tawk.to, Google Calendar, Vercel), NDIS compliance section, AES-256-GCM disclosure
+102. Demo Video Placeholder - ✅ `DEMO_VIDEO_URL` config variable in LandingPage.tsx, 16:9 placeholder with play button, "Book a demo" fallback, 3 time-savings stat cards (before/after contrast)
+103. Dashboard Expandable Tasks - ✅ Collapsible task view (5 default, 15 expanded) with scroll container and localStorage persistence
+104. Compact TaskCard - ✅ ~44% height reduction per card, merged badges inline, reduced follow-ups gap
+105. Follow-ups Sort Toggle - ✅ Newest/oldest first toggle on tasks page, overdue pinned to top regardless
+106. Inspection Photo Backfill - ✅ `backfillInspectionPhotos` mutation in seed.ts, admin seed page button
+
 ### Post-Launch Tasks
-92. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
-93. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
-94. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
-95. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+107. **Social Media Marketing** - Execute content plan in `SOCIAL_MEDIA_MARKETING.md`. Sign up for Publer ($12/mo), set up 4 platforms (LinkedIn, Twitter/X, Facebook, Instagram), batch-create content using 5 content pillars, schedule 12 posts/week. See also `COMPETITOR_ANALYSIS.md` for positioning.
+108. **Microsoft/Outlook Calendar OAuth** - Code ready, needs Azure app registration (blocked by MFA on Azure portal)
+109. **Easy Read Canva Template** - Upload designed PDF template with stock photos to replace jsPDF illustrations
+110. **App Store Submission** - Capacitor app ready, needs Android Studio + Play Store registration
+111. **BLS Website Spam Protection** - Add reCAPTCHA/honeypot to betterlivingsolutions.com.au/investors form (separate codebase)
+112. **Demo Video** - Record 60s audit pack demo, set `DEMO_VIDEO_URL` in `src/components/marketing/LandingPage.tsx` (~line 82)
+113. **Stripe Price Objects** - Create new prices ($499/$899/$1,499 AUD/mo) in Stripe Dashboard, update env vars in Convex + Vercel
+114. **Marketing Docs Pricing Update** - ~12 .md files still reference $250/$450/$600 and "Australian Hosted"
 
 ## Phase 2: SaaS Subscription Model (COMPLETE 2026-02-09)
 **Full execution plan:** `.claude/plans/transient-wobbling-floyd.md`
@@ -1099,7 +1122,7 @@ See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.
 - **Brand**: MySDAManager (https://mysdamanager.com - SECURED)
 - **Primary Color**: Teal-600 (#0d9488)
 - Multi-tenant SaaS for SDA providers
-- Stripe subscription billing: Starter $250/mo, Professional $450/mo, Enterprise $600/mo
+- Stripe subscription billing: Starter $499/mo, Professional $899/mo, Enterprise $1,499/mo
 - **Architecture**: Shared Convex DB with row-level isolation via `organizationId`
 - **Status**: ALL 8 SPRINTS COMPLETE. 80 pages, 0 errors.
 
@@ -1136,9 +1159,9 @@ See [SAAS_BUSINESS_PLAN.md](SAAS_BUSINESS_PLAN.md) for business details.
 7. Create Stripe business account + configure GST + link Xero
 8. Set Stripe env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, price IDs)
 9. ~~Set Sentry DSN (NEXT_PUBLIC_SENTRY_DSN, SENTRY_AUTH_TOKEN)~~ DONE (2026-02-14)
-10. File trademark with IP Australia (Class 9 + 42)
-11. Secure .com.au domain under new ABN
-12. Load test with 10+ simultaneous organizations
+10. ~~File trademark with IP Australia (Class 9 + 42)~~ SKIPPED (deferred)
+11. ~~Secure .com.au domain under new ABN~~ SKIPPED (deferred)
+12. ~~Load test with 10+ simultaneous organizations~~ DONE (Grade A+, 180/180 queries, avg 283ms)
 
 ## Commands
 ```bash
@@ -1155,4 +1178,4 @@ npx cap open android # Open Android Studio
 ```
 
 ---
-**Last Updated**: 2026-02-19 (v2.8.0 - Inspection Workflow Overhaul: Auto-MR creation from failed items, auto-reschedule 3 months, property-centric views with health indicators, specialist schedule tracking, in-inspection template customization with dwelling diff model, per-dwelling template diffs, save-as-template, enhanced completion modal, property detail inspection history section. 120 pages, 0 errors.)
+**Last Updated**: 2026-02-21 (v2.9.0 - Pre-launch marketing & compliance sprint: pricing update $499/$899/$1,499, cost anchoring, Book a Demo page, personas section, privacy policy rewrite with US hosting disclosure, demo video placeholder, compact TaskCard, follow-ups sort toggle.)

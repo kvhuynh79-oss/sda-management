@@ -72,7 +72,7 @@ function SecuritySettingsContent() {
       setBackupCodes(result.backupCodes); // Store backup codes from setup
       setShowMfaSetup(true);
     } catch (err) {
-      setError("Failed to generate MFA setup. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to generate MFA setup. Please try again.");
     } finally {
       setIsGenerating(false);
     }

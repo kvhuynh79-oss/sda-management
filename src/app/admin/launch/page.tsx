@@ -6,7 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import Header from "../../../components/Header";
 import { RequireAuth } from "../../../components/RequireAuth";
-import { useSession } from "../../../hooks/useSession";
+import { useAuth } from "../../../hooks/useAuth";
 import {
   ChevronDown,
   ChevronRight,
@@ -172,6 +172,71 @@ const CHECKLIST_CATEGORIES: ChecklistCategory[] = [
         title: "Configure Sentry Error Tracking",
         description:
           "Set NEXT_PUBLIC_SENTRY_DSN and SENTRY_AUTH_TOKEN in Vercel",
+        preChecked: true,
+      },
+      {
+        key: "encryption_prod",
+        title: "Production Encryption Keys",
+        description:
+          "ENCRYPTION_KEY and HMAC_KEY set in production Convex for field-level encryption and MFA",
+        preChecked: true,
+      },
+      {
+        key: "mfa_working",
+        title: "MFA / Two-Factor Authentication",
+        description:
+          "TOTP-based 2FA for admin accounts verified working in production",
+        preChecked: true,
+      },
+    ],
+  },
+  {
+    id: "marketing",
+    title: "Marketing & Advertising",
+    icon: "megaphone",
+    items: [
+      {
+        key: "marketing_audit",
+        title: "Marketing Strategy Audit",
+        description:
+          "5-team parallel review of strategy v2.0 — Overall: B (76/100). 6 audit docs generated",
+        preChecked: true,
+      },
+      {
+        key: "conversion_tracking",
+        title: "Implement Conversion Tracking (Launch Blocker)",
+        description:
+          "GTM container, GA4 property, Google Ads tag, LinkedIn Insight Tag, conversion events. Currently 0% implemented",
+      },
+      {
+        key: "utm_capture",
+        title: "Implement UTM Parameter Capture (Launch Blocker)",
+        description:
+          "Add utmSource, utmMedium, utmCampaign, utmContent, utmTerm, gclid to marketingLeads and organizations tables",
+      },
+      {
+        key: "rsa_complete",
+        title: "Complete RSA 2 + Ad Extensions (Launch Blocker)",
+        description:
+          "RSA 2 has 0 descriptions. Add sitelinks, callouts, structured snippets, image extensions",
+      },
+      {
+        key: "linkedin_insight",
+        title: "Install LinkedIn Insight Tag",
+        description:
+          "Install via GTM on Day 1 to passively build retargeting audiences from organic traffic",
+      },
+      {
+        key: "demo_video",
+        title: "Record Demo Video",
+        description:
+          "60-second audit pack demo, set DEMO_VIDEO_URL in LandingPage.tsx",
+      },
+      {
+        key: "stripe_prices",
+        title: "Create Stripe Price Objects",
+        description:
+          "3 new prices: Starter $499, Professional $899, Enterprise $1,499 AUD/month",
       },
     ],
   },
@@ -271,6 +336,23 @@ function CategoryIcon({ icon }: { icon: string }) {
           />
         </svg>
       );
+    case "megaphone":
+      return (
+        <svg
+          className="w-5 h-5 text-teal-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46"
+          />
+        </svg>
+      );
     default:
       return null;
   }
@@ -289,7 +371,7 @@ export default function LaunchChecklistPage() {
 // ── Main content component ────────────────────────────────────────
 
 function LaunchChecklistContent() {
-  const { user } = useSession();
+  const { user } = useAuth();
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >(() => {

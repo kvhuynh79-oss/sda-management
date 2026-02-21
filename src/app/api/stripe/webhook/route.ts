@@ -1,18 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../../../convex/_generated/api";
-import { Id } from "../../../../../convex/_generated/dataModel";
-import Stripe from "stripe";
-
 /**
- * Stripe Webhook Handler - Sprint 3
+ * POST /api/stripe/webhook
  *
- * Receives and processes Stripe webhook events for subscription lifecycle management.
- * This endpoint is called by Stripe and must NOT require user authentication.
+ * Stripe Webhook Handler - receives and processes Stripe webhook events
+ * for subscription lifecycle management.
  *
- * Security model:
- * 1. Stripe signature verification (STRIPE_WEBHOOK_SECRET) - ensures event is from Stripe
- * 2. Convex webhook secret (CONVEX_WEBHOOK_SECRET) - ensures only this route can call Convex mutations
+ * Security posture:
+ * - Authentication: Stripe signature verification (STRIPE_WEBHOOK_SECRET)
+ * - Rate limiting: NOT NEEDED - Stripe controls call frequency; signature prevents abuse
+ * - CSRF/Origin: EXEMPT - webhook uses cryptographic signature verification, not browser Origin
+ * - Input validation: Stripe SDK handles event parsing and signature verification
+ * - Env validation: FAIL-FAST - checks STRIPE_WEBHOOK_SECRET + STRIPE_SECRET_KEY +
+ *   NEXT_PUBLIC_CONVEX_URL + CONVEX_WEBHOOK_SECRET before any processing (S12 fix)
+ * - Idempotency: YES - B3 FIX deduplication via checkWebhookEventProcessed
+ *
+ * This endpoint is called by Stripe servers and must NOT require user authentication.
+ * The Convex webhook secret (CONVEX_WEBHOOK_SECRET) provides a second layer of
+ * verification when calling Convex mutations.
  *
  * Handled events:
  * - checkout.session.completed: New subscription created via Checkout
@@ -21,6 +24,13 @@ import Stripe from "stripe";
  * - invoice.payment_failed: Payment attempt failed
  * - invoice.payment_succeeded: Payment succeeded (confirmation/logging)
  */
+
+import { NextRequest, NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
+import Stripe from "stripe";
+import { validateRequiredEnvVars } from "../../_lib/envValidation";
 
 // Lazy initialization to avoid build-time errors when env vars are not set.
 // These are initialized on first request, not at module import time.
@@ -53,6 +63,27 @@ function getWebhookSecret(): string {
  * Receives Stripe webhook events. The raw body is required for signature verification.
  */
 export async function POST(request: NextRequest) {
+  // ─── FAIL-FAST: Environment variable validation (S12 fix) ──────────
+  // Check all required env vars BEFORE attempting to process the webhook.
+  // This prevents confusing runtime errors from missing configuration
+  // and ensures signature verification is always possible.
+  const envCheck = validateRequiredEnvVars([
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_SECRET_KEY",
+    "NEXT_PUBLIC_CONVEX_URL",
+    "CONVEX_WEBHOOK_SECRET",
+  ]);
+  if (!envCheck.valid) {
+    console.error(
+      `[CRITICAL] Stripe webhook handler is misconfigured: ${envCheck.error}. ` +
+        "Webhook events cannot be processed until these environment variables are set."
+    );
+    return NextResponse.json(
+      { error: "Webhook handler is not configured" },
+      { status: 500 }
+    );
+  }
+
   let event: Stripe.Event;
 
   // Read raw body for signature verification
@@ -86,6 +117,23 @@ export async function POST(request: NextRequest) {
   console.log(`[Stripe Webhook] Received event: ${event.type} (${event.id})`);
 
   try {
+    // B3 FIX: Idempotency check - skip already-processed events.
+    // This also records the event as "completed" atomically to prevent
+    // concurrent duplicate processing from Stripe retries.
+    const { alreadyProcessed } = await getConvex().mutation(
+      api.stripe.checkWebhookEventProcessed,
+      {
+        webhookSecret: getWebhookSecret(),
+        stripeEventId: event.id,
+        eventType: event.type,
+      }
+    );
+
+    if (alreadyProcessed) {
+      console.log(`[Stripe Webhook] Skipping duplicate event: ${event.id}`);
+      return NextResponse.json({ received: true, deduplicated: true }, { status: 200 });
+    }
+
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutSessionCompleted(event);
@@ -117,6 +165,20 @@ export async function POST(request: NextRequest) {
     console.error(
       `[Stripe Webhook] Error processing ${event.type}: ${message}`
     );
+
+    // B3 FIX: Mark event as failed so Stripe retries will be reprocessed
+    try {
+      await getConvex().mutation(api.stripe.markWebhookEventFailed, {
+        webhookSecret: getWebhookSecret(),
+        stripeEventId: event.id,
+      });
+    } catch (markError) {
+      console.error(
+        `[Stripe Webhook] Failed to mark event ${event.id} as failed:`,
+        markError
+      );
+    }
+
     // Return 200 to prevent Stripe from retrying on application errors.
     // Returning 5xx would cause exponential retry backoff which could
     // lead to duplicate processing of already-handled events.

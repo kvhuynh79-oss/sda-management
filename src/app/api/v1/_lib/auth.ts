@@ -8,6 +8,15 @@ import { api } from "../../../../../convex/_generated/api";
  * Keys are validated via Convex mutation which hashes the key and
  * checks it against the database.
  *
+ * Security notes:
+ * - API keys are SHA-256 hashed in the database (never stored in plain text)
+ * - Keys use the `msd_live_` prefix for easy identification
+ * - Each key has scoped permissions (read:*, write:* per resource)
+ * - Keys are tied to an organization for tenant isolation
+ * - This auth mechanism is sufficient CSRF protection for API endpoints:
+ *   API keys are not stored in cookies/localStorage by browsers, so CSRF
+ *   attacks cannot forge requests with valid API keys
+ *
  * Usage in route handlers:
  * ```ts
  * const auth = await authenticateApiRequest(request);

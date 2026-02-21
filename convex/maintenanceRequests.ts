@@ -1,7 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant, requireActiveSubscription } from "./authHelpers";
 import { paginationArgs } from "./paginationHelpers";
 
 // Create a new maintenance request
@@ -40,6 +40,8 @@ export const create = mutation({
     // Verify user has permission and get organizationId
     const user = await requirePermission(ctx, args.createdBy, "maintenance", "create");
     const { organizationId } = await requireTenant(ctx, args.createdBy);
+    // B5 FIX: Require active subscription for write operations
+    await requireActiveSubscription(ctx, organizationId);
 
     const now = Date.now();
     const requestId = await ctx.db.insert("maintenanceRequests", {

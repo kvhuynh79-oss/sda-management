@@ -4,6 +4,7 @@ import { TOTP, Secret } from "otpauth";
 import QRCode from "qrcode";
 import { internal } from "./_generated/api";
 import { requirePermission } from "./authHelpers";
+import { encryptField, decryptField } from "./lib/encryption";
 
 /**
  * MFA (Multi-Factor Authentication) Module
@@ -160,11 +161,17 @@ export const verifyAndEnableMfa = mutation({
       throw new Error("MFA setup not initiated. Call setupMfa first.");
     }
 
+    // Decrypt MFA secret before TOTP verification
+    const decryptedSecret = await decryptField(user.mfaSecret);
+    if (!decryptedSecret) {
+      throw new Error("Failed to decrypt MFA secret");
+    }
+
     // Verify TOTP code
     const totp = new TOTP({
       ...TOTP_CONFIG,
       label: user.email,
-      secret: Secret.fromBase32(user.mfaSecret),
+      secret: Secret.fromBase32(decryptedSecret),
     });
 
     // Rate limit check
@@ -255,11 +262,17 @@ export const verifyMfaLogin = internalMutation({
       throw new Error(lockoutMsg);
     }
 
+    // Decrypt MFA secret before TOTP verification
+    const decryptedSecret = await decryptField(user.mfaSecret);
+    if (!decryptedSecret) {
+      throw new Error("Failed to decrypt MFA secret");
+    }
+
     // First, try TOTP code
     const totp = new TOTP({
       ...TOTP_CONFIG,
       label: user.email,
-      secret: Secret.fromBase32(user.mfaSecret),
+      secret: Secret.fromBase32(decryptedSecret),
     });
 
     const delta = totp.validate({ token: args.code, window: 1 });
@@ -372,10 +385,14 @@ export const disableMfa = mutation({
 
     // Verify TOTP code if provided
     if (args.totpCode && user.mfaSecret && user.mfaEnabled) {
+      const decryptedSecret = await decryptField(user.mfaSecret);
+      if (!decryptedSecret) {
+        throw new Error("Failed to decrypt MFA secret");
+      }
       const totp = new TOTP({
         ...TOTP_CONFIG,
         label: user.email,
-        secret: Secret.fromBase32(user.mfaSecret),
+        secret: Secret.fromBase32(decryptedSecret),
       });
 
       const delta = totp.validate({ token: args.totpCode, window: 1 });
@@ -509,18 +526,26 @@ export const getMfaStatus = query({
 
 /**
  * Internal: Get user data (called from actions)
+ * Decrypts mfaSecret before returning so actions can use it for TOTP operations.
  */
 export const getUserInternal = internalQuery({
   args: {
     userId: v.id("users"),
   },
   handler: async (ctx, args): Promise<any> => {
-    return await ctx.db.get(args.userId);
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    if (user.mfaSecret) {
+      const decryptedSecret = await decryptField(user.mfaSecret);
+      return { ...user, mfaSecret: decryptedSecret ?? user.mfaSecret };
+    }
+    return user;
   },
 });
 
 /**
  * Internal: Store MFA secret and backup codes
+ * Encrypts the TOTP secret before storing.
  */
 export const storeMfaSecretInternal = internalMutation({
   args: {
@@ -529,8 +554,9 @@ export const storeMfaSecretInternal = internalMutation({
     hashedBackupCodes: v.array(v.string()),
   },
   handler: async (ctx, args): Promise<void> => {
+    const encSecret = await encryptField(args.secret);
     await ctx.db.patch(args.userId, {
-      mfaSecret: args.secret,
+      mfaSecret: encSecret ?? args.secret,
       mfaBackupCodes: args.hashedBackupCodes,
       updatedAt: Date.now(),
     });

@@ -1,5 +1,19 @@
 import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { encryptField, decryptField } from "./lib/encryption";
+
+// Decrypt OAuth tokens in a calendar connection record
+async function decryptConnectionTokens<T extends Record<string, any>>(c: T): Promise<T> {
+  const [accessToken, refreshToken] = await Promise.all([
+    decryptField(c.accessToken),
+    decryptField(c.refreshToken),
+  ]);
+  return {
+    ...c,
+    accessToken: accessToken ?? c.accessToken,
+    refreshToken: refreshToken ?? c.refreshToken,
+  };
+}
 
 // ============================================
 // INTERNAL QUERIES (for outlookCalendar actions to read DB)
@@ -7,16 +21,20 @@ import { v } from "convex/values";
 
 /**
  * Get a calendar connection by ID.
+ * Decrypts OAuth tokens before returning so actions can use them for API calls.
  */
 export const getConnection = internalQuery({
   args: { connectionId: v.id("calendarConnections") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.connectionId);
+    const connection = await ctx.db.get(args.connectionId);
+    if (!connection) return null;
+    return decryptConnectionTokens(connection);
   },
 });
 
 /**
  * Get all active Outlook connections for sync.
+ * Note: Does NOT decrypt tokens here (each sync call reads via getConnection which decrypts).
  */
 export const getActiveOutlookConnections = internalQuery({
   args: {},
@@ -36,6 +54,7 @@ export const getActiveOutlookConnections = internalQuery({
 
 /**
  * Update connection access token after refresh.
+ * Encrypts both tokens before storing.
  */
 export const updateConnectionToken = internalMutation({
   args: {
@@ -45,9 +64,13 @@ export const updateConnectionToken = internalMutation({
     expiresAt: v.number(),
   },
   handler: async (ctx, args) => {
+    const [encAccessToken, encRefreshToken] = await Promise.all([
+      encryptField(args.accessToken),
+      encryptField(args.refreshToken),
+    ]);
     await ctx.db.patch(args.connectionId, {
-      accessToken: args.accessToken,
-      refreshToken: args.refreshToken,
+      accessToken: encAccessToken ?? args.accessToken,
+      refreshToken: encRefreshToken ?? args.refreshToken,
       expiresAt: args.expiresAt,
       updatedAt: Date.now(),
     });

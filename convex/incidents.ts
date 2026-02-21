@@ -1,7 +1,7 @@
 import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant, requireActiveSubscription } from "./authHelpers";
 import { encryptField, decryptField, isEncrypted } from "./lib/encryption";
 
 // Decrypt sensitive incident fields (handles both encrypted and plaintext for migration)
@@ -112,6 +112,8 @@ export const create = mutation({
       // Verify user has permission and get organizationId
       const user = await requirePermission(ctx, args.reportedBy, "incidents", "create");
       const { organizationId } = await requireTenant(ctx, args.reportedBy);
+      // B5 FIX: Require active subscription for write operations
+      await requireActiveSubscription(ctx, organizationId);
 
       const now = Date.now();
 

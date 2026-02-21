@@ -1,6 +1,16 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireTenant } from "./authHelpers";
+import { encryptField, decryptField } from "./lib/encryption";
+
+// Decrypt sensitive provider settings fields
+async function decryptProviderSettingsFields<T extends Record<string, any>>(s: T): Promise<T> {
+  const bankAccountNumber = await decryptField(s.bankAccountNumber);
+  return {
+    ...s,
+    bankAccountNumber: bankAccountNumber ?? s.bankAccountNumber,
+  };
+}
 
 // Get provider settings for the current user's organization
 export const get = query({
@@ -17,7 +27,8 @@ export const get = query({
       .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .first();
 
-    return settings;
+    if (!settings) return null;
+    return decryptProviderSettingsFields(settings);
   },
 });
 
@@ -60,6 +71,9 @@ export const upsert = mutation({
       .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
       .first();
 
+    // Encrypt sensitive fields
+    const encBankAccountNumber = await encryptField(args.bankAccountNumber);
+
     if (existing) {
       // Update existing settings
       const updates: Record<string, unknown> = { updatedAt: now };
@@ -67,6 +81,10 @@ export const upsert = mutation({
         if (key !== "userId" && value !== undefined) {
           updates[key] = value;
         }
+      }
+      // Replace plaintext bankAccountNumber with encrypted value
+      if (updates.bankAccountNumber !== undefined) {
+        updates.bankAccountNumber = encBankAccountNumber ?? updates.bankAccountNumber;
       }
       await ctx.db.patch(existing._id, updates);
       return existing._id;
@@ -86,7 +104,7 @@ export const upsert = mutation({
         signatoryName: args.signatoryName,
         signatoryTitle: args.signatoryTitle,
         bankBsb: args.bankBsb,
-        bankAccountNumber: args.bankAccountNumber,
+        bankAccountNumber: encBankAccountNumber ?? args.bankAccountNumber,
         bankAccountName: args.bankAccountName,
         dspFortnightlyRate: args.dspFortnightlyRate || 1047.70,
         dspPercentage: args.dspPercentage || 25,
@@ -407,5 +425,13 @@ export const calculateRrc = query({
       totalAnnual: totalFortnightly * 26,
       lastUpdated: settings?.rrcLastUpdated || null,
     };
+  },
+});
+
+// Internal raw query for migration (no decryption - returns data as-is)
+export const getAllRaw = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("providerSettings").collect();
   },
 });

@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 import { storeTokens } from "@/lib/auth";
+
+// SECURITY (S10): Client-side rate limiting constants
+const CLIENT_RATE_LIMIT = {
+  INITIAL_COOLDOWN_MS: 2000,    // 2 seconds after first failure
+  MAX_COOLDOWN_MS: 30000,       // 30 seconds max cooldown
+  COOLDOWN_MULTIPLIER: 1.5,     // Exponential backoff
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,6 +23,11 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetSubmitted, setResetSubmitted] = useState(false);
 
+  // SECURITY (S10): Client-side rate limiting state
+  const [cooldownRemaining, setCooldownRemaining] = useState(0); // seconds remaining
+  const failedAttemptsRef = useRef(0);
+  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // MFA state
   const [requiresMfa, setRequiresMfa] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
@@ -25,6 +37,34 @@ export default function LoginPage() {
   const loginWithSession = useAction(api.auth.loginWithSession);
   const completeMfaLogin = useAction(api.auth.completeMfaLogin);
   const router = useRouter();
+
+  // SECURITY (S10): Cooldown countdown timer
+  useEffect(() => {
+    if (cooldownRemaining > 0) {
+      cooldownTimerRef.current = setTimeout(() => {
+        setCooldownRemaining((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearTimeout(cooldownTimerRef.current);
+      }
+    };
+  }, [cooldownRemaining]);
+
+  // SECURITY (S10): Start cooldown after failed login attempt
+  const startCooldown = useCallback(() => {
+    failedAttemptsRef.current += 1;
+    const cooldownMs = Math.min(
+      CLIENT_RATE_LIMIT.INITIAL_COOLDOWN_MS * Math.pow(CLIENT_RATE_LIMIT.COOLDOWN_MULTIPLIER, failedAttemptsRef.current - 1),
+      CLIENT_RATE_LIMIT.MAX_COOLDOWN_MS
+    );
+    const cooldownSeconds = Math.ceil(cooldownMs / 1000);
+    setCooldownRemaining(cooldownSeconds);
+  }, []);
+
+  // SECURITY (S10): Check if login is currently throttled
+  const isThrottled = cooldownRemaining > 0;
 
   // Sanitize error messages to be user-friendly
   const getErrorMessage = (err: unknown, isMfaStep = false): string => {
@@ -51,17 +91,41 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // SECURITY (S10): Block submission during cooldown
+    if (isThrottled) {
+      setError(`Please wait ${cooldownRemaining} second${cooldownRemaining !== 1 ? "s" : ""} before trying again.`);
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
     try {
       const result = await loginWithSession({ email, password });
 
-      // Check if MFA is required
+      // Check if MFA is required (admin already has MFA set up)
       if (result.requiresMfa && result.userId) {
         setRequiresMfa(true);
         setPendingUserId(result.userId);
         setIsLoading(false);
+        return;
+      }
+
+      // SECURITY (S2): Admin must set up MFA before gaining full access
+      if (result.requiresMfaSetup && result.userId) {
+        // Store minimal user data so the MFA setup page can function
+        const limitedUserData = {
+          id: result.userId,
+          email: email,
+          role: "admin",
+          firstName: "",
+          lastName: "",
+          expiresAt: Date.now() + (30 * 60 * 1000), // 30-minute limited session for MFA setup
+          mfaSetupRequired: true,
+        };
+        localStorage.setItem("sda_user", JSON.stringify(limitedUserData));
+        router.push("/settings/security?mfaSetupRequired=true");
         return;
       }
 
@@ -100,6 +164,8 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError(getErrorMessage(err));
+      // SECURITY (S10): Start cooldown after failed login attempt
+      startCooldown();
     } finally {
       setIsLoading(false);
     }
@@ -240,10 +306,14 @@ export default function LoginPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isThrottled}
                 className="w-full py-3 px-4 bg-teal-700 hover:bg-teal-800 disabled:bg-teal-700/50 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 focus:ring-offset-gray-800"
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading
+                  ? "Signing in..."
+                  : isThrottled
+                    ? `Please wait (${cooldownRemaining}s)`
+                    : "Sign in"}
               </button>
             </form>
           ) : (

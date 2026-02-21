@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth, getUserFullName, requireTenant } from "./authHelpers";
+import { requirePermission, requireAuth, getUserFullName, requireTenant, enforcePlanLimit, requireActiveSubscription } from "./authHelpers";
 import { formatChanges } from "./auditLog";
 import { decryptField } from "./lib/encryption";
 
@@ -36,6 +36,10 @@ export const create = mutation({
     // Permission check + tenant context
     const user = await requirePermission(ctx, args.userId, "properties", "create");
     const { organizationId } = await requireTenant(ctx, args.userId);
+    // B2 FIX: Enforce plan limits on dwelling creation
+    await enforcePlanLimit(ctx, organizationId, "dwellings");
+    // B5 FIX: Require active subscription for write operations
+    await requireActiveSubscription(ctx, organizationId);
     const { userId, ...dwellingData } = args;
     const now = Date.now();
     const dwellingId = await ctx.db.insert("dwellings", {

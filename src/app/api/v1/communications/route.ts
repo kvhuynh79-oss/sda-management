@@ -8,6 +8,20 @@ import {
   API_CORS_HEADERS,
 } from "../_lib/auth";
 
+/**
+ * REST API - Communications Endpoint
+ *
+ * GET  /api/v1/communications - List communications (requires read:communications)
+ * POST /api/v1/communications - Create a communication (requires write:communications)
+ *
+ * Security posture:
+ * - Authentication: Bearer API key (msd_live_*) validated via Convex
+ * - Rate limiting: NOT NEEDED - API key auth + Convex rate limits provide protection
+ * - CSRF/Origin: EXEMPT - API key authentication replaces Origin checks
+ * - Input validation: YES - required fields, enum validation, date format, max lengths
+ * - Tenant isolation: Automatic via organizationId from API key
+ */
+
 let _convex: ConvexHttpClient | null = null;
 
 function getConvex(): ConvexHttpClient {

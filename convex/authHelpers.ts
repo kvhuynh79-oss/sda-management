@@ -132,12 +132,21 @@ export const rolePermissions: Record<UserRole, {
 };
 
 /**
- * Verify user is authenticated and active
+ * Validate that a userId corresponds to a real, active user with a valid organization.
+ * This is the core identity validation function - all auth flows should go through this.
+ *
+ * Checks:
+ * 1. User exists in the database
+ * 2. User is active (not disabled/deactivated)
+ * 3. User has an organizationId set (post-migration requirement)
+ * 4. Organization exists and is active
+ *
+ * Returns the full validated user document for further checks.
  */
-export async function requireAuth(
+export async function validateUserIdentity(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">
-): Promise<AuthenticatedUser> {
+): Promise<Doc<"users">> {
   const user = await ctx.db.get(userId);
 
   if (!user) {
@@ -147,6 +156,32 @@ export async function requireAuth(
   if (!user.isActive) {
     throw new Error("Account is disabled. Please contact your administrator.");
   }
+
+  // Validate organization membership (required post-migration)
+  if (!user.organizationId) {
+    throw new Error("Account configuration error. No organization assigned. Contact your administrator.");
+  }
+
+  // Verify the organization exists and is active
+  const org = await ctx.db.get(user.organizationId);
+  if (!org) {
+    throw new Error("Organization not found. Contact your administrator.");
+  }
+  if (!org.isActive) {
+    throw new Error("Organization has been deactivated. Contact support.");
+  }
+
+  return user;
+}
+
+/**
+ * Verify user is authenticated and active
+ */
+export async function requireAuth(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">
+): Promise<AuthenticatedUser> {
+  const user = await validateUserIdentity(ctx, userId);
 
   return {
     _id: user._id,
@@ -179,30 +214,208 @@ export async function requireTenant(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">
 ): Promise<{ organizationId: Id<"organizations">; user: AuthenticatedUser }> {
+  // validateUserIdentity (called inside requireAuth) already verifies:
+  // - user exists and is active
+  // - user has an organizationId
+  // - organization exists and is active
   const user = await requireAuth(ctx, userId);
 
+  // Re-fetch user doc to get organizationId (requireAuth returns AuthenticatedUser without it)
   const userDoc = await ctx.db.get(userId);
   if (!userDoc) {
     throw new Error("User not found");
   }
 
-  // Migration mode: if user has no organizationId yet (seed script not run),
-  // return undefined orgId. Queries using .eq("organizationId", undefined)
-  // will match existing unscoped records. Remove this fallback after full migration.
+  // SECURITY: organizationId is now mandatory (migration complete).
+  // validateUserIdentity already checked this, but double-check here for defense-in-depth.
   if (!userDoc.organizationId) {
-    console.warn(
-      `[Migration] User ${userId} has no organizationId - operating in unscoped mode`
-    );
-    return {
-      organizationId: undefined as unknown as Id<"organizations">,
-      user,
-    };
+    throw new Error("Account configuration error. No organization assigned. Contact your administrator.");
   }
 
   return {
     organizationId: userDoc.organizationId,
     user,
   };
+}
+
+// ============================================================================
+// PLAN LIMIT ENFORCEMENT (B2 FIX)
+// ============================================================================
+
+type PlanTier = "starter" | "professional" | "enterprise";
+
+interface PlanConfig {
+  maxProperties: number;
+  maxUsers: number;
+  maxDwellings: number;
+}
+
+const PLAN_LIMITS: Record<PlanTier, PlanConfig> = {
+  starter: { maxProperties: 10, maxUsers: 5, maxDwellings: 20 },
+  professional: { maxProperties: 25, maxUsers: 15, maxDwellings: 75 },
+  enterprise: { maxProperties: 50, maxUsers: 50, maxDwellings: 200 },
+};
+
+type PlanResource = "properties" | "users" | "dwellings";
+
+/**
+ * Enforce plan limits on resource creation (B2 FIX).
+ * Checks the organization's plan tier and counts existing resources.
+ * Throws a clear, actionable error if the limit would be exceeded.
+ *
+ * Usage:
+ * ```
+ * await enforcePlanLimit(ctx, organizationId, "properties");
+ * // ... then proceed with insert
+ * ```
+ */
+export async function enforcePlanLimit(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: Id<"organizations">,
+  resource: PlanResource
+): Promise<void> {
+  // Defense-in-depth: requireTenant() now throws on missing orgId (B6 fix),
+  // but guard here too in case this helper is called from a context that
+  // doesn't go through requireTenant (e.g., internal mutations).
+  if (!organizationId) {
+    return;
+  }
+
+  const org = await ctx.db.get(organizationId);
+  if (!org) {
+    throw new Error("Organization not found. Cannot verify plan limits.");
+  }
+
+  const plan = org.plan as PlanTier;
+  const limits = PLAN_LIMITS[plan];
+  if (!limits) {
+    // Unknown plan tier - allow but log warning
+    console.warn(`[PlanLimit] Unknown plan tier "${plan}" for org ${organizationId}. Skipping limit check.`);
+    return;
+  }
+
+  // Count current resources for this organization
+  let currentCount: number;
+  let limit: number;
+  let resourceLabel: string;
+
+  switch (resource) {
+    case "properties": {
+      const items = await ctx.db
+        .query("properties")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
+      currentCount = items.filter((p) => p.isActive).length;
+      limit = limits.maxProperties;
+      resourceLabel = "properties";
+      break;
+    }
+    case "dwellings": {
+      const items = await ctx.db
+        .query("dwellings")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
+      currentCount = items.filter((d) => d.isActive).length;
+      limit = limits.maxDwellings;
+      resourceLabel = "dwellings";
+      break;
+    }
+    case "users": {
+      const items = await ctx.db
+        .query("users")
+        .withIndex("by_organizationId", (q) => q.eq("organizationId", organizationId))
+        .collect();
+      currentCount = items.filter((u) => u.isActive).length;
+      limit = limits.maxUsers;
+      resourceLabel = "users";
+      break;
+    }
+  }
+
+  if (currentCount >= limit) {
+    throw new Error(
+      `Plan limit reached: Your ${plan} plan allows ${limit} ${resourceLabel}. ` +
+      `You currently have ${currentCount}. Please upgrade your plan to add more.`
+    );
+  }
+}
+
+// ============================================================================
+// SUBSCRIPTION STATUS ENFORCEMENT (B5 FIX)
+// ============================================================================
+
+/**
+ * Check that an organization has an active subscription (or valid trial).
+ * Call this from write mutations to block data modification when subscription is inactive.
+ * Read queries should NOT call this (let users view their data even if expired).
+ *
+ * B5 FIX: Enforces trial expiry, canceled, and inactive org status.
+ */
+export async function requireActiveSubscription(
+  ctx: QueryCtx | MutationCtx,
+  organizationId: Id<"organizations">
+): Promise<void> {
+  // Defense-in-depth: requireTenant() now throws on missing orgId (B6 fix),
+  // but guard here too in case this helper is called from internal mutations
+  // that don't go through requireTenant.
+  if (!organizationId) {
+    return;
+  }
+
+  const org = await ctx.db.get(organizationId);
+  if (!org) {
+    throw new Error("Organization not found. Cannot verify subscription status.");
+  }
+
+  // Check if org is deactivated
+  if (!org.isActive) {
+    throw new Error(
+      "Your organisation's account is inactive. Please contact support to reactivate."
+    );
+  }
+
+  // Check subscription status
+  switch (org.subscriptionStatus) {
+    case "active":
+      // All good
+      return;
+
+    case "trialing": {
+      // Check if trial has expired
+      if (org.trialEndsAt && org.trialEndsAt < Date.now()) {
+        throw new Error(
+          "Your free trial has ended. Please subscribe to a plan to continue using MySDAManager."
+        );
+      }
+      // Trial still valid (or no expiry set = indefinite trial from super-admin)
+      return;
+    }
+
+    case "past_due":
+      // Allow some grace for past_due - Stripe is retrying payment.
+      // But warn in console.
+      console.warn(
+        `[Subscription] Org ${organizationId} has past_due subscription. Allowing write for now.`
+      );
+      return;
+
+    case "canceled":
+      throw new Error(
+        "Your subscription has been cancelled. Please resubscribe to continue making changes."
+      );
+
+    case "trial_expired":
+      throw new Error(
+        "Your free trial has ended. Please subscribe to a plan to continue using MySDAManager."
+      );
+
+    default:
+      // Unknown status - allow but log
+      console.warn(
+        `[Subscription] Org ${organizationId} has unknown subscription status: ${org.subscriptionStatus}`
+      );
+      return;
+  }
 }
 
 /**
@@ -294,6 +507,36 @@ export function canViewAuditLogs(role: UserRole): boolean {
 
 export function canExportReports(role: UserRole): boolean {
   return hasPermission(role, "reports", "export");
+}
+
+/**
+ * Verify that admin users have MFA enabled before allowing sensitive operations.
+ * NDIS APP-5 compliance: high-risk accounts must use multi-factor authentication.
+ *
+ * This guard should be applied to sensitive admin mutations like:
+ * - User management (create, update, delete users)
+ * - Password resets
+ * - Organization settings changes
+ * - Data exports
+ *
+ * Non-admin roles are not affected by this check.
+ */
+export async function requireAdminMfa(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">
+): Promise<void> {
+  const user = await ctx.db.get(userId);
+  if (!user) {
+    throw new Error("Authentication required. User not found.");
+  }
+
+  // Only enforce MFA requirement for admin accounts
+  if (user.role === "admin" && !user.mfaEnabled) {
+    throw new Error(
+      "MFA required. Admin accounts must have multi-factor authentication enabled to perform this action. " +
+      "Go to Settings > Security to set up MFA."
+    );
+  }
 }
 
 /**

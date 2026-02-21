@@ -11,8 +11,14 @@ import { API_CORS_HEADERS } from "../../_lib/auth";
  * GET  /api/v1/tasks/widget - List tasks for the authenticated user's widget
  * POST /api/v1/tasks/widget - Mark a task as completed from the widget
  *
- * Authentication: Bearer <session_token> in Authorization header
- * (uses session-token auth, not API key auth, since end users don't have API keys)
+ * Security posture:
+ * - Authentication: Bearer session token (sda_session_token) validated via Convex
+ *   (uses session-token auth, not API key auth, since end users don't have API keys)
+ * - Rate limiting: NOT NEEDED - session token auth provides protection
+ * - CSRF/Origin: EXEMPT - session token authentication replaces Origin checks;
+ *   native widgets send tokens directly, not via browser
+ * - Input validation: YES - taskId required, filter/limit validated
+ * - Tenant isolation: Automatic via user's organizationId
  */
 
 let _convex: ConvexHttpClient | null = null;

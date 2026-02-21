@@ -1,11 +1,25 @@
 import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { encryptField, decryptField } from "./lib/encryption";
 
 /**
  * Internal queries and mutations used by googleCalendar.ts actions.
  * Separated into this file because "use node" files can only export actions.
  */
+
+// Decrypt OAuth tokens in a calendar connection record
+async function decryptConnectionTokens<T extends Record<string, any>>(c: T): Promise<T> {
+  const [accessToken, refreshToken] = await Promise.all([
+    decryptField(c.accessToken),
+    decryptField(c.refreshToken),
+  ]);
+  return {
+    ...c,
+    accessToken: accessToken ?? c.accessToken,
+    refreshToken: refreshToken ?? c.refreshToken,
+  };
+}
 
 // ============================================
 // INTERNAL QUERIES
@@ -13,13 +27,16 @@ import { Id } from "./_generated/dataModel";
 
 /**
  * Get a calendar connection by ID. Used by actions to read connection data.
+ * Decrypts OAuth tokens before returning so actions can use them for API calls.
  */
 export const getConnectionById = internalQuery({
   args: {
     connectionId: v.id("calendarConnections"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.connectionId);
+    const connection = await ctx.db.get(args.connectionId);
+    if (!connection) return null;
+    return decryptConnectionTokens(connection);
   },
 });
 
@@ -37,6 +54,7 @@ export const getEventById = internalQuery({
 
 /**
  * Get all enabled Google calendar connections for the sync-all cron.
+ * Note: Does NOT decrypt tokens here (each sync call reads via getConnectionById which decrypts).
  */
 export const getEnabledGoogleConnections = internalQuery({
   args: {},
@@ -57,6 +75,7 @@ export const getEnabledGoogleConnections = internalQuery({
 
 /**
  * Update the access token and expiry on a calendar connection.
+ * Encrypts the new access token before storing.
  */
 export const updateConnectionToken = internalMutation({
   args: {
@@ -65,8 +84,9 @@ export const updateConnectionToken = internalMutation({
     expiresAt: v.number(),
   },
   handler: async (ctx, args): Promise<void> => {
+    const encAccessToken = await encryptField(args.accessToken);
     await ctx.db.patch(args.connectionId, {
-      accessToken: args.accessToken,
+      accessToken: encAccessToken ?? args.accessToken,
       expiresAt: args.expiresAt,
       updatedAt: Date.now(),
     });

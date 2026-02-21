@@ -85,10 +85,11 @@ export default defineSchema({
     stripeCustomerId: v.optional(v.string()), // Stripe customer ID for billing
     stripeSubscriptionId: v.optional(v.string()), // Stripe subscription ID
     subscriptionStatus: v.union(
-      v.literal("active"),      // Paid and active
-      v.literal("trialing"),    // In trial period
-      v.literal("past_due"),    // Payment failed
-      v.literal("canceled")     // Subscription canceled
+      v.literal("active"),         // Paid and active
+      v.literal("trialing"),       // In trial period
+      v.literal("past_due"),       // Payment failed
+      v.literal("canceled"),       // Subscription canceled
+      v.literal("trial_expired")   // Trial period ended without subscribing (B5 FIX)
     ),
     maxUsers: v.number(),        // Maximum users allowed by plan
     maxProperties: v.number(),   // Maximum properties allowed by plan
@@ -2787,6 +2788,21 @@ export default defineSchema({
   // ============================================
   // INSPECTION CUSTOMIZATION TABLES
   // ============================================
+
+  // Stripe Webhook Event Idempotency (B3 FIX)
+  // Tracks processed Stripe webhook events to prevent duplicate processing.
+  // Each event ID is stored on first receipt; subsequent deliveries are skipped.
+  stripeWebhookEvents: defineTable({
+    stripeEventId: v.string(), // Stripe event ID (e.g., "evt_1234...")
+    eventType: v.string(), // Stripe event type (e.g., "checkout.session.completed")
+    processedAt: v.number(), // Timestamp when event was processed (ms)
+    status: v.union(
+      v.literal("completed"), // Successfully processed
+      v.literal("failed") // Processing failed (will be retried by Stripe)
+    ),
+  })
+    .index("by_stripeEventId", ["stripeEventId"])
+    .index("by_processedAt", ["processedAt"]),
 
   // Dwelling-specific inspection template overrides (DIFF model)
   // Stores only differences from base template per dwelling

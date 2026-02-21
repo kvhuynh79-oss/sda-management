@@ -108,13 +108,14 @@ function PlanBadge({ plan }: { plan: "starter" | "professional" | "enterprise" }
 function SubscriptionStatusBadge({
   status,
 }: {
-  status: "active" | "trialing" | "past_due" | "canceled";
+  status: "active" | "trialing" | "past_due" | "canceled" | "trial_expired";
 }) {
   const config = {
     active: { variant: "success" as const, label: "Active" },
     trialing: { variant: "warning" as const, label: "Trialing" },
     past_due: { variant: "error" as const, label: "Past Due" },
     canceled: { variant: "neutral" as const, label: "Canceled" },
+    trial_expired: { variant: "error" as const, label: "Trial Expired" },
   };
   const { variant, label } = config[status];
   return (

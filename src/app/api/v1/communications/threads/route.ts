@@ -8,6 +8,19 @@ import {
   API_CORS_HEADERS,
 } from "../../_lib/auth";
 
+/**
+ * REST API - Communication Threads Endpoint
+ *
+ * GET /api/v1/communications/threads - List communication threads (requires read:communications)
+ *
+ * Security posture:
+ * - Authentication: Bearer API key (msd_live_*) validated via Convex
+ * - Rate limiting: NOT NEEDED - API key auth + Convex rate limits provide protection
+ * - CSRF/Origin: EXEMPT - API key authentication replaces Origin checks
+ * - Input validation: YES - search, limit parameters validated
+ * - Tenant isolation: Automatic via organizationId from API key
+ */
+
 let _convex: ConvexHttpClient | null = null;
 
 function getConvex(): ConvexHttpClient {

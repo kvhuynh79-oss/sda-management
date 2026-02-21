@@ -49,6 +49,7 @@ import type * as launchChecklist from "../launchChecklist.js";
 import type * as leads from "../leads.js";
 import type * as lib_consultationGate from "../lib/consultationGate.js";
 import type * as lib_encryption from "../lib/encryption.js";
+import type * as lib_passwordValidation from "../lib/passwordValidation.js";
 import type * as lib_threadingEngine from "../lib/threadingEngine.js";
 import type * as maintenancePhotos from "../maintenancePhotos.js";
 import type * as maintenanceQuotes from "../maintenanceQuotes.js";
@@ -150,6 +151,7 @@ declare const fullApi: ApiFromModules<{
   leads: typeof leads;
   "lib/consultationGate": typeof lib_consultationGate;
   "lib/encryption": typeof lib_encryption;
+  "lib/passwordValidation": typeof lib_passwordValidation;
   "lib/threadingEngine": typeof lib_threadingEngine;
   maintenancePhotos: typeof maintenancePhotos;
   maintenanceQuotes: typeof maintenanceQuotes;

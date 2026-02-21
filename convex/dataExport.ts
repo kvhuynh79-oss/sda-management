@@ -219,6 +219,13 @@ export const fetchOrganizationData = query({
       return safeUser;
     });
 
+    // Sanitize calendar connections - strip OAuth tokens (defense-in-depth, tokens are encrypted at rest)
+    const sanitizedCalendarConnections = calendarConnections.map((c: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { accessToken, refreshToken, ...safeConnection } = c;
+      return safeConnection;
+    });
+
     // Fetch audit logs for this org (limit to recent 10,000 for performance)
     const auditLogs = await ctx.db
       .query("auditLogs")
@@ -278,7 +285,7 @@ export const fetchOrganizationData = query({
       staffMembers,
       leads,
       calendarEvents,
-      calendarConnections,
+      calendarConnections: sanitizedCalendarConnections,
       policies,
       emergencyManagementPlans,
       businessContinuityPlans,
@@ -401,6 +408,27 @@ export const exportOrganizationData = action({
       }))
     );
 
+    // Staff members: dateOfBirth, policeCheckNumber, ndisWorkerScreeningNumber, workingWithChildrenNumber
+    const decryptedStaffMembers = await Promise.all(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (rawData.staffMembers as any[]).map(async (s: Record<string, unknown>) => ({
+        ...s,
+        dateOfBirth: await decryptField(s.dateOfBirth as string | null | undefined),
+        policeCheckNumber: await decryptField(s.policeCheckNumber as string | null | undefined),
+        ndisWorkerScreeningNumber: await decryptField(s.ndisWorkerScreeningNumber as string | null | undefined),
+        workingWithChildrenNumber: await decryptField(s.workingWithChildrenNumber as string | null | undefined),
+      }))
+    );
+
+    // Provider settings: bankAccountNumber
+    const decryptedProviderSettings = await Promise.all(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (rawData.providerSettings as any[]).map(async (ps: Record<string, unknown>) => ({
+        ...ps,
+        bankAccountNumber: await decryptField(ps.bankAccountNumber as string | null | undefined),
+      }))
+    );
+
     // Step 4: Build the export payload
     const exportData: Record<string, unknown> = {
       organization: rawData.organization,
@@ -447,11 +475,11 @@ export const exportOrganizationData = action({
       paymentSchedules: rawData.paymentSchedules,
       complianceCertifications: rawData.complianceCertifications,
       insurancePolicies: rawData.insurancePolicies,
-      providerSettings: rawData.providerSettings,
+      providerSettings: decryptedProviderSettings,
       propertyMedia: rawData.propertyMedia,
       aiConversations: rawData.aiConversations,
       aiProcessingQueue: rawData.aiProcessingQueue,
-      staffMembers: rawData.staffMembers,
+      staffMembers: decryptedStaffMembers,
       leads: rawData.leads,
       calendarEvents: rawData.calendarEvents,
       calendarConnections: rawData.calendarConnections,

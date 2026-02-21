@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requireTenant, requirePermission } from "./authHelpers";
+import { encryptField } from "./lib/encryption";
 
 // Color mapping for calendar event types
 const EVENT_COLORS: Record<string, string> = {
@@ -670,6 +671,12 @@ export const saveGoogleConnection = mutation({
     const now = Date.now();
     const expiresAt = now + args.expiresIn * 1000;
 
+    // Encrypt OAuth tokens before storing
+    const [encAccessToken, encRefreshToken] = await Promise.all([
+      encryptField(args.accessToken),
+      encryptField(args.refreshToken),
+    ]);
+
     // Check if connection already exists for this user + provider
     const existing = await ctx.db
       .query("calendarConnections")
@@ -681,8 +688,8 @@ export const saveGoogleConnection = mutation({
     if (existing) {
       // Update existing connection
       await ctx.db.patch(existing._id, {
-        accessToken: args.accessToken,
-        refreshToken: args.refreshToken || existing.refreshToken, // Keep old refresh if not provided
+        accessToken: encAccessToken ?? args.accessToken,
+        refreshToken: encRefreshToken || existing.refreshToken, // Keep old (encrypted) refresh if not provided
         expiresAt,
         userEmail: args.userEmail || existing.userEmail,
         syncEnabled: true,
@@ -709,8 +716,8 @@ export const saveGoogleConnection = mutation({
       organizationId,
       userId: args.userId,
       provider: "google",
-      accessToken: args.accessToken,
-      refreshToken: args.refreshToken,
+      accessToken: encAccessToken ?? args.accessToken,
+      refreshToken: encRefreshToken ?? args.refreshToken,
       expiresAt,
       userEmail: args.userEmail,
       syncEnabled: true,
@@ -751,6 +758,12 @@ export const saveOutlookConnection = mutation({
     const now = Date.now();
     const expiresAt = now + args.expiresIn * 1000;
 
+    // Encrypt OAuth tokens before storing
+    const [encAccessToken, encRefreshToken] = await Promise.all([
+      encryptField(args.accessToken),
+      encryptField(args.refreshToken),
+    ]);
+
     // Check if connection already exists for this user + provider
     const existing = await ctx.db
       .query("calendarConnections")
@@ -762,8 +775,8 @@ export const saveOutlookConnection = mutation({
     if (existing) {
       // Update existing connection
       await ctx.db.patch(existing._id, {
-        accessToken: args.accessToken,
-        refreshToken: args.refreshToken || existing.refreshToken, // Keep old refresh if not provided
+        accessToken: encAccessToken ?? args.accessToken,
+        refreshToken: encRefreshToken || existing.refreshToken, // Keep old (encrypted) refresh if not provided
         expiresAt,
         userEmail: args.userEmail || existing.userEmail,
         syncEnabled: true,
@@ -790,8 +803,8 @@ export const saveOutlookConnection = mutation({
       organizationId,
       userId: args.userId,
       provider: "outlook",
-      accessToken: args.accessToken,
-      refreshToken: args.refreshToken,
+      accessToken: encAccessToken ?? args.accessToken,
+      refreshToken: encRefreshToken ?? args.refreshToken,
       expiresAt,
       userEmail: args.userEmail,
       syncEnabled: true,

@@ -1,7 +1,34 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requirePermission, getUserFullName, requireTenant } from "./authHelpers";
+import { encryptField, decryptField } from "./lib/encryption";
+
+// Sensitive staff fields that must be encrypted at rest
+const ENCRYPTED_STAFF_FIELDS = [
+  "dateOfBirth",
+  "policeCheckNumber",
+  "ndisWorkerScreeningNumber",
+  "workingWithChildrenNumber",
+] as const;
+
+// Decrypt sensitive staff fields (handles both encrypted and plaintext for migration compatibility)
+async function decryptStaffFields<T extends Record<string, any>>(s: T): Promise<T> {
+  const [dateOfBirth, policeCheckNumber, ndisWorkerScreeningNumber, workingWithChildrenNumber] =
+    await Promise.all([
+      decryptField(s.dateOfBirth),
+      decryptField(s.policeCheckNumber),
+      decryptField(s.ndisWorkerScreeningNumber),
+      decryptField(s.workingWithChildrenNumber),
+    ]);
+  return {
+    ...s,
+    dateOfBirth: dateOfBirth ?? s.dateOfBirth,
+    policeCheckNumber: policeCheckNumber ?? s.policeCheckNumber,
+    ndisWorkerScreeningNumber: ndisWorkerScreeningNumber ?? s.ndisWorkerScreeningNumber,
+    workingWithChildrenNumber: workingWithChildrenNumber ?? s.workingWithChildrenNumber,
+  };
+}
 
 // Get all active staff members with resolved assigned properties
 export const getAll = query({
@@ -15,9 +42,10 @@ export const getAll = query({
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // Resolve assigned properties for each staff member
+    // Resolve assigned properties for each staff member + decrypt sensitive fields
     const staffWithProperties = await Promise.all(
       staffMembers.map(async (member) => {
+        const decrypted = await decryptStaffFields(member);
         const properties = member.assignedProperties
           ? await Promise.all(
               member.assignedProperties.map(async (propId) => {
@@ -34,7 +62,7 @@ export const getAll = query({
             )
           : [];
         return {
-          ...member,
+          ...decrypted,
           properties: properties.filter(Boolean),
         };
       })
@@ -55,6 +83,8 @@ export const getById = query({
       throw new Error("Access denied: Record belongs to different organization");
     }
 
+    const decrypted = await decryptStaffFields(member);
+
     // Resolve assigned properties
     const properties = member.assignedProperties
       ? await Promise.all(
@@ -73,7 +103,7 @@ export const getById = query({
       : [];
 
     return {
-      ...member,
+      ...decrypted,
       properties: properties.filter(Boolean),
     };
   },
@@ -129,8 +159,21 @@ export const create = mutation({
     const { organizationId } = await requireTenant(ctx, args.userId);
     const { userId, ...staffData } = args;
 
+    // Encrypt sensitive fields before storing
+    const [encDateOfBirth, encPoliceCheckNumber, encNdisWorkerScreeningNumber, encWorkingWithChildrenNumber] =
+      await Promise.all([
+        encryptField(staffData.dateOfBirth),
+        encryptField(staffData.policeCheckNumber),
+        encryptField(staffData.ndisWorkerScreeningNumber),
+        encryptField(staffData.workingWithChildrenNumber),
+      ]);
+
     const staffMemberId = await ctx.db.insert("staffMembers", {
       ...staffData,
+      dateOfBirth: encDateOfBirth ?? staffData.dateOfBirth,
+      policeCheckNumber: encPoliceCheckNumber ?? staffData.policeCheckNumber,
+      ndisWorkerScreeningNumber: encNdisWorkerScreeningNumber ?? staffData.ndisWorkerScreeningNumber,
+      workingWithChildrenNumber: encWorkingWithChildrenNumber ?? staffData.workingWithChildrenNumber,
       organizationId,
       isActive: true,
       createdAt: Date.now(),
@@ -217,6 +260,20 @@ export const update = mutation({
       if (value !== undefined) {
         filteredUpdates[key] = value;
       }
+    }
+
+    // Encrypt sensitive fields if they are being updated
+    if (filteredUpdates.dateOfBirth !== undefined) {
+      filteredUpdates.dateOfBirth = await encryptField(filteredUpdates.dateOfBirth as string) ?? filteredUpdates.dateOfBirth;
+    }
+    if (filteredUpdates.policeCheckNumber !== undefined) {
+      filteredUpdates.policeCheckNumber = await encryptField(filteredUpdates.policeCheckNumber as string) ?? filteredUpdates.policeCheckNumber;
+    }
+    if (filteredUpdates.ndisWorkerScreeningNumber !== undefined) {
+      filteredUpdates.ndisWorkerScreeningNumber = await encryptField(filteredUpdates.ndisWorkerScreeningNumber as string) ?? filteredUpdates.ndisWorkerScreeningNumber;
+    }
+    if (filteredUpdates.workingWithChildrenNumber !== undefined) {
+      filteredUpdates.workingWithChildrenNumber = await encryptField(filteredUpdates.workingWithChildrenNumber as string) ?? filteredUpdates.workingWithChildrenNumber;
     }
 
     await ctx.db.patch(staffMemberId, filteredUpdates);
@@ -323,8 +380,9 @@ export const getScreeningExpiries = query({
       }
 
       if (expiringScreenings.length > 0) {
+        const decrypted = await decryptStaffFields(member);
         results.push({
-          ...member,
+          ...decrypted,
           expiringScreenings,
         });
       }
@@ -403,5 +461,13 @@ export const getStats = query({
       expiredScreenings,
       expiringScreenings,
     };
+  },
+});
+
+// Internal raw query for migration (no decryption - returns data as-is)
+export const getAllRaw = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("staffMembers").collect();
   },
 });

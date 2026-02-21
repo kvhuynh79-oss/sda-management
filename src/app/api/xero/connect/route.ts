@@ -1,3 +1,16 @@
+/**
+ * GET /api/xero/connect
+ *
+ * Initiates Xero OAuth2 authorization flow. Redirects user to Xero login.
+ *
+ * Security posture:
+ * - Authentication: Implicit (user must be logged in; userId passed as query param)
+ * - Rate limiting: NOT NEEDED - OAuth redirect, not a data endpoint
+ * - CSRF/Origin: EXEMPT - uses HMAC-signed state parameter for CSRF protection
+ *   (state is verified in the callback route)
+ * - Env validation: Checks XERO_CLIENT_ID, XERO_REDIRECT_URI, XERO_CLIENT_SECRET at runtime
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 

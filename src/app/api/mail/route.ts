@@ -1,20 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../../convex/_generated/api";
-
 /**
+ * POST /api/mail
+ *
  * Postmark Inbound Email Webhook Handler
  *
  * Receives parsed emails from Postmark and creates communication records
  * in MySDAManager. Users forward emails from Outlook to a unique org
  * address; Postmark parses them and POSTs the JSON payload here.
  *
- * Security:
- * - Webhook secret verification (INBOUND_EMAIL_WEBHOOK_SECRET)
- * - Organization routing by unique inbound email address
+ * Security posture:
+ * - Authentication: Webhook secret verification (INBOUND_EMAIL_WEBHOOK_SECRET)
+ * - Rate limiting: NOT NEEDED - Postmark controls call frequency; webhook secret prevents abuse
+ * - CSRF/Origin: EXEMPT - webhook uses secret verification, not browser Origin.
+ *   Postmark servers call this endpoint directly.
+ * - Input validation: YES - validates required fields (From, To), sanitizes HTML fallback
+ * - Env validation: FAIL-FAST - checks INBOUND_EMAIL_WEBHOOK_SECRET + NEXT_PUBLIC_CONVEX_URL
  *
  * Always returns 200 to prevent Postmark retries on application errors.
  */
+
+import { NextRequest, NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import { validateRequiredEnvVars } from "../_lib/envValidation";
 
 let _convex: ConvexHttpClient | null = null;
 
@@ -28,6 +35,21 @@ function getConvex(): ConvexHttpClient {
 }
 
 export async function POST(request: NextRequest) {
+  // ─── FAIL-FAST: Environment variable validation ────────────────────
+  const envCheck = validateRequiredEnvVars([
+    "INBOUND_EMAIL_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_CONVEX_URL",
+  ]);
+  if (!envCheck.valid) {
+    console.error(
+      `[CRITICAL] Inbound email webhook is misconfigured: ${envCheck.error}`
+    );
+    return NextResponse.json(
+      { success: false, error: "Webhook not configured" },
+      { status: 200 }
+    );
+  }
+
   try {
     const payload = await request.json();
 

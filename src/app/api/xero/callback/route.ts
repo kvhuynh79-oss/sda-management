@@ -1,3 +1,17 @@
+/**
+ * GET /api/xero/callback
+ *
+ * Xero OAuth2 callback handler. Receives authorization code, exchanges for tokens,
+ * and saves Xero connection to Convex.
+ *
+ * Security posture:
+ * - Authentication: HMAC-signed state parameter verification (prevents CSRF)
+ * - Rate limiting: NOT NEEDED - OAuth callback, not a data endpoint
+ * - CSRF/Origin: Protected via signed state parameter (HMAC-SHA256 with XERO_CLIENT_SECRET)
+ * - Env validation: Checks XERO_CLIENT_ID, XERO_CLIENT_SECRET, XERO_REDIRECT_URI
+ * - State expiry: 10-minute window prevents replay attacks
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";

@@ -3,6 +3,8 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import bcrypt from "bcryptjs";
+import { enforcePlanLimit, requireActiveSubscription } from "./authHelpers";
+import { requirePasswordComplexity } from "./lib/passwordValidation";
 
 // Secure password hashing using bcryptjs
 const SALT_ROUNDS = 12;
@@ -48,7 +50,14 @@ export const createUser = action({
       actingUser = await ctx.runMutation(internal.auth.verifyAdminInternal, {
         userId: args.actingUserId,
       });
+      // SECURITY (S2): Verify admin has MFA enabled for sensitive operations
+      await ctx.runMutation(internal.auth.verifyAdminMfaInternal, {
+        userId: args.actingUserId,
+      });
     }
+
+    // SECURITY (S5): Validate password complexity before hashing
+    requirePasswordComplexity(args.password);
 
     // Hash password with bcrypt (secure)
     const passwordHash = await hashPassword(args.password);
@@ -92,6 +101,24 @@ export const verifyAdminInternal = internalMutation({
       lastName: user.lastName,
       role: user.role,
     };
+  },
+});
+
+// SECURITY (S2): Internal mutation to verify admin has MFA enabled
+// Used by actions that cannot directly call requireAdminMfa (which needs MutationCtx)
+export const verifyAdminMfaInternal = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Authentication required. User not found.");
+    }
+    if (user.role === "admin" && !user.mfaEnabled) {
+      throw new Error(
+        "MFA required. Admin accounts must have multi-factor authentication enabled to perform this action. " +
+        "Go to Settings > Security to set up MFA."
+      );
+    }
   },
 });
 
@@ -160,6 +187,13 @@ export const createUserInternal = internalMutation({
       if (actingUser?.organizationId) {
         organizationId = actingUser.organizationId;
       }
+    }
+
+    // B2 FIX: Enforce plan limits on user creation
+    if (organizationId) {
+      await enforcePlanLimit(ctx, organizationId, "users");
+      // B5 FIX: Require active subscription for write operations
+      await requireActiveSubscription(ctx, organizationId);
     }
 
     const now = Date.now();
@@ -303,6 +337,8 @@ export const getUserForLogin = internalMutation({
       passwordHash: user.passwordHash,
       isActive: user.isActive,
       silProviderId: user.silProviderId,
+      mfaEnabled: user.mfaEnabled,
+      mfaSecret: user.mfaSecret,
       loginFailedAttempts: user.loginFailedAttempts,
       loginLockedUntil: user.loginLockedUntil,
     };
@@ -389,13 +425,25 @@ export const processLogin = internalMutation({
 });
 
 // Get user by ID
+// SECURITY: This query is called by useAuth hook to validate the user stored in localStorage.
+// It validates the user exists, is active, and has a valid organization.
+// It does NOT expose sensitive fields (password hash, MFA secrets, etc.).
 export const getUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
-    
-    // Return user without password hash
+
+    // SECURITY: If user is inactive, return null (forces re-login)
+    if (!user.isActive) return null;
+
+    // SECURITY: Validate organization exists and is active
+    if (user.organizationId) {
+      const org = await ctx.db.get(user.organizationId);
+      if (!org || !org.isActive) return null;
+    }
+
+    // Return user without password hash or sensitive fields
     return {
       id: user._id,
       email: user.email,
@@ -486,6 +534,14 @@ export const updateUser = mutation({
       throw new Error("Admin access required to update users. Your role: " + actingUser.role);
     }
 
+    // SECURITY (S2): Verify admin has MFA enabled for sensitive operations
+    if (actingUser.role === "admin" && !actingUser.mfaEnabled) {
+      throw new Error(
+        "MFA required. Admin accounts must have multi-factor authentication enabled to perform this action. " +
+        "Go to Settings > Security to set up MFA."
+      );
+    }
+
     // Get target user for audit logging
     const targetUser = await ctx.db.get(args.targetUserId);
     if (!targetUser) {
@@ -561,6 +617,9 @@ export const changePassword = action({
       throw new Error("Current password is incorrect");
     }
 
+    // SECURITY (S5): Validate new password complexity
+    requirePasswordComplexity(args.newPassword);
+
     // Hash new password
     const newHash = await hashPassword(args.newPassword);
 
@@ -588,11 +647,19 @@ export const resetPassword = action({
       userId: args.actingUserId,
     });
 
+    // SECURITY (S2): Verify admin has MFA enabled for sensitive operations
+    await ctx.runMutation(internal.auth.verifyAdminMfaInternal, {
+      userId: args.actingUserId,
+    });
+
     // SECURITY: Verify target user belongs to same organization
     await ctx.runMutation(internal.auth.verifySameOrganization, {
       actingUserId: args.actingUserId,
       targetUserId: args.targetUserId,
     });
+
+    // SECURITY (S5): Validate new password complexity
+    requirePasswordComplexity(args.newPassword);
 
     // Hash new password with bcrypt
     const newHash = await hashPassword(args.newPassword);
@@ -748,7 +815,8 @@ export const logout = mutation({
 interface SessionLoginResult {
   // MFA flow fields
   requiresMfa?: boolean; // If true, client must call completeMfaLogin
-  userId?: Id<"users">; // Provided when requiresMfa is true
+  requiresMfaSetup?: boolean; // If true, admin must set up MFA before gaining full access
+  userId?: Id<"users">; // Provided when requiresMfa or requiresMfaSetup is true
 
   // Regular login fields (when MFA not required or after MFA verification)
   user?: {
@@ -816,7 +884,16 @@ export const loginWithSession = action({
       };
     }
 
-    // MFA not enabled - proceed with normal login
+    // SECURITY (S2): Admin accounts MUST have MFA enabled (NDIS APP-5 compliance)
+    // If admin has not set up MFA, require them to do so before granting full access
+    if (userData.role === "admin" && !userData.mfaEnabled) {
+      return {
+        requiresMfaSetup: true,
+        userId: userData._id,
+      };
+    }
+
+    // MFA not required for non-admin roles - proceed with normal login
     // Generate tokens using crypto.randomUUID (secure random)
     const token = crypto.randomUUID();
     const refreshToken = crypto.randomUUID();

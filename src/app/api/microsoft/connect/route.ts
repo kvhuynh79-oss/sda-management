@@ -1,3 +1,17 @@
+/**
+ * GET /api/microsoft/connect
+ *
+ * Initiates Microsoft/Outlook Calendar OAuth2 authorization flow.
+ * Redirects user to Microsoft login.
+ *
+ * Security posture:
+ * - Authentication: Implicit (user must be logged in; userId passed as query param)
+ * - Rate limiting: NOT NEEDED - OAuth redirect, not a data endpoint
+ * - CSRF/Origin: EXEMPT - uses HMAC-signed state parameter for CSRF protection
+ *   (state is verified in the callback route)
+ * - Env validation: Checks MICROSOFT_CLIENT_ID, MICROSOFT_REDIRECT_URI, MICROSOFT_CLIENT_SECRET at runtime
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 

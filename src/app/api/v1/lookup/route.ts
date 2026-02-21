@@ -7,6 +7,19 @@ import {
   API_CORS_HEADERS,
 } from "../_lib/auth";
 
+/**
+ * REST API - Lookup Endpoint (Outlook Add-in)
+ *
+ * GET /api/v1/lookup - Lightweight lookup for participants/properties (requires any read:* permission)
+ *
+ * Security posture:
+ * - Authentication: Bearer API key (msd_live_*) validated via Convex
+ * - Rate limiting: NOT NEEDED - API key auth + Convex rate limits provide protection
+ * - CSRF/Origin: EXEMPT - API key authentication replaces Origin checks
+ * - Input validation: YES - type enum, search, limit parameters validated
+ * - Tenant isolation: Automatic via organizationId from API key
+ */
+
 let _convex: ConvexHttpClient | null = null;
 
 function getConvex(): ConvexHttpClient {

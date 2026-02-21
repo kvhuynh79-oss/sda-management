@@ -36,7 +36,7 @@ export interface Organization {
   name: string;
   slug: string;
   plan: PlanTier;
-  subscriptionStatus: "active" | "trialing" | "past_due" | "canceled";
+  subscriptionStatus: "active" | "trialing" | "past_due" | "canceled" | "trial_expired";
   maxUsers: number;
   maxProperties: number;
   primaryColor?: string;

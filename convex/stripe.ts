@@ -129,6 +129,103 @@ export const getOrgById = internalQuery({
 });
 
 // ============================================================================
+// WEBHOOK IDEMPOTENCY (B3 FIX)
+// ============================================================================
+
+/**
+ * Check if a Stripe webhook event has already been processed.
+ * Returns true if the event should be SKIPPED (already processed).
+ */
+export const checkWebhookEventProcessed = mutation({
+  args: {
+    webhookSecret: v.string(),
+    stripeEventId: v.string(),
+    eventType: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ alreadyProcessed: boolean }> => {
+    verifyWebhookSecret(args.webhookSecret);
+
+    const existing = await ctx.db
+      .query("stripeWebhookEvents")
+      .withIndex("by_stripeEventId", (q) => q.eq("stripeEventId", args.stripeEventId))
+      .first();
+
+    if (existing && existing.status === "completed") {
+      console.log(
+        `[Stripe] Idempotency: Skipping already-processed event ${args.stripeEventId} (${args.eventType})`
+      );
+      return { alreadyProcessed: true };
+    }
+
+    // Record that we are processing this event (prevents concurrent duplicates)
+    if (!existing) {
+      await ctx.db.insert("stripeWebhookEvents", {
+        stripeEventId: args.stripeEventId,
+        eventType: args.eventType,
+        processedAt: Date.now(),
+        status: "completed",
+      });
+    } else {
+      // Was previously "failed" - update to completed
+      await ctx.db.patch(existing._id, {
+        status: "completed",
+        processedAt: Date.now(),
+      });
+    }
+
+    return { alreadyProcessed: false };
+  },
+});
+
+/**
+ * Mark a webhook event as failed (so Stripe retries will be processed).
+ */
+export const markWebhookEventFailed = mutation({
+  args: {
+    webhookSecret: v.string(),
+    stripeEventId: v.string(),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    verifyWebhookSecret(args.webhookSecret);
+
+    const existing = await ctx.db
+      .query("stripeWebhookEvents")
+      .withIndex("by_stripeEventId", (q) => q.eq("stripeEventId", args.stripeEventId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { status: "failed" });
+    }
+  },
+});
+
+/**
+ * Clean up old webhook events (older than 30 days).
+ * Called by a daily cron job.
+ */
+export const cleanupOldWebhookEvents = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<number> => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    const oldEvents = await ctx.db
+      .query("stripeWebhookEvents")
+      .withIndex("by_processedAt", (q) => q.lt("processedAt", thirtyDaysAgo))
+      .collect();
+
+    for (const event of oldEvents) {
+      await ctx.db.delete(event._id);
+    }
+
+    if (oldEvents.length > 0) {
+      console.log(`[Stripe] Cleaned up ${oldEvents.length} webhook events older than 30 days`);
+    }
+
+    return oldEvents.length;
+  },
+});
+
+// ============================================================================
 // WEBHOOK-FACING MUTATIONS (public, called by Next.js webhook route)
 //
 // These are public mutations gated by CONVEX_WEBHOOK_SECRET. The Next.js
@@ -159,6 +256,8 @@ export const syncSubscription = mutation({
     verifyWebhookSecret(args.webhookSecret);
 
     // Find organization by Stripe customer ID
+    // B1 FIX: This lookup is safe because it uses the verified Stripe customer ID
+    // from the event object (not client-supplied metadata) to find the org.
     const org = await ctx.db
       .query("organizations")
       .withIndex("by_stripeCustomerId", (q) =>
@@ -174,7 +273,7 @@ export const syncSubscription = mutation({
     }
 
     // Map Stripe status to internal status
-    let subscriptionStatus: "active" | "trialing" | "past_due" | "canceled";
+    let subscriptionStatus: "active" | "trialing" | "past_due" | "canceled" | "trial_expired";
     switch (args.status) {
       case "active":
         subscriptionStatus = "active";
@@ -240,6 +339,10 @@ export const syncSubscription = mutation({
 /**
  * Handle completed checkout session.
  * Links a Stripe customer + subscription to a newly registered organization.
+ *
+ * B1 SECURITY FIX: Verifies that the Stripe customer ID is not already
+ * associated with a different organization, preventing org spoofing via
+ * manipulated checkout session metadata.
  */
 export const handleCheckoutCompleted = mutation({
   args: {
@@ -254,6 +357,39 @@ export const handleCheckoutCompleted = mutation({
     const org = await ctx.db.get(args.organizationId);
     if (!org) {
       throw new Error(`Organization not found: ${args.organizationId}`);
+    }
+
+    // B1 FIX: Verify Stripe customer ID is not already bound to a different org.
+    // This prevents spoofing via tampered checkout session metadata.
+    const existingOrgForCustomer = await ctx.db
+      .query("organizations")
+      .withIndex("by_stripeCustomerId", (q) =>
+        q.eq("stripeCustomerId", args.stripeCustomerId)
+      )
+      .first();
+
+    if (existingOrgForCustomer && existingOrgForCustomer._id !== args.organizationId) {
+      console.error(
+        `[Stripe] SECURITY: Checkout spoofing attempt detected! ` +
+        `Customer ${args.stripeCustomerId} is already bound to org ${existingOrgForCustomer._id}, ` +
+        `but metadata claims org ${args.organizationId}. Rejecting.`
+      );
+      throw new Error(
+        "Stripe customer ID is already associated with a different organization. " +
+        "This event has been logged for security review."
+      );
+    }
+
+    // If the org already has a different Stripe customer ID, reject to prevent hijacking
+    if (org.stripeCustomerId && org.stripeCustomerId !== args.stripeCustomerId) {
+      console.error(
+        `[Stripe] SECURITY: Org ${args.organizationId} already has customer ${org.stripeCustomerId}, ` +
+        `but checkout event claims customer ${args.stripeCustomerId}. Rejecting.`
+      );
+      throw new Error(
+        "Organization already has a different Stripe customer ID. " +
+        "This event has been logged for security review."
+      );
     }
 
     await ctx.db.patch(args.organizationId, {
@@ -682,5 +818,74 @@ export const changePlan = action({
     });
 
     return { success: true };
+  },
+});
+
+// ============================================================================
+// TRIAL EXPIRY ENFORCEMENT (B5 FIX)
+// ============================================================================
+
+/**
+ * Check for expired trial periods and update subscription status.
+ * Called by daily cron job at 4:30 AM UTC.
+ *
+ * Finds organizations where:
+ * - subscriptionStatus is "trialing"
+ * - trialEndsAt is set and in the past
+ *
+ * Updates their status to "trial_expired" (not "canceled" - that's for Stripe-managed subscriptions).
+ * Creates an alert for org admins to prompt them to subscribe.
+ */
+export const checkExpiredTrials = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<{ expiredCount: number }> => {
+    const now = Date.now();
+
+    // Find all organizations currently in trial
+    const trialingOrgs = await ctx.db
+      .query("organizations")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .collect();
+
+    const expiredOrgs = trialingOrgs.filter(
+      (org) =>
+        org.subscriptionStatus === "trialing" &&
+        org.trialEndsAt &&
+        org.trialEndsAt < now
+    );
+
+    for (const org of expiredOrgs) {
+      // Update subscription status to trial_expired
+      await ctx.db.patch(org._id, {
+        subscriptionStatus: "trial_expired",
+      });
+
+      // Create an alert for the organization admins
+      await ctx.db.insert("alerts", {
+        organizationId: org._id,
+        alertType: "subscription_payment_failed", // Re-use existing alert type for billing issues
+        severity: "critical",
+        title: "Free Trial Expired",
+        message:
+          "Your free trial has ended. Please subscribe to a plan to continue creating and editing data in MySDAManager. Your existing data is safe and accessible in read-only mode.",
+        triggerDate: new Date().toISOString().split("T")[0],
+        status: "active",
+        createdAt: now,
+      });
+
+      console.log(
+        `[Stripe] Trial expired for org ${org._id} (${org.name}). ` +
+        `Trial ended at ${new Date(org.trialEndsAt!).toISOString()}`
+      );
+    }
+
+    if (expiredOrgs.length > 0) {
+      console.log(
+        `[Stripe] Expired ${expiredOrgs.length} trial(s): ` +
+        expiredOrgs.map((o) => o.name).join(", ")
+      );
+    }
+
+    return { expiredCount: expiredOrgs.length };
   },
 });

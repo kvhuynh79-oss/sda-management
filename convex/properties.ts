@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant, enforcePlanLimit, requireActiveSubscription } from "./authHelpers";
 import { paginationArgs, DEFAULT_PAGE_SIZE } from "./paginationHelpers";
 import { decryptField } from "./lib/encryption";
 
@@ -64,6 +64,10 @@ export const create = mutation({
     const { organizationId } = await requireTenant(ctx, args.userId);
     // Verify user has permission to create properties
     const user = await requirePermission(ctx, args.userId, "properties", "create");
+    // B2 FIX: Enforce plan limits on property creation
+    await enforcePlanLimit(ctx, organizationId, "properties");
+    // B5 FIX: Require active subscription for write operations
+    await requireActiveSubscription(ctx, organizationId);
 
     const { userId, ...propertyData } = args;
     const now = Date.now();

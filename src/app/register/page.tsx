@@ -57,14 +57,20 @@ function validateEmail(email: string): boolean {
 }
 
 function validatePassword(password: string): { valid: boolean; message: string } {
-  if (password.length < 8) {
-    return { valid: false, message: "Password must be at least 8 characters." };
+  if (password.length < 12) {
+    return { valid: false, message: "Password must be at least 12 characters." };
   }
   if (!/[A-Z]/.test(password)) {
-    return { valid: false, message: "Password must contain at least 1 uppercase letter." };
+    return { valid: false, message: "Password must contain at least 1 uppercase letter (A-Z)." };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: "Password must contain at least 1 lowercase letter (a-z)." };
   }
   if (!/[0-9]/.test(password)) {
     return { valid: false, message: "Password must contain at least 1 number." };
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/`~"\\]/.test(password)) {
+    return { valid: false, message: "Password must contain at least 1 special character (e.g. !@#$%^&*)." };
   }
   return { valid: true, message: "" };
 }
@@ -324,16 +330,17 @@ export default function RegisterPage() {
   const passwordStrength = useMemo(() => {
     if (!password) return { level: 0, label: "", color: "" };
     let score = 0;
-    if (password.length >= 8) score++;
     if (password.length >= 12) score++;
+    if (password.length >= 16) score++;
     if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
     if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
+    if (/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/`~"\\]/.test(password)) score++;
 
-    if (score <= 2) return { level: score, label: "Weak", color: "bg-red-500" };
-    if (score <= 3) return { level: score, label: "Fair", color: "bg-yellow-500" };
-    if (score <= 4) return { level: score, label: "Good", color: "bg-teal-500" };
-    return { level: score, label: "Strong", color: "bg-green-500" };
+    if (score <= 2) return { level: Math.min(score, 5), label: "Weak", color: "bg-red-500" };
+    if (score <= 3) return { level: Math.min(score, 5), label: "Fair", color: "bg-yellow-500" };
+    if (score <= 4) return { level: Math.min(score, 5), label: "Good", color: "bg-teal-500" };
+    return { level: 5, label: "Strong", color: "bg-green-500" };
   }, [password]);
 
   return (

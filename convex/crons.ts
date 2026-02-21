@@ -103,6 +103,26 @@ crons.daily(
 );
 
 // ============================================
+// BILLING & SUBSCRIPTION CRON JOBS (B3 + B5 FIX)
+// ============================================
+
+// Clean up old Stripe webhook event records (older than 30 days)
+// Prevents the idempotency table from growing indefinitely
+crons.daily(
+  "cleanup-stripe-webhook-events",
+  { hourUTC: 4, minuteUTC: 0 },
+  internal.stripe.cleanupOldWebhookEvents
+);
+
+// Check for expired trial periods and update subscription status
+// Scans for orgs where trialEndsAt < now AND status is still "trialing"
+crons.daily(
+  "check-expired-trials",
+  { hourUTC: 4, minuteUTC: 30 },
+  internal.stripe.checkExpiredTrials
+);
+
+// ============================================
 // CALENDAR SYNC CRON JOBS
 // ============================================
 

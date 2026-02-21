@@ -1,3 +1,17 @@
+/**
+ * GET /api/google/callback
+ *
+ * Google Calendar OAuth2 callback handler. Receives authorization code, exchanges for tokens,
+ * and saves Google Calendar connection to Convex.
+ *
+ * Security posture:
+ * - Authentication: HMAC-signed state parameter verification (prevents CSRF)
+ * - Rate limiting: NOT NEEDED - OAuth callback, not a data endpoint
+ * - CSRF/Origin: Protected via signed state parameter (HMAC-SHA256 with GOOGLE_CLIENT_SECRET)
+ * - Env validation: Checks GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+ * - State expiry: 10-minute window prevents replay attacks
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";

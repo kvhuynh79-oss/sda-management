@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import bcrypt from "bcryptjs";
+import { requirePasswordComplexity } from "./lib/passwordValidation";
 
 /**
  * Registration Module - Sprint 3 SaaS Onboarding
@@ -332,13 +333,8 @@ export const registerOrganization = action({
       throw new Error("Please enter a valid email address");
     }
 
-    // Validate password strength
-    if (args.adminPassword.length < 8) {
-      throw new Error("Password must be at least 8 characters long");
-    }
-    if (args.adminPassword.length > 128) {
-      throw new Error("Password must be no more than 128 characters long");
-    }
+    // SECURITY (S5): Validate password complexity (OWASP compliant)
+    requirePasswordComplexity(args.adminPassword);
 
     // Validate name fields
     const firstName = args.adminFirstName.trim();

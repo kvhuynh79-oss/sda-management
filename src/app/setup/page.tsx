@@ -29,8 +29,24 @@ export default function SetupPage() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (formData.password.length < 12) {
+      setError("Password must be at least 12 characters");
+      return;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      setError("Password must contain at least 1 uppercase letter (A-Z)");
+      return;
+    }
+    if (!/[a-z]/.test(formData.password)) {
+      setError("Password must contain at least 1 lowercase letter (a-z)");
+      return;
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      setError("Password must contain at least 1 digit (0-9)");
+      return;
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/`~"\\]/.test(formData.password)) {
+      setError("Password must contain at least 1 special character (e.g. !@#$%^&*)");
       return;
     }
 

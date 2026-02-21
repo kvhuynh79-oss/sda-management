@@ -219,7 +219,7 @@ export const update = mutation({
     primaryColor: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
     plan: v.optional(v.union(v.literal("starter"), v.literal("professional"), v.literal("enterprise"))),
-    subscriptionStatus: v.optional(v.union(v.literal("active"), v.literal("trialing"), v.literal("past_due"), v.literal("canceled"))),
+    subscriptionStatus: v.optional(v.union(v.literal("active"), v.literal("trialing"), v.literal("past_due"), v.literal("canceled"), v.literal("trial_expired"))),
     stripeCustomerId: v.optional(v.string()),
     stripeSubscriptionId: v.optional(v.string()),
     isActive: v.optional(v.boolean()),

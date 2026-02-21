@@ -14,8 +14,13 @@ import {
  * GET  /api/v1/maintenance - List maintenance requests (requires read:maintenance)
  * POST /api/v1/maintenance - Create a maintenance request (requires write:maintenance)
  *
- * Authentication: Bearer <api_key> in Authorization header
- * Tenant isolation: Automatic via organizationId from API key
+ * Security posture:
+ * - Authentication: Bearer API key (msd_live_*) validated via Convex
+ * - Rate limiting: NOT NEEDED - API key auth + Convex rate limits provide protection
+ * - CSRF/Origin: EXEMPT - API key authentication replaces Origin checks;
+ *   API keys are not browser-accessible credentials
+ * - Input validation: YES - required fields, enum validation, date format, max lengths
+ * - Tenant isolation: Automatic via organizationId from API key
  */
 
 let _convex: ConvexHttpClient | null = null;

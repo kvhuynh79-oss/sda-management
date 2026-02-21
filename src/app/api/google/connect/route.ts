@@ -1,3 +1,16 @@
+/**
+ * GET /api/google/connect
+ *
+ * Initiates Google Calendar OAuth2 authorization flow. Redirects user to Google login.
+ *
+ * Security posture:
+ * - Authentication: Implicit (user must be logged in; userId passed as query param)
+ * - Rate limiting: NOT NEEDED - OAuth redirect, not a data endpoint
+ * - CSRF/Origin: EXEMPT - uses HMAC-signed state parameter for CSRF protection
+ *   (state is verified in the callback route)
+ * - Env validation: Checks GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI, GOOGLE_CLIENT_SECRET at runtime
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 

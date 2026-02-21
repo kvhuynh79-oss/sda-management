@@ -1,7 +1,7 @@
 import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { requirePermission, requireAuth, requireTenant } from "./authHelpers";
+import { requirePermission, requireAuth, requireTenant, requireActiveSubscription } from "./authHelpers";
 import { paginationArgs } from "./paginationHelpers";
 import {
   validateRequiredString,
@@ -60,6 +60,8 @@ export const create = mutation({
     const { organizationId } = await requireTenant(ctx, args.userId);
     // Verify user has permission
     const user = await requirePermission(ctx, args.userId, "participants", "create");
+    // B5 FIX: Require active subscription for write operations
+    await requireActiveSubscription(ctx, organizationId);
 
     // Validate inputs
     const validatedNdis = validateNdisNumber(args.ndisNumber);

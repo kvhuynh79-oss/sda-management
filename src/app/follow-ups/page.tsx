@@ -21,6 +21,7 @@ export default function FollowUpsPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>(searchParams.get("priority") || "all");
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get("category") || "all");
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("oldest");
   const [showCommunications, setShowCommunications] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [user, setUser] = useState<{ id: string } | null>(null);
@@ -81,17 +82,19 @@ export default function FollowUpsPage() {
   // Sort by due date (overdue first, then by date)
   const sortedTasks = useMemo(() => {
     return [...filteredTasks].sort((a, b) => {
-      // Overdue tasks first
+      // Overdue tasks always first
       if (a.isOverdue && !b.isOverdue) return -1;
       if (!a.isOverdue && b.isOverdue) return 1;
       // Then by priority
       const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
       const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
       if (priorityDiff !== 0) return priorityDiff;
-      // Then by due date
-      return a.dueDate.localeCompare(b.dueDate);
+      // Then by due date (respecting sort order)
+      return sortOrder === "newest"
+        ? b.dueDate.localeCompare(a.dueDate)
+        : a.dueDate.localeCompare(b.dueDate);
     });
-  }, [filteredTasks]);
+  }, [filteredTasks, sortOrder]);
 
   const hasFilters = statusFilter !== "all" || priorityFilter !== "all" || categoryFilter !== "all" || searchTerm !== "";
 
@@ -245,13 +248,24 @@ export default function FollowUpsPage() {
             </div>
           </fieldset>
 
-          {/* Results count */}
-          {tasks !== undefined && (
-            <p className="text-sm text-gray-400 mb-4" aria-live="polite">
-              Showing {sortedTasks.length} task{sortedTasks.length !== 1 ? "s" : ""}
-              {hasFilters && " (filtered)"}
-            </p>
-          )}
+          {/* Results count + Sort toggle */}
+          <div className="flex items-center justify-between mb-4">
+            {tasks !== undefined && (
+              <p className="text-sm text-gray-400" aria-live="polite">
+                Showing {sortedTasks.length} task{sortedTasks.length !== 1 ? "s" : ""}
+                {hasFilters && " (filtered)"}
+              </p>
+            )}
+            <button
+              onClick={() => setSortOrder(prev => prev === "oldest" ? "newest" : "oldest")}
+              className="flex items-center gap-1 text-sm text-gray-400 hover:text-teal-400 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+              {sortOrder === "newest" ? "Newest first" : "Oldest first"}
+            </button>
+          </div>
 
           {/* Tasks List */}
           {tasks === undefined ? (

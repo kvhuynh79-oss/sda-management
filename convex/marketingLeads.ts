@@ -16,6 +16,15 @@ export const submitLead = mutation({
     role: v.optional(v.string()),
     numberOfProperties: v.optional(v.number()),
     source: v.string(),
+    // Marketing attribution (optional)
+    utmSource: v.optional(v.string()),
+    utmMedium: v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    utmContent: v.optional(v.string()),
+    utmTerm: v.optional(v.string()),
+    gclid: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    landingPage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Validate email using shared validation utility
@@ -33,6 +42,15 @@ export const submitLead = mutation({
       numberOfProperties: args.numberOfProperties,
       source: args.source,
       downloadedAt: Date.now(),
+      // Marketing attribution
+      ...(args.utmSource && { utmSource: args.utmSource }),
+      ...(args.utmMedium && { utmMedium: args.utmMedium }),
+      ...(args.utmCampaign && { utmCampaign: args.utmCampaign }),
+      ...(args.utmContent && { utmContent: args.utmContent }),
+      ...(args.utmTerm && { utmTerm: args.utmTerm }),
+      ...(args.gclid && { gclid: args.gclid }),
+      ...(args.referralCode && { referralCode: args.referralCode }),
+      ...(args.landingPage && { landingPage: args.landingPage }),
     });
 
     // Send email notification for new lead
@@ -62,6 +80,15 @@ export const submitDemoRequest = mutation({
     numberOfProperties: v.optional(v.string()),
     preferredDateTime: v.optional(v.string()),
     message: v.optional(v.string()),
+    // Marketing attribution (optional)
+    utmSource: v.optional(v.string()),
+    utmMedium: v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    utmContent: v.optional(v.string()),
+    utmTerm: v.optional(v.string()),
+    gclid: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    landingPage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Validate email and phone using shared validation utility
@@ -93,6 +120,15 @@ export const submitDemoRequest = mutation({
       message: combinedMessage,
       source: "demo_request",
       downloadedAt: Date.now(),
+      // Marketing attribution
+      ...(args.utmSource && { utmSource: args.utmSource }),
+      ...(args.utmMedium && { utmMedium: args.utmMedium }),
+      ...(args.utmCampaign && { utmCampaign: args.utmCampaign }),
+      ...(args.utmContent && { utmContent: args.utmContent }),
+      ...(args.utmTerm && { utmTerm: args.utmTerm }),
+      ...(args.gclid && { gclid: args.gclid }),
+      ...(args.referralCode && { referralCode: args.referralCode }),
+      ...(args.landingPage && { landingPage: args.landingPage }),
     });
 
     // Send email notification for new demo request
@@ -126,6 +162,15 @@ export const submitInquiry = mutation({
     phone: v.optional(v.string()),
     inquiryType: v.string(),
     message: v.string(),
+    // Marketing attribution (optional)
+    utmSource: v.optional(v.string()),
+    utmMedium: v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    utmContent: v.optional(v.string()),
+    utmTerm: v.optional(v.string()),
+    gclid: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    landingPage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Validate email and phone using shared validation utility
@@ -149,6 +194,15 @@ export const submitInquiry = mutation({
       message: args.message.trim(),
       source: "contact_form",
       downloadedAt: Date.now(),
+      // Marketing attribution
+      ...(args.utmSource && { utmSource: args.utmSource }),
+      ...(args.utmMedium && { utmMedium: args.utmMedium }),
+      ...(args.utmCampaign && { utmCampaign: args.utmCampaign }),
+      ...(args.utmContent && { utmContent: args.utmContent }),
+      ...(args.utmTerm && { utmTerm: args.utmTerm }),
+      ...(args.gclid && { gclid: args.gclid }),
+      ...(args.referralCode && { referralCode: args.referralCode }),
+      ...(args.landingPage && { landingPage: args.landingPage }),
     });
 
     // Send email notification for new inquiry

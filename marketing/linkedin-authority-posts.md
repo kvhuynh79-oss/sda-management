@@ -120,11 +120,11 @@ That figure does not include the cost of a missed certificate expiry that trigge
 
 It does not include the cost of the staff member who burns out because compliance administration was never supposed to be their entire job.
 
-MySDAManager starts at $250 per month. That is $3,000 per year.
+MySDAManager starts at $499 per month. That is $5,988 per year.
 
 For that, you get automated compliance alerts 90, 60, and 30 days before any expiry. Immutable audit trails. One-click audit evidence packs. Incident chain of custody. Consent lifecycle management. Real-time dashboards that show you exactly where your compliance gaps are before an auditor finds them.
 
-$3,000 versus $10,000 in labour alone, plus the unquantified risk of non-compliance.
+$5,988 versus $10,000 in labour alone, plus the unquantified risk of non-compliance.
 
 This is not a technology decision. It is a business decision. And the maths is not close.
 
@@ -417,7 +417,7 @@ Your one-click audit evidence pack becomes unavailable. When audit day comes, yo
 
 **What continuing costs.**
 
-The Starter plan is $250 per month. That is less than the loaded cost of a single hour of audit remediation work. It is less than the cost of one missed expiry that triggers a non-compliance finding.
+The Starter plan is $499 per month. That is less than the loaded cost of a single hour of audit remediation work. It is less than the cost of one missed expiry that triggers a non-compliance finding.
 
 **If you are ready to continue:**
 

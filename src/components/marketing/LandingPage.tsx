@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { generateAuditChecklistPdf } from "@/utils/auditChecklistPdf";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { trackConversion } from "@/lib/analytics";
+import { getAttribution } from "@/hooks/useUtmCapture";
 
 /* ──────────────────────────────────────────────────────────────────────
    Screenshot gallery data
@@ -192,6 +194,27 @@ export function LandingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // PPC headline swapping via ?ag= parameter
+  const searchParams = useSearchParams();
+  const adGroup = searchParams.get("ag");
+
+  const PPC_HEADLINES: Record<string, { h1: string; subtitle: string }> = {
+    "1": {
+      h1: "SDA Management Software \u2014 Built by an SDA Provider",
+      subtitle: "Purpose-built platform for SDA property management. Quotations in 5 seconds. NDIS claims in seconds. 60+ features.",
+    },
+    "2": {
+      h1: "NDIS Provider Software \u2014 Purpose-Built for SDA",
+      subtitle: "The only platform built specifically for SDA registered providers. Compliance, claims, quotations \u2014 all in one place.",
+    },
+    "3": {
+      h1: "Stop Managing SDA Properties with Spreadsheets",
+      subtitle: "Automate quotations, NDIS claims, compliance tracking, and reactive maintenance. One platform for everything.",
+    },
+  };
+
+  const activeHeadline = adGroup ? PPC_HEADLINES[adGroup] : null;
+
   // Mobile header menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -224,11 +247,21 @@ export function LandingPage() {
     setIsSubmitting(true);
 
     try {
+      const attribution = getAttribution();
       await submitLead({
         name: leadName,
         email: leadEmail,
         numberOfProperties: leadProperties ? Number(leadProperties) : undefined,
         source: "audit_checklist",
+        // Marketing attribution
+        ...(attribution?.utm_source && { utmSource: attribution.utm_source }),
+        ...(attribution?.utm_medium && { utmMedium: attribution.utm_medium }),
+        ...(attribution?.utm_campaign && { utmCampaign: attribution.utm_campaign }),
+        ...(attribution?.utm_content && { utmContent: attribution.utm_content }),
+        ...(attribution?.utm_term && { utmTerm: attribution.utm_term }),
+        ...(attribution?.gclid && { gclid: attribution.gclid }),
+        ...(attribution?.referral_code && { referralCode: attribution.referral_code }),
+        ...(attribution?.landing_page && { landingPage: attribution.landing_page }),
       });
     } catch {
       // If the mutation fails, still generate the PDF so we don't block the user
@@ -242,6 +275,7 @@ export function LandingPage() {
 
     setIsSubmitting(false);
     setIsSubmitted(true);
+    trackConversion({ event: "lead_magnet_download", value: 0, asset: "audit_checklist" });
   };
 
   // Still checking auth
@@ -336,7 +370,7 @@ export function LandingPage() {
                   href="/register"
                   className="text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
                 >
-                  Start Free Trial
+                  Start 14-Day Free Trial
                 </Link>
               </>
             )}
@@ -380,7 +414,7 @@ export function LandingPage() {
               ) : (
                 <>
                   <Link href="/login" className="text-center py-2 text-sm font-medium text-gray-300 hover:text-white rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-                  <Link href="/register" className="text-center py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" onClick={() => setMobileMenuOpen(false)}>Start Free Trial</Link>
+                  <Link href="/register" className="text-center py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" onClick={() => setMobileMenuOpen(false)}>Start 14-Day Free Trial</Link>
                 </>
               )}
             </div>
@@ -395,10 +429,10 @@ export function LandingPage() {
         <section className="py-20 sm:py-28 px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              Still juggling spreadsheets, emails, and generic NDIS tools?
+              {activeHeadline?.h1 || "Still juggling spreadsheets, emails, and generic NDIS tools?"}
             </h1>
             <p className="text-xl sm:text-2xl lg:text-3xl font-semibold text-teal-400 mt-4 leading-snug">
-              MySDAManager replaces the workaround. One platform. Every SDA property. Audit-ready from day one.
+              {activeHeadline?.subtitle || "MySDAManager replaces the workaround. One platform. Every SDA property. Audit-ready from day one."}
             </p>
             <p className="text-base sm:text-lg text-gray-400 max-w-3xl mx-auto mt-6 leading-relaxed">
               You&apos;re paying for 3-5 systems that weren&apos;t built for SDA. ShiftCare for rostering. Excel for properties.
@@ -420,7 +454,7 @@ export function LandingPage() {
                   href="/register"
                   className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3.5 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
                 >
-                  Start Free Trial
+                  Start 14-Day Free Trial
                 </Link>
               )}
               <Link
@@ -1206,7 +1240,7 @@ export function LandingPage() {
                   href="/register"
                   className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium px-8 py-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
                 >
-                  Want the full platform? Start Free Trial
+                  Want the full platform? Start Your 14-Day Free Trial
                 </Link>
               </div>
             ) : (
@@ -1340,7 +1374,7 @@ export function LandingPage() {
                 href="/register"
                 className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium px-10 py-4 rounded-lg text-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
               >
-                Start Free Trial
+                Start 14-Day Free Trial
               </Link>
               <Link
                 href="/book-demo"
@@ -1389,7 +1423,7 @@ export function LandingPage() {
               <h4 className="text-sm font-semibold text-white mb-3">Account</h4>
               <nav className="flex flex-col gap-2" aria-label="Account links">
                 <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded">Login</Link>
-                <Link href="/register" className="text-sm text-gray-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded">Start Free Trial</Link>
+                <Link href="/register" className="text-sm text-gray-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded">Start 14-Day Free Trial</Link>
               </nav>
             </div>
           </div>
@@ -1404,6 +1438,7 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+
     </div>
   );
 }

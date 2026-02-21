@@ -10,6 +10,10 @@ import CommandPalette from "@/components/CommandPalette";
 import SupportButton from "@/components/SupportButton";
 import { generateOrganizationSchema } from "@/lib/seo";
 import Script from "next/script";
+import GoogleTagManager from "@/components/analytics/GoogleTagManager";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import LinkedInInsightTag from "@/components/analytics/LinkedInInsightTag";
+import { UtmCaptureProvider } from "@/components/analytics/UtmCaptureProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -78,6 +82,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "window.dataLayer = window.dataLayer || [];",
+          }}
+        />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
@@ -101,15 +110,20 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
+        <GoogleTagManager />
+        <GoogleAnalytics />
+        <LinkedInInsightTag />
         <ConvexClientProvider>
           <OrganizationProvider>
             <ThemeProvider>
               <ToastProvider>
                 <ConfirmDialogProvider>
                   <CommandPalette />
-                  <div id="main-content">
-                    {children}
-                  </div>
+                  <UtmCaptureProvider>
+                    <div id="main-content">
+                      {children}
+                    </div>
+                  </UtmCaptureProvider>
                   <SupportButton />
                 </ConfirmDialogProvider>
               </ToastProvider>

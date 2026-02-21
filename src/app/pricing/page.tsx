@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { trackConversion } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Types & Data
@@ -483,6 +484,10 @@ export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const { canInstall, isInstalled, isIOS, promptInstall } = useInstallPrompt();
 
+  useEffect(() => {
+    trackConversion({ event: "pricing_page_view", value: 0 });
+  }, []);
+
   const formatPrice = (plan: PricingPlan) => {
     if (billingPeriod === "annual") {
       const monthlyEquivalent = Math.round(plan.annualPrice / 12);
@@ -732,7 +737,7 @@ export default function PricingPage() {
                       : "bg-gray-700 hover:bg-gray-600 text-white focus-visible:ring-gray-500"
                   }`}
                 >
-                  Start Free Trial
+                  Start 14-Day Free Trial
                 </Link>
 
                 {/* Custom demo link for Enterprise plan */}
@@ -847,7 +852,13 @@ export default function PricingPage() {
                 href="/register"
                 className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium px-8 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
               >
-                Start Your Free Trial
+                Start Your 14-Day Free Trial
+              </Link>
+              <Link
+                href="/book-demo"
+                className="inline-block text-teal-400 border border-teal-600 hover:bg-teal-600/10 font-medium px-8 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                Book a Demo
               </Link>
               {canInstall && !isInstalled && (
                 <button

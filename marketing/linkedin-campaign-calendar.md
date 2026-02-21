@@ -198,7 +198,7 @@ What is the sweet spot where a provider becomes "too big for spreadsheets"?
 
 #SDA #NDISCompliance #SmallBusiness #DisabilityHousing #SDAProvider #NDIS #PropertyManagement #ComplianceRisk #SpecialistDisabilityAccommodation #NDISProvider
 
-**CTA**: MySDAManager starts at $250/month -- purpose-built for providers managing 5 to 50 properties.
+**CTA**: MySDAManager starts at $499/month -- purpose-built for providers managing 5 to 50 properties.
 
 ---
 
@@ -947,7 +947,7 @@ Step 2: Link contractors to maintenance requests
 When a maintenance request comes in, assign it to the appropriate contractor. The system should track: when the request was assigned, when the contractor was contacted, when they responded, and when the work was completed.
 
 Step 3: Use digital quote requests
-Instead of calling 3 contractors and asking for verbal quotes, send a formal quote request via email. MySDAManager generates a unique link for each contractor to submit their quote -- including price, scope, and estimated timeline. No more "I think Dave said $450 on the phone last week."
+Instead of calling 3 contractors and asking for verbal quotes, send a formal quote request via email. MySDAManager generates a unique link for each contractor to submit their quote -- including price, scope, and estimated timeline. No more "I think Dave said $500 on the phone last week."
 
 Step 4: Track the complete lifecycle
 From initial report to contractor assignment to quote approval to job completion -- every step should have a timestamp. This is not just good operations. It is compliance evidence that you manage maintenance responsibly and cost-effectively.
@@ -1783,7 +1783,7 @@ Reputational:
 
 The irony is that most audit findings are not about bad practice. They are about poor evidence. The provider was doing the right things but could not prove it because their documentation was scattered, undated, or incomplete.
 
-A $250 to $600 per month management system that prevents a single audit finding pays for itself many times over.
+A $499 to $1,499 per month management system that prevents a single audit finding pays for itself many times over.
 
 Prevention is not just cheaper than remediation. It is the difference between growing your portfolio and defending your registration.
 
@@ -1845,9 +1845,9 @@ Current costs (without MySDAManager):
 - Compliance consultant (annual review): $5,000/year = ~$417/month
 - Total: approximately $4,042/month
 
-With MySDAManager (Professional plan at $450/month):
+With MySDAManager (Professional plan at $899/month):
 - Administrative time reduced to 6 hours/week: $1,170/month
-- MySDAManager subscription: $450/month
+- MySDAManager subscription: $899/month
 - Xero retained for accounting: $65/month
 - Audit preparation: 2 hours per cycle, amortised = ~$25/month
 - Compliance consultant reduced (system handles monitoring): $2,000/year = ~$167/month
@@ -2107,7 +2107,7 @@ The full MySDAManager platform:
 - REST API for custom integrations
 - AES-256 encryption, RBAC, MFA, and hash-chain audit logs
 
-All of this. From $250 per month.
+All of this. From $499 per month.
 
 No more workarounds.
 

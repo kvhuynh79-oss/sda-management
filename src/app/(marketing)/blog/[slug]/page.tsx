@@ -215,7 +215,7 @@ export default async function BlogPostPage({
                   href="/register"
                   className="inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
                 >
-                  Start Free Trial
+                  Start 14-Day Free Trial
                 </Link>
                 <Link
                   href="/book-demo"

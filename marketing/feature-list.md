@@ -280,7 +280,7 @@
 **Multi-tenant SaaS. White-label. REST API. Webhooks. Mobile app. Security.**
 
 ### Multi-Tenant SaaS
-- Three pricing tiers: Starter ($250/mo -- 10 properties, 5 users), Professional ($450/mo -- 25 properties, 20 users), Enterprise ($600/mo -- unlimited)
+- Three pricing tiers: Starter ($499/mo -- 10 properties, 5 users), Professional ($899/mo -- 25 properties, 20 users), Enterprise ($1,499/mo -- unlimited)
 - Annual billing discount: save ~7% with annual plans
 - 14-day free trial with no credit card required
 - Plan enforcement: hard limits on properties and users per tier

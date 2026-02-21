@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { trackConversion } from "@/lib/analytics";
+import { getAttribution } from "@/hooks/useUtmCapture";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -292,6 +294,7 @@ export default function RegisterPage() {
     setSubmitError("");
 
     try {
+      const attribution = getAttribution();
       const result = await registerOrganization({
         orgName: orgName.trim(),
         slug,
@@ -300,6 +303,15 @@ export default function RegisterPage() {
         adminFirstName: firstName.trim(),
         adminLastName: lastName.trim(),
         adminPassword: password,
+        // Marketing attribution
+        ...(attribution?.utm_source && { utmSource: attribution.utm_source }),
+        ...(attribution?.utm_medium && { utmMedium: attribution.utm_medium }),
+        ...(attribution?.utm_campaign && { utmCampaign: attribution.utm_campaign }),
+        ...(attribution?.utm_content && { utmContent: attribution.utm_content }),
+        ...(attribution?.utm_term && { utmTerm: attribution.utm_term }),
+        ...(attribution?.gclid && { gclid: attribution.gclid }),
+        ...(attribution?.referral_code && { referralCode: attribution.referral_code }),
+        ...(attribution?.landing_page && { landingPage: attribution.landing_page }),
       });
 
       // Store session in localStorage for useAuth compatibility
@@ -312,6 +324,9 @@ export default function RegisterPage() {
         organizationId: result.organizationId,
       };
       localStorage.setItem("sda_user", JSON.stringify(userData));
+
+      // Track successful registration
+      trackConversion({ event: "trial_signup", value: 150, method: "registration_form" });
 
       // Redirect to onboarding
       router.push("/onboarding/setup");

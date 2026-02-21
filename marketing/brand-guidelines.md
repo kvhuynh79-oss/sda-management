@@ -174,7 +174,7 @@ MySDAManager is Australia's first purpose-built SDA property management and comp
 - One-click audit evidence packs reduce preparation from weeks to minutes
 - Automated compliance alerts prevent the missed documents that trigger audit findings
 - Immutable audit logs with hash chain integrity provide cryptographic proof of compliance
-- $250/month replaces $10,000+/year in manual compliance labour
+- $499/month replaces $10,000+/year in manual compliance labour
 - Multi-tenant architecture scales with your portfolio without switching systems
 
 ### For Property Managers / Compliance Officers
@@ -737,7 +737,7 @@ All public-facing content uses Australian English.
 | -our spelling | colour, labour, behaviour, favour |
 | Date format | DD/MM/YYYY (14/02/2026) |
 | Time format | 12-hour with am/pm (9:30 am, 2:15 pm) |
-| Currency | AUD with dollar sign ($250/month) |
+| Currency | AUD with dollar sign ($499/month) |
 | Per cent | "per cent" in formal documents, "%" in social and product copy |
 
 **Exception**: Code, internal documentation, and variable names use US English for consistency with the JavaScript/TypeScript codebase (e.g., `color`, `organization`). This is never visible to users.
@@ -745,7 +745,7 @@ All public-facing content uses Australian English.
 ### Numbers
 
 1. **Spell out one through nine** in body copy. Use numerals for 10 and above.
-2. **Always use numerals** for: prices ($250), dates (14/02/2026), times (9:30 am), percentages (73%), measurements (25mm), and statistics (11,360 dwellings).
+2. **Always use numerals** for: prices ($499), dates (14/02/2026), times (9:30 am), percentages (73%), measurements (25mm), and statistics (11,360 dwellings).
 3. **Use commas as thousands separators**: 11,360 not 11360.
 4. **Use "to" not hyphens for ranges**: "5 to 50 properties" not "5-50 properties" in body copy. Hyphens are acceptable in tables and headings.
 
@@ -1004,7 +1004,7 @@ or metrics.
 | 6 | Compliance Watchdog | Feature deep dive. 90/60/30-day alerts, consent lifecycle, incident chain of custody, complaint tracking. | 120 sec |
 | 7 | Audit Pack Generator | Feature deep dive. One-click 7-section evidence export. Show a real PDF. | 90 sec |
 | 8 | Security | AES-256 encryption, immutable audit logs, RBAC, MFA. "Your participants' data deserves bank-grade security." | 60 sec |
-| 9 | Pricing | Three tiers: Starter $250, Professional $450, Enterprise $600. ROI comparison: $3,000/year vs $10,000+ manual cost. | 60 sec |
+| 9 | Pricing | Three tiers: Starter $499, Professional $899, Enterprise $1,499. ROI comparison: $5,988/year vs $10,000+ manual cost. | 60 sec |
 | 10 | Next Steps | Free trial CTA. QR code to mysdamanager.com/register. Contact details. "No credit card. No lock-in contract." | 30 sec |
 
 **Total presentation time**: ~12 minutes, leaving time for questions in a 20-minute slot.
@@ -1353,8 +1353,8 @@ TONE RULE:        Every warning includes a solution.
 WRITING RULE:     Active voice. Max 25 words/sentence. Max 3 sentences/paragraph.
 AUSSIE ENGLISH:   -ise, -our, DD/MM/YYYY, 12-hour time, AUD
 
-PRICING:          Starter $250/mo | Professional $450/mo | Enterprise $600/mo
-ROI ARGUMENT:     $3,000/year vs $10,000+ in manual compliance labour
+PRICING:          Starter $499/mo | Professional $899/mo | Enterprise $1,499/mo
+ROI ARGUMENT:     $5,988/year vs $10,000+ in manual compliance labour
 ```
 
 ---

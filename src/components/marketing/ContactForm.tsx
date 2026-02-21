@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { getAttribution } from "@/hooks/useUtmCapture";
 
 const INQUIRY_TYPES = [
   { value: "", label: "Select an inquiry type" },
@@ -39,6 +40,7 @@ export function ContactForm() {
     setIsSubmitting(true);
 
     try {
+      const attribution = getAttribution();
       await submitInquiry({
         name: name.trim(),
         email: email.trim(),
@@ -46,6 +48,15 @@ export function ContactForm() {
         phone: phone.trim() || undefined,
         inquiryType,
         message: message.trim(),
+        // Marketing attribution
+        ...(attribution?.utm_source && { utmSource: attribution.utm_source }),
+        ...(attribution?.utm_medium && { utmMedium: attribution.utm_medium }),
+        ...(attribution?.utm_campaign && { utmCampaign: attribution.utm_campaign }),
+        ...(attribution?.utm_content && { utmContent: attribution.utm_content }),
+        ...(attribution?.utm_term && { utmTerm: attribution.utm_term }),
+        ...(attribution?.gclid && { gclid: attribution.gclid }),
+        ...(attribution?.referral_code && { referralCode: attribution.referral_code }),
+        ...(attribution?.landing_page && { landingPage: attribution.landing_page }),
       });
       setIsSubmitted(true);
     } catch (err) {

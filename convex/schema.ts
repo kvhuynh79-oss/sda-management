@@ -116,6 +116,15 @@ export default defineSchema({
     inboundEmailAddress: v.optional(v.string()), // Unique forwarding address (e.g., "bls-abc123@inbound.mysdamanager.com")
     inboundEmailEnabled: v.optional(v.boolean()), // Whether email forwarding is active
     postmarkHashAddress: v.optional(v.string()), // Postmark default hash address for fallback routing
+    // Marketing attribution tracking
+    utmSource: v.optional(v.string()),
+    utmMedium: v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    utmContent: v.optional(v.string()),
+    utmTerm: v.optional(v.string()),
+    gclid: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    landingPage: v.optional(v.string()),
     // Super-admin notes about this organization
     adminNotes: v.optional(v.string()),
     // Managed onboarding service request tracking
@@ -2497,6 +2506,15 @@ export default defineSchema({
     inquiryType: v.optional(v.string()), // "general", "demo", "support", "partnership"
     message: v.optional(v.string()),
     phone: v.optional(v.string()),
+    // Marketing attribution
+    utmSource: v.optional(v.string()),
+    utmMedium: v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    utmContent: v.optional(v.string()),
+    utmTerm: v.optional(v.string()),
+    gclid: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    landingPage: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_source", ["source"])

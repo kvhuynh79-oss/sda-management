@@ -125,6 +125,15 @@ export const createOrganizationInternal = internalMutation({
     ),
     maxUsers: v.number(),
     maxProperties: v.number(),
+    // Marketing attribution (optional)
+    utmSource: v.optional(v.string()),
+    utmMedium: v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    utmContent: v.optional(v.string()),
+    utmTerm: v.optional(v.string()),
+    gclid: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    landingPage: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"organizations">> => {
     // Double-check slug uniqueness
@@ -146,6 +155,15 @@ export const createOrganizationInternal = internalMutation({
       maxProperties: args.maxProperties,
       isActive: true,
       createdAt: Date.now(),
+      // Marketing attribution
+      ...(args.utmSource && { utmSource: args.utmSource }),
+      ...(args.utmMedium && { utmMedium: args.utmMedium }),
+      ...(args.utmCampaign && { utmCampaign: args.utmCampaign }),
+      ...(args.utmContent && { utmContent: args.utmContent }),
+      ...(args.utmTerm && { utmTerm: args.utmTerm }),
+      ...(args.gclid && { gclid: args.gclid }),
+      ...(args.referralCode && { referralCode: args.referralCode }),
+      ...(args.landingPage && { landingPage: args.landingPage }),
     });
 
     // Auto-generate unique inbound email address for new org
@@ -297,6 +315,15 @@ export const registerOrganization = action({
     adminFirstName: v.string(),
     adminLastName: v.string(),
     adminPhone: v.optional(v.string()),
+    // Marketing attribution (optional)
+    utmSource: v.optional(v.string()),
+    utmMedium: v.optional(v.string()),
+    utmCampaign: v.optional(v.string()),
+    utmContent: v.optional(v.string()),
+    utmTerm: v.optional(v.string()),
+    gclid: v.optional(v.string()),
+    referralCode: v.optional(v.string()),
+    landingPage: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -354,6 +381,15 @@ export const registerOrganization = action({
         plan: args.plan,
         maxUsers: limits.maxUsers,
         maxProperties: limits.maxProperties,
+        // Pass through marketing attribution
+        ...(args.utmSource && { utmSource: args.utmSource }),
+        ...(args.utmMedium && { utmMedium: args.utmMedium }),
+        ...(args.utmCampaign && { utmCampaign: args.utmCampaign }),
+        ...(args.utmContent && { utmContent: args.utmContent }),
+        ...(args.utmTerm && { utmTerm: args.utmTerm }),
+        ...(args.gclid && { gclid: args.gclid }),
+        ...(args.referralCode && { referralCode: args.referralCode }),
+        ...(args.landingPage && { landingPage: args.landingPage }),
       }
     );
 

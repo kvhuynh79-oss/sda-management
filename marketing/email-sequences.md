@@ -357,9 +357,9 @@ If you have ticked fewer than 3, no judgement -- we know you are busy. But I wan
 
 | Plan | Monthly | Properties | Users |
 |------|---------|------------|-------|
-| Starter | $250 | Up to 15 | Up to 5 |
-| Professional | $450 | Up to 50 | Up to 15 |
-| Enterprise | $600 | Unlimited | Unlimited |
+| Starter | $499 | Up to 15 | Up to 5 |
+| Professional | $899 | Up to 50 | Up to 15 |
+| Enterprise | $1,499 | Unlimited | Unlimited |
 
 All plans include every feature. No hidden costs. No feature gatekeeping.
 
@@ -392,9 +392,9 @@ Choose any plan and receive 15% off your first 3 months:
 
 | Plan | Regular | With 15% off (first 3 months) |
 |------|---------|-------------------------------|
-| Starter | $250/month | $212.50/month |
-| Professional | $450/month | $382.50/month |
-| Enterprise | $600/month | $510/month |
+| Starter | $499/month | $424.15/month |
+| Professional | $899/month | $764.15/month |
+| Enterprise | $1,499/month | $1,274.15/month |
 
 Use code **LAUNCH15** at checkout.
 
@@ -562,7 +562,7 @@ But here is an honest comparison for providers managing 5+ properties:
 
 It is not the subscription fee (spreadsheets are free). It is the 12-15 hours per week your team spends on data entry, document searching, cross-referencing, and manual compliance checking.
 
-At $45/hour, that is $2,340-$2,925/month in labour costs for work that a $250-$450/month platform handles automatically.
+At $45/hour, that is $2,340-$2,925/month in labour costs for work that a $499-$899/month platform handles automatically.
 
 **The honest answer:**
 
@@ -663,9 +663,9 @@ Your estimate: $_____ /year / 12 = $_____ /month
 
 | Your portfolio | Recommended plan | Monthly cost |
 |----------------|-----------------|-------------|
-| 1-15 properties | Starter | $250 |
-| 16-50 properties | Professional | $450 |
-| 50+ properties | Enterprise | $600 |
+| 1-15 properties | Starter | $499 |
+| 16-50 properties | Professional | $899 |
+| 50+ properties | Enterprise | $1,499 |
 
 **Typical savings:**
 
@@ -717,9 +717,9 @@ This is the last email in this sequence. I want to respect your inbox, so I will
 
 | Plan | Regular | With 20% off (3 months) | Monthly saving |
 |------|---------|------------------------|----------------|
-| Starter | $250/month | $200/month | $50 |
-| Professional | $450/month | $360/month | $90 |
-| Enterprise | $600/month | $480/month | $120 |
+| Starter | $499/month | $399/month | $100 |
+| Professional | $899/month | $719/month | $180 |
+| Enterprise | $1,499/month | $1,199/month | $300 |
 
 Use code **AUDIT20** when you subscribe.
 
@@ -958,7 +958,7 @@ Total time: Under 5 minutes. And you will immediately see how the platform works
 
 **If you answered D:**
 
-Our Starter plan is $250/month -- less than $10/day. For a provider managing 10 properties spending 12+ hours per week on administration, the ROI is typically 4-6x within the first month. But if budget is genuinely the constraint, reply and let us discuss options.
+Our Starter plan is $499/month -- less than $17/day. For a provider managing 10 properties spending 12+ hours per week on administration, the ROI is typically 4-6x within the first month. But if budget is genuinely the constraint, reply and let us discuss options.
 
 Thank you for your honesty. It genuinely helps.
 
@@ -1030,9 +1030,9 @@ Subscribe to any plan before the deletion date and everything is preserved. No r
 
 | Plan | Regular | With 25% off |
 |------|---------|-------------|
-| Starter | $250/month | $187.50/month |
-| Professional | $450/month | $337.50/month |
-| Enterprise | $600/month | $450/month |
+| Starter | $499/month | $374.25/month |
+| Professional | $899/month | $674.25/month |
+| Enterprise | $1,499/month | $1,124.25/month |
 
 Use code **COMEBACK25** at checkout: https://mysdamanager.com/pricing?utm_source=email&utm_medium=reengagement&utm_campaign=day30&promo=COMEBACK25
 

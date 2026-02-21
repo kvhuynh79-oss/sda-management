@@ -697,9 +697,9 @@ can be altered or deleted.
 
 Right column:
 ```
-Australian Hosted
-All data stored on Australian servers
-under Australian privacy law.
+AES-256 Encrypted
+All sensitive data encrypted at rest
+with NDIS-compliant data protection.
 
 Role-Based Access
 Admin, manager, and staff permissions
@@ -731,7 +731,7 @@ PRICING
 **Headline (left-aligned, below section label, 32px gap)**:
 
 ```
-Starting from $250/month.
+Starting from $499/month.
 ```
 - Font: Geist Sans, 44px, Bold
 - Colour: #14b8a6 (teal-500)
@@ -753,7 +753,7 @@ audit preparation, and fire-drill remediation.
 Column 1:
 ```
 Starter
-$250/mo
+$499/mo
 10 properties
 5 users
 ```
@@ -761,7 +761,7 @@ $250/mo
 Column 2 (highlighted with teal border):
 ```
 Professional
-$450/mo
+$899/mo
 25 properties
 15 users
 ```
@@ -769,7 +769,7 @@ $450/mo
 Column 3:
 ```
 Enterprise
-$600/mo
+$1,499/mo
 Unlimited
 Unlimited
 ```

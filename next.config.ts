@@ -88,17 +88,20 @@ const nextConfig: NextConfig = {
     const cspDirectives = [
       "default-src 'self'",
       // Scripts: unsafe-inline needed for Next.js hydration, unsafe-eval only in dev
+      // GTM, GA4, Google Ads, and LinkedIn Insight Tag domains allowed
       isDev
-        ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-        : "script-src 'self' 'unsafe-inline'",
+        ? "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://googleads.g.doubleclick.net https://snap.licdn.com"
+        : "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://googleads.g.doubleclick.net https://snap.licdn.com",
       // Styles: inline styles needed for Tailwind/Next.js
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Fonts
       "font-src 'self' https://fonts.gstatic.com",
-      // Images: allow data URIs and blobs for uploads
-      "img-src 'self' data: blob: https:",
-      // API connections to Convex
-      "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.ingest.sentry.io https://*.sentry.io",
+      // Images: allow data URIs and blobs for uploads + LinkedIn pixel
+      "img-src 'self' data: blob: https: https://px.ads.linkedin.com",
+      // API connections to Convex, analytics, and tracking
+      "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.ingest.sentry.io https://*.sentry.io https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://px.ads.linkedin.com",
+      // Frames: GTM noscript iframe
+      "frame-src 'self' https://www.googletagmanager.com",
       // Workers for PWA
       "worker-src 'self'",
       // Prevent framing (clickjacking protection)

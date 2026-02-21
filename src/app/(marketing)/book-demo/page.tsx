@@ -4,6 +4,8 @@ import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
+import { trackConversion } from "@/lib/analytics";
+import { getAttribution } from "@/hooks/useUtmCapture";
 
 const PROPERTY_OPTIONS = [
   { value: "", label: "Select range" },
@@ -37,6 +39,7 @@ export default function BookDemoPage() {
     setIsSubmitting(true);
 
     try {
+      const attribution = getAttribution();
       await submitDemoRequest({
         name: name.trim(),
         email: email.trim(),
@@ -44,7 +47,17 @@ export default function BookDemoPage() {
         numberOfProperties: numberOfProperties || undefined,
         preferredDateTime: preferredDateTime.trim() || undefined,
         message: message.trim() || undefined,
+        // Marketing attribution
+        ...(attribution?.utm_source && { utmSource: attribution.utm_source }),
+        ...(attribution?.utm_medium && { utmMedium: attribution.utm_medium }),
+        ...(attribution?.utm_campaign && { utmCampaign: attribution.utm_campaign }),
+        ...(attribution?.utm_content && { utmContent: attribution.utm_content }),
+        ...(attribution?.utm_term && { utmTerm: attribution.utm_term }),
+        ...(attribution?.gclid && { gclid: attribution.gclid }),
+        ...(attribution?.referral_code && { referralCode: attribution.referral_code }),
+        ...(attribution?.landing_page && { landingPage: attribution.landing_page }),
       });
+      trackConversion({ event: "demo_booking", value: 200, method: "demo_form" });
       setIsSubmitted(true);
     } catch (err) {
       setError(
@@ -388,7 +401,7 @@ export default function BookDemoPage() {
                   href="/register"
                   className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
                 >
-                  Start Free Trial
+                  Start 14-Day Free Trial
                 </Link>
                 <p className="mt-2 text-xs text-gray-400">
                   14 days free, no credit card required

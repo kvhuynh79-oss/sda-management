@@ -5,7 +5,7 @@
 A comprehensive outbound sales strategy for MySDAManager covering LinkedIn outreach, cold email, partnership development, events, and lead magnets.
 
 **Target market**: SDA and SIL providers managing 5-50 properties in Australia
-**Average deal size**: $250-$600/month ($3,000-$7,200 ARR)
+**Average deal size**: $499-$1,499/month ($5,988-$17,988 ARR)
 **Sales cycle**: 2-6 weeks (short cycle, founder-led for early stage)
 **Decision maker**: Operations Manager, Director, or Founder/CEO
 
@@ -258,7 +258,7 @@ I will keep this brief. Here is the maths for a provider managing 15 properties:
 
 **With MySDAManager** (Professional plan):
 - Reduced admin time: 6 hrs/week x $45/hr = $1,170/month
-- MySDAManager: $450/month
+- MySDAManager: $899/month
 - Xero: $65/month
 - Reduced audit prep: ~$25/month
 - Reduced consultant: ~$167/month
@@ -546,7 +546,7 @@ khen@mysdamanager.com | mysdamanager.com
 3. "Here is where your participants live -- linked to properties and plans" (30 seconds)
 4. "Log a maintenance request -- see the timestamp and contractor workflow" (30 seconds)
 5. "Now click Generate Audit Pack" -- show the 7-section PDF (60 seconds)
-6. "All of this, starting at $250/month" (30 seconds)
+6. "All of this, starting at $499/month" (30 seconds)
 
 **Lead capture**:
 - Digital form (tablet or laptop): Name, email, company, property count, biggest challenge
@@ -742,7 +742,7 @@ Khen
 
 | Scenario (15 properties) | Spreadsheets + Tools | Generic PM Software | MySDAManager |
 |--------------------------|---------------------|--------------------| ------------|
-| Software cost/month | ~$200 | ~$300-500 | $250-450 |
+| Software cost/month | ~$200 | ~$300-500 | $499-899 |
 | Admin labour cost/month | ~$2,925 | ~$2,000 | ~$1,170 |
 | Audit prep cost/month | ~$500 | ~$300 | ~$25 |
 | Compliance risk | High | Medium | Low |
@@ -961,7 +961,7 @@ Show ONLY the features that address their stated pain points. Do not demo everyt
 - Financial management: Payment tracking > Xero integration > Owner reports
 
 **Minute 12-14: ROI and pricing**
-"Based on what you have told me about your operation, the Professional plan at $450/month would give you [specific benefits]. Providers of your size typically see [specific savings]."
+"Based on what you have told me about your operation, the Professional plan at $899/month would give you [specific benefits]. Providers of your size typically see [specific savings]."
 
 **Minute 14-15: Next steps**
 "Would you like to start a 14-day trial? I can set up your account right now and pre-load your first few properties. Or if you would like to discuss this with your team first, I can send a summary email with everything we covered."
@@ -969,7 +969,7 @@ Show ONLY the features that address their stated pain points. Do not demo everyt
 ### 6.4 Objection Handling
 
 **"We are too small for software."**
-"I hear that often. The interesting thing is that smaller providers (5-15 properties) are actually where compliance risk is highest, because you have fewer people managing the same obligations as larger providers. MySDAManager starts at $250/month -- less than $10/day. Most providers of your size save 8-10 hours per week in admin time alone."
+"I hear that often. The interesting thing is that smaller providers (5-15 properties) are actually where compliance risk is highest, because you have fewer people managing the same obligations as larger providers. MySDAManager starts at $499/month -- less than $17/day. Most providers of your size save 8-10 hours per week in admin time alone."
 
 **"We have a system that works."**
 "That is great. Can I ask -- if an auditor called tomorrow, how long would it take to produce a complete compliance evidence pack? If it is under an hour, your system really does work. If it is longer, there might be value in a conversation about how MySDAManager handles that."
@@ -998,7 +998,7 @@ Show ONLY the features that address their stated pain points. Do not demo everyt
 | Meeting/demo rate | 8-12% | 5-8% | 20-30% | 15-25% |
 | Trial conversion | 30-40% | 25-35% | 40-50% | 20-30% |
 | Trial-to-paid | 25-35% | 20-30% | 35-45% | 25-35% |
-| Average deal size | $450/month | $350/month | $500/month | $400/month |
+| Average deal size | $899/month | $699/month | $899/month | $699/month |
 | Sales cycle (days) | 14-28 | 21-42 | 14-21 | 21-35 |
 
 ### 7.2 Monthly Reporting Template
@@ -1050,7 +1050,7 @@ MySDAManager is Australia's only purpose-built SDA property management platform 
 "It is always a workaround. Every SDA provider I speak with tells me the same thing. They have built their operations on spreadsheets, shared drives, and email -- not because these are the right tools, but because no right tool existed. MySDAManager is the end of workarounds."
 
 ### Pricing Justification
-"Our Starter plan at $250/month works out to less than $10/day. For a provider spending 12+ hours per week on admin tasks at $45/hour, the software saves $2,000+ per month in labour costs alone. The ROI is typically 5-6x within the first month."
+"Our Starter plan at $499/month works out to less than $17/day. For a provider spending 12+ hours per week on admin tasks at $45/hour, the software saves $2,000+ per month in labour costs alone. The ROI is typically 4-5x within the first month."
 
 ---
 

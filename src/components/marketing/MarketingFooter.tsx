@@ -8,6 +8,7 @@ const FOOTER_COLUMNS = [
       { href: "/pricing", label: "Pricing" },
       { href: "/security", label: "Security" },
       { href: "/compare", label: "Compare" },
+      { href: "/book-demo", label: "Book a Demo" },
     ],
   },
   {

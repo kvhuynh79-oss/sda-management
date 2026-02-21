@@ -28,19 +28,21 @@ function ArrowLeftIcon() {
 
 const SECTIONS = [
   { id: "introduction", title: "1. Introduction" },
-  { id: "information-we-collect", title: "2. Information We Collect" },
-  { id: "how-we-use-information", title: "3. How We Use Information" },
+  { id: "what-we-collect", title: "2. What We Collect" },
+  { id: "how-we-use-information", title: "3. How We Use Your Information" },
   { id: "ndis-data-handling", title: "4. NDIS Data Handling" },
-  { id: "data-storage-security", title: "5. Data Storage and Security" },
-  { id: "data-sharing", title: "6. Data Sharing" },
-  { id: "cross-border-transfer", title: "7. Cross-Border Data Transfer" },
-  { id: "data-retention", title: "8. Data Retention" },
-  { id: "your-rights", title: "9. Your Rights" },
-  { id: "cookies-analytics", title: "10. Cookies and Analytics" },
-  { id: "childrens-privacy", title: "11. Children's Privacy" },
-  { id: "changes-to-policy", title: "12. Changes to This Policy" },
-  { id: "contact-complaints", title: "13. Contact and Complaints" },
-  { id: "effective-date", title: "14. Effective Date" },
+  { id: "how-we-protect-your-data", title: "5. How We Protect Your Data" },
+  { id: "where-your-data-is-stored", title: "6. Where Your Data Is Stored" },
+  { id: "third-party-services", title: "7. Third-Party Services" },
+  { id: "cross-border-transfer", title: "8. Cross-Border Data Transfer" },
+  { id: "data-retention", title: "9. Data Retention" },
+  { id: "your-rights", title: "10. Your Rights" },
+  { id: "cookies-analytics", title: "11. Cookies and Analytics" },
+  { id: "childrens-privacy", title: "12. Children's Privacy" },
+  { id: "ndis-compliance", title: "13. NDIS Compliance" },
+  { id: "changes-to-policy", title: "14. Changes to This Policy" },
+  { id: "contact-complaints", title: "15. Contact and Complaints" },
+  { id: "effective-date", title: "16. Effective Date" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -98,7 +100,7 @@ export default function PrivacyPolicyPage() {
           Privacy Policy
         </h1>
         <p className="text-gray-400 text-sm mb-10">
-          Last updated: February 2026
+          Last updated: 21 February 2026
         </p>
 
         {/* Table of Contents */}
@@ -157,69 +159,66 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 2. Information We Collect */}
-          <section id="information-we-collect">
+          {/* 2. What We Collect */}
+          <section id="what-we-collect">
             <h2 className="text-xl font-bold text-white mb-4">
-              2. Information We Collect
+              2. What We Collect
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
-                We collect different types of information depending on how the Service is
-                used:
+                We collect different types of information depending on how you use the Service.
               </p>
 
               <p className="text-white font-semibold mt-4">
-                2.1 Account and Organisation Information
+                2.1 Organisation Details
               </p>
               <ul className="list-disc pl-6 space-y-1">
                 <li>Organisation name, ABN, and contact details</li>
-                <li>User names, email addresses, and roles</li>
-                <li>Login credentials (passwords are stored as bcrypt hashes, never in plain text)</li>
-                <li>Multi-factor authentication configuration</li>
+                <li>Branding preferences (logo, colours) for white-label configuration</li>
+                <li>Subscription plan and billing history</li>
               </ul>
 
               <p className="text-white font-semibold mt-4">
-                2.2 Participant Data
+                2.2 User Accounts
               </p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>Full names and dates of birth</li>
-                <li>NDIS participant numbers</li>
-                <li>Contact details (address, phone, email)</li>
-                <li>NDIS plan details including funding amounts and plan dates</li>
-                <li>SDA design category and support requirements</li>
-                <li>Emergency contact information</li>
-                <li>Support coordinator and SIL provider details</li>
+                <li>Full names, email addresses, and assigned roles</li>
+                <li>Login credentials (passwords are stored as bcrypt hashes with 12 salt rounds -- never in plain text)</li>
+                <li>Multi-factor authentication (MFA) configuration</li>
+                <li>Session tokens and login timestamps</li>
               </ul>
 
               <p className="text-white font-semibold mt-4">
-                2.3 Property and Operational Data
+                2.3 SDA Property and Participant Data
               </p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>Property addresses and dwelling details</li>
-                <li>Owner and investor information, including bank account details for payment purposes</li>
-                <li>Maintenance request records and contractor details</li>
-                <li>Inspection records and photographs</li>
-                <li>Incident reports and complaints (which may contain sensitive personal information)</li>
-                <li>Compliance certifications and documents</li>
+                <li>Property addresses, dwelling details, and SDA design categories</li>
+                <li>Participant names, NDIS numbers, dates of birth, and emergency contacts</li>
+                <li>NDIS plan details including funding amounts, plan dates, and support requirements</li>
+                <li>Support coordinator, SIL provider, and occupational therapist details</li>
+                <li>Owner and investor information, including bank account details for payment distribution</li>
+                <li>Maintenance requests, inspection records, incident reports, and complaints</li>
+                <li>Photographs attached to inspections, incidents, and maintenance records</li>
+                <li>Compliance certifications and uploaded documents</li>
               </ul>
 
               <p className="text-white font-semibold mt-4">
-                2.4 Financial Data
+                2.4 Payment Information
               </p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>SDA payment records and invoices</li>
+                <li>SDA payment records, invoices, and MTA claims</li>
                 <li>Reasonable Rent Contribution (RRC) calculations</li>
-                <li>Subscription billing information (processed and stored by Stripe; we do not store full credit card numbers)</li>
+                <li>Subscription billing information (processed and stored by Stripe -- we never store full credit card numbers)</li>
               </ul>
 
               <p className="text-white font-semibold mt-4">
-                2.5 Usage and Technical Data
+                2.5 Usage Analytics and Error Logs
               </p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>Session information and login timestamps</li>
-                <li>Audit logs of actions performed within the Service</li>
+                <li>Audit logs of actions performed within the Service (who did what and when)</li>
+                <li>Error and crash reports sent to our error monitoring service (personally identifiable information is scrubbed before transmission)</li>
                 <li>Device information for push notification delivery</li>
-                <li>Browser type, operating system, and general location (derived from IP address)</li>
+                <li>Browser type, operating system, and general location derived from IP address</li>
               </ul>
             </div>
           </section>
@@ -227,7 +226,7 @@ export default function PrivacyPolicyPage() {
           {/* 3. How We Use Information */}
           <section id="how-we-use-information">
             <h2 className="text-xl font-bold text-white mb-4">
-              3. How We Use Information
+              3. How We Use Your Information
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -239,6 +238,7 @@ export default function PrivacyPolicyPage() {
                 <li><strong className="text-white">Billing and subscription management</strong> -- processing payments, issuing invoices, and managing plan entitlements via Stripe</li>
                 <li><strong className="text-white">Notifications</strong> -- sending email and SMS alerts for maintenance, document expiries, compliance deadlines, and other Service-related events</li>
                 <li><strong className="text-white">Compliance support</strong> -- generating audit logs, compliance reports, and incident records to assist with NDIS regulatory requirements</li>
+                <li><strong className="text-white">AI document analysis</strong> -- analysing uploaded documents (such as NDIS plans and compliance certificates) using AI to extract key information, when you choose to use this feature</li>
                 <li><strong className="text-white">Product improvement</strong> -- analysing aggregated and anonymised usage patterns to improve the Service</li>
                 <li><strong className="text-white">Customer support</strong> -- responding to enquiries, troubleshooting issues, and providing technical assistance</li>
                 <li><strong className="text-white">Legal compliance</strong> -- meeting our obligations under Australian law, including the Privacy Act and NDIS legislation</li>
@@ -260,7 +260,7 @@ export default function PrivacyPolicyPage() {
               <p>
                 The Service is specifically designed for managing NDIS SDA participant
                 information, which may include sensitive information as defined under
-                the Privacy Act. We apply heightened protections to this data:
+                the Privacy Act. We apply heightened protections to this data.
               </p>
 
               <p className="text-white font-semibold mt-4">
@@ -313,43 +313,49 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 5. Data Storage & Security */}
-          <section id="data-storage-security">
+          {/* 5. How We Protect Your Data */}
+          <section id="how-we-protect-your-data">
             <h2 className="text-xl font-bold text-white mb-4">
-              5. Data Storage and Security
+              5. How We Protect Your Data
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
                 We take reasonable steps to protect personal information from misuse,
                 interference, loss, unauthorised access, modification, and disclosure
-                (APP 11).
+                (APP 11). Our security measures include:
               </p>
 
               <p className="text-white font-semibold mt-4">
-                5.1 Infrastructure
-              </p>
-              <ul className="list-disc pl-6 space-y-1">
-                <li><strong className="text-white">Database hosting:</strong> Customer Data is stored in Convex Cloud, a managed database service with servers located in the United States</li>
-                <li><strong className="text-white">Application hosting:</strong> The web application is hosted on Vercel, with edge servers distributed globally</li>
-                <li><strong className="text-white">File storage:</strong> Uploaded documents and images are stored in Convex file storage with access controls</li>
-              </ul>
-
-              <p className="text-white font-semibold mt-4">
-                5.2 Security Measures
+                5.1 Encryption
               </p>
               <ul className="list-disc pl-6 space-y-1">
                 <li><strong className="text-white">Encryption in transit:</strong> All data transmitted between your browser and our servers is encrypted using TLS (HTTPS)</li>
-                <li><strong className="text-white">Password security:</strong> User passwords are hashed using bcrypt with 12 salt rounds; plain-text passwords are never stored</li>
-                <li><strong className="text-white">Session management:</strong> Server-side sessions with 24-hour access tokens and 30-day refresh tokens, with automatic expiry</li>
-                <li><strong className="text-white">Multi-factor authentication:</strong> TOTP-based MFA available for administrator accounts</li>
-                <li><strong className="text-white">Role-based access control:</strong> Granular permissions based on user roles (administrator, property manager, staff, SIL provider)</li>
-                <li><strong className="text-white">Audit logging:</strong> Comprehensive, tamper-resistant audit trail of all data access and modifications, with SHA-256 hash chain integrity verification</li>
-                <li><strong className="text-white">Inactivity lock:</strong> Automatic screen lock after periods of inactivity to protect unattended devices</li>
-                <li><strong className="text-white">Content Security Policy:</strong> Strict CSP headers to prevent cross-site scripting and code injection attacks</li>
+                <li><strong className="text-white">Field-level encryption at rest:</strong> NDIS participant personally identifiable information (PII) -- including NDIS numbers, dates of birth, emergency contacts, and bank account numbers -- is encrypted using AES-256-GCM before it is written to the database. This means the stored data is unreadable without your organisation&apos;s encryption keys</li>
               </ul>
 
               <p className="text-white font-semibold mt-4">
-                5.3 Data Breach Response
+                5.2 Authentication and Access Control
+              </p>
+              <ul className="list-disc pl-6 space-y-1">
+                <li><strong className="text-white">Password security:</strong> User passwords are hashed using bcrypt with 12 salt rounds. Plain-text passwords are never stored</li>
+                <li><strong className="text-white">Multi-factor authentication (MFA):</strong> TOTP-based MFA (compatible with Google Authenticator and similar apps) is available for administrator accounts, with backup codes for recovery</li>
+                <li><strong className="text-white">Role-based access control (RBAC):</strong> Granular permissions based on user roles (administrator, property manager, staff, SIL provider). Each role only has access to the functions and data it needs</li>
+                <li><strong className="text-white">Row-level tenant isolation:</strong> Every database record is tagged with an organisation ID. Queries are scoped so that one organisation can never access another organisation&apos;s data</li>
+                <li><strong className="text-white">Session management:</strong> Server-side sessions with 24-hour access tokens and 30-day refresh tokens, with automatic expiry</li>
+                <li><strong className="text-white">Inactivity lock:</strong> Automatic screen lock after a period of inactivity to protect unattended devices</li>
+              </ul>
+
+              <p className="text-white font-semibold mt-4">
+                5.3 Audit and Integrity
+              </p>
+              <ul className="list-disc pl-6 space-y-1">
+                <li><strong className="text-white">Immutable audit logging:</strong> A comprehensive, tamper-resistant audit trail records all data access and modifications. Each log entry is linked to the previous entry using a SHA-256 hash chain, and integrity is verified automatically every day</li>
+                <li><strong className="text-white">Content Security Policy (CSP):</strong> Strict CSP headers prevent cross-site scripting and code injection attacks</li>
+                <li><strong className="text-white">Webhook signature verification:</strong> Outbound webhooks are signed with HMAC-SHA256, allowing recipients to verify that payloads have not been tampered with</li>
+              </ul>
+
+              <p className="text-white font-semibold mt-4">
+                5.4 Data Breach Response
               </p>
               <p>
                 In the event of an eligible data breach as defined under Part IIIC of
@@ -364,10 +370,63 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 6. Data Sharing */}
-          <section id="data-sharing">
+          {/* 6. Where Your Data Is Stored */}
+          <section id="where-your-data-is-stored">
             <h2 className="text-xl font-bold text-white mb-4">
-              6. Data Sharing
+              6. Where Your Data Is Stored
+            </h2>
+            <div className="space-y-3 text-gray-300 leading-relaxed">
+              <div className="bg-gray-800 rounded-lg border border-teal-700 p-6">
+                <p className="text-white font-semibold mb-3">
+                  Important: US-hosted infrastructure
+                </p>
+                <p>
+                  MySDAManager uses cloud infrastructure hosted in the United States,
+                  including our database provider (Convex), email services (Resend,
+                  Postmark), error monitoring (Sentry), and payment processing (Stripe).
+                </p>
+                <p className="mt-3">
+                  All NDIS participant personally identifiable information (PII) is
+                  encrypted using AES-256-GCM field-level encryption <strong className="text-white">before
+                  it leaves your browser</strong>. This means the data stored on US
+                  servers is encrypted and unreadable without your organisation&apos;s
+                  encryption keys.
+                </p>
+                <p className="mt-3">
+                  We are actively evaluating Australian-hosted alternatives and will
+                  migrate to local hosting when viable options that meet our performance
+                  requirements become available.
+                </p>
+              </div>
+
+              <p className="text-white font-semibold mt-4">
+                6.1 Infrastructure Summary
+              </p>
+              <ul className="list-disc pl-6 space-y-1">
+                <li><strong className="text-white">Database and backend:</strong> Convex Cloud, a managed serverless database with servers located in the United States</li>
+                <li><strong className="text-white">Application hosting:</strong> Vercel, with edge servers distributed globally (primary infrastructure in the United States)</li>
+                <li><strong className="text-white">File storage:</strong> Uploaded documents and images are stored in Convex file storage with access controls</li>
+              </ul>
+
+              <p className="text-white font-semibold mt-4">
+                6.2 What This Means in Practice
+              </p>
+              <p>
+                While our servers are physically located in the United States, the
+                sensitive fields that identify NDIS participants (NDIS numbers, dates
+                of birth, emergency contact details, and bank account numbers) are
+                encrypted with AES-256-GCM before storage. Even if someone gained
+                direct access to the database, these fields would appear as
+                unreadable ciphertext. Decryption can only occur within our secure
+                backend using keys that are not stored alongside the data.
+              </p>
+            </div>
+          </section>
+
+          {/* 7. Third-Party Services */}
+          <section id="third-party-services">
+            <h2 className="text-xl font-bold text-white mb-4">
+              7. Third-Party Services
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -376,50 +435,80 @@ export default function PrivacyPolicyPage() {
                 marketing or any other purpose.
               </p>
               <p>
-                We share personal information only with the following categories of
-                service providers, solely for the purpose of operating the Service:
+                We share personal information only with the following service providers,
+                solely for the purpose of operating the Service:
               </p>
 
               <div className="overflow-x-auto mt-4">
                 <table className="w-full text-sm border border-gray-700 rounded-lg overflow-hidden">
                   <thead>
                     <tr className="bg-gray-800">
-                      <th className="text-left px-4 py-3 text-gray-300 font-semibold border-b border-gray-700">Sub-processor</th>
+                      <th className="text-left px-4 py-3 text-gray-300 font-semibold border-b border-gray-700">Service</th>
                       <th className="text-left px-4 py-3 text-gray-300 font-semibold border-b border-gray-700">Purpose</th>
+                      <th className="text-left px-4 py-3 text-gray-300 font-semibold border-b border-gray-700">Data Residency</th>
                       <th className="text-left px-4 py-3 text-gray-300 font-semibold border-b border-gray-700">Data Shared</th>
-                      <th className="text-left px-4 py-3 text-gray-300 font-semibold border-b border-gray-700">Location</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b border-gray-700/50">
                       <td className="px-4 py-3 text-white font-medium">Convex</td>
-                      <td className="px-4 py-3">Database hosting and real-time data synchronisation</td>
-                      <td className="px-4 py-3">All Customer Data</td>
+                      <td className="px-4 py-3">Database and backend</td>
                       <td className="px-4 py-3">United States</td>
-                    </tr>
-                    <tr className="border-b border-gray-700/50">
-                      <td className="px-4 py-3 text-white font-medium">Vercel</td>
-                      <td className="px-4 py-3">Web application hosting</td>
-                      <td className="px-4 py-3">Session data, browser requests</td>
-                      <td className="px-4 py-3">Global (edge network)</td>
+                      <td className="px-4 py-3">Encrypted PII, organisation data, uploaded files</td>
                     </tr>
                     <tr className="border-b border-gray-700/50">
                       <td className="px-4 py-3 text-white font-medium">Stripe</td>
-                      <td className="px-4 py-3">Subscription payment processing</td>
-                      <td className="px-4 py-3">Organisation name, billing email, payment method</td>
+                      <td className="px-4 py-3">Payment processing</td>
                       <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3">Payment details, billing email (PCI-DSS compliant)</td>
                     </tr>
                     <tr className="border-b border-gray-700/50">
                       <td className="px-4 py-3 text-white font-medium">Resend</td>
-                      <td className="px-4 py-3">Transactional email delivery</td>
-                      <td className="px-4 py-3">Recipient email addresses, email content</td>
+                      <td className="px-4 py-3">Transactional email</td>
                       <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3">Email addresses, notification content</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Postmark</td>
+                      <td className="px-4 py-3">Inbound email</td>
+                      <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3">Inbound email content</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Twilio</td>
+                      <td className="px-4 py-3">SMS notifications</td>
+                      <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3">Phone numbers, SMS content</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Sentry</td>
+                      <td className="px-4 py-3">Error monitoring</td>
+                      <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3">Error logs (PII is scrubbed before transmission)</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Anthropic (Claude)</td>
+                      <td className="px-4 py-3">AI document analysis</td>
+                      <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3">Document content (encrypted in transit, not used for model training)</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Tawk.to</td>
+                      <td className="px-4 py-3">Live chat support</td>
+                      <td className="px-4 py-3">Varies</td>
+                      <td className="px-4 py-3">Chat messages and contact details you provide</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/50">
+                      <td className="px-4 py-3 text-white font-medium">Google Calendar</td>
+                      <td className="px-4 py-3">Calendar scheduling</td>
+                      <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3">Calendar events (if you connect your calendar)</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-white font-medium">Twilio</td>
-                      <td className="px-4 py-3">SMS notification delivery</td>
-                      <td className="px-4 py-3">Recipient phone numbers, message content</td>
-                      <td className="px-4 py-3">United States</td>
+                      <td className="px-4 py-3 text-white font-medium">Vercel</td>
+                      <td className="px-4 py-3">Frontend hosting</td>
+                      <td className="px-4 py-3">Edge (US primary)</td>
+                      <td className="px-4 py-3">Static assets, API route requests</td>
                     </tr>
                   </tbody>
                 </table>
@@ -433,17 +522,18 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 7. Cross-Border Data Transfer */}
+          {/* 8. Cross-Border Data Transfer */}
           <section id="cross-border-transfer">
             <h2 className="text-xl font-bold text-white mb-4">
-              7. Cross-Border Data Transfer
+              8. Cross-Border Data Transfer
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
-                In accordance with APP 8, we disclose to you that Customer Data stored
-                in the Service is hosted on servers located in the <strong className="text-white">United States</strong>{" "}
-                (via Convex Cloud). Our sub-processors (Stripe, Resend, Twilio) also
-                operate infrastructure in the United States.
+                In accordance with APP 8, we disclose to you that data stored
+                in the Service is hosted on servers located in the <strong className="text-white">United States</strong>.
+                All ten of our third-party service providers listed in Section 7 operate
+                infrastructure in the United States (Tawk.to may also use servers in
+                other jurisdictions).
               </p>
               <p>
                 We take reasonable steps to ensure that our overseas sub-processors
@@ -454,6 +544,7 @@ export default function PrivacyPolicyPage() {
                 <li>Selecting sub-processors with robust security practices and certifications (such as SOC 2 compliance)</li>
                 <li>Entering into contractual arrangements that require sub-processors to protect personal information</li>
                 <li>Reviewing sub-processor security practices periodically</li>
+                <li>Encrypting sensitive PII fields before they reach any third-party infrastructure</li>
               </ul>
               <p>
                 By using the Service, you acknowledge and consent to the transfer of
@@ -464,10 +555,10 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 8. Data Retention */}
+          {/* 9. Data Retention */}
           <section id="data-retention">
             <h2 className="text-xl font-bold text-white mb-4">
-              8. Data Retention
+              9. Data Retention
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -522,10 +613,10 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 9. Your Rights */}
+          {/* 10. Your Rights */}
           <section id="your-rights">
             <h2 className="text-xl font-bold text-white mb-4">
-              9. Your Rights
+              10. Your Rights
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -534,17 +625,18 @@ export default function PrivacyPolicyPage() {
               </p>
 
               <p className="text-white font-semibold mt-4">
-                9.1 Right of Access (APP 12)
+                10.1 Access Your Data (APP 12)
               </p>
               <p>
                 You have the right to request access to the personal information we hold
                 about you. Organisation administrators can access and export most data
-                directly through the Service. For other access requests, please contact
+                directly through the Service using the built-in data export feature
+                (Settings &gt; Data Export). For other access requests, please contact
                 our Privacy Officer.
               </p>
 
               <p className="text-white font-semibold mt-4">
-                9.2 Right of Correction (APP 13)
+                10.2 Correct Your Data (APP 13)
               </p>
               <p>
                 You have the right to request correction of personal information that is
@@ -554,7 +646,7 @@ export default function PrivacyPolicyPage() {
               </p>
 
               <p className="text-white font-semibold mt-4">
-                9.3 Right to Deletion
+                10.3 Delete Your Data
               </p>
               <p>
                 You may request deletion of personal information that is no longer needed
@@ -564,20 +656,34 @@ export default function PrivacyPolicyPage() {
               </p>
 
               <p className="text-white font-semibold mt-4">
-                9.4 Data Export
+                10.4 Export Your Data
               </p>
               <p>
-                Active subscribers can export their data at any time through the Service.
-                After account cancellation, data export is available for 90 days. We will
-                provide reasonable assistance with data export requests.
+                Active subscribers can export a complete copy of their organisation&apos;s
+                data at any time through the Service (Settings &gt; Data Export). The export
+                includes all records across all tables in a standard JSON format. After
+                account cancellation, data export is available for 90 days.
               </p>
 
               <p className="text-white font-semibold mt-4">
-                9.5 Right to Complain
+                10.5 Close Your Account
+              </p>
+              <p>
+                You can cancel your subscription and close your account at any time. After
+                cancellation, your data is retained for 90 days (in case you change your
+                mind), after which it is permanently deleted. To close your account,
+                contact us at{" "}
+                <a href="mailto:privacy@mysdamanager.com" className="text-teal-500 hover:text-teal-400 transition-colors">
+                  privacy@mysdamanager.com
+                </a>.
+              </p>
+
+              <p className="text-white font-semibold mt-4">
+                10.6 Complain
               </p>
               <p>
                 If you believe we have breached the Australian Privacy Principles, you
-                may lodge a complaint with us (see Section 13 below) or directly with
+                may lodge a complaint with us (see Section 15 below) or directly with
                 the Office of the Australian Information Commissioner (OAIC):
               </p>
               <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 mt-2">
@@ -605,10 +711,10 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 10. Cookies & Analytics */}
+          {/* 11. Cookies & Analytics */}
           <section id="cookies-analytics">
             <h2 className="text-xl font-bold text-white mb-4">
-              10. Cookies and Analytics
+              11. Cookies and Analytics
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -632,10 +738,10 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 11. Children's Privacy */}
+          {/* 12. Children's Privacy */}
           <section id="childrens-privacy">
             <h2 className="text-xl font-bold text-white mb-4">
-              11. Children&apos;s Privacy
+              12. Children&apos;s Privacy
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -656,10 +762,43 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 12. Changes to Policy */}
+          {/* 13. NDIS Compliance */}
+          <section id="ndis-compliance">
+            <h2 className="text-xl font-bold text-white mb-4">
+              13. NDIS Compliance
+            </h2>
+            <div className="space-y-3 text-gray-300 leading-relaxed">
+              <p>
+                MySDAManager is designed to support compliance with the NDIS Practice
+                Standards, including the requirements for record-keeping, incident
+                management, complaints handling, and participant privacy. The Service
+                provides tools such as audit trails, consent workflows, incident
+                reporting timelines, and compliance certification tracking to help
+                your organisation meet its obligations.
+              </p>
+              <p>
+                <strong className="text-white">However, we do not make regulatory compliance
+                guarantees.</strong> Compliance with NDIS Practice Standards, the NDIS
+                Code of Conduct, and the NDIS Quality and Safeguards Commission
+                requirements is ultimately the responsibility of each registered
+                provider. The Service is a tool to assist with compliance, not a
+                substitute for your own compliance processes, staff training, and
+                professional advice.
+              </p>
+              <p>
+                If you have questions about how the Service supports specific NDIS
+                compliance requirements, please contact us at{" "}
+                <a href="mailto:support@mysdamanager.com" className="text-teal-500 hover:text-teal-400 transition-colors">
+                  support@mysdamanager.com
+                </a>.
+              </p>
+            </div>
+          </section>
+
+          {/* 14. Changes to Policy */}
           <section id="changes-to-policy">
             <h2 className="text-xl font-bold text-white mb-4">
-              12. Changes to This Policy
+              14. Changes to This Policy
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -687,10 +826,10 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 13. Contact & Complaints */}
+          {/* 15. Contact & Complaints */}
           <section id="contact-complaints">
             <h2 className="text-xl font-bold text-white mb-4">
-              13. Contact and Complaints
+              15. Contact and Complaints
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
@@ -730,22 +869,22 @@ export default function PrivacyPolicyPage() {
                 <li>Lodge your complaint in writing to our Privacy Officer at <a href="mailto:privacy@mysdamanager.com" className="text-teal-500 hover:text-teal-400 transition-colors">privacy@mysdamanager.com</a></li>
                 <li>We will acknowledge your complaint within 7 business days</li>
                 <li>We will investigate and respond within 30 days</li>
-                <li>If you are not satisfied with our response, you may escalate your complaint to the OAIC (see Section 9.5 above)</li>
+                <li>If you are not satisfied with our response, you may escalate your complaint to the OAIC (see Section 10.6 above)</li>
               </ol>
             </div>
           </section>
 
-          {/* 14. Effective Date */}
+          {/* 16. Effective Date */}
           <section id="effective-date">
             <h2 className="text-xl font-bold text-white mb-4">
-              14. Effective Date
+              16. Effective Date
             </h2>
             <div className="space-y-3 text-gray-300 leading-relaxed">
               <p>
                 This Privacy Policy is effective as of <strong className="text-white">1 February 2026</strong>.
               </p>
               <p>
-                This policy was last reviewed and updated in February 2026.
+                This policy was last reviewed and updated on <strong className="text-white">21 February 2026</strong>.
               </p>
             </div>
           </section>

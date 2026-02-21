@@ -22,6 +22,7 @@ interface PricingPlan {
   name: string;
   monthlyPrice: number;
   annualPrice: number;
+  annualSavings: number;
   description: string;
   features: PlanFeature[];
   highlighted?: boolean;
@@ -36,6 +37,7 @@ const PLANS: PricingPlan[] = [
     name: "Starter",
     monthlyPrice: 499,
     annualPrice: 4990,
+    annualSavings: 998,
     description: "Perfect for small SDA providers getting started.",
     propertyLimit: "Up to 10 properties",
     userLimit: "Up to 5 users",
@@ -58,6 +60,7 @@ const PLANS: PricingPlan[] = [
     name: "Professional",
     monthlyPrice: 899,
     annualPrice: 8990,
+    annualSavings: 1798,
     description: "For growing providers who need more power.",
     propertyLimit: "Up to 25 properties",
     userLimit: "Up to 15 users",
@@ -80,6 +83,7 @@ const PLANS: PricingPlan[] = [
     name: "Enterprise",
     monthlyPrice: 1499,
     annualPrice: 14990,
+    annualSavings: 2998,
     description: "Full-featured solution for established providers.",
     propertyLimit: "Up to 50 properties",
     userLimit: "Unlimited users",
@@ -289,6 +293,123 @@ const METRIC_ICONS = {
 };
 
 // ---------------------------------------------------------------------------
+// ROI Calculator
+// ---------------------------------------------------------------------------
+
+function RoiCalculator() {
+  const [propertyCount, setPropertyCount] = useState(10);
+
+  // Calculations
+  const annualAdminCost = propertyCount * 1560;
+  const estimatedSdaRevenuePerProperty = 30000; // conservative avg SDA revenue per property
+  const consultingRate = 0.08;
+  const annualConsultingCost = Math.round(propertyCount * estimatedSdaRevenuePerProperty * consultingRate);
+
+  // Tier matching
+  let planName: string;
+  let monthlyPrice: number;
+  if (propertyCount <= 10) {
+    planName = "Starter";
+    monthlyPrice = 499;
+  } else if (propertyCount <= 25) {
+    planName = "Professional";
+    monthlyPrice = 899;
+  } else {
+    planName = "Enterprise";
+    monthlyPrice = 1499;
+  }
+  const annualSoftwareCost = monthlyPrice * 12;
+
+  // Compare against admin cost (lower of the two anchors)
+  const savings = annualAdminCost - annualSoftwareCost;
+
+  return (
+    <section className="pb-20">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold text-white text-center mb-3">
+          See how much you could save
+        </h2>
+        <p className="text-gray-400 text-center mb-10 max-w-2xl mx-auto">
+          Adjust the slider to match your portfolio size.
+        </p>
+
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+          {/* Slider input */}
+          <div className="px-6 py-6 border-b border-gray-700">
+            <label htmlFor="property-slider" className="block text-sm font-semibold text-gray-300 mb-1">
+              Number of SDA properties managed
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                id="property-slider"
+                type="range"
+                min={1}
+                max={50}
+                value={propertyCount}
+                onChange={(e) => setPropertyCount(Number(e.target.value))}
+                className="flex-1 h-2 rounded-full appearance-none bg-gray-600 accent-teal-500 cursor-pointer"
+              />
+              <span className="text-2xl font-bold text-white min-w-[3ch] text-right">{propertyCount}</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>1</span>
+              <span>50</span>
+            </div>
+          </div>
+
+          {/* Row 1 — Annual manual admin cost */}
+          <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+            <div>
+              <span className="block text-sm font-medium text-gray-300">Annual manual admin cost</span>
+              <span className="block text-xs text-gray-400">{propertyCount} properties &times; $1,560/year</span>
+            </div>
+            <span className="text-lg font-bold text-red-400">${annualAdminCost.toLocaleString()}/yr</span>
+          </div>
+
+          {/* Row 2 — SDA consulting alternative */}
+          <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+            <div>
+              <span className="block text-sm font-medium text-gray-300">SDA consulting alternative</span>
+              <span className="block text-xs text-gray-400">{propertyCount} &times; ~$30k revenue &times; 8%</span>
+            </div>
+            <span className="text-lg font-bold text-red-400">${annualConsultingCost.toLocaleString()}/yr</span>
+          </div>
+
+          {/* Row 3 — MySDAManager cost */}
+          <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+            <div>
+              <span className="block text-sm font-medium text-gray-300">MySDAManager {planName}</span>
+              <span className="block text-xs text-gray-400">${monthlyPrice}/month &times; 12 months</span>
+            </div>
+            <span className="text-lg font-bold text-teal-400">${annualSoftwareCost.toLocaleString()}/yr</span>
+          </div>
+
+          {/* Net result */}
+          <div className="px-6 py-8 bg-teal-950/20 text-center">
+            <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              {savings > 0 ? "You save" : "Your investment"}
+            </span>
+            <span className={`block text-5xl sm:text-6xl font-bold ${savings > 0 ? "text-teal-400" : "text-white"}`}>
+              ${Math.abs(savings).toLocaleString()}
+            </span>
+            <span className="block text-sm text-gray-400 mt-2">
+              per year {savings > 0 ? "vs manual admin alone" : ""}
+            </span>
+          </div>
+
+          {/* Footnote */}
+          <div className="px-6 py-3 border-t border-gray-700">
+            <p className="text-xs text-gray-400 text-center">
+              Based on industry averages for SDA compliance administration.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // FAQ Accordion
 // ---------------------------------------------------------------------------
 
@@ -424,10 +545,108 @@ export default function PricingPage() {
               Annual
             </span>
             {billingPeriod === "annual" && (
-              <span className="bg-teal-600/20 text-teal-400 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                Save 17%
-              </span>
+              <>
+                <span className="bg-teal-600/20 text-teal-400 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  Save 17%
+                </span>
+                <span className="bg-teal-600 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  2 months free
+                </span>
+              </>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Cost Anchoring — The Real Cost Without Software                    */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="pb-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-3">
+            The real cost of managing SDA without software
+          </h2>
+          <p className="text-gray-400 text-center mb-8 max-w-2xl mx-auto">
+            Before you compare plans, consider what you&apos;re already spending.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1 — Manual Admin Cost */}
+            <div className="relative rounded-xl border border-red-500/30 bg-red-950/20 p-6 flex flex-col">
+              <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-500/15 text-red-400 mb-4">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-3xl font-bold text-red-400 mb-1">$15,600/year</span>
+              <span className="text-sm font-semibold text-white mb-2">Manual SDA compliance admin</span>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                15+ hours/week on spreadsheets, emails, audit prep, and NDIS claims
+              </p>
+            </div>
+
+            {/* Card 2 — SDA Consulting Fees */}
+            <div className="relative rounded-xl border border-red-500/30 bg-red-950/20 p-6 flex flex-col">
+              <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-500/15 text-red-400 mb-4">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                </svg>
+              </div>
+              <span className="text-3xl font-bold text-red-400 mb-1">$12,000&ndash;$20,000/year</span>
+              <span className="text-sm font-semibold text-white mb-2">SDA consulting &amp; management fees</span>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                6&ndash;10% of your SDA revenue for external compliance management
+              </p>
+            </div>
+
+            {/* Card 3 — Failed Audit Risk */}
+            <div className="relative rounded-xl border border-red-500/30 bg-red-950/20 p-6 flex flex-col">
+              <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-red-500/15 text-red-400 mb-4">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <span className="text-3xl font-bold text-red-400 mb-1">$50,000&ndash;$200,000+</span>
+              <span className="text-sm font-semibold text-white mb-2">NDIS audit non-compliance</span>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Remediation costs, lost enrollments, and reputational damage
+              </p>
+            </div>
+          </div>
+
+          {/* Green resolution callout */}
+          <div className="mt-8 rounded-xl border border-teal-500/30 bg-teal-950/20 px-6 py-5 text-center">
+            <p className="text-lg font-semibold text-teal-400">
+              MySDAManager Professional: $899/month — pays for itself in the first month.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------------------- */}
+      {/* Founding Member Banner                                             */}
+      {/* ----------------------------------------------------------------- */}
+      <section className="pb-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative rounded-xl border border-teal-500/40 bg-gradient-to-r from-teal-950/40 via-teal-900/20 to-teal-950/40 px-6 py-6 sm:px-10 sm:py-8 text-center overflow-hidden">
+            {/* Decorative corner accents */}
+            <div className="absolute top-0 left-0 w-24 h-24 bg-teal-500/5 rounded-br-full" aria-hidden="true" />
+            <div className="absolute bottom-0 right-0 w-24 h-24 bg-teal-500/5 rounded-tl-full" aria-hidden="true" />
+
+            <div className="relative">
+              <span className="inline-block bg-teal-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-4">
+                Limited Offer
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                Founding Member Offer
+              </h2>
+              <p className="text-lg text-teal-300 font-medium mb-2">
+                First 10 customers lock in launch pricing for 24 months
+              </p>
+              <p className="text-sm text-gray-400">
+                Limited spots remaining — secure your rate before prices increase.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -471,9 +690,14 @@ export default function PricingPage() {
                     <span className="text-gray-400 text-sm">/month</span>
                   </div>
                   {billingPeriod === "annual" && (
-                    <p className="text-sm text-gray-400 mt-1">
-                      ${formatTotalPrice(plan)} billed annually
-                    </p>
+                    <>
+                      <p className="text-sm text-gray-400 mt-1">
+                        ${formatTotalPrice(plan)} billed annually
+                      </p>
+                      <span className="inline-block mt-2 bg-teal-600/20 text-teal-400 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                        Save ${plan.annualSavings.toLocaleString()}/year
+                      </span>
+                    </>
                   )}
                 </div>
 
@@ -510,6 +734,16 @@ export default function PricingPage() {
                 >
                   Start Free Trial
                 </Link>
+
+                {/* Custom demo link for Enterprise plan */}
+                {plan.id === "enterprise" && (
+                  <Link
+                    href="/book-demo"
+                    className="block text-center mt-3 text-sm text-teal-400 hover:text-teal-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"
+                  >
+                    Managing 30+ properties? Book a custom demo &rarr;
+                  </Link>
+                )}
               </div>
             ))}
           </div>
@@ -644,54 +878,7 @@ export default function PricingPage() {
       {/* ----------------------------------------------------------------- */}
       {/* ROI Calculator                                                     */}
       {/* ----------------------------------------------------------------- */}
-      <section className="pb-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-white text-center mb-10">
-            The real cost of workarounds
-          </h2>
-
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            {/* Manual cost */}
-            <div className="px-6 py-5 border-b border-gray-700">
-              <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                Manual compliance management
-              </span>
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-gray-300 text-sm">4 hours/week</span>
-                <span className="text-gray-400" aria-hidden="true">x</span>
-                <span className="text-gray-300 text-sm">$75/hour</span>
-                <span className="text-gray-400" aria-hidden="true">x</span>
-                <span className="text-gray-300 text-sm">52 weeks</span>
-                <span className="text-gray-400" aria-hidden="true">=</span>
-                <span className="text-xl font-bold text-red-400">$15,600/year</span>
-              </div>
-            </div>
-
-            {/* MySDAManager cost */}
-            <div className="px-6 py-5 border-b border-gray-700">
-              <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                MySDAManager Professional
-              </span>
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-gray-300 text-sm">$899/month</span>
-                <span className="text-gray-400" aria-hidden="true">x</span>
-                <span className="text-gray-300 text-sm">12 months</span>
-                <span className="text-gray-400" aria-hidden="true">=</span>
-                <span className="text-xl font-bold text-teal-400">$10,788/year</span>
-              </div>
-            </div>
-
-            {/* Savings */}
-            <div className="px-6 py-8 bg-teal-950/20 text-center">
-              <span className="block text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Your annual savings
-              </span>
-              <span className="block text-5xl sm:text-6xl font-bold text-teal-400">$4,812</span>
-              <span className="block text-sm text-gray-400 mt-2">per year</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <RoiCalculator />
 
       {/* ----------------------------------------------------------------- */}
       {/* Operational Metrics                                                */}

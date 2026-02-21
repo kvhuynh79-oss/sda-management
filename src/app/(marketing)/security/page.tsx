@@ -317,12 +317,20 @@ export default function SecurityPage() {
               Every line of code, every database query, every API call is
               designed with participant data protection as the first priority.
             </p>
-            <Link
-              href="/register"
-              className="inline-flex items-center px-8 py-3 text-base font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              Start Free Trial
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                Start Free Trial
+              </Link>
+              <Link
+                href="/book-demo"
+                className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-teal-400 border border-teal-600 hover:bg-teal-600/10 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                Book a Demo
+              </Link>
+            </div>
             <p className="mt-3 text-sm text-gray-400">
               No credit card required
             </p>

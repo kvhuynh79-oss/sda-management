@@ -453,13 +453,21 @@ export default function ComparePage() {
             <p className="text-gray-400 mb-6">
               14 days free, no credit card required.
             </p>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              Start Free Trial
-              <ArrowRightIcon className="h-5 w-5" />
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-semibold px-8 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                Start Free Trial
+                <ArrowRightIcon className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/book-demo"
+                className="inline-flex items-center justify-center px-8 py-3 font-semibold text-teal-400 border border-teal-600 hover:bg-teal-600/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                Book a Demo
+              </Link>
+            </div>
           </div>
         </div>
       </section>

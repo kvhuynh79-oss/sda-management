@@ -245,10 +245,10 @@ export default function FaqPage() {
               Contact Us
             </Link>
             <Link
-              href="/register"
+              href="/book-demo"
               className="inline-flex items-center justify-center px-8 py-3.5 text-base font-medium text-teal-400 border border-teal-600 hover:bg-teal-600/10 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
-              Start Free Trial
+              Book a Demo
             </Link>
           </div>
         </div>

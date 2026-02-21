@@ -88,10 +88,10 @@ export default function ContactPage() {
                   portfolio.
                 </p>
                 <Link
-                  href="/register"
+                  href="/book-demo"
                   className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
                 >
-                  Start Free Trial
+                  Book a Demo
                 </Link>
               </div>
 

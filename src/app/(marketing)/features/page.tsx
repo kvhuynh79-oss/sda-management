@@ -562,10 +562,10 @@ export default function FeaturesPage() {
               Start Free Trial
             </Link>
             <Link
-              href="/pricing"
-              className="inline-flex items-center px-6 py-3 text-base font-semibold text-gray-300 border border-gray-600 hover:border-gray-400 hover:text-white rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              href="/book-demo"
+              className="inline-flex items-center px-6 py-3 text-base font-semibold text-teal-400 border border-teal-600 hover:bg-teal-600/10 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
             >
-              See Pricing
+              Book a Demo
             </Link>
           </div>
         </div>

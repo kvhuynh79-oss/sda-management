@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/about", label: "About" },
   { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
+  { href: "/book-demo", label: "Book a Demo" },
 ];
 
 export function MarketingHeader() {

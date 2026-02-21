@@ -53,6 +53,71 @@ export const submitLead = mutation({
 });
 
 /**
+ * Submit a demo booking request from /book-demo page.
+ * PUBLIC mutation — no authentication required.
+ */
+export const submitDemoRequest = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    numberOfProperties: v.optional(v.string()),
+    preferredDateTime: v.optional(v.string()),
+    message: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(args.email)) {
+      throw new Error("Invalid email address");
+    }
+
+    if (!args.name.trim()) {
+      throw new Error("Name is required");
+    }
+
+    // Build a descriptive message combining all fields
+    const messageParts: string[] = [];
+    if (args.numberOfProperties) {
+      messageParts.push(`SDA Properties: ${args.numberOfProperties}`);
+    }
+    if (args.preferredDateTime) {
+      messageParts.push(`Preferred Date/Time: ${args.preferredDateTime}`);
+    }
+    if (args.message) {
+      messageParts.push(`Additional notes: ${args.message}`);
+    }
+    const combinedMessage = messageParts.join("\n") || undefined;
+
+    const leadId = await ctx.db.insert("marketingLeads", {
+      name: args.name.trim(),
+      email: args.email.trim().toLowerCase(),
+      phone: args.phone?.trim() || undefined,
+      inquiryType: "demo",
+      message: combinedMessage,
+      source: "demo_request",
+      downloadedAt: Date.now(),
+    });
+
+    // Send email notification for new demo request
+    await ctx.scheduler.runAfter(0, internal.marketingLeads.notifyNewLead, {
+      type: "inquiry" as const,
+      name: args.name.trim(),
+      email: args.email.trim().toLowerCase(),
+      phone: args.phone?.trim() || undefined,
+      numberOfProperties: args.numberOfProperties
+        ? parseInt(args.numberOfProperties, 10) || undefined
+        : undefined,
+      inquiryType: "demo",
+      message: combinedMessage,
+      source: "demo_request",
+      timestamp: new Date().toISOString(),
+    });
+
+    return { success: true, leadId };
+  },
+});
+
+/**
  * Submit a contact form inquiry from the website.
  * PUBLIC mutation — no authentication required.
  */

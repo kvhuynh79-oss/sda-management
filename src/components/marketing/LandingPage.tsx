@@ -77,6 +77,23 @@ const WORKAROUND_ROWS = [
 ] as const;
 
 /* ──────────────────────────────────────────────────────────────────────
+   Demo video URL
+   Replace with an actual Loom or YouTube embed URL after recording.
+   When set, the placeholder is swapped for a live iframe automatically.
+   ────────────────────────────────────────────────────────────────────── */
+// TODO: Replace DEMO_VIDEO_URL with actual Loom/YouTube URL after recording
+const DEMO_VIDEO_URL = "";
+
+/* ──────────────────────────────────────────────────────────────────────
+   Time-savings stats (before → after)
+   ────────────────────────────────────────────────────────────────────── */
+const TIME_SAVINGS_STATS = [
+  { label: "SDA quotations", oldValue: "30-60 min", newValue: "5 seconds" },
+  { label: "NDIS claims CSV", oldValue: "15-30 min", newValue: "seconds" },
+  { label: "Audit pack", oldValue: "2 weeks", newValue: "minutes" },
+] as const;
+
+/* ──────────────────────────────────────────────────────────────────────
    Reusable SVG icon components (inlined for zero-dependency perf)
    ────────────────────────────────────────────────────────────────────── */
 function IconLock({ className }: { className?: string }) {
@@ -135,6 +152,31 @@ function IconExclamation({ className }: { className?: string }) {
   );
 }
 
+function IconBuilding({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  );
+}
+
+function IconClipboardCheck({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+    </svg>
+  );
+}
+
+function IconWrench({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
 /* ──────────────────────────────────────────────────────────────────────
    Landing Page Component
    ────────────────────────────────────────────────────────────────────── */
@@ -155,6 +197,9 @@ export function LandingPage() {
 
   // Screenshot gallery
   const [activeScreenshot, setActiveScreenshot] = useState(0);
+
+  // Demo video placeholder
+  const [showDemoMessage, setShowDemoMessage] = useState(false);
 
   const submitLead = useMutation(api.marketingLeads.submitLead);
 
@@ -376,12 +421,12 @@ export function LandingPage() {
                   Start Free Trial
                 </Link>
               )}
-              <button
-                onClick={scrollToChecklist}
+              <Link
+                href="/book-demo"
                 className="border border-teal-600 text-teal-400 hover:bg-teal-600/10 px-8 py-3.5 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
               >
-                Download Audit Checklist
-              </button>
+                Book a Demo
+              </Link>
             </div>
 
             {/* Trust signals row */}
@@ -448,6 +493,119 @@ export function LandingPage() {
               />
               {/* Gradient fade at bottom */}
               <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-gray-900/80 to-transparent" aria-hidden="true" />
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+            SECTION 2.75: Demo Video + Time-Savings Stats
+            ================================================================ */}
+        <section className="pb-16 sm:pb-20 px-4">
+          <div className="max-w-4xl mx-auto">
+            {/* Section heading */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                Watch it in action
+              </h2>
+              <p className="text-gray-400 max-w-xl mx-auto">
+                See how MySDAManager replaces hours of manual work with a few clicks.
+              </p>
+            </div>
+
+            {/* Video container — 16:9 aspect ratio */}
+            {DEMO_VIDEO_URL ? (
+              /* Live video embed (YouTube / Loom) */
+              <div className="relative w-full rounded-xl overflow-hidden border border-gray-700 shadow-2xl shadow-teal-900/20" style={{ paddingBottom: "56.25%" }}>
+                <iframe
+                  src={DEMO_VIDEO_URL}
+                  title="MySDAManager 60-second demo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+            ) : (
+              /* Placeholder with play button */
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowDemoMessage(true)}
+                  className="relative w-full rounded-xl overflow-hidden border border-gray-700 shadow-2xl shadow-teal-900/20 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+                  style={{ paddingBottom: "56.25%" }}
+                  aria-label="Play 60-second demo video"
+                >
+                  {/* Background: dashboard screenshot with dark overlay */}
+                  <div className="absolute inset-0">
+                    <Image
+                      src="/marketing/dashboard.png"
+                      alt=""
+                      fill
+                      className="object-cover object-top"
+                      aria-hidden="true"
+                    />
+                    <div className="absolute inset-0 bg-gray-900/70 group-hover:bg-gray-900/60 transition-colors" />
+                  </div>
+
+                  {/* Centred play icon + text */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                    {/* Play circle */}
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-teal-600/90 group-hover:bg-teal-500/90 transition-colors flex items-center justify-center shadow-lg shadow-teal-900/40">
+                      <svg
+                        className="w-10 h-10 sm:w-12 sm:h-12 text-white ml-1"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                    <span className="text-white font-semibold text-lg sm:text-xl drop-shadow-lg">
+                      Watch 60-second demo
+                    </span>
+                  </div>
+                </button>
+
+                {/* "Coming soon" inline message */}
+                {showDemoMessage && (
+                  <div className="mt-4 bg-gray-800 border border-gray-700 rounded-xl p-5 text-center animate-in fade-in duration-300">
+                    <p className="text-gray-300 mb-3">
+                      Demo video coming soon. Want a personalised walkthrough instead?
+                    </p>
+                    <Link
+                      href="/book-demo"
+                      className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-md px-2 py-1"
+                    >
+                      Book a live demo instead
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Time-savings stat cards ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10">
+              {TIME_SAVINGS_STATS.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="bg-gray-800 border border-gray-700 rounded-xl p-5 text-center"
+                >
+                  <p className="text-sm font-medium text-gray-400 mb-3">{stat.label}</p>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-red-400/80 line-through text-sm sm:text-base font-medium">
+                      {stat.oldValue}
+                    </span>
+                    <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                    <span className="text-teal-400 font-bold text-base sm:text-lg">
+                      {stat.newValue}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -589,6 +747,95 @@ export function LandingPage() {
                   MySDAManager solves this.
                 </p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+            SECTION 4.5: Who Is MySDAManager For? (Personas)
+            ================================================================ */}
+        <section className="py-16 sm:py-20 px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                Who is MySDAManager for?
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Whether you own, manage, or operate SDA properties, MySDAManager is built for the way you work.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              {/* Persona 1: SDA Property Investor */}
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-8 hover:border-teal-600/50 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-teal-600/10 flex items-center justify-center mb-5">
+                  <IconBuilding className="w-6 h-6 text-teal-400" />
+                </div>
+                <h3 className="text-white text-lg font-semibold mb-3">
+                  SDA Property Investors
+                </h3>
+                <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                  You own SDA properties but don&apos;t manage day-to-day operations.
+                  You need visibility into compliance status, rental income tracking,
+                  and confidence that your investment is protected from audit risk.
+                </p>
+                <p className="text-sm font-medium text-teal-400 flex items-center gap-2">
+                  <IconCheck className="w-4 h-4 flex-shrink-0" />
+                  Owner dashboards &amp; compliance alerts
+                </p>
+              </div>
+
+              {/* Persona 2: SDA Registered Provider */}
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-8 hover:border-teal-600/50 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-teal-600/10 flex items-center justify-center mb-5">
+                  <IconClipboardCheck className="w-6 h-6 text-teal-400" />
+                </div>
+                <h3 className="text-white text-lg font-semibold mb-3">
+                  SDA Registered Providers
+                </h3>
+                <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                  You&apos;re enrolled with the NDIS to deliver SDA housing. You manage
+                  participant placements, evidence collection, audit readiness, and
+                  NDIS claims across multiple dwellings. Your current tools weren&apos;t
+                  built for this.
+                </p>
+                <p className="text-sm font-medium text-teal-400 flex items-center gap-2">
+                  <IconCheck className="w-4 h-4 flex-shrink-0" />
+                  Audit pack generation &amp; NDIS claims automation
+                </p>
+              </div>
+
+              {/* Persona 3: SDA Property Manager */}
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-8 hover:border-teal-600/50 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-teal-600/10 flex items-center justify-center mb-5">
+                  <IconWrench className="w-6 h-6 text-teal-400" />
+                </div>
+                <h3 className="text-white text-lg font-semibold mb-3">
+                  SDA Property Managers
+                </h3>
+                <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                  You handle the day-to-day &mdash; reactive maintenance, contractor
+                  coordination, participant move-ins, compliance documentation.
+                  You&apos;re drowning in spreadsheets and emails that should be automated.
+                </p>
+                <p className="text-sm font-medium text-teal-400 flex items-center gap-2">
+                  <IconCheck className="w-4 h-4 flex-shrink-0" />
+                  Maintenance workflows &amp; compliance watchdog
+                </p>
+              </div>
+            </div>
+
+            {/* CTA line */}
+            <div className="text-center mt-10">
+              <Link
+                href="/book-demo"
+                className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded-md px-2 py-1"
+              >
+                Not sure which plan fits? Book a demo
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </Link>
             </div>
           </div>
         </section>
@@ -1086,19 +1333,19 @@ export function LandingPage() {
             <p className="text-lg text-gray-400 mb-8">
               Start protecting your evidence trail today.
             </p>
-            <Link
-              href="/register"
-              className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium px-10 py-4 rounded-lg text-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              Start Free Trial
-            </Link>
-            <div className="mt-4">
-              <button
-                onClick={scrollToChecklist}
-                className="text-sm text-teal-400 hover:text-teal-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/register"
+                className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium px-10 py-4 rounded-lg text-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
               >
-                or download the free checklist
-              </button>
+                Start Free Trial
+              </Link>
+              <Link
+                href="/book-demo"
+                className="inline-block border border-teal-600 text-teal-400 hover:bg-teal-600/10 font-medium px-10 py-4 rounded-lg text-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+              >
+                Book a Demo
+              </Link>
             </div>
           </div>
         </section>
